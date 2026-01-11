@@ -1,0 +1,1495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Beyond the Bottom Line: DuPont Analysis Masterclass</title>
+    <!-- Fonts -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Roboto:wght@300;400;500;700&family=Fira+Code:wght@400&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-color: #f8f9fa;
+            --text-color: #2c3e50;
+            --accent-blue: #2980b9;
+            --accent-light: #3498db;
+            --success: #27ae60;
+            --error: #c0392b;
+            --card-bg: #ffffff;
+            --shadow: 0 4px 6px rgba(0,0,0,0.1);
+            --shadow-lg: 0 10px 25px rgba(0,0,0,0.15);
+            --header-font: 'Playfair Display', serif;
+            --body-font: 'Roboto', sans-serif;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: var(--body-font);
+            background-color: #dfe6e9;
+            color: var(--text-color);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        /* --- Layout --- */
+        #app-container {
+            width: 100%;
+            max-width: 1400px;
+            height: 90vh;
+            background-color: var(--bg-color);
+            position: relative;
+            box-shadow: var(--shadow-lg);
+            border-radius: 12px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .slide {
+            display: none;
+            flex: 1;
+            padding: 2rem 4rem;
+            overflow-y: auto;
+            flex-direction: column;
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        .slide.active { display: flex; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* --- Typography --- */
+        h1, h2, h3 { font-family: var(--header-font); color: #2c3e50; margin-bottom: 1rem; }
+        h1 { font-size: 3rem; }
+        h2 { font-size: 2.2rem; border-bottom: 3px solid var(--accent-light); padding-bottom: 10px; display: inline-block; }
+        p, li { font-size: 1.15rem; line-height: 1.6; color: #34495e; margin-bottom: 1rem; }
+        
+        .text-accent { color: var(--accent-blue); }
+        .text-success { color: var(--success); }
+        .text-error { color: var(--error); }
+        .text-white { color: white !important; }
+        .text-center { text-align: center; }
+        .flex-center { display: flex; justify-content: center; align-items: center; height: 100%; }
+        .mt-4 { margin-top: 2rem; }
+        .mb-4 { margin-bottom: 2rem; }
+
+        /* --- Math Formatting (CSS Fractions) --- */
+        .formula-box { font-size: 1.3rem; margin: 20px 0; text-align: center; font-family: 'Fira Code', monospace; }
+        .fraction { display: inline-block; text-align: center; vertical-align: middle; margin: 0 5px; }
+        .fraction > span { display: block; padding: 0 5px; }
+        .fraction span.numerator { border-bottom: 2px solid var(--text-color); }
+        .fraction span.denominator { padding-top: 2px; }
+
+        /* --- Components --- */
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: start; }
+        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem; }
+
+        .card {
+            background: var(--card-bg);
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            border-left: 5px solid transparent;
+            transition: transform 0.2s;
+            height: 100%;
+        }
+        .card:hover { transform: translateY(-5px); }
+        .card-highlight { border-left-color: var(--accent-blue); }
+        .card-data { border-left-color: #f39c12; background-color: #fffaf0; }
+
+        .btn-action {
+            background: var(--accent-blue);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            margin-top: 10px;
+            transition: background 0.2s;
+        }
+        .btn-action:hover { background: var(--accent-light); }
+
+        /* --- Calculator UI --- */
+        .calc-box {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            max-width: 400px;
+            margin: 0 auto;
+        }
+        .calc-input {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0 15px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: var(--body-font);
+            font-size: 1rem;
+        }
+        .calc-result {
+            margin-top: 15px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--accent-blue);
+            text-align: center;
+            background: #ecf0f1;
+            padding: 10px;
+            border-radius: 4px;
+        }
+
+        /* --- Flip Cards --- */
+        .flip-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 2rem; perspective: 1000px; }
+        .flip-card { background-color: transparent; height: 220px; perspective: 1000px; cursor: pointer; }
+        .flip-inner { position: relative; width: 100%; height: 100%; text-align: center; transition: transform 0.6s; transform-style: preserve-3d; box-shadow: var(--shadow); border-radius: 8px; }
+        .flip-card.flipped .flip-inner { transform: rotateY(180deg); }
+        .flip-front, .flip-back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 2rem; border-radius: 8px; }
+        .flip-front { background: var(--accent-blue); color: white; }
+        .flip-back { background: white; color: var(--text-color); transform: rotateY(180deg); border: 2px solid var(--accent-blue); }
+        /* Ensure headers inside flip cards inherit color */
+        .flip-front h3, .flip-back h3 { color: inherit; }
+        
+        .flip-small-text p { font-size: 0.95rem; line-height: 1.4; }
+
+        /* --- Hierarchy Tree (DuPont Map) --- */
+        .map-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+        .map-level { display: flex; gap: 40px; justify-content: center; }
+        .map-node {
+            background: white;
+            border: 2px solid var(--accent-blue);
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            width: 220px;
+            position: relative;
+            box-shadow: var(--shadow);
+        }
+        .map-node small { display: block; color: #7f8c8d; font-family: 'Fira Code'; font-size: 0.8rem; margin-top: 5px; }
+        .map-connector-v { width: 2px; height: 20px; background: #333; margin: 0 auto; }
+        .map-connector-h { height: 2px; background: #333; width: 50%; margin: 0 auto; }
+
+        /* --- CCC Visualizer --- */
+        .ccc-wrapper { margin-top: 30px; position: relative; height: 180px; border-bottom: 2px solid #ccc; overflow: visible;}
+        .ccc-bar {
+            height: 40px;
+            position: absolute;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            border-radius: 4px;
+            transition: all 1.5s ease-in-out;
+            top: 20px;
+            font-size: 0.8rem;
+            white-space: nowrap;
+            overflow: hidden;
+            width: 0;
+        }
+        .ccc-axis {
+            position: absolute;
+            top: 100px;
+            width: 100%;
+            height: 2px;
+            background: #333;
+        }
+        .ccc-tick { position: absolute; top: 90px; width: 2px; height: 20px; background: #333; }
+        .ccc-label { position: absolute; top: 110px; font-size: 0.9rem; transform: translateX(-50%); font-weight: bold; }
+        
+        .ccc-bracket {
+            position: absolute;
+            top: 130px;
+            height: 20px;
+            border: 2px solid var(--accent-blue);
+            border-top: none;
+            transition: all 1.5s ease-in-out;
+            opacity: 0;
+        }
+        .ccc-bracket-text {
+            position: absolute;
+            bottom: -25px;
+            width: 100%;
+            text-align: center;
+            font-weight: bold;
+            color: var(--accent-blue);
+        }
+
+        /* --- Buyback Simulator --- */
+        .sim-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        .bar-chart-area {
+            height: 200px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            gap: 40px;
+            border-bottom: 2px solid #333;
+            padding-bottom: 5px;
+        }
+        .bar {
+            width: 80px;
+            background: var(--accent-blue);
+            transition: height 0.5s;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            color: white;
+            padding-bottom: 5px;
+        }
+
+        /* --- Drag & Drop --- */
+        .dnd-area {
+            display: flex;
+            gap: 20px;
+            min-height: 150px;
+            margin-top: 20px;
+        }
+        .draggable {
+            background: white;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            cursor: grab;
+            margin-bottom: 10px;
+        }
+        .dropzone {
+            flex: 1;
+            background: #eee;
+            border: 2px dashed #999;
+            border-radius: 8px;
+            padding: 10px;
+            min-height: 100px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* --- Quiz --- */
+        .quiz-option { 
+            display: block; padding: 15px; margin: 10px 0; background: white; 
+            border: 1px solid #ddd; border-radius: 5px; cursor: pointer; transition: 0.2s; 
+        }
+        .quiz-option:hover { background: #f9f9f9; border-color: var(--accent-blue); }
+        .quiz-option.correct { background: #d4edda; border-color: #27ae60; color: #155724; }
+        .quiz-option.incorrect { background: #f8d7da; border-color: #c0392b; color: #721c24; }
+
+        /* --- Navigation --- */
+        #nav-bar {
+            background: white;
+            border-top: 1px solid #ddd;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .progress-bar-container { flex: 1; height: 6px; background: #eee; margin: 0 20px; border-radius: 3px; }
+        #progress-fill { height: 100%; background: var(--accent-blue); width: 0%; border-radius: 3px; transition: width 0.3s; }
+
+        /* --- Calculator Row (Clickable) --- */
+        .calc-row-btn {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            background: #f8f9fa;
+            border: 1px solid #ddd;
+            margin-bottom: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .calc-row-btn:hover { background: #e3f2fd; border-color: var(--accent-blue); }
+        .calc-row-btn:active { transform: scale(0.98); }
+
+        /* Step Reveal & Bullet Points */
+        .step-hidden { display: none; }
+        .step-visible { display: block; animation: fadeIn 0.5s; }
+        
+        .bullet-point { opacity: 0; transition: opacity 0.5s ease-in; list-style-position: inside; margin-bottom: 15px; }
+        .bullet-visible { opacity: 1; }
+
+        /* Lever Visualization */
+        .lever-container { position: relative; height: 150px; margin-top: 30px; }
+        .lever-beam { width: 80%; height: 8px; background: #333; position: absolute; top: 100px; left: 10%; transform-origin: 30% 50%; transition: transform 1s; }
+        .lever-fulcrum { width: 0; height: 0; border-left: 20px solid transparent; border-right: 20px solid transparent; border-bottom: 40px solid var(--accent-blue); position: absolute; top: 108px; left: 30%; transform: translateX(-50%); }
+        .lever-weight { width: 60px; height: 60px; background: #e74c3c; position: absolute; bottom: 8px; right: 0; display:flex; align-items:center; justify-content:center; color:white; font-weight:bold; }
+        .lever-effort { width: 70px; height: 70px; background: #2ecc71; position: absolute; bottom: 8px; left: -10px; display:flex; align-items:center; justify-content:center; color:white; font-weight:bold; border-radius:50%; box-shadow: 0 4px 6px rgba(0,0,0,0.2); z-index: 2; font-size: 0.9rem;}
+
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+
+    <!-- SLIDE 1: INTRO -->
+    <div class="slide active">
+        <div class="flex-center" style="flex-direction: column; text-align: center;">
+            <i class="fas fa-search-dollar fa-4x text-accent mb-4"></i>
+            <h1>Beyond the Bottom Line</h1>
+            <h3 style="color: #7f8c8d; font-weight: 300;">A Masterclass in DuPont Analysis</h3>
+            <p class="mt-4">Deconstruct Shareholder Value | Analyze Pfizer & Apple | Master ROE</p>
+            <button class="btn-action mt-4" onclick="nextSlide()">Start Analysis</button>
+        </div>
+    </div>
+
+    <!-- SLIDE 2: HOOK -->
+    <div class="slide">
+        <h2>The Investor's Dilemma</h2>
+        <div class="grid-2">
+            <div>
+                <p>Two CEOs present their results. Both companies made <strong>$10 Million</strong> in profit this year.</p>
+                <div class="card card-highlight mt-4">
+                    <h4>Company A</h4>
+                    <p>Shareholders invested: $100 Million</p>
+                    <p class="text-accent">Return: 10%</p>
+                </div>
+                <div class="card card-highlight mt-4">
+                    <h4>Company B</h4>
+                    <p>Shareholders invested: $20 Million</p>
+                    <p class="text-success">Return: 50%</p>
+                </div>
+            </div>
+            <div class="flex-center" style="flex-direction:column;">
+                <i class="fas fa-balance-scale fa-5x text-accent"></i>
+                <h3 class="mt-4">Which CEO did a better job?</h3>
+                <p>Company B generated the same profit with far less capital. This is why <strong>ROE</strong> is the "Gold Standard" metric.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 3: ROE INTRO -->
+    <div class="slide">
+        <h2>The Headline Metric: ROE</h2>
+        <div class="grid-2">
+            <div>
+                <p><strong>Return on Equity (ROE)</strong> is the definitive measure of performance from a stockholder's perspective.</p>
+                <div class="card card-highlight text-center">
+                    <div class="formula-box">
+                        ROE = 
+                        <div class="fraction">
+                            <span class="numerator">Net Income</span>
+                            <span class="denominator">Avg Equity</span>
+                        </div>
+                    </div>
+                </div>
+                <p class="mt-4">It tells us: For every dollar invested by owners, how much profit did the company generate?</p>
+            </div>
+            <div class="calc-box">
+                <h3 class="text-center">ROE Calculator</h3>
+                <label>Net Income ($M)</label>
+                <input type="number" id="roe-ni" placeholder="e.g. 31372" class="calc-input">
+                <label>Avg Equity ($M)</label>
+                <input type="number" id="roe-eq" placeholder="e.g. 86431" class="calc-input">
+                <button class="btn-action" style="width:100%" onclick="calcROE()">Calculate</button>
+                <div id="roe-result" class="calc-result">--%</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 4: COMPLETE MAP -->
+    <div class="slide">
+        <h2>The DuPont Diagnostic Map</h2>
+        <p>Before we dive deep, visualize the hierarchy. Everything flows into ROE.</p>
+        
+        <div class="map-container" style="zoom: 0.8;">
+            <!-- Level 1 -->
+            <div class="map-node" style="background: #2c3e50; color: white;">
+                <strong>ROE</strong>
+                <small>NI / Avg Equity</small>
+            </div>
+            <div class="map-connector-v"></div>
+            <!-- NCIR Addition - 3 way split -->
+            <div style="width: 70%; border-top: 2px solid #333; display: flex; justify-content: space-between;">
+                <div style="width: 2px; height: 20px; background: #333;"></div>
+                <div style="width: 2px; height: 20px; background: #333;"></div>
+                <div style="width: 2px; height: 20px; background: #333;"></div>
+            </div>
+            <!-- Level 2 -->
+            <div class="map-level" style="gap: 50px;">
+                <div class="map-node" style="background: #e3f2fd;">
+                    <strong>Return on Assets (ROA)</strong>
+                    <small>NI / Avg Assets</small>
+                </div>
+                <div class="map-node" style="background: #fff3e0;">
+                    <strong>Financial Leverage</strong>
+                    <small>Avg Assets / Avg Equity</small>
+                </div>
+                 <div class="map-node" style="background: #f3e5f5;">
+                    <strong>NCIR</strong>
+                    <small>(Refinement)</small>
+                </div>
+            </div>
+            <!-- Split under ROA -->
+            <div style="width: 25%; border-top: 2px solid #333; display: flex; justify-content: space-between; margin-right: 480px;">
+                <div style="width: 2px; height: 20px; background: #333;"></div>
+                <div style="width: 2px; height: 20px; background: #333;"></div>
+            </div>
+            <!-- Level 3 -->
+            <div class="map-level" style="justify-content: flex-start; margin-right: 430px;">
+                <div class="map-node" style="background: #e8f5e9;">
+                    <strong>Profit Margin</strong>
+                    <small>NI / Sales</small>
+                </div>
+                <div class="map-node" style="background: #e8f5e9;">
+                    <strong>Asset Turnover</strong>
+                    <small>Sales / Avg Assets</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 5: LEVEL 1 BREAKDOWN -->
+    <div class="slide">
+        <h2>Level 1: Operations vs. Finance</h2>
+        <div class="formula-box">
+            ROE = ROA &times; Financial Leverage
+        </div>
+        <div class="grid-2">
+            <div class="card">
+                <h3>Component 1: ROA</h3>
+                <div class="formula-box" style="font-size: 1rem;">
+                    <div class="fraction"><span class="numerator">Net Income</span><span class="denominator">Avg Assets</span></div>
+                </div>
+                <p>This separates how well the "machine" runs from how the machine was bought.</p>
+            </div>
+            <div class="card">
+                <h3>Component 2: Leverage</h3>
+                <div class="formula-box" style="font-size: 1rem;">
+                    <div class="fraction"><span class="numerator">Avg Assets</span><span class="denominator">Avg Equity</span></div>
+                </div>
+                <p>Also known as the Equity Multiplier. It creates a multiplier effect on the ROA.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 6: NCIR -->
+    <div class="slide">
+        <h2>The Missing Piece: NCIR</h2>
+        <p>For companies that own less than 100% of their subsidiaries, we need a refinement.</p>
+        
+        <div class="grid-2">
+            <div class="card card-highlight">
+                <h3>Noncontrolling Interest Ratio</h3>
+                <p style="font-size:0.9rem;">Measures the proportion of income/equity attributable specifically to the parent company's stockholders.</p>
+                <div class="formula-box" style="font-size:0.9rem;">
+                    <div class="fraction"><span class="numerator">NI<sub>Controlling</sub> / Total NI</span><span class="denominator">Avg Eq<sub>Controlling</sub> / Avg Total Eq</span></div>
+                </div>
+            </div>
+            
+            <div class="card card-data">
+                <h3>Pfizer Example (2022)</h3>
+                <p><strong>Income %:</strong> $31,372 / $31,407 = 0.998</p>
+                <p><strong>Equity %:</strong> $86,431 / $86,689 = 0.997</p>
+                <hr>
+                <p><strong>NCIR = 0.998 / 0.997 = 1.00188</strong></p>
+                <div class="mt-4 p-2 bg-white border-left-success">
+                    <strong>The Shortcut:</strong> We often approximate ROE &approx; ROA &times; FL.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 7: PFIZER CASE STUDY -->
+    <div class="slide">
+        <h2>Case Study: Pfizer (2022)</h2>
+        <div class="grid-2">
+            <div class="card card-data">
+                <h3>Pfizer Data</h3>
+                <ul style="list-style:none; padding:0;">
+                    <li><strong>Net Income:</strong> $31,372 M</li>
+                    <li><strong>Avg Assets:</strong> $189,341 M</li>
+                    <li><strong>Avg Equity:</strong> $86,431 M</li>
+                </ul>
+                <hr>
+                <p><strong>ROE:</strong> 36.3%</p>
+            </div>
+            <div>
+                <h3>Deconstruction</h3>
+                <div class="calc-box">
+                    <p><strong>Step 1: Calculate ROA</strong> <span class="fraction" style="font-size:0.8em; vertical-align:middle;"><span class="numerator">NI</span><span class="denominator">Avg Assets</span></span></p>
+                    <p class="text-accent">31,372 / 189,341 = <strong>16.6%</strong></p>
+                    <p class="mt-4"><strong>Step 2: Calculate Leverage</strong> <span class="fraction" style="font-size:0.8em; vertical-align:middle;"><span class="numerator">Avg Assets</span><span class="denominator">Avg Equity</span></span></p>
+                    <p class="text-accent">189,341 / 86,431 = <strong>2.18</strong></p>
+                    <hr>
+                    <p><strong>Check:</strong> 16.6% * 2.18 = 36.2% <small>(rounding diff)</small></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 8: PFIZER CONTEXT -->
+    <div class="slide">
+        <h2>Is Pfizer's Performance Good?</h2>
+        <p>Numbers need context. Compare Pfizer to the S&P 500 Benchmarks.</p>
+        
+        <div class="grid-2">
+            <div class="flip-card" onclick="this.classList.toggle('flipped')">
+                <div class="flip-inner">
+                    <div class="flip-front">
+                        <h3 class="text-white">ROA Comparison</h3>
+                        <div class="mt-2" style="background:rgba(255,255,255,0.1); padding:10px; border-radius:5px;">
+                            <p class="text-white" style="font-size:1.1rem; margin-bottom:5px;">S&P 500: <strong>6.1%</strong></p>
+                            <p class="text-white" style="font-size:1.1rem;">Pfizer: <strong>16.6%</strong></p>
+                        </div>
+                        <p class="text-white mt-4">(Click for Verdict)</p>
+                    </div>
+                    <div class="flip-back">
+                        <h3>Exceptionally Strong</h3>
+                        <p>Pfizer far exceeds the S&P 500 median of 6.1%. This indicates superior operational efficiency.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flip-card" onclick="this.classList.toggle('flipped')">
+                <div class="flip-inner">
+                    <div class="flip-front">
+                        <h3 class="text-white">Leverage Comparison</h3>
+                        <div class="mt-2" style="background:rgba(255,255,255,0.1); padding:10px; border-radius:5px;">
+                            <p class="text-white" style="font-size:1.1rem; margin-bottom:5px;">S&P 500: <strong>2.51</strong></p>
+                            <p class="text-white" style="font-size:1.1rem;">Pfizer: <strong>2.18</strong></p>
+                        </div>
+                        <p class="text-white mt-4">(Click for Verdict)</p>
+                    </div>
+                    <div class="flip-back">
+                        <h3>Conservative</h3>
+                        <p>Pfizer uses less debt than the average S&P 500 company. Their high ROE is NOT driven by risky financial engineering.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 9: DEEP DIVE ROA -->
+    <div class="slide">
+        <h2>Level 2: Inside the Engine (ROA)</h2>
+        <p>A high ROA comes from two places: Profitability or Speed. Let's derive it.</p>
+        <div class="card card-highlight text-center" style="font-size: 1.1rem; padding: 2rem;">
+            <!-- Step 0 -->
+            <div id="roa-step-0">
+                <div class="formula-box">
+                    ROA = <div class="fraction"><span class="numerator">Net Income</span><span class="denominator">Avg Assets</span></div>
+                </div>
+                <button class="btn-action" onclick="showStep('roa-step-1', this)">Step 1: Expand</button>
+            </div>
+
+            <!-- Step 1 -->
+            <div id="roa-step-1" class="step-hidden mt-4">
+                <p>Multiply by (Sales / Sales), which equals 1:</p>
+                <div class="formula-box">
+                    <div class="fraction"><span class="numerator">Net Income</span><span class="denominator">Avg Assets</span></div>
+                    &times; 
+                    <div class="fraction"><span class="numerator text-accent">Sales</span><span class="denominator text-accent">Sales</span></div>
+                </div>
+                <button class="btn-action" onclick="showStep('roa-step-2', this)">Step 2: Rearrange</button>
+            </div>
+
+            <!-- Step 2 -->
+            <div id="roa-step-2" class="step-hidden mt-4">
+                <p>Rearrange the denominators:</p>
+                <div class="formula-box">
+                    <div class="fraction"><span class="numerator">Net Income</span><span class="denominator text-accent">Sales</span></div>
+                    &times; 
+                    <div class="fraction"><span class="numerator text-accent">Sales</span><span class="denominator">Avg Assets</span></div>
+                </div>
+                <button class="btn-action" onclick="showStep('roa-step-3', this)">Step 3: Define</button>
+            </div>
+
+            <!-- Step 3 -->
+            <div id="roa-step-3" class="step-hidden mt-4">
+                <div class="formula-box" style="font-weight: bold; color: var(--accent-blue);">
+                    = Profit Margin &times; Asset Turnover
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 10: MARGINS -->
+    <div class="slide">
+        <h2>Driver 1: Profitability (Margins)</h2>
+        <div class="grid-2">
+            <div class="card">
+                <h3>Gross Profit Margin</h3>
+                <div class="formula-box" style="font-size: 1rem;">
+                    <div class="fraction"><span class="numerator">Sales - COGS</span><span class="denominator">Sales</span></div>
+                </div>
+                <p>Indicates pricing power and production efficiency.</p>
+            </div>
+            <div class="card">
+                <h3>Operating Expense Margin</h3>
+                <div class="formula-box" style="font-size: 1rem;">
+                    <div class="fraction"><span class="numerator">SG&A</span><span class="denominator">Sales</span></div>
+                </div>
+                <p>Measures overhead efficiency. Lower is usually better.</p>
+            </div>
+        </div>
+        <div class="mt-4 text-center">
+            <div class="flip-card" onclick="this.classList.toggle('flipped')" style="height: 150px; width: 600px; margin: 0 auto;">
+                <div class="flip-inner">
+                    <div class="flip-front" style="background:#e74c3c;">
+                        <h3 class="text-white">Check-in: What if Gross Margin falls?</h3>
+                        <small class="text-white">(Click for Answer)</small>
+                    </div>
+                    <div class="flip-back">
+                        <h3>Increased Competition or Costs</h3>
+                        <p>It signals you are losing pricing power or input costs are rising faster than prices.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 11: ASSET TURNOVER -->
+    <div class="slide">
+        <h2>Driver 2: Productivity (Turnover)</h2>
+        <p>How efficiently are assets used to generate sales?</p>
+        <div class="card card-highlight text-center" style="height: auto; padding: 1rem; margin-bottom: 1rem;">
+            <div class="formula-box" style="margin:0;">
+                Asset Turnover = <div class="fraction"><span class="numerator">Sales</span><span class="denominator">Avg Assets</span></div>
+            </div>
+        </div>
+        
+        <div class="flip-card mt-2" onclick="this.classList.toggle('flipped')" style="height: 350px;">
+            <div class="flip-inner">
+                <div class="flip-front" style="background: var(--accent-blue);">
+                    <h3 class="text-white">Guess the Turnover</h3>
+                    <p class="text-white"><strong>Company A:</strong> High Revenue / Few Assets (e.g. Software)</p>
+                    <p class="text-white"><strong>Company B:</strong> Capital Intensive (e.g. Utilities)</p>
+                    <p class="mt-4 text-white"><em>Which has High Turnover?</em></p>
+                </div>
+                <div class="flip-back">
+                    <h3>Company A (Software)</h3>
+                    <p>Software companies can scale revenue massively without adding heavy assets like factories.</p>
+                    <p>Utilities must build expensive power plants to sell electricity, resulting in low turnover.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 12: CASH CONVERSION CYCLE INTRO -->
+    <div class="slide">
+        <h2>The Pulse of Operations: Cash Conversion Cycle</h2>
+        <p>The CCC measures how fast a company converts inventory into cash.</p>
+        
+        <div class="card text-center" style="background:#f9f9f9; padding:10px;">
+            <h3>Formula Builder</h3>
+            <p>Select the correct sign for each component to build the CCC formula.</p>
+            <div id="ccc-equation" style="font-family:'Fira Code'; font-size:1.5rem; min-height:40px; border-bottom:2px solid #333; margin-bottom:10px;"></div>
+            
+            <div class="grid-3">
+                <div>
+                    <p>Days Inventory (DIO)</p>
+                    <button class="btn-action" onclick="addToCCC('+ DIO')">(+) Add</button>
+                    <button class="btn-action" style="background:#e74c3c" onclick="addToCCC('- DIO')">(-) Subtract</button>
+                </div>
+                <div>
+                    <p>Days Sales (DSO)</p>
+                    <button class="btn-action" onclick="addToCCC('+ DSO')">(+) Add</button>
+                    <button class="btn-action" style="background:#e74c3c" onclick="addToCCC('- DSO')">(-) Subtract</button>
+                </div>
+                <div>
+                    <p>Days Payables (DPO)</p>
+                    <button class="btn-action" onclick="addToCCC('+ DPO')">(+) Add</button>
+                    <button class="btn-action" style="background:#e74c3c" onclick="addToCCC('- DPO')">(-) Subtract</button>
+                </div>
+            </div>
+            
+            <button class="btn-action mt-4" style="background:#333;" onclick="resetCCC()">Reset</button>
+            <p id="ccc-feedback"></p>
+        </div>
+        
+        <!-- Interpretation Card -->
+        <div class="flip-card mt-4" onclick="this.classList.toggle('flipped')" style="height: 250px;">
+            <div class="flip-inner">
+                <div class="flip-front" style="background: #2c3e50;">
+                    <h3 class="text-white">What does CCC represent?</h3>
+                    <p class="text-white">(Click to Reveal)</p>
+                </div>
+                <div class="flip-back">
+                    <h3>The Cash Gap</h3>
+                    <p>It represents the number of days a company's cash is tied up in operations before it gets it back from customers.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 13: PFIZER CCC -->
+    <div class="slide">
+        <h2>Pfizer's CCC: A Positive Cycle</h2>
+        <div class="grid-2">
+            <div class="card">
+                <h3>Pfizer 2022</h3>
+                <ul>
+                    <li><strong>DIO (Inventory sits):</strong> 96 Days</li>
+                    <li><strong>DSO (Collecting cash):</strong> 41 Days</li>
+                    <li><strong>DPO (Paying suppliers):</strong> 66 Days</li>
+                </ul>
+            </div>
+            <div class="calc-box text-center">
+                <p>Calculate CCC:</p>
+                <input type="text" id="pfizer-ccc-input" class="calc-input" placeholder="Calculation enabled...">
+                <small class="text-accent" style="display:block; margin-bottom:10px;">(Calculator enabled)</small>
+                <button class="btn-action" onclick="checkPfizerCCC()">Check</button>
+                <p id="pfizer-ccc-msg"></p>
+            </div>
+        </div>
+        
+        <div class="flip-card mt-4" onclick="this.classList.toggle('flipped')" style="height: 120px;">
+            <div class="flip-inner">
+                <div class="flip-front" style="background: var(--accent-light);">
+                    <h3 class="text-white">Interpretation Question</h3>
+                    <p class="text-white">Pfizer has a CCC of 71 Days. What does this mean for their cash?</p>
+                </div>
+                <div class="flip-back">
+                    <h3>Financing Required</h3>
+                    <p>Pfizer's cash is tied up for 71 days. They must finance this gap using working capital or debt.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 14: APPLE CCC -->
+    <div class="slide">
+        <h2>Apple's CCC: The Negative Cycle</h2>
+        <p class="text-center font-weight-bold" style="font-size:1.2rem;">CCC = DIO + DSO - DPO</p>
+        <p>Apple has a <strong>Negative</strong> CCC (-63 days). Customers pay Apple before Apple pays suppliers.</p>
+        
+        <div class="card text-center" style="padding: 20px;">
+            <h3>Interactive CCC Timeline</h3>
+            <p>Click "Simulate Cycle" to see the timeline.</p>
+            
+            <div class="ccc-wrapper">
+                <!-- Axis -->
+                <div class="ccc-axis" style="top: 100px;"></div>
+                <div class="ccc-tick" style="left:50%; top:90px;"></div> <!-- Zero Tick -->
+                <div class="ccc-label" style="left:50%; top:120px;">Day 0 (Sale)</div>
+                <div class="ccc-label" style="left:90%; top:120px;">+ (Cash In)</div>
+                <div class="ccc-label" style="left:10%; top:120px;">- (Cash Out)</div>
+                
+                <!-- Bars (Top half: Positive Components) -->
+                <!-- Inventory (Blue) -->
+                <div id="bar-dio" class="ccc-bar" style="width: 0px; background: #3498db; left: 50%; top: 20px; justify-content: flex-start; padding-left: 10px;"></div>
+                <!-- Receivables (Green) -->
+                <div id="bar-dso" class="ccc-bar" style="width: 0px; background: #2ecc71; left: 50%; top: 20px; justify-content: flex-start; padding-left: 10px;"></div>
+                
+                <!-- Bars (Bottom half: Negative Component) -->
+                <!-- Payables (Red) - Goes Left. Start point is END of DSO -->
+                <!-- Logic: Starts at (50% + DIO + DSO) and extends LEFT -->
+                <div id="bar-dpo" class="ccc-bar" style="width: 0px; background: #e74c3c; left: 50%; top: 130px; justify-content: flex-end; padding-right: 10px; transform-origin: left center;"></div>
+                
+                <!-- CCC Bracket -->
+                <div id="ccc-bracket" class="ccc-bracket" style="left: 30%; width: 20%; top: 155px; border-color: #333; border-bottom: 2px solid #333; border-top: none; height: 10px;">
+                    <div class="ccc-bracket-text">CCC (-63d)</div>
+                </div>
+            </div>
+            
+            <button class="btn-action" onclick="animateAppleCCC()">Simulate Cycle</button>
+            <p id="apple-ccc-text" class="mt-4" style="font-weight:bold;"></p>
+        </div>
+
+        <div class="card card-highlight mt-4">
+            <p><strong>Strategic Advantage:</strong> Apple operates with <strong>Supplier Financing</strong>. Suppliers essentially lend Apple money interest-free for ~100 days.</p>
+        </div>
+    </div>
+
+    <!-- SLIDE 15: VISUALIZING LEVERAGE (NEW) -->
+    <div class="slide">
+        <h2>Visualizing Financial Leverage</h2>
+        <div class="grid-2">
+            <div>
+                <p>Think of financial leverage as using a literal lever to lift a heavy object.</p>
+                <div class="grid-2 mt-4" style="gap: 10px;">
+                    <div class="flip-card" onclick="this.classList.toggle('flipped')" style="height: 280px;">
+                        <div class="flip-inner">
+                            <div class="flip-front" style="background:#2c3e50;">
+                                <h3 class="text-white">Longer Lever?</h3>
+                                <p class="text-white">(More Debt)</p>
+                            </div>
+                            <div class="flip-back">
+                                <h3>Higher Power</h3>
+                                <p>Allows you to lift a much heavier weight (Assets) with less effort (Equity).</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flip-card" onclick="this.classList.toggle('flipped')" style="height: 280px;">
+                        <div class="flip-inner">
+                            <div class="flip-front" style="background:#c0392b;">
+                                <h3 class="text-white">The Risk?</h3>
+                                <p class="text-white">(Click)</p>
+                            </div>
+                            <div class="flip-back">
+                                <h3>Instability</h3>
+                                <p>The longer the lever, the more unstable. If it snaps (default), the structure collapses.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card text-center" style="background: #ecf0f1;">
+                <h3>The Leverage Effect</h3>
+                <div class="lever-container">
+                    <div class="lever-fulcrum"></div>
+                    <div class="lever-beam" id="lever-beam">
+                        <div class="lever-effort">Equity</div>
+                        <div class="lever-weight">Assets</div>
+                    </div>
+                </div>
+                <button class="btn-action" onclick="animateLever()">Apply Force</button>
+                <p class="mt-2 text-accent" id="lever-text" style="display:none;">Small Equity lifts Big Assets!</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 16: ADJUSTMENTS INTRO -->
+    <div class="slide">
+        <h2>The Analyst's Toolkit: Adjustments</h2>
+        <p>Standard GAAP numbers can sometimes distort economic reality. Advanced analysts make adjustments.</p>
+        <div class="grid-2">
+            <!-- Converted to Flip Card -->
+            <div class="flip-card" onclick="this.classList.toggle('flipped')" style="height: 300px;">
+                <div class="flip-inner">
+                    <div class="flip-front" style="background: var(--accent-blue);">
+                        <h3 class="text-white">1. Adjusted ROA</h3>
+                        <p class="text-white">Standard ROA uses Net Income (after interest).</p>
+                        <p class="mt-4 text-white"><strong>Why add interest back?</strong></p>
+                        <p class="text-white">(Click to Reveal)</p>
+                    </div>
+                    <div class="flip-back">
+                        <h3>Isolate Operating Performance</h3>
+                        <p>Net Income is affected by debt levels (interest expense). To measure the pure efficiency of the <strong>assets</strong>, we must strip out the financing decision. This makes a debt-heavy company comparable to a debt-free one.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Converted to Flip Card -->
+            <div class="flip-card" onclick="this.classList.toggle('flipped')" style="height: 300px;">
+                <div class="flip-inner">
+                    <div class="flip-front" style="background: #e67e22;">
+                        <h3 class="text-white">2. Buyback Distortion</h3>
+                        <p class="text-white">Share buybacks reduce equity. This can artificially inflate ROE even if profit doesn't grow.</p>
+                        <p class="text-white mt-4">(Click to Reveal Why)</p>
+                    </div>
+                    <div class="flip-back">
+                        <h3>Mathematical Inflation</h3>
+                        <p>Because Equity is in the denominator (ROE = NI / Equity), shrinking the denominator automatically increases the ratio, even if the numerator (Net Income) stays flat. It creates an illusion of growth.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 17: APPLE CASE STUDY (BUYBACKS) MOVED HERE -->
+    <div class="slide">
+        <h2>Case Study: Apple's Inflated ROE</h2>
+        <div class="card card-data" style="font-size: 1.5rem; padding: 1rem;"> 
+            <h3>2018 vs 2022</h3>
+            <p>Apple spent <strong>$409 Billion</strong> on buybacks.</p>
+            <table style="width:100%; margin-top:20px; font-size: 1.5rem;">
+                <tr>
+                    <td></td>
+                    <td><strong>2018</strong></td>
+                    <td><strong>2022</strong></td>
+                </tr>
+                <tr>
+                    <td>Equity</td>
+                    <td>$107 B</td>
+                    <td class="text-error">$50 B</td>
+                </tr>
+                <tr>
+                    <td>ROE</td>
+                    <td>49%</td>
+                    <td class="text-success">176%</td>
+                </tr>
+            </table>
+        </div>
+        
+        <div class="flip-card mt-4" onclick="this.classList.toggle('flipped')" style="height: 200px;">
+            <div class="flip-inner">
+                <div class="flip-front" style="background: #2c3e50;">
+                    <h3 class="text-white">The Lesson</h3>
+                    <p class="text-white">(Click to Reveal)</p>
+                </div>
+                <div class="flip-back">
+                    <h3>Look Beyond ROE</h3>
+                    <p>When a company aggressively buys back stock, ROE becomes distorted. Analysts must switch to <strong>ROA</strong> or <strong>ROIC (Return on Invested Capital)</strong> to see the true operating performance.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 18: ADJUSTED ROA CALC -->
+    <div class="slide">
+        <h2>Adjusted ROA Calculation</h2>
+        <div class="card card-highlight text-center">
+            <div class="formula-box" style="font-size:1rem;">
+                Adj. ROA = <div class="fraction"><span class="numerator">Net Income + [Interest &times; (1 - Tax Rate)]</span><span class="denominator">Avg Assets</span></div>
+            </div>
+        </div>
+        
+        <div class="grid-2 mt-4">
+            <div class="card card-data">
+                <h3>Pfizer Data</h3>
+                <ul>
+                    <li>Net Income: <strong>$31,372</strong></li>
+                    <li>Interest Expense: <strong>$1,500</strong></li>
+                    <li>Tax Rate: <strong>15%</strong> (0.15)</li>
+                    <li>Avg Assets: <strong>$189,341</strong></li>
+                </ul>
+            </div>
+            <div class="card">
+                <h3>Comparison</h3>
+                <table class="financial-table">
+                    <tr>
+                        <th>Metric</th>
+                        <th>Formula</th>
+                        <th>Value</th>
+                    </tr>
+                    <tr>
+                        <td>Unadjusted ROA</td>
+                        <td>31,372 / 189,341</td>
+                        <td>16.6%</td>
+                    </tr>
+                    <tr>
+                        <td class="text-accent" style="font-weight:bold;">Adjusted ROA</td>
+                        <td>(31,372 + <span id="calc-hidden">???</span>) / 189,341</td>
+                        <td><span id="calc-res">--%</span></td>
+                    </tr>
+                </table>
+                <div style="display:flex; gap:10px;">
+                    <button class="btn-action" style="width:100%" onclick="revealAdjROA()">Calculate & Compare</button>
+                    <button class="btn-action" style="width:100%; background:#95a5a6;" onclick="resetAdjROA()">Reset</button>
+                </div>
+                
+                <!-- Interpretation as a Flip Card (initially hidden or collapsed) -->
+                <div class="flip-card mt-4" id="adj-flip" onclick="this.classList.toggle('flipped')" style="height: 200px; display:none;">
+                    <div class="flip-inner">
+                        <div class="flip-front" style="background:var(--success);">
+                            <h3 class="text-white">Interpretation</h3>
+                            <p class="text-white">(Click)</p>
+                        </div>
+                        <div class="flip-back">
+                            <p>Adding interest back increases ROA slightly (16.6% -> 17.2%), removing the effect of debt financing.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 19: BUYBACK SIMULATOR -->
+    <div class="slide">
+        <h2>Simulator: The Buyback Distortion</h2>
+        <p>See what happens to ROE when a company buys back stock (reducing Equity) while Net Income stays flat.</p>
+        
+        <div class="sim-container">
+            <div class="grid-2">
+                <div>
+                    <label>Stock Buyback Amount ($B)</label>
+                    <input type="range" id="buyback-slider" min="0" max="80" value="0" oninput="updateSimulator()">
+                    <p>Equity Remaining: <span id="sim-equity">100</span>B</p>
+                    <p>Net Income: <strong>$50B (Constant)</strong></p>
+                </div>
+                <div class="bar-chart-area">
+                    <div style="text-align:center">
+                        <div class="bar" id="bar-equity" style="height: 100px; background:#bdc3c7;"></div>
+                        <small>Equity</small>
+                    </div>
+                    <div style="text-align:center">
+                        <div class="bar" id="bar-roe" style="height: 50px; background:#e74c3c;">50%</div>
+                        <small>ROE</small>
+                    </div>
+                </div>
+            </div>
+            <p class="text-center mt-4 text-error"><strong>As Equity shrinks, ROE explodes mathematically!</strong></p>
+        </div>
+    </div>
+
+    <!-- SLIDE 20: THE CEO'S PLAYBOOK (NEW) -->
+    <div class="slide">
+        <h2>The CEO's Playbook: Increasing ROE</h2>
+        <p>ROE is a key KPI. Managers have three levers to pull.</p>
+        <div class="grid-3">
+            <div class="flip-card" onclick="this.classList.toggle('flipped')" style="height: 250px;">
+                <div class="flip-inner">
+                    <div class="flip-front" style="background: #2ecc71;">
+                        <h3 class="text-white">Option 1: Operationally</h3>
+                        <small class="text-white">(Click)</small>
+                    </div>
+                    <div class="flip-back">
+                        <h3>Improve Margins</h3>
+                        <p>Increase prices, reduce COGS, or cut SG&A overhead. This boosts the Profit Margin component of ROA.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="flip-card" onclick="this.classList.toggle('flipped')" style="height: 250px;">
+                <div class="flip-inner">
+                    <div class="flip-front" style="background: #3498db;">
+                        <h3 class="text-white">Option 2: Efficiency</h3>
+                        <small class="text-white">(Click)</small>
+                    </div>
+                    <div class="flip-back">
+                        <h3>Improve Turnover</h3>
+                        <p>Sell inventory faster (lower DIO), collect cash sooner (lower DSO), or use fewer assets to generate the same sales.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="flip-card" onclick="this.classList.toggle('flipped')" style="height: 250px;">
+                <div class="flip-inner">
+                    <div class="flip-front" style="background: #e74c3c;">
+                        <h3 class="text-white">Option 3: Financially</h3>
+                        <small class="text-white">(Click)</small>
+                    </div>
+                    <div class="flip-back">
+                        <h3>Increase Leverage</h3>
+                        <p>Borrow money to buy back stock. This shrinks equity and amplifies returns, but increases risk.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 21: ROE LIMITATIONS (NEW) -->
+    <div class="slide">
+        <h2>The Limits of ROE</h2>
+        <p>While powerful, ROE is not perfect. What are the blind spots?</p>
+        <div class="grid-2">
+            <div class="card">
+                <div class="flip-card" onclick="this.classList.toggle('flipped')" style="height: 100px; margin-bottom: 20px;">
+                    <div class="flip-inner">
+                        <div class="flip-front" style="background: #34495e;">
+                            <h3 class="text-white">Is it the whole story?</h3>
+                        </div>
+                        <div class="flip-back flip-small-text">
+                            <p>No. It provides a "fuzzy view" by reducing complex operations to a single number.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="flip-card" onclick="this.classList.toggle('flipped')" style="height: 100px;">
+                    <div class="flip-inner">
+                        <div class="flip-front" style="background: #34495e;">
+                            <h3 class="text-white">What about non-financials?</h3>
+                        </div>
+                        <div class="flip-back flip-small-text">
+                            <p>It fails to capture qualitative aspects like brand strength, culture, or innovation pipeline.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="flip-card" onclick="this.classList.toggle('flipped')" style="height: 100px; margin-bottom: 20px;">
+                    <div class="flip-inner">
+                        <div class="flip-front" style="background: #34495e;">
+                            <h3 class="text-white" style="font-size:1.2rem;">Is GAAP perfect?</h3>
+                        </div>
+                        <div class="flip-back flip-small-text">
+                            <p>No. Accounting rules may exclude key assets (like Internally Generated Intangibles) from the denominator.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="flip-card" onclick="this.classList.toggle('flipped')" style="height: 100px;">
+                    <div class="flip-inner">
+                        <div class="flip-front" style="background: #34495e;">
+                            <h3 class="text-white" style="font-size:1.2rem;">Conglomerate Effects?</h3>
+                        </div>
+                        <div class="flip-back flip-small-text">
+                            <p>For large diversified companies, a single ROE can hide poor performance in specific business units.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 22: SUMMARY (NEW) -->
+    <div class="slide">
+        <h2>Executive Summary</h2>
+        <div class="card card-highlight">
+            <ul>
+                <li class="bullet-point"><strong>DuPont Framework:</strong> Deconstructs ROE into Profit Margin (Profitability), Asset Turnover (Efficiency), and Financial Leverage (Structure).</li>
+                <li class="bullet-point"><strong>Cash Conversion Cycle (CCC):</strong> Measures the time cash is tied up. Negative CCC (like Apple) is a massive competitive advantage.</li>
+                <li class="bullet-point"><strong>Adjustments:</strong> Analysts must adjust for Debt (Adj ROA) and Buybacks (Distorted ROE) to see economic reality.</li>
+                <li class="bullet-point"><strong>Leverage:</strong> A double-edged sword. It amplifies returns but increases the risk of collapse if the "lever snaps."</li>
+            </ul>
+        </div>
+        <div class="text-center mt-4">
+            <button class="btn-action" onclick="revealBullets()">Click to Reveal Points</button>
+            <h3 class="mt-4">Next: Check Your Understanding</h3>
+            <button class="btn-action" onclick="nextSlide()">Proceed to Quiz</button>
+        </div>
+    </div>
+
+    <!-- SLIDE 23+: FINAL QUIZ -->
+    <div class="slide">
+        <h2>Check Your Understanding</h2>
+        <p>15 Questions to test your mastery.</p>
+        <button class="btn-action" onclick="startExam()">Start Quiz</button>
+    </div>
+
+    <div id="exam-container">
+        <!-- Exam slides generated by JS -->
+    </div>
+
+    <!-- NAVIGATION -->
+    <div id="nav-bar">
+        <div style="font-family: var(--header-font); font-weight: bold;">DuPont Masterclass</div>
+        <div class="progress-bar-container">
+            <div id="progress-fill"></div>
+        </div>
+        <div>
+            <button class="btn-action" onclick="prevSlide()" style="width: auto; padding: 5px 15px; margin:0;"><i class="fas fa-chevron-left"></i></button>
+            <span id="slide-indicator" style="margin: 0 10px;">1 / 23</span>
+            <button class="btn-action" onclick="nextSlide()" style="width: auto; padding: 5px 15px; margin:0;"><i class="fas fa-chevron-right"></i></button>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // --- STATE ---
+    let currentSlide = 0;
+    
+    // --- EXAM DATA ---
+    const examQuestions = [
+        { q: "What does ROE measure?", options: ["Return on Assets", "Return per dollar of Equity", "Revenue Growth"], a: 1 },
+        { q: "Which component represents Operational Efficiency?", options: ["Leverage", "ROA", "Equity"], a: 1 },
+        { q: "Given Net Income = $100 and Avg Equity = $500, what is ROE?", options: ["5%", "20%", "50%"], a: 1 },
+        { q: "Given Assets = $1000 and Equity = $250, what is Financial Leverage?", options: ["2.5", "4.0", "0.25"], a: 1 },
+        { q: "If Net Income = $50 and Assets = $500, what is ROA?", options: ["10%", "5%", "1%"], a: 0 },
+        { q: "Net Income / Sales is the formula for:", options: ["Asset Turnover", "Profit Margin", "ROA"], a: 1 },
+        { q: "Sales / Assets is the formula for:", options: ["Asset Turnover", "Profit Margin", "Leverage"], a: 0 },
+        { q: "Given Inventory = 10 days, Receivables = 20 days, Payables = 15 days. What is CCC?", options: ["45 Days", "15 Days", "5 Days"], a: 1 },
+        { q: "A negative Cash Conversion Cycle is generally:", options: ["Bad", "Good (Strategic Advantage)", "Impossible"], a: 1 },
+        { q: "If Net Income is constant but Equity decreases (buybacks), ROE will:", options: ["Decrease", "Increase", "Stay same"], a: 1 },
+        { q: "Why adjust ROA for interest?", options: ["To remove financing effects", "To lower taxes", "To increase equity"], a: 0 },
+        { q: "Pfizer's ROE of 36% was primarily driven by:", options: ["High Leverage", "High ROA", "Low Taxes"], a: 1 },
+        { q: "Apple's CCC is negative because:", options: ["High Inventory", "High DPO (Supplier leverage)", "Low Sales"], a: 1 },
+        { q: "Gross Profit / Sales = ?", options: ["Net Margin", "Gross Margin", "Operating Margin"], a: 1 },
+        { q: "DuPont Analysis decomposes ROE into:", options: ["Assets & Liabilities", "Cash & Accrual", "Profitability, Efficiency, Leverage"], a: 2 }
+    ];
+
+    let examScore = 0;
+
+    // --- NAVIGATION LOGIC ---
+    function init() {
+        generateExamSlides();
+        updateNav();
+    }
+
+    function showSlide(n) {
+        const slides = document.querySelectorAll('.slide');
+        if (n >= slides.length) n = slides.length - 1;
+        if (n < 0) n = 0;
+        
+        slides.forEach(s => s.classList.remove('active'));
+        slides[n].classList.add('active');
+        currentSlide = n;
+        updateNav();
+    }
+
+    function nextSlide() { showSlide(currentSlide + 1); }
+    function prevSlide() { showSlide(currentSlide - 1); }
+
+    function updateNav() {
+        const slides = document.querySelectorAll('.slide');
+        document.getElementById('slide-indicator').textContent = `${currentSlide + 1} / ${slides.length}`;
+        const pct = ((currentSlide + 1) / slides.length) * 100;
+        document.getElementById('progress-fill').style.width = `${pct}%`;
+    }
+
+    // --- INTERACTIVE FUNCTIONS ---
+
+    // Slide 2: ROE Calc
+    function calcROE() {
+        const ni = parseFloat(document.getElementById('roe-ni').value);
+        const eq = parseFloat(document.getElementById('roe-eq').value);
+        if(ni && eq) {
+            const roe = ((ni / eq) * 100).toFixed(1);
+            document.getElementById('roe-result').innerText = roe + "%";
+        }
+    }
+
+    // Step Reveal Function (Slides 4 & 7)
+    function showStep(stepId, btn) {
+        document.getElementById(stepId).classList.remove('step-hidden');
+        document.getElementById(stepId).classList.add('step-visible');
+        btn.style.display = 'none'; // Hide button after clicking
+    }
+
+    // Lever Animation (Slide 5)
+    function animateLever() {
+        const beam = document.getElementById('lever-beam');
+        const text = document.getElementById('lever-text');
+        
+        // Reset
+        beam.style.transform = "rotate(0deg)";
+        text.style.display = "none";
+        
+        setTimeout(() => {
+            beam.style.transform = "rotate(-15deg)"; // Tilt
+            text.style.display = "block";
+        }, 100);
+    }
+
+    // Slide 10: CCC Builder
+    let cccFormula = [];
+    function addToCCC(val) {
+        cccFormula.push(val);
+        document.getElementById('ccc-equation').innerText = cccFormula.join(" "); 
+        checkCCCFormula();
+    }
+    
+    function resetCCC() {
+        cccFormula = [];
+        document.getElementById('ccc-equation').innerText = "";
+        document.getElementById('ccc-feedback').innerText = "";
+    }
+
+    function checkCCCFormula() {
+        const hasDIO = cccFormula.includes('+ DIO');
+        const hasDSO = cccFormula.includes('+ DSO');
+        const hasDPO = cccFormula.includes('- DPO');
+        
+        if(cccFormula.length === 3) {
+            if(hasDIO && hasDSO && hasDPO) {
+                 document.getElementById('ccc-feedback').innerHTML = "<span class='text-success'>Correct! Formula: DIO + DSO - DPO</span>";
+            } else {
+                 document.getElementById('ccc-feedback').innerHTML = "<span class='text-error'>Incorrect signs. Remember: Inventory & Receivables ADD days, Payables SUBTRACT days.</span>";
+            }
+        }
+    }
+
+    // Slide 11: Pfizer Check
+    function checkPfizerCCC() {
+        const val = document.getElementById('pfizer-ccc-input').value;
+        const msg = document.getElementById('pfizer-ccc-msg');
+        let isCorrect = false;
+        
+        // Basic eval support for 96+41-66
+        try {
+            if(eval(val) == 71) isCorrect = true;
+        } catch(e) {}
+
+        if(isCorrect) {
+            msg.innerHTML = "<span class='text-success'>Correct! 71 Days.</span>";
+        } else {
+            msg.innerHTML = "<span class='text-error'>Try again (96 + 41 - 66).</span>";
+        }
+    }
+
+    // Slide 12: Apple Animation
+    function animateAppleCCC() {
+        const barDPO = document.getElementById('bar-dpo');
+        const barDIO = document.getElementById('bar-dio');
+        const barDSO = document.getElementById('bar-dso');
+        const text = document.getElementById('apple-ccc-text');
+        const bracket = document.getElementById('ccc-bracket');
+        
+        // Reset
+        barDIO.style.width = "0";
+        barDSO.style.width = "0";
+        barDPO.style.width = "0";
+        barDSO.style.left = "50%";
+        barDPO.style.left = "50%";
+        bracket.style.opacity = "0";
+        
+        setTimeout(() => {
+            // 1. Expand DIO (9 days) - Wide enough to see
+            barDIO.style.width = "60px";
+            barDIO.innerText = "DIO (9d)";
+            
+            // 2. Expand DSO (25 days) - Starts after DIO
+            barDSO.style.left = "calc(50% + 60px)";
+            barDSO.style.width = "100px";
+            barDSO.innerText = "DSO (25d)";
+            
+            // 3. Expand DPO (97 days) - Starts at End of DSO, goes LEFT
+            // Start position: 50% + 60px + 100px = calc(50% + 160px)
+            // EndPos = 50% + 160px. Width = 350px. Left = 50% + 160 - 350 = 50% - 190px.
+            barDPO.style.left = "calc(50% - 190px)";
+            barDPO.style.width = "350px"; 
+            barDPO.innerText = "DPO (97d)";
+            
+            // Bracket: From 50% (0) to End of DPO (left side)
+            // DPO ends at left = calc(50% - 190px). 
+            // Bracket needs to cover from 0 to -190px relative to center.
+            bracket.style.left = "calc(50% - 190px)";
+            bracket.style.width = "190px";
+            bracket.style.opacity = "1";
+            
+            // Show result text
+            text.innerHTML = "Result: Cash Cycle is NEGATIVE 63 Days.<br><span class='text-success'>Apple holds cash for 2 months before paying bills.</span>";
+            
+        }, 100);
+    }
+
+    // Slide 14: Adj ROA Reveal
+    function revealAdjROA() {
+        const hidden = document.getElementById('calc-hidden');
+        const res = document.getElementById('calc-res');
+        
+        // 1500 * (1 - 0.15) = 1275
+        hidden.innerText = "1,275";
+        hidden.style.color = "var(--success)";
+        hidden.style.fontWeight = "bold";
+        
+        // 32647 / 189341 = 17.2%
+        res.innerText = "17.2%";
+        res.classList.add("text-success");
+        res.style.fontWeight = "bold";
+        
+        // Show flip card
+        document.getElementById('adj-flip').style.display = 'block';
+    }
+
+    function resetAdjROA() {
+        const hidden = document.getElementById('calc-hidden');
+        const res = document.getElementById('calc-res');
+        
+        hidden.innerText = "???";
+        hidden.style.color = "inherit";
+        hidden.style.fontWeight = "normal";
+        
+        res.innerText = "--%";
+        res.classList.remove("text-success");
+        res.style.fontWeight = "normal";
+        
+        document.getElementById('adj-flip').style.display = 'none';
+        document.getElementById('adj-flip').classList.remove('flipped');
+    }
+
+    // Slide 15: Simulator
+    function updateSimulator() {
+        const buyback = parseFloat(document.getElementById('buyback-slider').value);
+        const startEquity = 100;
+        const netIncome = 50;
+        
+        const currentEquity = startEquity - buyback;
+        document.getElementById('sim-equity').innerText = currentEquity;
+        
+        // ROE Calc
+        const roe = (netIncome / currentEquity) * 100;
+        
+        // Update Bars
+        document.getElementById('bar-equity').style.height = currentEquity + "px";
+        document.getElementById('bar-roe').style.height = roe + "px"; // Scale visual
+        document.getElementById('bar-roe').innerText = roe.toFixed(0) + "%";
+        
+        if(roe > 100) {
+            document.getElementById('bar-roe').style.background = "#c0392b"; // Alert color
+        } else {
+            document.getElementById('bar-roe').style.background = "#e74c3c";
+        }
+    }
+    
+    // Slide 20: Reveal Bullets
+    function revealBullets() {
+        const bullets = document.querySelectorAll('.bullet-point');
+        let delay = 0;
+        bullets.forEach(b => {
+            setTimeout(() => {
+                b.classList.add('bullet-visible');
+            }, delay);
+            delay += 500;
+        });
+    }
+
+    // --- EXAM GENERATION ---
+    function generateExamSlides() {
+        const container = document.getElementById('app-container');
+        
+        examQuestions.forEach((q, index) => {
+            const slideDiv = document.createElement('div');
+            slideDiv.className = 'slide';
+            // Add ID to first question for dynamic lookup
+            if (index === 0) slideDiv.id = 'first-exam-slide';
+            
+            slideDiv.innerHTML = `
+                <h2>Question ${index + 1}</h2>
+                <div class="card">
+                    <p><strong>${q.q}</strong></p>
+                    <div id="opts-${index}">
+                        ${q.options.map((opt, i) => `
+                            <span class="quiz-option" onclick="checkAnswer(${index}, ${i}, this)">${opt}</span>
+                        `).join('')}
+                    </div>
+                    <p id="feedback-${index}" class="mt-4 font-weight-bold"></p>
+                </div>
+            `;
+            // Insert before the nav bar
+            container.insertBefore(slideDiv, document.getElementById('nav-bar'));
+        });
+
+        // Add Final Score Slide
+        const scoreSlide = document.createElement('div');
+        scoreSlide.className = 'slide';
+        scoreSlide.innerHTML = `
+            <div class="flex-center" style="flex-direction:column">
+                <i class="fas fa-trophy fa-4x text-accent mb-4"></i>
+                <h1>Course Completed</h1>
+                <h2 id="final-score-display"></h2>
+                <button class="btn-action" onclick="location.reload()">Restart</button>
+            </div>
+        `;
+        container.insertBefore(scoreSlide, document.getElementById('nav-bar'));
+    }
+
+    function startExam() {
+        // Robustly find the first question slide by ID
+        const q1 = document.getElementById('first-exam-slide');
+        if (q1) {
+            // Find its index in the list of all slides
+            const allSlides = Array.from(document.querySelectorAll('.slide'));
+            const q1Index = allSlides.indexOf(q1);
+            showSlide(q1Index);
+        } else {
+            console.error("Exam start slide not found!");
+        }
+    }
+
+    function checkAnswer(qIndex, ansIndex, btn) {
+        // Disable clicks
+        const parent = document.getElementById(`opts-${qIndex}`);
+        const opts = parent.querySelectorAll('.quiz-option');
+        opts.forEach(o => o.style.pointerEvents = 'none');
+
+        const correctIndex = examQuestions[qIndex].a;
+        
+        if(ansIndex === correctIndex) {
+            btn.classList.add('correct');
+            examScore++;
+            document.getElementById(`feedback-${qIndex}`).innerHTML = "<span class='text-success'>Correct!</span>";
+        } else {
+            btn.classList.add('incorrect');
+            // Highlight correct one
+            opts[correctIndex].classList.add('correct');
+            document.getElementById(`feedback-${qIndex}`).innerHTML = "<span class='text-error'>Incorrect.</span>";
+        }
+
+        // Update score on final slide (lazy update)
+        document.getElementById('final-score-display').innerText = `Score: ${examScore} / ${examQuestions.length}`;
+    }
+
+    // Init
+    init();
+
+</script>
+</body>
+</html>

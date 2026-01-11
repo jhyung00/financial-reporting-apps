@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debt & Note Disclosure Simulation</title>
+    
+    <!-- Dependencies -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Tailwind Config -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        slate: { 850: '#1e293b', 900: '#0f172a' },
+                        blue: { 950: '#172554' },
+                        emerald: { 450: '#10b981' }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #1e293b; }
+        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+        
+        .input-correct {
+            border-color: #10b981 !important;
+            color: #065f46 !important;
+            background-color: #ecfdf5 !important;
+            font-weight: bold;
+        }
+        .input-default { border-color: #cbd5e1; }
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        
+        /* Calculator Button Styles */
+        .calc-btn {
+            background-color: #334155;
+            color: white;
+            font-weight: bold;
+            border-radius: 4px;
+            padding: 8px 0;
+            text-align: center;
+            font-size: 0.85rem;
+            transition: background-color 0.1s;
+        }
+        .calc-btn:hover { background-color: #475569; }
+        .calc-btn:active { transform: scale(0.98); }
+        .calc-btn.op { background-color: #0f172a; color: #60a5fa; }
+        .calc-btn.eq { background-color: #059669; }
+        .calc-btn.clear { background-color: #991b1b; }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fadeIn 0.3s ease-out; }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 antialiased h-screen flex flex-col overflow-hidden">
+
+    <div id="root" class="h-full flex flex-col"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo, useRef } = React;
+
+        // --- DATA & ANSWER KEYS ---
+        
+        const ANSWER_KEYS = {
+            P: {
+                "p_st": "4026", 
+                "p_lt": "28295", 
+                "p_total": "32321",
+                "p_change": "15",
+                "p_retired": "1328", 
+                "p_loss": "272"
+            },
+            B: {
+                "b_fy3Due": "2248", 
+                "b_totalLt": "7051", 
+                "b_avgRate": "3.8"
+            }
+        };
+
+        const PEPSICO_DATA = {
+            metadata: { name: "PepsiCo Inc.", year: "Debt Schedule" },
+            tables: [
+                {
+                    title: "Short-term Debt ($M)",
+                    headers: ["Item", "FY2", "FY1"],
+                    rows: [
+                        ["Current maturities of LT debt", "3,953", "4,020"],
+                        ["Commercial paper (1.3%)", "—", "1,385"],
+                        ["Other borrowings", "73", "80"]
+                    ]
+                },
+                {
+                    title: "Long-term Debt ($M)",
+                    headers: ["Item", "FY2", "FY1"],
+                    rows: [
+                        ["Notes due FY2 (2.4%)", "—", "4,016"],
+                        ["Notes due FY3 (3.1% & 2.1%)", "3,948", "3,933"],
+                        ["Notes due FY4 - FY31...", "28,274", "29,836"],
+                        ["Total LT Debt Obligations", "32,248", "37,816"],
+                        ["Less: Current Maturities", "(3,953)", "(4,020)"]
+                    ]
+                },
+                {
+                    title: "Tender Offer Data",
+                    headers: ["Bond Retired", "Carrying Value"],
+                    rows: [
+                        ["7.29% Sep FY9", "$11"],
+                        ["4.40% Sep FY9", "$47"],
+                        ["0.00% Mar FY12", "$357"],
+                        ["5.50% May FY18", "$138"],
+                        ["4.875% Nov FY23", "$410"],
+                        ["5.50% Jan FY23", "$408"]
+                    ]
+                }
+            ]
+        };
+
+        const BOSTON_DATA = {
+            metadata: { name: "Boston Scientific", year: "Debt Note" },
+            tables: [
+                {
+                    title: "Long-term Debt ($M)",
+                    headers: ["Instrument", "Coupon", "FY2", "FY1"],
+                    rows: [
+                        ["FY4 Notes (Jan)", "6.00%", "850", "850"],
+                        ["FY4 Notes (May)", "2.85%", "600", "600"],
+                        ["FY6 Notes", "3.375%", "500", "500"],
+                        ["FY7 Notes", "4.125%", "450", "450"],
+                        ["FY9 Notes", "3.85%", "750", "750"],
+                        ["FY12 Notes", "4.00%", "1,000", "1,000"],
+                        ["FY19 - FY24 Notes", "Var", "650", "650"],
+                        ["Discounts/Hedges", "-", "3", "14"],
+                        ["Total LT Debt", "", "4,803", "3,815"]
+                    ]
+                },
+                {
+                    title: "Principal Repayments ($M)",
+                    headers: ["Year", "Amount"],
+                    rows: [
+                        ["FY3", "2,248"],
+                        ["FY4", "1,540"],
+                        ["FY5", "0"],
+                        ["FY6", "500"]
+                    ]
+                },
+                {
+                    title: "Interest & Market Data",
+                    headers: ["Item", "Value"],
+                    rows: [
+                        ["Interest Expense (FY2)", "$241"],
+                        ["Cash Interest Paid (FY2)", "$262"],
+                        ["FY12 Note Price", "109.35"],
+                        ["FY7 Note Price", "101.57"]
+                    ]
+                },
+                {
+                    title: "Balance Sheet Summary",
+                    headers: ["Item", "FY2", "FY1"],
+                    rows: [
+                        ["Short-term Debt", "2,248", "1,801"],
+                        ["Long-term Debt", "4,803", "3,815"]
+                    ]
+                }
+            ]
+        };
+
+        // --- COMPONENTS ---
+
+        const Icon = ({ name, size = 16, className = "", color = "currentColor" }) => {
+            const iconRef = useRef(null);
+            useEffect(() => {
+                if (iconRef.current && window.lucide) {
+                    iconRef.current.innerHTML = '';
+                    const iconElement = document.createElement('i');
+                    iconElement.setAttribute('data-lucide', name);
+                    iconElement.style.width = `${size}px`;
+                    iconElement.style.height = `${size}px`;
+                    iconElement.style.color = color;
+                    if (className) className.split(' ').forEach(cls => iconElement.classList.add(cls));
+                    iconRef.current.appendChild(iconElement);
+                    window.lucide.createIcons({ root: iconRef.current, attrs: { width: size, height: size } });
+                }
+            }, [name, size, color, className]);
+            return <span ref={iconRef} className="inline-flex items-center justify-center" />;
+        };
+
+        const ConfirmationModal = ({ isOpen, title, message, onConfirm, onCancel }) => {
+            if (!isOpen) return null;
+            return (
+                <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center backdrop-blur-sm animate-fade-in">
+                    <div className="bg-white rounded-lg shadow-2xl max-w-sm w-full p-6 m-4 border-l-4 border-red-500">
+                        <div className="flex items-center gap-3 text-red-600 mb-4">
+                            <Icon name="alert-triangle" size={24} />
+                            <h3 className="text-lg font-bold">{title}</h3>
+                        </div>
+                        <p className="text-slate-600 mb-6">{message}</p>
+                        <div className="flex justify-end gap-3">
+                            <button onClick={onCancel} className="px-4 py-2 text-slate-600 font-medium hover:bg-slate-100 rounded-lg">Cancel</button>
+                            <button onClick={onConfirm} className="px-4 py-2 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700">Confirm & Exit</button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const StandardCalculator = () => {
+            const [display, setDisplay] = useState("0");
+            const [prevVal, setPrevVal] = useState(null);
+            const [op, setOp] = useState(null);
+            const [newNum, setNewNum] = useState(true);
+
+            const handleNum = (num) => {
+                if (newNum) { setDisplay(String(num)); setNewNum(false); } 
+                else { setDisplay(display === "0" ? String(num) : display + num); }
+            };
+
+            const handleOp = (operator) => {
+                setOp(operator);
+                setPrevVal(parseFloat(display));
+                setNewNum(true);
+            };
+
+            const handleEq = () => {
+                if (!op || prevVal === null) return;
+                const curr = parseFloat(display);
+                let res = 0;
+                switch(op) {
+                    case '+': res = prevVal + curr; break;
+                    case '-': res = prevVal - curr; break;
+                    case '×': res = prevVal * curr; break;
+                    case '÷': res = prevVal / curr; break;
+                }
+                setDisplay(String(parseFloat(res.toFixed(4))));
+                setOp(null); setPrevVal(null); setNewNum(true);
+            };
+
+            const handleClear = () => {
+                setDisplay("0"); setPrevVal(null); setOp(null); setNewNum(true);
+            };
+
+            return (
+                <div className="mx-4 mt-6 bg-slate-800 rounded-lg p-3 border border-slate-700 shadow-xl">
+                    <div className="bg-slate-900 border border-slate-600 rounded mb-3 px-2 py-2 text-right text-lg font-mono text-emerald-400 font-bold overflow-hidden h-10 flex items-center justify-end">
+                        {display}
+                    </div>
+                    <div className="grid grid-cols-4 gap-2">
+                        <button onClick={handleClear} className="calc-btn clear col-span-1 text-xs">C</button>
+                        <button onClick={() => handleOp('÷')} className="calc-btn op">÷</button>
+                        <button onClick={() => handleOp('×')} className="calc-btn op">×</button>
+                        <button onClick={() => handleOp('-')} className="calc-btn op">-</button>
+                        <button onClick={() => handleNum(7)} className="calc-btn">7</button>
+                        <button onClick={() => handleNum(8)} className="calc-btn">8</button>
+                        <button onClick={() => handleNum(9)} className="calc-btn">9</button>
+                        <button onClick={() => handleOp('+')} className="calc-btn op row-span-2 flex items-center justify-center">+</button>
+                        <button onClick={() => handleNum(4)} className="calc-btn">4</button>
+                        <button onClick={() => handleNum(5)} className="calc-btn">5</button>
+                        <button onClick={() => handleNum(6)} className="calc-btn">6</button>
+                        <button onClick={() => handleNum(1)} className="calc-btn">1</button>
+                        <button onClick={() => handleNum(2)} className="calc-btn">2</button>
+                        <button onClick={() => handleNum(3)} className="calc-btn">3</button>
+                        <button onClick={handleEq} className="calc-btn eq row-span-2 flex items-center justify-center">=</button>
+                        <button onClick={() => handleNum(0)} className="calc-btn col-span-2">0</button>
+                        <button onClick={() => handleNum('.')} className="calc-btn">.</button>
+                    </div>
+                </div>
+            );
+        };
+
+        const SmartInput = ({ id, value, onChange, correctValue, label, hint, instructorMode, activeInput, setActiveInput, tolerance = 0.5 }) => {
+            const [localError, setLocalError] = useState(null);
+            
+            const evaluateMath = (expr) => {
+                if (!expr) return { valid: true, val: "" };
+                try {
+                    const sanitized = expr.toString().replace(/,/g, '').replace(/%/g, '').replace(/[^\d\.\+\-\*\/\(\)]/g, '');
+                    if (!/^[\d\.\+\-\*\/\(\)\s]+$/.test(sanitized)) return { valid: false, msg: "Invalid" };
+                    const res = eval(sanitized);
+                    if (!isFinite(res) || isNaN(res)) return { valid: false, msg: "Error" };
+                    return { valid: true, val: res };
+                } catch (e) { return { valid: false, msg: "Error" }; }
+            };
+
+            const isCorrect = useMemo(() => {
+                if (!value || !correctValue) return false;
+                const { valid, val } = evaluateMath(value);
+                if (!valid) return false;
+                const target = parseFloat(correctValue.toString().replace(/,/g, ''));
+                return Math.abs(val - target) <= tolerance;
+            }, [value, correctValue]);
+
+            const handleBlur = (e) => {
+                const { valid, val } = evaluateMath(value);
+                if (!valid) { setLocalError("Invalid"); return; }
+                setLocalError(null);
+                if (valid && value !== "") {
+                     const numVal = Number(val);
+                     const displayVal = Number.isInteger(numVal) ? numVal.toString() : numVal.toFixed(2);
+                     onChange(id, displayVal.toString()); 
+                }
+            };
+
+            const isActive = activeInput === id;
+
+            return (
+                <div className="w-full">
+                    {label && <label className="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">{label}</label>}
+                    <div className="flex gap-2 items-start">
+                        <div className="relative flex-grow">
+                            <input 
+                                type="text" 
+                                id={id}
+                                value={value || ""}
+                                onChange={(e) => { setLocalError(null); onChange(id, e.target.value); }}
+                                onFocus={() => setActiveInput(id)}
+                                onBlur={handleBlur}
+                                onKeyDown={(e) => e.key === 'Enter' && e.target.blur()}
+                                className={`w-full p-2 text-right border rounded text-sm font-mono shadow-sm transition-all outline-none focus:ring-2 focus:ring-blue-500 ${
+                                    isCorrect ? "input-correct" : (value && !isActive && !isCorrect) ? "bg-white border-slate-300" : "bg-white border-slate-300"
+                                }`}
+                                placeholder={hint ? "Calc..." : "-"}
+                            />
+                            <div className="absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none">
+                                {isCorrect ? <span className="text-emerald-600"><Icon name="check" size={14} /></span> : 
+                                localError ? <span className="text-red-500 font-bold text-xs">!</span> : null}
+                            </div>
+                        </div>
+                        {hint && (
+                            <div className="w-1/3 shrink-0 bg-blue-50 border border-blue-100 rounded p-2 flex flex-col justify-center min-h-[38px]">
+                                <span className="text-[10px] text-blue-500 font-bold uppercase tracking-wider block mb-0.5">Hint</span>
+                                <span className="text-xs text-blue-800 font-medium leading-tight">{hint}</span>
+                            </div>
+                        )}
+                    </div>
+                    {/* Per-Input Key Display (Instructor Mode) */}
+                    {instructorMode && (
+                        <div className="mt-1 text-[10px] text-purple-700 bg-purple-50 px-2 py-1 rounded inline-block font-bold border border-purple-200 shadow-sm animate-fade-in">
+                            Key: {correctValue}
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const ReferenceTable = ({ title, headers, rows, onValueClick }) => {
+            const [isOpen, setIsOpen] = useState(true);
+            return (
+                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mb-4">
+                    <button onClick={() => setIsOpen(!isOpen)} className="w-full flex items-center justify-between p-3 bg-slate-50 border-b border-slate-100 hover:bg-slate-100 transition">
+                        <h4 className="font-bold text-slate-700 text-sm flex items-center gap-2">
+                            <Icon name="table" size={16} /> {title}
+                        </h4>
+                        <Icon name={isOpen ? "chevron-up" : "chevron-down"} size={16} />
+                    </button>
+                    {isOpen && (
+                        <div className="overflow-x-auto max-h-64">
+                            <table className="w-full text-xs text-left">
+                                <thead className="bg-slate-50 text-slate-500 uppercase tracking-wider sticky top-0">
+                                    <tr>{headers.map((h, i) => <th key={i} className={`p-2 border-b font-medium ${i > 0 ? "text-right" : ""}`}>{h}</th>)}</tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100">
+                                    {rows.map((row, rI) => (
+                                        <tr key={rI} className="hover:bg-blue-50 transition-colors group">
+                                            <td className="p-2 font-medium text-slate-700">{row[0]}</td>
+                                            {row.slice(1).map((cell, cI) => (
+                                                <td key={cI} onClick={() => onValueClick(cell)} className="p-2 text-right font-mono text-slate-600 cursor-pointer hover:text-blue-700 hover:font-bold decoration-dotted" title="Insert">{cell}</td>
+                                            ))}
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const QuestionBox = ({ q, hint, teacherAns, teacherMode }) => {
+            const [showHint, setShowHint] = useState(false);
+            return (
+                <div className="bg-white border border-slate-200 rounded-lg p-5 shadow-sm mb-4">
+                    <p className="font-bold text-slate-800 mb-3 text-sm">{q}</p>
+                    <textarea className="w-full border border-slate-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-200 outline-none mb-2 bg-slate-50 min-h-[80px]" placeholder="Type analysis..."></textarea>
+                    <div className="flex justify-between items-center">
+                        <button onClick={() => setShowHint(!showHint)} className="text-xs text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1">
+                            <Icon name="help-circle" size={12} /> {showHint ? "Hide Hint" : "Show Hint"}
+                        </button>
+                    </div>
+                    {showHint && <p className="mt-2 text-xs text-blue-700 bg-blue-50 p-2 rounded border border-blue-100">{hint}</p>}
+                    {teacherMode && (
+                        <div className="mt-3 pt-3 border-t border-slate-100 bg-purple-50 p-3 rounded">
+                            <span className="text-[10px] font-bold text-purple-700 uppercase tracking-wider block mb-1">Instructor Note</span>
+                            <p className="text-xs text-slate-700">{teacherAns}</p>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const QuizModule = ({ teacherMode, isAutoFilled }) => {
+            const [answers, setAnswers] = useState({});
+            
+            useEffect(() => {
+                if (isAutoFilled) {
+                    setAnswers({ q1: 'b', q2: 'c', q3: 'b', q4: 'c' });
+                } else if (!isAutoFilled && teacherMode) {
+                    setAnswers({});
+                }
+            }, [isAutoFilled, teacherMode]);
+
+            const questions = [
+                { id: 'q1', text: "1. Why are current maturities ($3,953M) reported as short-term debt?", options: [{id:'a', text:"Reduces interest expense"}, {id:'b', text:"Principal due within 12 months (Liquidity Risk)", correct:true}, {id:'c', text:"Hides debt from balance sheet"}] },
+                { id: 'q2', text: "2. Boston Scientific's FY12 note (4.00%) is priced at 109.35. Relationship?", options: [{id:'a', text:"Yield > Coupon"}, {id:'b', text:"Yield = Coupon"}, {id:'c', text:"Yield < Coupon (Premium Bond)", correct:true}] },
+                { id: 'q3', text: "3. Why do longer-term bonds carry higher yields than shorter-term bonds?", options: [{id:'a', text:"Less risk"}, {id:'b', text:"Higher duration/inflation risk premium", correct:true}, {id:'c', text:"Accounting rules"}] },
+                { id: 'q4', text: "4. PepsiCo paid $1.6B to retire $1.328B book value debt. Impact?", options: [{id:'a', text:"Gain of $272M"}, {id:'b', text:"No impact"}, {id:'c', text:"Loss of $272M (Cash > CV)", correct:true}] }
+            ];
+
+            return (
+                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                    <h2 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2"><Icon name="check-square" className="text-emerald-600"/> Knowledge Check</h2>
+                    <div className="space-y-6">
+                        {questions.map(q => (
+                            <div key={q.id} className="border-b border-slate-100 pb-4 last:border-0">
+                                <p className="text-sm font-medium text-slate-800 mb-3">{q.text}</p>
+                                <div className="space-y-2">
+                                    {q.options.map(opt => (
+                                        <button key={opt.id} onClick={() => setAnswers({...answers, [q.id]: opt.id})} 
+                                            className={`w-full text-left p-2 rounded border text-xs flex items-center gap-2 ${answers[q.id]===opt.id ? (opt.correct ? "bg-emerald-50 border-emerald-500 text-emerald-800" : "bg-red-50 border-red-500 text-red-800") : "hover:bg-slate-50 border-slate-200"}`}>
+                                            <div className={`w-3 h-3 rounded-full border flex items-center justify-center ${answers[q.id]===opt.id ? (opt.correct?"bg-emerald-600 border-emerald-600":"bg-red-600 border-red-600") : "border-slate-300"}`}></div>
+                                            {opt.text}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        };
+
+        const App = () => {
+            const [activeTab, setActiveTab] = useState('P'); // P, B, Q
+            const [inputs, setInputs] = useState({ P: {}, B: {} });
+            const [activeInput, setActiveInput] = useState(null);
+            
+            // Instructor State
+            const [instructorMode, setInstructorMode] = useState(false);
+            const [showLogin, setShowLogin] = useState(false);
+            const [password, setPassword] = useState("");
+            const [clearModalOpen, setClearModalOpen] = useState(false);
+            const [isAutoFilled, setIsAutoFilled] = useState(false);
+            const [showAnswerKey, setShowAnswerKey] = useState(false);
+            
+            // Hash/Download
+            const [studentName, setStudentName] = useState("");
+            const [showDownload, setShowDownload] = useState(false);
+
+            const activeData = activeTab === 'P' ? PEPSICO_DATA : (activeTab === 'B' ? BOSTON_DATA : { metadata: { name: "Quiz", year: "Review" }, tables: [] });
+            const activeKey = activeTab === 'P' ? ANSWER_KEYS.P : (activeTab === 'B' ? ANSWER_KEYS.B : {});
+
+            const handleInputChange = (id, val) => setInputs(prev => ({ ...prev, [activeTab]: { ...prev[activeTab], [id]: val } }));
+
+            const handleValueClick = (val) => {
+                if (!activeInput) return;
+                const cleanVal = val.replace(/,/g, '').replace(/[()]/g, (m) => m === '(' ? '-' : '');
+                setInputs(prev => {
+                    const cur = prev[activeTab][activeInput] || "";
+                    const isOperator = /[+\-*/(]$/.test(cur.trim());
+                    const newVal = (cur === "" || isOperator) ? cur + cleanVal : cleanVal;
+                    return { ...prev, [activeTab]: { ...prev[activeTab], [activeInput]: newVal } };
+                });
+                setTimeout(() => document.getElementById(activeInput)?.focus(), 50);
+            };
+
+            const unlockInstructor = () => {
+                if (password.toLowerCase() === "teacher") { setInstructorMode(true); setShowLogin(false); setPassword(""); } else { alert("Incorrect"); }
+            };
+
+            const handleAutoFill = () => {
+                if(activeTab === 'Q') setIsAutoFilled(true);
+                else setInputs(prev => ({ ...prev, [activeTab]: { ...activeKey } }));
+            };
+
+            // Clear All Functionality
+            const performClear = () => {
+                setInputs({ P: {}, B: {} });
+                setIsAutoFilled(false);
+                setInstructorMode(false);
+                setClearModalOpen(false);
+            };
+
+            const handleDownload = () => {
+                const text = `Debt Analysis - ${activeTab}\nStudent: ${studentName}\nAnswers:\n${JSON.stringify(inputs[activeTab] || "Quiz")}`;
+                const blob = new Blob([text], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url; a.download = `${studentName}_DebtSim.txt`; a.click();
+                setShowDownload(false);
+            };
+
+            return (
+                <div className="flex h-screen bg-slate-100 overflow-hidden font-sans">
+                    {/* SIDEBAR */}
+                    <div className="w-72 bg-slate-900 text-slate-300 flex flex-col border-r border-slate-700 shadow-2xl z-10 shrink-0">
+                        <div className="p-6 border-b border-slate-700 bg-slate-950">
+                            <h1 className="font-bold text-lg text-white tracking-tight flex items-center gap-2">
+                                <Icon name="activity" className="text-emerald-400" /> Debt<span className="text-emerald-400">Analyst</span>
+                            </h1>
+                            <p className="text-xs text-slate-500 uppercase tracking-wider font-semibold mt-1">10-K Interpretation</p>
+                        </div>
+                        <div className="flex-1 p-4 space-y-2 overflow-y-auto">
+                            <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Modules</h3>
+                            <button onClick={() => setActiveTab('P')} className={`w-full text-left px-4 py-3 rounded-lg text-sm transition-all flex items-center gap-3 ${activeTab === 'P' ? 'bg-blue-600 text-white shadow-lg' : 'hover:bg-slate-800 text-slate-400'}`}>
+                                <div className="bg-white/10 p-1.5 rounded"><Icon name="droplet" size={16} /></div>
+                                <div><div className="font-bold">PepsiCo Inc.</div><div className="text-[10px] opacity-75">Debt Schedule & Tender</div></div>
+                            </button>
+                            <button onClick={() => setActiveTab('B')} className={`w-full text-left px-4 py-3 rounded-lg text-sm transition-all flex items-center gap-3 ${activeTab === 'B' ? 'bg-emerald-600 text-white shadow-lg' : 'hover:bg-slate-800 text-slate-400'}`}>
+                                <div className="bg-white/10 p-1.5 rounded"><Icon name="heart-pulse" size={16} /></div>
+                                <div><div className="font-bold">Boston Scientific</div><div className="text-[10px] opacity-75">Rates & Expense</div></div>
+                            </button>
+                            <button onClick={() => setActiveTab('Q')} className={`w-full text-left px-4 py-3 rounded-lg text-sm transition-all flex items-center gap-3 ${activeTab === 'Q' ? 'bg-purple-600 text-white shadow-lg' : 'hover:bg-slate-800 text-slate-400'}`}>
+                                <div className="bg-white/10 p-1.5 rounded"><Icon name="check-square" size={16} /></div>
+                                <div><div className="font-bold">Quiz & Review</div><div className="text-[10px] opacity-75">Knowledge Check</div></div>
+                            </button>
+                            <StandardCalculator />
+                        </div>
+                        <div className="p-4 border-t border-slate-800">
+                            {!instructorMode ? (
+                                <button onClick={() => setShowLogin(true)} className="flex items-center justify-center gap-2 text-xs font-medium w-full px-3 py-2 rounded bg-slate-800 text-slate-400 hover:text-white transition-colors border border-slate-700">
+                                    <Icon name="lock" size={14} /> Instructor Access
+                                </button>
+                            ) : (
+                                <div className="text-center">
+                                    <p className="text-xs text-purple-400 font-bold mb-2 flex items-center justify-center gap-1"><Icon name="unlock" size={12}/> Mode Active</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* MAIN */}
+                    <div className="flex-1 flex flex-col bg-slate-100 overflow-hidden relative">
+                        {/* INSTRUCTOR STICKY TOOLBAR */}
+                        {instructorMode && (
+                            <div className="bg-purple-700 text-white p-2 shadow-md flex items-center justify-between z-20 animate-fade-in shrink-0 border-b border-purple-800">
+                                <div className="flex items-center gap-3 px-4">
+                                    <span className="bg-white/20 p-1.5 rounded"><Icon name="graduation-cap" size={18}/></span>
+                                    <span className="font-bold tracking-wide text-sm">INSTRUCTOR TOOLBAR</span>
+                                </div>
+                                <div className="flex gap-2 px-4">
+                                    <button onClick={() => setShowAnswerKey(true)} className="flex items-center gap-2 px-3 py-1 bg-purple-600 hover:bg-purple-500 rounded text-xs font-bold transition border border-purple-400">
+                                        <Icon name="list" size={14} /> View Answer Key
+                                    </button>
+                                    <button onClick={handleAutoFill} className="flex items-center gap-2 px-3 py-1 bg-emerald-500 hover:bg-emerald-400 rounded text-xs font-bold transition shadow-sm text-emerald-950">
+                                        <Icon name="zap" size={14} /> Auto-Fill All
+                                    </button>
+                                    <button onClick={() => setClearModalOpen(true)} className="flex items-center gap-2 px-3 py-1 bg-red-500 hover:bg-red-400 rounded text-xs font-bold transition shadow-sm">
+                                        <Icon name="log-out" size={14} /> Clear & Exit
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        <header className="bg-white border-b border-slate-200 px-8 py-5 flex justify-between items-center shadow-sm z-10">
+                            <div>
+                                <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                                    {activeData.metadata.name} <span className="text-xs font-normal text-white bg-slate-400 px-2 py-0.5 rounded-full">{activeData.metadata.year}</span>
+                                </h2>
+                            </div>
+                            <button onClick={() => setShowDownload(true)} className="px-4 py-2 bg-blue-600 text-white rounded text-sm font-bold flex items-center gap-2 hover:bg-blue-700 transition"><Icon name="download" size={16}/> Save Work</button>
+                        </header>
+
+                        <main className="flex-1 overflow-y-auto p-8 custom-scrollbar">
+                            <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                {/* LEFT: Reference */}
+                                {activeTab !== 'Q' && (
+                                    <div className="space-y-4">
+                                        <div className="bg-blue-900 text-white px-4 py-3 rounded-t-lg font-bold text-sm flex items-center justify-between shadow-sm">
+                                            <span>Financial Data</span>
+                                            <span className="text-xs opacity-75 flex items-center gap-1"><Icon name="mouse-pointer-click" size={12}/> Click to insert</span>
+                                        </div>
+                                        {activeData.tables.map((tbl, i) => (
+                                            <ReferenceTable key={i} title={tbl.title} headers={tbl.headers} rows={tbl.rows} onValueClick={handleValueClick} />
+                                        ))}
+                                    </div>
+                                )}
+
+                                {/* RIGHT: Work */}
+                                <div className={activeTab === 'Q' ? "col-span-2" : "space-y-6"}>
+                                    {activeTab === 'P' && (
+                                        <div className="space-y-6 animate-fade-in">
+                                            <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                                                <h4 className="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2"><Icon name="file-text" className="text-blue-600"/> a. Debt Reporting on Balance Sheet ($M)</h4>
+                                                <div className="space-y-3">
+                                                    <SmartInput id="p_st" label="Short-term Debt" value={inputs.P.p_st} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEYS.P.p_st} instructorMode={instructorMode} />
+                                                    <SmartInput id="p_lt" label="Long-term Debt" value={inputs.P.p_lt} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEYS.P.p_lt} instructorMode={instructorMode} />
+                                                    <div className="pt-2 border-t"><SmartInput id="p_total" label="Total Debt Reported" value={inputs.P.p_total} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEYS.P.p_total} instructorMode={instructorMode} /></div>
+                                                </div>
+                                            </div>
+                                            <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                                                <h4 className="text-sm font-bold text-slate-700 mb-4">b. Notes Due Analysis</h4>
+                                                <div className="flex gap-4 items-end mb-4">
+                                                    <SmartInput id="p_change" label="Change in Balance ($M)" value={inputs.P.p_change} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEYS.P.p_change} instructorMode={instructorMode} hint="FY2 - FY1" />
+                                                </div>
+                                                <QuestionBox q="Does this increase mean more notes were issued?" hint="Think: Amortization of discount." teacherAns="No. It reflects amortization of the discount, bringing book value closer to face value." teacherMode={instructorMode} />
+                                            </div>
+                                            <QuestionBox q="c. Why are current maturities ($3,953M) short-term?" hint="Due within 12 months." teacherAns="Principal payments due within 1 year. Critical for liquidity analysis." teacherMode={instructorMode} />
+                                            <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                                                <h4 className="text-sm font-bold text-slate-700 mb-4">e. Early Retirement Analysis</h4>
+                                                <div className="space-y-3">
+                                                    <SmartInput id="p_retired" label="Total Carrying Value Retired ($M)" value={inputs.P.p_retired} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEYS.P.p_retired} instructorMode={instructorMode} hint="Sum of notes" />
+                                                    <SmartInput id="p_loss" label="Loss on Retirement ($M)" value={inputs.P.p_loss} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEYS.P.p_loss} instructorMode={instructorMode} hint="Cash Paid - CV" />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {activeTab === 'B' && (
+                                        <div className="space-y-6 animate-fade-in">
+                                            <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                                                <h4 className="text-sm font-bold text-slate-700 mb-4">Debt Analysis</h4>
+                                                <div className="space-y-4">
+                                                    <SmartInput id="b_fy3Due" label="a. LT Debt due in FY3 ($M)" value={inputs.B.b_fy3Due} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEYS.B.b_fy3Due} instructorMode={instructorMode} />
+                                                    <SmartInput id="b_totalLt" label="b. Total LT Debt (incl. current) at FY2 ($M)" value={inputs.B.b_totalLt} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEYS.B.b_totalLt} instructorMode={instructorMode} hint="Reported LT + Current Mat." />
+                                                    <SmartInput id="b_avgRate" label="c. Effective Interest Rate (%)" value={inputs.B.b_avgRate} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEYS.B.b_avgRate} instructorMode={instructorMode} hint="Int Exp / Avg Debt" tolerance={0.2} type="percent" />
+                                                </div>
+                                            </div>
+                                            <QuestionBox q="d. Why does cash paid differ from interest expense?" hint="Interest Payable changes or Amortization." teacherAns="Amortization of premiums/discounts (non-cash) and timing of payments (accruals)." teacherMode={instructorMode} />
+                                            <QuestionBox q="e. FY12 Note Price 109.35 (Yield 2.8%). Implication?" hint="Yield < Coupon." teacherAns="Premium bond. Market rates have fallen below the coupon rate since issuance." teacherMode={instructorMode} />
+                                            <QuestionBox q="f. Why does FY12 (4%) have higher yield than FY7 (4.1%)?" hint="Yield Curve." teacherAns="Longer maturity = higher risk premium (upward yield curve). Coupon is irrelevant to current market yield." teacherMode={instructorMode} />
+                                        </div>
+                                    )}
+
+                                    {activeTab === 'Q' && <QuizModule teacherMode={instructorMode} isAutoFilled={isAutoFilled} />}
+                                </div>
+                            </div>
+                        </main>
+                    </div>
+
+                    {/* MODALS */}
+                    {showLogin && (
+                        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center backdrop-blur-sm animate-fade-in">
+                            <div className="bg-white p-6 rounded-lg shadow-xl w-80">
+                                <h3 className="font-bold text-lg mb-4 flex items-center gap-2"><Icon name="shield" className="text-blue-600"/> Instructor Login</h3>
+                                <input type="password" className="w-full border p-2 rounded mb-4" value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && unlockInstructor()} autoFocus placeholder="Enter Password" />
+                                <div className="flex justify-end gap-2">
+                                    <button onClick={() => setShowLogin(false)} className="px-3 py-1 text-slate-500 hover:bg-slate-100 rounded">Cancel</button>
+                                    <button onClick={unlockInstructor} className="px-3 py-1 bg-blue-600 text-white rounded font-bold hover:bg-blue-700">Access</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    
+                    {showDownload && (
+                        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center backdrop-blur-sm animate-fade-in">
+                            <div className="bg-white p-6 rounded-lg shadow-xl w-80">
+                                <h3 className="font-bold text-lg mb-4 text-center">Save Work</h3>
+                                <input type="text" className="w-full border p-2 rounded mb-4 text-center" placeholder="Your Name" value={studentName} onChange={(e) => setStudentName(e.target.value)} autoFocus />
+                                <button onClick={() => studentName ? handleDownload() : alert("Name required")} className="w-full py-2 bg-blue-600 text-white rounded font-bold hover:bg-blue-700">Download</button>
+                                <button onClick={() => setShowDownload(false)} className="w-full mt-2 py-2 text-slate-500 text-sm hover:text-slate-800">Cancel</button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Answer Key Table Modal */}
+                    {showAnswerKey && (
+                        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center backdrop-blur-sm animate-fade-in">
+                            <div className="bg-white p-6 rounded-xl shadow-2xl w-full max-w-2xl h-3/4 flex flex-col">
+                                <div className="flex justify-between items-center mb-4 border-b pb-2">
+                                    <h3 className="font-bold text-xl text-purple-800 flex items-center gap-2"><Icon name="key" /> Full Answer Key</h3>
+                                    <button onClick={() => setShowAnswerKey(false)} className="text-slate-400 hover:text-slate-600"><Icon name="x" /></button>
+                                </div>
+                                <div className="flex-1 overflow-y-auto custom-scrollbar">
+                                    <div className="grid grid-cols-1 gap-6">
+                                        <div>
+                                            <h4 className="font-bold text-slate-700 mb-2 bg-slate-100 p-2 rounded">PepsiCo (Module P)</h4>
+                                            <div className="grid grid-cols-2 gap-2 text-sm">
+                                                {Object.entries(ANSWER_KEYS.P).map(([k, v]) => (
+                                                    <div key={k} className="flex justify-between border-b border-slate-100 py-1">
+                                                        <span className="text-slate-500">{k}:</span>
+                                                        <span className="font-mono font-bold text-purple-700">{v}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <h4 className="font-bold text-slate-700 mb-2 bg-slate-100 p-2 rounded">Boston Scientific (Module B)</h4>
+                                            <div className="grid grid-cols-2 gap-2 text-sm">
+                                                {Object.entries(ANSWER_KEYS.B).map(([k, v]) => (
+                                                    <div key={k} className="flex justify-between border-b border-slate-100 py-1">
+                                                        <span className="text-slate-500">{k}:</span>
+                                                        <span className="font-mono font-bold text-purple-700">{v}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="mt-4 pt-2 border-t text-right">
+                                    <button onClick={() => setShowAnswerKey(false)} className="px-4 py-2 bg-slate-200 text-slate-700 rounded font-bold hover:bg-slate-300">Close</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    <ConfirmationModal 
+                        isOpen={clearModalOpen}
+                        title="Clear All & Exit Instructor Mode?"
+                        message="This will remove all answers, reset the board, and lock instructor privileges. Are you sure?"
+                        onConfirm={performClear}
+                        onCancel={() => setClearModalOpen(false)}
+                    />
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

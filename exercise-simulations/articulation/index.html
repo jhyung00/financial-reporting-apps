@@ -1,0 +1,1263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financial Statement Articulation Simulation</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .fade-in { animation: fadeIn 0.3s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        
+        .hint-box { display: none; }
+        .hint-box.active { display: block; animation: slideDown 0.3s ease-out; }
+        @keyframes slideDown { from { transform: translateY(-10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+        /* Tabs */
+        .tab-btn { 
+            @apply px-4 py-3 font-bold text-xs sm:text-sm rounded-t-lg border-b-4 border-transparent transition-all flex items-center gap-2 bg-slate-100 text-slate-500 hover:bg-slate-200; 
+        }
+        .tab-btn.active { 
+            @apply text-blue-800 border-blue-600 bg-white shadow-sm -mb-[1px] z-10; 
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+
+        /* Instructor Mode Specifics */
+        .instructor-key {
+            display: none; /* Hidden by default */
+        }
+        .instructor-active .instructor-key {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+
+        /* Smart Input Animations */
+        .input-check-icon {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            transform: scale(0);
+            opacity: 0;
+        }
+        .input-check-icon.visible {
+            transform: scale(1);
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col relative pb-20">
+
+    <!-- INSTRUCTOR STICKY TOOLBAR (Hidden by default) -->
+    <div id="instructorToolbar" class="hidden fixed top-0 left-0 w-full bg-purple-900 text-white z-50 shadow-xl border-b border-purple-700 slide-down">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex flex-col sm:flex-row justify-between items-center gap-3">
+            <div class="flex items-center gap-3">
+                <div class="bg-purple-700 p-2 rounded-lg">
+                    <i data-lucide="shield-check" class="h-5 w-5 text-purple-200"></i>
+                </div>
+                <div>
+                    <h2 class="font-bold text-sm uppercase tracking-wider text-purple-200">Instructor Mode</h2>
+                    <p class="text-xs text-purple-300">Full Access Enabled</p>
+                </div>
+            </div>
+            
+            <div class="flex flex-wrap gap-2 justify-center">
+                <button onclick="instructorAutoFill()" class="flex items-center gap-2 bg-purple-600 hover:bg-purple-500 px-3 py-1.5 rounded text-sm font-medium transition-colors border border-purple-500">
+                    <i data-lucide="zap" class="h-4 w-4"></i>
+                    Auto-Fill All
+                </button>
+                <button onclick="toggleToolsModal()" class="flex items-center gap-2 bg-purple-800 hover:bg-purple-700 px-3 py-1.5 rounded text-sm font-medium transition-colors border border-purple-600">
+                    <i data-lucide="wrench" class="h-4 w-4"></i>
+                    Tools & Hash
+                </button>
+                <button onclick="requestClearAll()" class="flex items-center gap-2 bg-rose-600 hover:bg-rose-500 px-3 py-1.5 rounded text-sm font-medium transition-colors border border-rose-500 shadow-sm">
+                    <i data-lucide="log-out" class="h-4 w-4"></i>
+                    Clear & Exit
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <header class="bg-slate-900 text-white shadow-lg sticky top-0 z-40 transition-all duration-300" id="mainHeader">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-3">
+                <i data-lucide="calculator" class="h-6 w-6 text-blue-400"></i>
+                <h1 class="text-xl font-bold tracking-tight">FinSim: Statement Articulation</h1>
+            </div>
+            <div class="flex gap-3">
+                <button onclick="openSubmitModal()" class="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 px-4 py-2 rounded-md text-sm font-medium transition-colors shadow-sm">
+                    <i data-lucide="download" class="h-4 w-4"></i>
+                    Submit Work
+                </button>
+                <!-- Robust Instructor Button -->
+                <button id="teacherBtn" onclick="toggleTeacherModal()" class="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-md text-sm font-medium transition-colors border border-slate-600 group">
+                    <span class="bg-slate-800 p-1 rounded group-hover:bg-slate-700 transition-colors">
+                        <i data-lucide="lock" class="h-3 w-3 text-slate-300"></i>
+                    </span>
+                    <span>Instructor Access</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Tab Navigation -->
+    <div class="bg-slate-200 border-b border-slate-300 sticky top-14 z-30 pt-2 px-4 shadow-inner overflow-x-auto transition-all" id="tabNav">
+        <div class="max-w-7xl mx-auto flex gap-2 min-w-max">
+            <button onclick="switchTab('level1')" id="tab-level1" class="tab-btn active">
+                <div class="bg-blue-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold">1</div>
+                Version 1 (2025)
+            </button>
+            <button onclick="switchTab('level2')" id="tab-level2" class="tab-btn">
+                <div class="bg-indigo-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold">2</div>
+                Version 2 (2026)
+            </button>
+            <button onclick="switchTab('level3')" id="tab-level3" class="tab-btn">
+                <div class="bg-rose-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold">3</div>
+                Version 3: Audit (2027)
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="flex-grow max-w-7xl mx-auto w-full p-4 md:p-6 bg-slate-50">
+        
+        <!-- FEATURE INTRO BANNER -->
+        <div id="featureBanner" class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4 mb-6 flex items-start sm:items-center justify-between gap-4 shadow-sm fade-in">
+            <div class="flex items-center gap-3">
+                <div class="bg-blue-100 p-2 rounded-full hidden sm:block">
+                    <i data-lucide="wand-2" class="h-5 w-5 text-blue-600"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-blue-900 text-sm">Smart Math Inputs</h3>
+                    <p class="text-xs text-blue-700">You can type math directly! Try typing <code>50000 - 30000</code> or <code>15000 / 2</code> and press Enter. </p>
+                </div>
+            </div>
+            <button onclick="document.getElementById('featureBanner').remove()" class="text-blue-400 hover:text-blue-600"><i data-lucide="x" class="h-5 w-5"></i></button>
+        </div>
+
+        <!-- LEVEL 1 CONTENT -->
+        <div id="level1" class="grid grid-cols-1 lg:grid-cols-12 gap-8 fade-in">
+            <!-- Level 1 Left Panel -->
+            <div class="lg:col-span-5 space-y-6">
+                <!-- 2024 BS -->
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="bg-slate-100 px-5 py-3 border-b border-slate-200 font-semibold text-slate-700 flex justify-between">
+                        <span>Balance Sheet</span><span class="text-xs bg-slate-200 px-2 py-1 rounded text-slate-600">Dec 31, 2024</span>
+                    </div>
+                    <div class="p-5">
+                        <table class="w-full text-sm">
+                            <tr class="font-bold text-blue-900"><td colspan="2" class="pb-2">Assets</td></tr>
+                            <tr><td class="pl-4 py-1 text-slate-600">Cash</td><td class="text-right font-mono">10,000</td></tr>
+                            <tr><td class="pl-4 py-1 text-slate-600">Non-Cash Assets</td><td class="text-right font-mono">25,000</td></tr>
+                            <tr class="font-bold border-t border-slate-300"><td class="pl-4 py-2">Total Assets</td><td class="text-right py-2 font-mono">35,000</td></tr>
+                            <tr class="h-4"></tr>
+                            <tr class="font-bold text-blue-900"><td colspan="2" class="pb-2">Liabilities & Equity</td></tr>
+                            <tr><td class="pl-4 py-1 text-slate-600">Liabilities</td><td class="text-right font-mono">15,000</td></tr>
+                            <tr><td class="pl-4 py-1 text-slate-600">Contributed Capital</td><td class="text-right font-mono">10,000</td></tr>
+                            <tr><td class="pl-4 py-1 text-slate-600">Retained Earnings</td><td class="text-right font-mono">10,000</td></tr>
+                            <tr class="font-bold border-t border-slate-300"><td class="pl-4 py-2">Total L & E</td><td class="text-right py-2 font-mono">35,000</td></tr>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 2025 SCF -->
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="bg-slate-100 px-5 py-3 border-b border-slate-200 font-semibold text-slate-700 flex justify-between">
+                        <span>Statement of Cash Flows</span><span class="text-xs bg-slate-200 px-2 py-1 rounded text-slate-600">2025</span>
+                    </div>
+                    <div class="p-5">
+                        <table class="w-full text-sm">
+                            <tr><td class="pl-4 py-1 font-medium text-slate-800">Operating Cash Flows</td><td id="l1-cell-q1" class="text-right font-bold text-rose-600 font-mono bg-rose-50 rounded px-1">? (Q1)</td></tr>
+                            <tr><td class="pl-4 py-1 text-slate-600">Investing Cash Flows</td><td class="text-right font-mono text-red-600">(25,000)</td></tr>
+                            <tr><td class="pl-4 py-1 text-slate-600">Financing Cash Flows</td><td class="text-right font-mono text-emerald-600">30,000</td></tr>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 2025 BS -->
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="bg-slate-100 px-5 py-3 border-b border-slate-200 font-semibold text-slate-700 flex justify-between">
+                        <span>Balance Sheet</span><span class="text-xs bg-slate-200 px-2 py-1 rounded text-slate-600">Dec 31, 2025</span>
+                    </div>
+                    <div class="p-5">
+                        <table class="w-full text-sm">
+                            <tr class="font-bold text-blue-900"><td colspan="2" class="pb-2">Assets</td></tr>
+                            <tr><td class="pl-4 py-1 text-slate-600">Cash</td><td class="text-right font-mono">30,000</td></tr>
+                            <tr><td class="pl-4 py-1 text-slate-600">Non-Cash Assets</td><td class="text-right font-mono">35,000</td></tr>
+                            <tr class="font-bold border-t border-slate-300"><td class="pl-4 py-2">Total Assets</td><td class="text-right py-2 font-mono">65,000</td></tr>
+                            <tr class="h-4"></tr>
+                            <tr class="font-bold text-blue-900"><td colspan="2" class="pb-2">Liabilities & Equity</td></tr>
+                            <tr><td class="pl-4 py-1 text-slate-600">Liabilities</td><td class="text-right font-mono">25,000</td></tr>
+                            <tr><td class="pl-4 py-1 font-medium text-slate-800">Contributed Capital</td><td id="l1-cell-q3" class="text-right font-bold text-rose-600 font-mono bg-rose-50 rounded px-1">? (Q3)</td></tr>
+                            <tr><td class="pl-4 py-1 font-medium text-slate-800">Retained Earnings</td><td id="l1-cell-q4" class="text-right font-bold text-rose-600 font-mono bg-rose-50 rounded px-1">? (Q4)</td></tr>
+                            <tr class="font-bold border-t border-slate-300"><td class="pl-4 py-2">Total L & E</td><td id="l1-cell-total" class="text-right py-2 font-bold text-rose-600 font-mono bg-rose-50 rounded px-1">?</td></tr>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Info -->
+                <div class="bg-blue-50 p-5 rounded-xl border border-blue-200 text-sm text-blue-900 shadow-sm">
+                    <p class="font-bold mb-2 flex items-center gap-2"><i data-lucide="info" class="h-4 w-4"></i> Additional Info (2025):</p>
+                    <ul class="list-disc pl-5 space-y-1 text-blue-800">
+                        <li>Revenue: <strong>$50,000</strong>, Expenses: <strong>$30,000</strong></li>
+                        <li>Stock Issued: <strong>$15,000</strong></li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Level 1 Right Panel (Questions) -->
+            <div class="lg:col-span-7 space-y-8">
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                    <h2 class="text-xl font-bold text-slate-800 mb-6 border-b pb-2">Version 1: Student Analysis</h2>
+                    
+                    <!-- L1 Questions -->
+                    <div class="space-y-6">
+                        <!-- Q1 -->
+                        <div>
+                            <div class="flex justify-between mb-2">
+                                <label class="font-semibold">(1) Operating Cash Flows</label>
+                                <button onclick="toggleHint('l1h1')" class="text-xs text-blue-600 font-medium">Hint</button>
+                            </div>
+                            <div id="l1h1" class="hint-box bg-amber-50 border-l-4 border-amber-400 p-2 mb-2 text-xs text-amber-900">End Cash - Beg Cash = Net Change. Solve for Operating.</div>
+                            <div class="flex flex-col gap-1">
+                                <div class="flex gap-2 relative">
+                                    <div class="relative w-full">
+                                        <input type="text" id="l1q1" class="w-full border rounded px-3 py-2 font-mono pr-8" placeholder="0" 
+                                               onblur="validateSmartInput(this, 15000, 'l1-cell-q1')" 
+                                               onkeydown="if(event.key==='Enter') validateSmartInput(this, 15000, 'l1-cell-q1')">
+                                        <i data-lucide="check" class="absolute right-3 top-2.5 h-4 w-4 text-emerald-600 input-check-icon" id="icon-l1q1"></i>
+                                    </div>
+                                    <button onclick="validateSmartInput(document.getElementById('l1q1'), 15000, 'l1-cell-q1')" class="bg-slate-800 text-white px-4 rounded text-sm hover:bg-slate-700">Check</button>
+                                </div>
+                                <div class="instructor-key text-purple-700 font-bold text-xs bg-purple-50 p-1 border-l-4 border-purple-500 rounded-r">Key: 15,000</div>
+                            </div>
+                            <div id="msg-l1q1" class="h-5 text-xs mt-1"></div>
+                        </div>
+
+                        <!-- Q2 -->
+                        <div>
+                            <div class="flex justify-between mb-2">
+                                <label class="font-semibold">(2) Dividends Paid</label>
+                                <button onclick="toggleHint('l1h2')" class="text-xs text-blue-600 font-medium">Hint</button>
+                            </div>
+                            <div id="l1h2" class="hint-box bg-amber-50 border-l-4 border-amber-400 p-2 mb-2 text-xs text-amber-900">End RE = Beg RE + NI - Div. (NI = Rev - Exp).</div>
+                            <div class="flex flex-col gap-1">
+                                <div class="flex gap-2 relative">
+                                    <div class="relative w-full">
+                                        <input type="text" id="l1q2" class="w-full border rounded px-3 py-2 font-mono pr-8" placeholder="0" 
+                                               onblur="validateSmartInput(this, 15000)" 
+                                               onkeydown="if(event.key==='Enter') validateSmartInput(this, 15000)">
+                                        <i data-lucide="check" class="absolute right-3 top-2.5 h-4 w-4 text-emerald-600 input-check-icon" id="icon-l1q2"></i>
+                                    </div>
+                                    <button onclick="validateSmartInput(document.getElementById('l1q2'), 15000)" class="bg-slate-800 text-white px-4 rounded text-sm hover:bg-slate-700">Check</button>
+                                </div>
+                                <div class="instructor-key text-purple-700 font-bold text-xs bg-purple-50 p-1 border-l-4 border-purple-500 rounded-r">Key: 15,000</div>
+                            </div>
+                            <div id="msg-l1q2" class="h-5 text-xs mt-1"></div>
+                        </div>
+
+                        <!-- Q3 -->
+                        <div>
+                            <div class="flex justify-between mb-2">
+                                <label class="font-semibold">(3) Ending Contributed Capital</label>
+                                <button onclick="toggleHint('l1h3')" class="text-xs text-blue-600 font-medium">Hint</button>
+                            </div>
+                            <div id="l1h3" class="hint-box bg-amber-50 border-l-4 border-amber-400 p-2 mb-2 text-xs text-amber-900">Beg CC + Stock Issued.</div>
+                            <div class="flex flex-col gap-1">
+                                <div class="flex gap-2 relative">
+                                    <div class="relative w-full">
+                                        <input type="text" id="l1q3" class="w-full border rounded px-3 py-2 font-mono pr-8" placeholder="0" 
+                                               onblur="validateSmartInput(this, 25000, 'l1-cell-q3')" 
+                                               onkeydown="if(event.key==='Enter') validateSmartInput(this, 25000, 'l1-cell-q3')">
+                                        <i data-lucide="check" class="absolute right-3 top-2.5 h-4 w-4 text-emerald-600 input-check-icon" id="icon-l1q3"></i>
+                                    </div>
+                                    <button onclick="validateSmartInput(document.getElementById('l1q3'), 25000, 'l1-cell-q3')" class="bg-slate-800 text-white px-4 rounded text-sm hover:bg-slate-700">Check</button>
+                                </div>
+                                <div class="instructor-key text-purple-700 font-bold text-xs bg-purple-50 p-1 border-l-4 border-purple-500 rounded-r">Key: 25,000</div>
+                            </div>
+                            <div id="msg-l1q3" class="h-5 text-xs mt-1"></div>
+                        </div>
+
+                        <!-- Q4 -->
+                        <div>
+                            <div class="flex justify-between mb-2">
+                                <label class="font-semibold">(4) Ending Retained Earnings</label>
+                                <button onclick="toggleHint('l1h4')" class="text-xs text-blue-600 font-medium">Hint</button>
+                            </div>
+                            <div id="l1h4" class="hint-box bg-amber-50 border-l-4 border-amber-400 p-2 mb-2 text-xs text-amber-900">Assets = Liab + CC + RE. Solve for RE.</div>
+                            <div class="flex flex-col gap-1">
+                                <div class="flex gap-2 relative">
+                                    <div class="relative w-full">
+                                        <input type="text" id="l1q4" class="w-full border rounded px-3 py-2 font-mono pr-8" placeholder="0" 
+                                               onblur="validateSmartInput(this, 15000, 'l1-cell-q4')" 
+                                               onkeydown="if(event.key==='Enter') validateSmartInput(this, 15000, 'l1-cell-q4')">
+                                        <i data-lucide="check" class="absolute right-3 top-2.5 h-4 w-4 text-emerald-600 input-check-icon" id="icon-l1q4"></i>
+                                    </div>
+                                    <button onclick="validateSmartInput(document.getElementById('l1q4'), 15000, 'l1-cell-q4')" class="bg-slate-800 text-white px-4 rounded text-sm hover:bg-slate-700">Check</button>
+                                </div>
+                                <div class="instructor-key text-purple-700 font-bold text-xs bg-purple-50 p-1 border-l-4 border-purple-500 rounded-r">Key: 15,000</div>
+                            </div>
+                            <div id="msg-l1q4" class="h-5 text-xs mt-1"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- LEVEL 2 CONTENT -->
+        <div id="level2" class="hidden grid grid-cols-1 lg:grid-cols-12 gap-8 fade-in">
+            <!-- Level 2 Left Panel -->
+            <div class="lg:col-span-5 space-y-6">
+                
+                <!-- 2026 Beginning Balance -->
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="bg-indigo-50 px-5 py-2 border-b border-indigo-100 font-semibold text-indigo-800 text-sm flex justify-between items-center">
+                        <span>Beg. Balance Sheet (From Version 1)</span><span>Jan 1, 2026</span>
+                    </div>
+                    <div class="p-4 text-sm">
+                        <table class="w-full text-slate-600">
+                             <tr><td class="font-bold text-slate-700">Cash</td><td class="text-right font-mono">30,000</td></tr>
+                             <tr><td class="font-bold text-slate-700">Non-Cash Assets</td><td class="text-right font-mono">35,000</td></tr>
+                             <tr class="border-t border-slate-300"><td class="pt-1 font-bold">Total Assets</td><td class="pt-1 text-right font-mono font-bold">65,000</td></tr>
+                             <tr><td colspan="2" class="h-2"></td></tr>
+                             <tr><td class="font-bold text-slate-700">Liabilities</td><td class="text-right font-mono">25,000</td></tr>
+                             <tr><td class="font-bold text-slate-700">Contr. Capital</td><td class="text-right font-mono">25,000</td></tr>
+                             <tr><td class="font-bold text-slate-700">Ret. Earnings</td><td class="text-right font-mono">15,000</td></tr>
+                             <tr class="border-t border-slate-300"><td class="pt-1 font-bold">Total L & E</td><td class="pt-1 text-right font-mono font-bold">65,000</td></tr>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 2026 SCF -->
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="bg-slate-100 px-5 py-3 border-b border-slate-200 font-semibold text-slate-700 flex justify-between">
+                        <span>Statement of Cash Flows</span><span class="text-xs bg-slate-200 px-2 py-1 rounded text-slate-600">2026</span>
+                    </div>
+                    <div class="p-5">
+                        <table class="w-full text-sm">
+                            <tr><td class="pl-4 py-1 text-slate-600">Operating Cash Flows</td><td class="text-right font-mono text-emerald-600">25,000</td></tr>
+                            <tr><td class="pl-4 py-1 text-slate-600">Investing Cash Flows</td><td class="text-right font-mono text-red-600">(10,000)</td></tr>
+                            <tr><td class="pl-4 py-1 text-slate-600">Financing Cash Flows</td><td class="text-right font-mono font-bold text-slate-400">0</td></tr>
+                            <tr><td colspan="2" class="text-xs text-slate-400 pl-4 italic">(Net of Div Paid & Stock Issued)</td></tr>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 2026 BS -->
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="bg-slate-100 px-5 py-3 border-b border-slate-200 font-semibold text-slate-700 flex justify-between">
+                        <span>Balance Sheet</span><span class="text-xs bg-slate-200 px-2 py-1 rounded text-slate-600">Dec 31, 2026</span>
+                    </div>
+                    <div class="p-5">
+                        <table class="w-full text-sm">
+                            <tr class="font-bold text-blue-900"><td colspan="2" class="pb-2">Assets</td></tr>
+                            <tr><td class="pl-4 py-1 font-medium text-slate-800">Cash</td><td id="l2-cell-q3" class="text-right font-bold text-rose-600 font-mono bg-rose-50 rounded px-1">? (Q3)</td></tr>
+                            <tr><td class="pl-4 py-1 text-slate-600">Non-Cash Assets</td><td class="text-right font-mono">45,000</td></tr>
+                            <tr class="font-bold border-t border-slate-300"><td class="pl-4 py-2">Total Assets</td><td id="l2-cell-assets" class="text-right py-2 font-bold text-rose-600 font-mono bg-rose-50 rounded px-1">?</td></tr>
+                            <tr class="h-4"></tr>
+                            <tr class="font-bold text-blue-900"><td colspan="2" class="pb-2">Liabilities & Equity</td></tr>
+                            <tr><td class="pl-4 py-1 font-medium text-slate-800">Liabilities</td><td id="l2-cell-q4" class="text-right font-bold text-rose-600 font-mono bg-rose-50 rounded px-1">? (Q4)</td></tr>
+                            <tr><td class="pl-4 py-1 font-medium text-slate-800">Contributed Capital</td><td id="l2-cell-cc" class="text-right font-bold text-rose-600 font-mono bg-rose-50 rounded px-1">?</td></tr>
+                            <tr><td class="pl-4 py-1 font-medium text-slate-800">Retained Earnings</td><td id="l2-cell-q2" class="text-right font-bold text-rose-600 font-mono bg-rose-50 rounded px-1">? (Q2)</td></tr>
+                            <tr class="font-bold border-t border-slate-300"><td class="pl-4 py-2">Total L & E</td><td id="l2-cell-le" class="text-right py-2 font-bold text-rose-600 font-mono bg-rose-50 rounded px-1">?</td></tr>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Info -->
+                <div class="bg-blue-50 p-5 rounded-xl border border-blue-200 text-sm text-blue-900 shadow-sm">
+                    <p class="font-bold mb-2 flex items-center gap-2"><i data-lucide="info" class="h-4 w-4"></i> Additional Info (2026):</p>
+                    <ul class="list-disc pl-5 space-y-1 text-blue-800">
+                        <li>Revenue: <strong>$70,000</strong>, Expenses: <strong>$50,000</strong></li>
+                        <li>Paid Dividends: <strong>$5,000</strong></li>
+                        <li>Issued Common Stock: <strong>$5,000</strong></li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Level 2 Right Panel -->
+            <div class="lg:col-span-7 space-y-8">
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                    <h2 class="text-xl font-bold text-slate-800 mb-6 border-b pb-2">Version 2: Intermediate Analysis</h2>
+                    
+                    <!-- Stockholders Equity Table -->
+                    <div class="mb-8 bg-slate-50 rounded-lg p-5 border border-slate-200">
+                        <h3 class="font-bold text-base text-slate-800 mb-3 flex items-center gap-2">
+                            <i data-lucide="table" class="h-4 w-4 text-indigo-600"></i> Statement of Stockholders' Equity (2026)
+                        </h3>
+                        <p class="text-xs text-slate-500 mb-4">Use this to track equity changes. The results will help update the Balance Sheet.</p>
+                        
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm text-left">
+                                <thead>
+                                    <tr class="text-xs uppercase text-slate-500 border-b border-slate-300">
+                                        <th class="pb-2">Transaction</th>
+                                        <th class="pb-2 text-right">Contr. Capital</th>
+                                        <th class="pb-2 text-right">Retained Earn.</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-200">
+                                    <tr>
+                                        <td class="py-2 text-slate-600">Beg. Balance (Jan 1)</td>
+                                        <td class="py-2 text-right font-mono">25,000</td>
+                                        <td class="py-2 text-right font-mono">15,000</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-2">Plus: Stock Issued</td>
+                                        <td class="py-2 text-right">
+                                            <input type="text" id="l2_se_stock" placeholder="?" oninput="updateL2Equity()" class="w-20 p-1 text-right border rounded text-xs">
+                                            <div class="instructor-key text-purple-700 font-bold text-[10px] text-right">Key: 5,000</div>
+                                        </td>
+                                        <td class="py-2 text-right bg-slate-100">-</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-2">Plus: Net Income</td>
+                                        <td class="py-2 text-right bg-slate-100">-</td>
+                                        <td class="py-2 text-right">
+                                            <input type="text" id="l2_se_ni" placeholder="?" oninput="updateL2Equity()" class="w-20 p-1 text-right border rounded text-xs">
+                                            <div class="instructor-key text-purple-700 font-bold text-[10px] text-right">Key: 20,000</div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-2">Less: Dividends</td>
+                                        <td class="py-2 text-right bg-slate-100">-</td>
+                                        <td class="py-2 text-right">
+                                            <input type="text" id="l2_se_div" placeholder="?" oninput="updateL2Equity()" class="w-20 p-1 text-right border rounded text-xs">
+                                            <div class="instructor-key text-purple-700 font-bold text-[10px] text-right">Key: 5,000</div>
+                                        </td>
+                                    </tr>
+                                    <tr class="bg-indigo-50 font-bold">
+                                        <td class="py-2 pl-2">Ending Balance</td>
+                                        <td class="py-2 text-right pr-2 font-mono text-indigo-700" id="l2_se_end_cc">---</td>
+                                        <td class="py-2 text-right pr-2 font-mono text-indigo-700" id="l2_se_end_re">---</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="space-y-6">
+                        <!-- Q1 -->
+                        <div>
+                            <div class="flex justify-between mb-2">
+                                <label class="font-semibold">(1) Net Income (2026)</label>
+                                <button onclick="toggleHint('l2h1')" class="text-xs text-blue-600 font-medium">Hint</button>
+                            </div>
+                            <div id="l2h1" class="hint-box bg-amber-50 border-l-4 border-amber-400 p-2 mb-2 text-xs text-amber-900">Revenue - Expenses.</div>
+                            <div class="flex flex-col gap-1">
+                                <div class="flex gap-2 relative">
+                                    <div class="relative w-full">
+                                        <input type="text" id="l2q1" class="w-full border rounded px-3 py-2 font-mono pr-8" placeholder="0" 
+                                               onblur="validateSmartInput(this, 20000)" 
+                                               onkeydown="if(event.key==='Enter') validateSmartInput(this, 20000)">
+                                        <i data-lucide="check" class="absolute right-3 top-2.5 h-4 w-4 text-emerald-600 input-check-icon" id="icon-l2q1"></i>
+                                    </div>
+                                    <button onclick="validateSmartInput(document.getElementById('l2q1'), 20000, null)" class="bg-slate-800 text-white px-4 rounded text-sm hover:bg-slate-700">Check</button>
+                                </div>
+                                <div class="instructor-key text-purple-700 font-bold text-xs bg-purple-50 p-1 border-l-4 border-purple-500 rounded-r">Key: 20,000</div>
+                            </div>
+                            <div id="msg-l2q1" class="h-5 text-xs mt-1"></div>
+                        </div>
+
+                        <!-- Q2 -->
+                        <div>
+                            <div class="flex justify-between mb-2">
+                                <label class="font-semibold">(2) Ending Retained Earnings</label>
+                                <button onclick="toggleHint('l2h2')" class="text-xs text-blue-600 font-medium">Hint</button>
+                            </div>
+                            <div id="l2h2" class="hint-box bg-amber-50 border-l-4 border-amber-400 p-2 mb-2 text-xs text-amber-900">Check your Stockholders' Equity table above.</div>
+                            <div class="flex flex-col gap-1">
+                                <div class="flex gap-2 relative">
+                                    <div class="relative w-full">
+                                        <input type="text" id="l2q2" class="w-full border rounded px-3 py-2 font-mono pr-8" placeholder="0" 
+                                               onblur="validateSmartInput(this, 30000, 'l2-cell-q2')" 
+                                               onkeydown="if(event.key==='Enter') validateSmartInput(this, 30000, 'l2-cell-q2')">
+                                        <i data-lucide="check" class="absolute right-3 top-2.5 h-4 w-4 text-emerald-600 input-check-icon" id="icon-l2q2"></i>
+                                    </div>
+                                    <button onclick="validateSmartInput(document.getElementById('l2q2'), 30000, 'l2-cell-q2')" class="bg-slate-800 text-white px-4 rounded text-sm hover:bg-slate-700">Check</button>
+                                </div>
+                                <div class="instructor-key text-purple-700 font-bold text-xs bg-purple-50 p-1 border-l-4 border-purple-500 rounded-r">Key: 30,000</div>
+                            </div>
+                            <div id="msg-l2q2" class="h-5 text-xs mt-1"></div>
+                        </div>
+
+                        <!-- Q3 -->
+                        <div>
+                            <div class="flex justify-between mb-2">
+                                <label class="font-semibold">(3) Ending Cash Balance</label>
+                                <button onclick="toggleHint('l2h3')" class="text-xs text-blue-600 font-medium">Hint</button>
+                            </div>
+                            <div id="l2h3" class="hint-box bg-amber-50 border-l-4 border-amber-400 p-2 mb-2 text-xs text-amber-900">Beg Cash (30k) + Ops + Inv + Fin. (Note: Fin CF is 0 because +5k stock cancels -5k div).</div>
+                            <div class="flex flex-col gap-1">
+                                <div class="flex gap-2 relative">
+                                    <div class="relative w-full">
+                                        <input type="text" id="l2q3" class="w-full border rounded px-3 py-2 font-mono pr-8" placeholder="0" 
+                                               onblur="validateSmartInput(this, 45000, 'l2-cell-q3')" 
+                                               onkeydown="if(event.key==='Enter') validateSmartInput(this, 45000, 'l2-cell-q3')">
+                                        <i data-lucide="check" class="absolute right-3 top-2.5 h-4 w-4 text-emerald-600 input-check-icon" id="icon-l2q3"></i>
+                                    </div>
+                                    <button onclick="validateSmartInput(document.getElementById('l2q3'), 45000, 'l2-cell-q3')" class="bg-slate-800 text-white px-4 rounded text-sm hover:bg-slate-700">Check</button>
+                                </div>
+                                <div class="instructor-key text-purple-700 font-bold text-xs bg-purple-50 p-1 border-l-4 border-purple-500 rounded-r">Key: 45,000</div>
+                            </div>
+                            <div id="msg-l2q3" class="h-5 text-xs mt-1"></div>
+                        </div>
+
+                        <!-- Q4 -->
+                        <div>
+                            <div class="flex justify-between mb-2">
+                                <label class="font-semibold">(4) Ending Liabilities</label>
+                                <button onclick="toggleHint('l2h4')" class="text-xs text-blue-600 font-medium">Hint</button>
+                            </div>
+                            <div id="l2h4" class="hint-box bg-amber-50 border-l-4 border-amber-400 p-2 mb-2 text-xs text-amber-900">Assets = Liab + Equity. 1) Find Total Assets. 2) Find Total Equity (CC + RE). 3) Solve for Liab.</div>
+                            <div class="flex flex-col gap-1">
+                                <div class="flex gap-2 relative">
+                                    <div class="relative w-full">
+                                        <input type="text" id="l2q4" class="w-full border rounded px-3 py-2 font-mono pr-8" placeholder="0" 
+                                               onblur="validateSmartInput(this, 30000, 'l2-cell-q4')" 
+                                               onkeydown="if(event.key==='Enter') validateSmartInput(this, 30000, 'l2-cell-q4')">
+                                        <i data-lucide="check" class="absolute right-3 top-2.5 h-4 w-4 text-emerald-600 input-check-icon" id="icon-l2q4"></i>
+                                    </div>
+                                    <button onclick="validateSmartInput(document.getElementById('l2q4'), 30000, 'l2-cell-q4')" class="bg-slate-800 text-white px-4 rounded text-sm hover:bg-slate-700">Check</button>
+                                </div>
+                                <div class="instructor-key text-purple-700 font-bold text-xs bg-purple-50 p-1 border-l-4 border-purple-500 rounded-r">Key: 30,000</div>
+                            </div>
+                            <div id="msg-l2q4" class="h-5 text-xs mt-1"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- LEVEL 3 CONTENT (NEW) -->
+        <div id="level3" class="hidden grid grid-cols-1 lg:grid-cols-12 gap-8 fade-in">
+            <!-- Level 3 Left Panel -->
+            <div class="lg:col-span-5 space-y-6">
+                
+                <!-- 2026 End / 2027 Beg BS (Partially Empty) -->
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="bg-rose-50 px-5 py-2 border-b border-rose-100 font-semibold text-rose-800 text-sm flex justify-between items-center">
+                        <span>Beg. Balance Sheet (From Version 2)</span><span>Jan 1, 2027</span>
+                    </div>
+                    <div class="p-4 text-sm">
+                        <table class="w-full text-slate-600">
+                             <tr><td class="font-bold text-slate-700">Cash</td><td id="l3-cell-beg-cash" class="text-right font-bold text-rose-600 font-mono bg-rose-50 rounded px-1">? (Q4)</td></tr>
+                             <tr><td class="font-bold text-slate-700">Non-Cash Assets</td><td class="text-right font-mono">45,000</td></tr>
+                             <tr><td colspan="2" class="h-2"></td></tr>
+                             <tr><td class="font-bold text-slate-700">Liabilities</td><td class="text-right font-mono">30,000</td></tr>
+                             <tr><td class="font-bold text-slate-700">Contr. Capital</td><td class="text-right font-mono">30,000</td></tr>
+                             <tr><td class="font-bold text-slate-700">Ret. Earnings</td><td class="text-right font-mono">30,000</td></tr>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 2027 SCF -->
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="bg-slate-100 px-5 py-3 border-b border-slate-200 font-semibold text-slate-700 flex justify-between">
+                        <span>Statement of Cash Flows</span><span class="text-xs bg-slate-200 px-2 py-1 rounded text-slate-600">2027</span>
+                    </div>
+                    <div class="p-5">
+                        <table class="w-full text-sm">
+                            <tr><td class="pl-4 py-1 text-slate-600">Operating Cash Flows</td><td class="text-right font-mono text-emerald-600">45,000</td></tr>
+                            <tr><td class="pl-4 py-1 font-medium text-slate-800">Investing Cash Flows</td><td id="l3-cell-inv" class="text-right font-bold text-rose-600 font-mono bg-rose-50 rounded px-1">? (Q3)</td></tr>
+                            <tr><td class="pl-4 py-1 text-slate-600">Financing Cash Flows</td><td class="text-right font-mono text-emerald-600">5,000</td></tr>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 2027 BS (FULLY FILLED - The Anchor) -->
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden border-2 border-emerald-400">
+                    <div class="bg-emerald-50 px-5 py-3 border-b border-emerald-200 font-semibold text-emerald-900 flex justify-between items-center">
+                        <span class="flex items-center gap-2"><i data-lucide="check-circle" class="h-4 w-4"></i> Ending Balance Sheet</span>
+                        <span class="text-xs bg-emerald-200 px-2 py-1 rounded text-emerald-800">Dec 31, 2027</span>
+                    </div>
+                    <div class="p-5">
+                        <table class="w-full text-sm">
+                            <tr class="font-bold text-emerald-900"><td colspan="2" class="pb-2">Assets</td></tr>
+                            <tr><td class="pl-4 py-1 text-slate-600">Cash</td><td class="text-right font-mono">60,000</td></tr>
+                            <tr><td class="pl-4 py-1 text-slate-600">Non-Cash Assets</td><td class="text-right font-mono">80,000</td></tr>
+                            <tr class="font-bold border-t border-slate-300"><td class="pl-4 py-2">Total Assets</td><td class="text-right py-2 font-mono">140,000</td></tr>
+                            <tr class="h-4"></tr>
+                            <tr class="font-bold text-emerald-900"><td colspan="2" class="pb-2">Liabilities & Equity</td></tr>
+                            <tr><td class="pl-4 py-1 text-slate-600">Liabilities</td><td class="text-right font-mono">50,000</td></tr>
+                            <tr><td class="pl-4 py-1 text-slate-600">Contributed Capital</td><td class="text-right font-mono">45,000</td></tr>
+                            <tr><td class="pl-4 py-1 text-slate-600">Retained Earnings</td><td class="text-right font-mono">45,000</td></tr>
+                            <tr class="font-bold border-t border-slate-300"><td class="pl-4 py-2">Total L & E</td><td class="text-right py-2 font-mono">140,000</td></tr>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Info -->
+                <div class="bg-blue-50 p-5 rounded-xl border border-blue-200 text-sm text-blue-900 shadow-sm">
+                    <p class="font-bold mb-2 flex items-center gap-2"><i data-lucide="info" class="h-4 w-4"></i> Activity Info (2027):</p>
+                    <ul class="list-disc pl-5 space-y-1 text-blue-800">
+                        <li>Dividends Paid: <strong>$10,000</strong></li>
+                        <li>Financing CF includes Stock Issued and Dividends.</li>
+                        <li><strong>Note:</strong> You have the Ending balances. Solve for the missing activity that got us there!</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Level 3 Right Panel -->
+            <div class="lg:col-span-7 space-y-8">
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                    <div class="flex items-center justify-between mb-6 border-b pb-2">
+                        <div>
+                            <h2 class="text-xl font-bold text-slate-800">Version 3: The Audit (2027)</h2>
+                            <p class="text-xs text-slate-500">Detective Mode: Work backwards from the Ending Balance Sheet.</p>
+                        </div>
+                        <div class="bg-rose-100 text-rose-800 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">Harder</div>
+                    </div>
+
+                    <div class="space-y-6">
+                        <!-- Q1 -->
+                        <div>
+                            <div class="flex justify-between mb-2">
+                                <label class="font-semibold">(1) Stock Issued in 2027</label>
+                                <button onclick="toggleHint('l3h1')" class="text-xs text-blue-600 font-medium">Hint</button>
+                            </div>
+                            <div id="l3h1" class="hint-box bg-amber-50 border-l-4 border-amber-400 p-2 mb-2 text-xs text-amber-900">End CC (45k) - Beg CC (30k) = Change.</div>
+                            <div class="flex flex-col gap-1">
+                                <div class="flex gap-2 relative">
+                                    <div class="relative w-full">
+                                        <input type="text" id="l3q1" class="w-full border rounded px-3 py-2 font-mono pr-8" placeholder="0" 
+                                               onblur="validateSmartInput(this, 15000)" 
+                                               onkeydown="if(event.key==='Enter') validateSmartInput(this, 15000)">
+                                        <i data-lucide="check" class="absolute right-3 top-2.5 h-4 w-4 text-emerald-600 input-check-icon" id="icon-l3q1"></i>
+                                    </div>
+                                    <button onclick="validateSmartInput(document.getElementById('l3q1'), 15000, null)" class="bg-slate-800 text-white px-4 rounded text-sm hover:bg-slate-700">Check</button>
+                                </div>
+                                <div class="instructor-key text-purple-700 font-bold text-xs bg-purple-50 p-1 border-l-4 border-purple-500 rounded-r">Key: 15,000</div>
+                            </div>
+                            <div id="msg-l3q1" class="h-5 text-xs mt-1"></div>
+                        </div>
+
+                        <!-- Q2 -->
+                        <div>
+                            <div class="flex justify-between mb-2">
+                                <label class="font-semibold">(2) Net Income for 2027</label>
+                                <button onclick="toggleHint('l3h2')" class="text-xs text-blue-600 font-medium">Hint</button>
+                            </div>
+                            <div id="l3h2" class="hint-box bg-amber-50 border-l-4 border-amber-400 p-2 mb-2 text-xs text-amber-900">Rearrange the formula: End RE = Beg RE + NI - Div. <br>So, NI = End RE - Beg RE + Div.</div>
+                            <div class="flex flex-col gap-1">
+                                <div class="flex gap-2 relative">
+                                    <div class="relative w-full">
+                                        <input type="text" id="l3q2" class="w-full border rounded px-3 py-2 font-mono pr-8" placeholder="0" 
+                                               onblur="validateSmartInput(this, 25000)" 
+                                               onkeydown="if(event.key==='Enter') validateSmartInput(this, 25000)">
+                                        <i data-lucide="check" class="absolute right-3 top-2.5 h-4 w-4 text-emerald-600 input-check-icon" id="icon-l3q2"></i>
+                                    </div>
+                                    <button onclick="validateSmartInput(document.getElementById('l3q2'), 25000, null)" class="bg-slate-800 text-white px-4 rounded text-sm hover:bg-slate-700">Check</button>
+                                </div>
+                                <div class="instructor-key text-purple-700 font-bold text-xs bg-purple-50 p-1 border-l-4 border-purple-500 rounded-r">Key: 25,000</div>
+                            </div>
+                            <div id="msg-l3q2" class="h-5 text-xs mt-1"></div>
+                        </div>
+
+                        <!-- Q3 -->
+                        <div>
+                            <div class="flex justify-between mb-2">
+                                <label class="font-semibold">(3) Investing Cash Flows</label>
+                                <button onclick="toggleHint('l3h3')" class="text-xs text-blue-600 font-medium">Hint</button>
+                            </div>
+                            <div id="l3h3" class="hint-box bg-amber-50 border-l-4 border-amber-400 p-2 mb-2 text-xs text-amber-900">Look at Non-Cash Assets. Did they go up or down? Buying assets uses cash (negative). <br>Change = End (80k) - Beg (45k).</div>
+                            <div class="flex flex-col gap-1">
+                                <div class="flex gap-2 relative">
+                                    <div class="relative w-full">
+                                        <input type="text" id="l3q3" class="w-full border rounded px-3 py-2 font-mono pr-8" placeholder="0" 
+                                               onblur="validateSmartInput(this, -35000, 'l3-cell-inv')" 
+                                               onkeydown="if(event.key==='Enter') validateSmartInput(this, -35000, 'l3-cell-inv')">
+                                        <div class="absolute right-3 top-2 text-xs text-slate-400 pointer-events-none transition-opacity" id="hint-l3q3">Use () for neg</div>
+                                        <i data-lucide="check" class="absolute right-3 top-2.5 h-4 w-4 text-emerald-600 input-check-icon" id="icon-l3q3"></i>
+                                    </div>
+                                    <button onclick="validateSmartInput(document.getElementById('l3q3'), -35000, 'l3-cell-inv')" class="bg-slate-800 text-white px-4 rounded text-sm hover:bg-slate-700">Check</button>
+                                </div>
+                                <div class="instructor-key text-purple-700 font-bold text-xs bg-purple-50 p-1 border-l-4 border-purple-500 rounded-r">Key: (35,000)</div>
+                            </div>
+                            <div id="msg-l3q3" class="h-5 text-xs mt-1"></div>
+                        </div>
+
+                        <!-- Q4 -->
+                        <div>
+                            <div class="flex justify-between mb-2">
+                                <label class="font-semibold">(4) Beginning Cash Balance</label>
+                                <button onclick="toggleHint('l3h4')" class="text-xs text-blue-600 font-medium">Hint</button>
+                            </div>
+                            <div id="l3h4" class="hint-box bg-amber-50 border-l-4 border-amber-400 p-2 mb-2 text-xs text-amber-900">Work backwards from Ending Cash (60k). <br>End Cash - (Ops + Inv + Fin) = Beg Cash.</div>
+                            <div class="flex flex-col gap-1">
+                                <div class="flex gap-2 relative">
+                                    <div class="relative w-full">
+                                        <input type="text" id="l3q4" class="w-full border rounded px-3 py-2 font-mono pr-8" placeholder="0" 
+                                               onblur="validateSmartInput(this, 45000, 'l3-cell-beg-cash')" 
+                                               onkeydown="if(event.key==='Enter') validateSmartInput(this, 45000, 'l3-cell-beg-cash')">
+                                        <i data-lucide="check" class="absolute right-3 top-2.5 h-4 w-4 text-emerald-600 input-check-icon" id="icon-l3q4"></i>
+                                    </div>
+                                    <button onclick="validateSmartInput(document.getElementById('l3q4'), 45000, 'l3-cell-beg-cash')" class="bg-slate-800 text-white px-4 rounded text-sm hover:bg-slate-700">Check</button>
+                                </div>
+                                <div class="instructor-key text-purple-700 font-bold text-xs bg-purple-50 p-1 border-l-4 border-purple-500 rounded-r">Key: 45,000</div>
+                            </div>
+                            <div id="msg-l3q4" class="h-5 text-xs mt-1"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Teacher Key (Shared/Dynamic) -->
+        <div id="teacherKey" class="hidden mt-6 bg-emerald-50 border-2 border-emerald-400 rounded-xl p-6 fade-in">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold text-emerald-900">Instructor Answer Key Summary</h3>
+                <button onclick="hideTeacherKey()" class="text-xs bg-emerald-200 px-2 py-1 rounded">Close</button>
+            </div>
+            <div id="key-level1" class="key-content">
+                <h4 class="font-bold underline mb-2">Version 1 Answers:</h4>
+                <ul class="list-disc pl-5 text-sm text-emerald-900">
+                    <li>(1) Operating CF: <strong>15,000</strong> (Change in Cash 20k = Ops + 5k Net Inv/Fin)</li>
+                    <li>(2) Dividends: <strong>15,000</strong> (NI 20k + Beg RE 10k - End RE 15k)</li>
+                    <li>(3) End CC: <strong>25,000</strong> (Beg 10k + Issued 15k)</li>
+                    <li>(4) End RE: <strong>15,000</strong> (Assets 65k - Liab 25k - CC 25k)</li>
+                </ul>
+            </div>
+            <div id="key-level2" class="key-content hidden">
+                <h4 class="font-bold underline mb-2">Version 2 Answers:</h4>
+                <ul class="list-disc pl-5 text-sm text-emerald-900">
+                    <li>(1) Net Income: <strong>20,000</strong> (Rev 70k - Exp 50k)</li>
+                    <li>(2) End RE: <strong>30,000</strong> (Beg 15k + NI 20k - Div 5k)</li>
+                    <li>(3) End Cash: <strong>45,000</strong> (Beg 30k + 15k Net Change [25k Ops - 10k Inv + 0 Fin])</li>
+                    <li>(4) End Liab: <strong>30,000</strong> (Assets 90k - Equity 60k [CC 30k + RE 30k])</li>
+                </ul>
+            </div>
+            <div id="key-level3" class="key-content hidden">
+                <h4 class="font-bold underline mb-2">Version 3 Answers:</h4>
+                <ul class="list-disc pl-5 text-sm text-emerald-900">
+                    <li>(1) Stock Issued: <strong>15,000</strong> (End CC 45k - Beg CC 30k)</li>
+                    <li>(2) Net Income: <strong>25,000</strong> (End RE 45k - Beg RE 30k + Div 10k)</li>
+                    <li>(3) Investing CF: <strong>(35,000)</strong> (Increase in NCA from 45k to 80k is a cash outflow)</li>
+                    <li>(4) Beg Cash: <strong>45,000</strong> (End Cash 60k - [Ops 45k + Inv -35k + Fin 5k] = 60k - 15k)</li>
+                </ul>
+            </div>
+        </div>
+    </main>
+
+    <!-- Teacher Login Modal -->
+    <div id="teacherModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-lg shadow-2xl p-6 w-full max-w-sm">
+            <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
+                <i data-lucide="lock" class="h-5 w-5 text-slate-600"></i> Instructor Access
+            </h3>
+            <p class="text-xs text-slate-500 mb-4">Enter password to unlock instructor tools, auto-solve, and verification systems.</p>
+            <input type="password" id="teacherPass" class="w-full border border-slate-300 rounded p-2 mb-4" placeholder="Password" onkeydown="if(event.key==='Enter') verifyTeacher()">
+            <p id="passError" class="text-red-500 text-xs mb-4 hidden">Incorrect password.</p>
+            <div class="flex justify-end gap-3">
+                <button onclick="toggleTeacherModal()" class="px-4 py-2 text-slate-600 text-sm">Cancel</button>
+                <button onclick="verifyTeacher()" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded text-sm transition-colors">Unlock</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal (Custom) -->
+    <div id="confirmModal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[70] p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-lg shadow-2xl p-6 w-full max-w-sm transform transition-all scale-100">
+            <div class="flex items-center gap-3 mb-4 text-rose-600">
+                <div class="bg-rose-100 p-2 rounded-full">
+                    <i data-lucide="alert-triangle" class="h-6 w-6"></i>
+                </div>
+                <h3 class="text-lg font-bold text-gray-900">Clear & Exit?</h3>
+            </div>
+            <p class="text-sm text-gray-600 mb-6">
+                Are you sure? This will <strong>erase all progress</strong>, reset the board, and lock Instructor Mode.
+            </p>
+            <div class="flex justify-end gap-3">
+                <button onclick="closeConfirmModal()" class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md text-sm font-medium transition-colors">Cancel</button>
+                <button onclick="performClearAndExit()" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-md text-sm font-medium shadow-md transition-colors">Yes, Clear All</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Submit Work Modal (Name Required) -->
+    <div id="submitModal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[70] p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-lg shadow-2xl p-6 w-full max-w-sm">
+            <div class="flex items-center gap-3 mb-4 text-emerald-700">
+                <div class="bg-emerald-100 p-2 rounded-full">
+                    <i data-lucide="file-check" class="h-6 w-6"></i>
+                </div>
+                <h3 class="text-lg font-bold text-gray-900">Final Submission</h3>
+            </div>
+            <p class="text-sm text-gray-600 mb-4">
+                Please enter your full name to generate the submission file.
+            </p>
+            <div class="mb-4">
+                <label class="block text-xs font-bold text-slate-500 mb-1 uppercase">Student Name</label>
+                <input type="text" id="studentNameInput" class="w-full border border-slate-300 rounded p-2 text-sm" placeholder="e.g., Jane Doe" onkeydown="if(event.key==='Enter') confirmSubmission()">
+                <p id="nameError" class="text-red-500 text-xs mt-1 hidden">Name is required.</p>
+            </div>
+            <div class="flex justify-end gap-3">
+                <button onclick="document.getElementById('submitModal').classList.add('hidden')" class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md text-sm font-medium transition-colors">Cancel</button>
+                <button onclick="confirmSubmission()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md text-sm font-medium shadow-md transition-colors">Generate File</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tools Modal (Verification & Hash) -->
+    <div id="toolsModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="bg-purple-900 p-4 flex justify-between items-center text-white">
+                <h3 class="font-bold flex items-center gap-2"><i data-lucide="wrench" class="h-5 w-5"></i> Instructor Tools</h3>
+                <button onclick="toggleToolsModal()" class="hover:bg-purple-800 p-1 rounded"><i data-lucide="x" class="h-5 w-5"></i></button>
+            </div>
+            
+            <div class="p-6 overflow-y-auto space-y-8">
+                <!-- Verify Section -->
+                <div>
+                    <h4 class="font-bold text-slate-800 mb-2 flex items-center gap-2">
+                        <i data-lucide="shield-check" class="h-4 w-4 text-emerald-600"></i> Verify Student Hash
+                    </h4>
+                    <p class="text-xs text-slate-500 mb-3">Paste a student's verification hash below to validate their score and timestamp.</p>
+                    <div class="flex gap-2 mb-3">
+                        <input type="text" id="verifyInput" class="w-full border border-slate-300 rounded p-2 text-xs font-mono" placeholder="Paste hash here...">
+                        <button onclick="verifyHash()" class="bg-emerald-600 text-white px-3 py-2 rounded text-xs font-bold whitespace-nowrap">Verify</button>
+                    </div>
+                    <div id="verifyResult" class="hidden p-3 bg-slate-50 rounded border text-xs"></div>
+                </div>
+
+                <hr class="border-slate-200">
+
+                <!-- Generate Section -->
+                <div>
+                    <h4 class="font-bold text-slate-800 mb-2 flex items-center gap-2">
+                        <i data-lucide="code" class="h-4 w-4 text-blue-600"></i> Hash Generator
+                    </h4>
+                    <p class="text-xs text-slate-500 mb-3">Create a valid hash manually for testing or admin purposes.</p>
+                    <div class="grid grid-cols-2 gap-3 mb-3">
+                        <input type="text" id="genName" class="border border-slate-300 rounded p-2 text-xs" placeholder="Student Name">
+                        <input type="number" id="genScore" class="border border-slate-300 rounded p-2 text-xs" placeholder="Score (0-100)">
+                    </div>
+                    <button onclick="generateHash()" class="w-full bg-slate-800 text-white py-2 rounded text-xs font-bold mb-3">Generate Hash</button>
+                    <div id="genResult" class="hidden relative">
+                        <textarea id="genOutput" readonly class="w-full h-20 p-2 text-[10px] font-mono border rounded bg-slate-50 resize-none"></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+        let currentTab = 'level1';
+
+        // --- Data & Config ---
+        const ANSWER_KEY = {
+            'l1q1': 15000,
+            'l1q2': 15000,
+            'l1q3': 25000,
+            'l1q4': 15000,
+            'l2q1': 20000,
+            'l2q2': 30000,
+            'l2q3': 45000,
+            'l2q4': 30000,
+            'l3q1': 15000,
+            'l3q2': 25000,
+            'l3q3': -35000,
+            'l3q4': 45000,
+            // Equity Table Extras
+            'l2_se_stock': 5000,
+            'l2_se_ni': 20000,
+            'l2_se_div': 5000
+        };
+
+        const AUTO_UPDATE_CELLS = {
+            'l1q1': 'l1-cell-q1',
+            'l1q3': 'l1-cell-q3',
+            'l1q4': 'l1-cell-q4',
+            'l2q2': 'l2-cell-q2',
+            'l2q3': 'l2-cell-q3',
+            'l2q4': 'l2-cell-q4',
+            'l3q3': 'l3-cell-inv',
+            'l3q4': 'l3-cell-beg-cash'
+        };
+
+        function switchTab(tabId) {
+            currentTab = tabId;
+            // Buttons
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('tab-' + tabId).classList.add('active');
+            
+            // Content
+            document.getElementById('level1').classList.add('hidden');
+            document.getElementById('level2').classList.add('hidden');
+            document.getElementById('level3').classList.add('hidden');
+            document.getElementById(tabId).classList.remove('hidden');
+
+            // Key (Existing Summary)
+            document.getElementById('key-level1').classList.add('hidden');
+            document.getElementById('key-level2').classList.add('hidden');
+            document.getElementById('key-level3').classList.add('hidden');
+            document.getElementById('key-' + tabId).classList.remove('hidden');
+        }
+
+        // --- SMART INPUT & MATH LOGIC ---
+
+        function safeMathEval(expression) {
+            // Remove non-math characters (allow numbers, -, +, *, /, ., (, ), %, space)
+            const cleanExp = expression.replace(/[^0-9\+\-\*\/\.\(\)\%\s]/g, '');
+            if (!cleanExp) return NaN;
+            
+            try {
+                // Basic percentage handling: 50 * 5% -> 50 * 0.05
+                const parsed = cleanExp.replace(/(\d+(\.\d+)?)%/g, '($1/100)');
+                return new Function('return ' + parsed)();
+            } catch (e) {
+                return NaN;
+            }
+        }
+
+        function cleanInput(val) { 
+            if(!val) return 0;
+            
+            // 1. Try math evaluation first if it looks like an expression
+            if (val.match(/[\+\*\/\%]/) || (val.includes('-') && val.length > 1 && !val.startsWith('-') && !val.startsWith('('))) {
+                const evaluated = safeMathEval(val);
+                if (!isNaN(evaluated)) return evaluated;
+            }
+
+            // 2. Fallback to standard cleaning
+            let str = val.toString();
+            // Handle negative parentheses e.g., (500) -> -500
+            if (str.includes('(') && str.includes(')')) {
+                return -1 * parseFloat(str.replace(/[^0-9.]/g, '')) || 0;
+            }
+            return parseFloat(str.replace(/[^0-9.-]/g, '')) || 0; 
+        }
+
+        // New Smart Validator
+        function validateSmartInput(inputEl, correctVal, cellId, isPct = false) {
+            const rawVal = inputEl.value;
+            if(!rawVal.trim()) return;
+
+            const val = cleanInput(rawVal);
+            const msg = document.getElementById('msg-' + inputEl.id);
+            const icon = document.getElementById('icon-' + inputEl.id);
+            const hintText = document.getElementById('hint-' + inputEl.id);
+
+            // Logic: Is matches within 2% tolerance
+            // If isPct is true: check against correctVal (e.g. 0.06) and correctVal*100 (e.g. 6)
+            let isCorrect = false;
+            const tolerance = Math.abs(correctVal * 0.02); // 2%
+
+            if (isPct) {
+                // Check decimal (0.067) OR percent whole number (6.7)
+                const isDecimalMatch = Math.abs(val - correctVal) <= tolerance;
+                const isWholeMatch = Math.abs(val - (correctVal * 100)) <= (tolerance * 100);
+                isCorrect = isDecimalMatch || isWholeMatch;
+            } else {
+                isCorrect = Math.abs(val - correctVal) <= tolerance;
+            }
+
+            if (isCorrect) {
+                // Update UI Success
+                inputEl.classList.remove('border-red-500', 'border-slate-300');
+                inputEl.classList.add('border-emerald-500', 'bg-emerald-50', 'text-emerald-900', 'font-medium');
+                
+                // Show Checkmark
+                if(icon) icon.classList.add('visible');
+                if(hintText) hintText.style.opacity = '0'; // hide hint text overlapping icon
+
+                // Update Message if exists
+                if(msg) msg.innerHTML = '<span class="text-emerald-600 font-bold text-xs">Correct!</span>';
+                
+                // Update Input to calculated value (UX choice: nice to see the math result)
+                // Only replace if it was a math expression
+                if (rawVal !== val.toString() && !rawVal.includes(',')) {
+                     // don't overwrite formatting unless it was a calc
+                     if(rawVal.match(/[\+\*\/\%]/)) inputEl.value = val.toLocaleString();
+                }
+
+                // Auto-update Linked Cell
+                if (cellId) {
+                    const cell = document.getElementById(cellId);
+                    if(cell) {
+                        const displayVal = val < 0 ? `(${Math.abs(val).toLocaleString()})` : val.toLocaleString();
+                        cell.innerText = displayVal;
+                        cell.classList.remove('text-rose-600', 'font-bold', 'bg-rose-50');
+                        cell.classList.add('text-slate-600');
+                    }
+                    // Special Checks for Totals
+                    if(inputEl.id === 'l1q4') updateL1Total();
+                    if(inputEl.id === 'l2q3') updateL2Assets();
+                    if(inputEl.id === 'l2q4') updateL2Total();
+                }
+            } else {
+                // Update UI Error
+                inputEl.classList.add('border-red-500');
+                inputEl.classList.remove('border-emerald-500', 'bg-emerald-50', 'text-emerald-900', 'font-medium');
+                if(icon) icon.classList.remove('visible');
+                if(hintText) hintText.style.opacity = '1';
+                if(msg) msg.innerHTML = '<span class="text-red-600 text-xs">Try again.</span>';
+            }
+        }
+
+        // Keep this wrapper for legacy calls or specific manual checks, 
+        // but redirect to new logic
+        function checkAnswer(qId, correctVal, cellId) {
+            const el = document.getElementById(qId);
+            validateSmartInput(el, correctVal, cellId);
+        }
+
+        // L2 Equity Table Logic
+        function updateL2Equity() {
+            const stock = cleanInput(document.getElementById('l2_se_stock').value);
+            const ni = cleanInput(document.getElementById('l2_se_ni').value);
+            const div = cleanInput(document.getElementById('l2_se_div').value);
+            
+            const endCC = 25000 + stock;
+            const endRE = 15000 + ni - div;
+            
+            document.getElementById('l2_se_end_cc').innerText = endCC.toLocaleString();
+            document.getElementById('l2_se_end_re').innerText = endRE.toLocaleString();
+
+            if(stock === 5000) {
+                 const ccCell = document.getElementById('l2-cell-cc');
+                 if(ccCell) {
+                    ccCell.innerText = '30,000';
+                    ccCell.classList.remove('text-rose-600', 'bg-rose-50');
+                    ccCell.classList.add('text-slate-600');
+                 }
+            }
+        }
+
+        function updateL1Total() {
+            const el = document.getElementById('l1-cell-total');
+            el.innerText = '65,000';
+            el.classList.remove('text-rose-600', 'bg-rose-50');
+            el.classList.add('text-slate-600', 'border-t-2', 'border-double', 'border-slate-600');
+        }
+
+        function updateL2Assets() {
+            const el = document.getElementById('l2-cell-assets');
+            el.innerText = '90,000';
+            el.classList.remove('text-rose-600', 'bg-rose-50');
+            el.classList.add('text-slate-600', 'border-t-2', 'border-double', 'border-slate-600');
+        }
+
+        function updateL2Total() {
+             const el = document.getElementById('l2-cell-le');
+            el.innerText = '90,000';
+            el.classList.remove('text-rose-600', 'bg-rose-50');
+            el.classList.add('text-slate-600', 'border-t-2', 'border-double', 'border-slate-600');
+        }
+
+        function toggleHint(id) { document.getElementById(id).classList.toggle('active'); }
+
+        // --- INSTRUCTOR MODE LOGIC ---
+
+        function toggleTeacherModal() { document.getElementById('teacherModal').classList.toggle('hidden'); }
+        
+        function verifyTeacher() {
+            if(document.getElementById('teacherPass').value === 'teacher') {
+                toggleTeacherModal();
+                enableInstructorMode();
+                document.getElementById('teacherPass').value = ''; // clear pass
+                document.getElementById('passError').classList.add('hidden');
+            } else {
+                document.getElementById('passError').classList.remove('hidden');
+            }
+        }
+
+        function enableInstructorMode() {
+            // Show Toolbar
+            document.getElementById('instructorToolbar').classList.remove('hidden');
+            // Adjust Header position
+            document.getElementById('mainHeader').classList.add('mt-[52px]'); 
+            document.getElementById('tabNav').classList.add('top-[108px]'); // 52 + 56
+            
+            // Show inline keys
+            document.body.classList.add('instructor-active');
+            
+            // Reveal Summary Key as well
+            document.getElementById('teacherKey').classList.remove('hidden');
+        }
+
+        function instructorAutoFill() {
+            // Loop through known answers
+            for (const [id, val] of Object.entries(ANSWER_KEY)) {
+                const el = document.getElementById(id);
+                if (el) {
+                    // Format negatives for input
+                    el.value = val < 0 ? `(${Math.abs(val)})` : val;
+                    // Trigger check
+                    const cellId = AUTO_UPDATE_CELLS[id] || null;
+                    checkAnswer(id, val, cellId);
+                    
+                    // Trigger custom logic for table if needed
+                    if(id.startsWith('l2_se_')) updateL2Equity();
+                }
+            }
+        }
+
+        // Custom Modal Logic for Clear & Exit
+        function requestClearAll() {
+            document.getElementById('confirmModal').classList.remove('hidden');
+        }
+
+        function closeConfirmModal() {
+            document.getElementById('confirmModal').classList.add('hidden');
+        }
+
+        function performClearAndExit() {
+            closeConfirmModal();
+            
+            // 1. Clear Inputs
+            document.querySelectorAll('input[type="text"]').forEach(input => {
+                input.value = '';
+                input.classList.remove('border-emerald-500', 'bg-emerald-50', 'border-red-500', 'text-emerald-900', 'font-medium');
+                input.classList.add('border-slate-300'); // reset border
+            });
+            
+            // Reset Icons
+            document.querySelectorAll('.input-check-icon').forEach(icon => icon.classList.remove('visible'));
+
+            // 2. Clear Messages
+            document.querySelectorAll('[id^="msg-"]').forEach(div => div.innerHTML = '');
+
+            // 3. Reset Cells
+            Object.values(AUTO_UPDATE_CELLS).forEach(cellId => {
+                const cell = document.getElementById(cellId);
+                if(cell) {
+                    cell.innerText = '?';
+                    cell.classList.add('text-rose-600', 'bg-rose-50');
+                    cell.classList.remove('text-slate-600', 'border-t-2', 'border-double', 'border-slate-600');
+                }
+            });
+            
+            // Reset totals manually
+            const totals = ['l1-cell-total', 'l2-cell-assets', 'l2-cell-le', 'l2_se_end_cc', 'l2_se_end_re'];
+            totals.forEach(id => {
+                const el = document.getElementById(id);
+                if(el) {
+                    el.innerText = '?';
+                    el.classList.remove('text-slate-600', 'border-t-2', 'border-double');
+                    el.classList.add('text-rose-600', 'bg-rose-50');
+                    if(id.includes('l2_se')) el.classList.remove('bg-rose-50', 'text-rose-600'); // Table specific styles
+                }
+            });
+
+            // 4. Hide Instructor Mode
+            document.getElementById('instructorToolbar').classList.add('hidden');
+            document.getElementById('mainHeader').classList.remove('mt-[52px]'); 
+            document.getElementById('tabNav').classList.remove('top-[108px]');
+            document.body.classList.remove('instructor-active');
+            document.getElementById('teacherKey').classList.add('hidden');
+        }
+
+        function hideTeacherKey() { document.getElementById('teacherKey').classList.add('hidden'); }
+
+        // --- VERIFICATION TOOLS ---
+        function toggleToolsModal() { document.getElementById('toolsModal').classList.toggle('hidden'); }
+
+        function generateHash() {
+            const name = document.getElementById('genName').value || 'Unknown';
+            const score = document.getElementById('genScore').value || '0';
+            const date = new Date().toISOString();
+            
+            const data = {
+                n: name,
+                s: parseInt(score),
+                d: date,
+                salt: 'teacher_secret_salt_123' 
+            };
+            
+            const jsonStr = JSON.stringify(data);
+            const hash = btoa(jsonStr); // Simple Base64
+            
+            document.getElementById('genResult').classList.remove('hidden');
+            document.getElementById('genOutput').value = hash;
+        }
+
+        function verifyHash() {
+            const input = document.getElementById('verifyInput').value.trim();
+            const resultDiv = document.getElementById('verifyResult');
+            resultDiv.classList.remove('hidden');
+            
+            try {
+                const jsonStr = atob(input);
+                const data = JSON.parse(jsonStr);
+                
+                if(data.salt === 'teacher_secret_salt_123') {
+                    const date = new Date(data.d).toLocaleString();
+                    resultDiv.innerHTML = `
+                        <div class="flex items-start gap-2 text-emerald-700">
+                            <i data-lucide="check-circle" class="h-4 w-4 mt-0.5"></i>
+                            <div>
+                                <p class="font-bold">Valid Submission</p>
+                                <p>Student: <strong>${data.n}</strong></p>
+                                <p>Score: <strong>${data.s}%</strong></p>
+                                <p class="text-[10px] text-emerald-600 mt-1">${date}</p>
+                            </div>
+                        </div>
+                    `;
+                    resultDiv.className = "p-3 bg-emerald-50 rounded border border-emerald-200 text-xs";
+                } else {
+                    throw new Error('Invalid Salt');
+                }
+            } catch (e) {
+                resultDiv.innerHTML = `
+                    <div class="flex items-center gap-2 text-red-700">
+                        <i data-lucide="x-circle" class="h-4 w-4"></i>
+                        <span class="font-bold">Invalid or Tampered Hash</span>
+                    </div>
+                `;
+                resultDiv.className = "p-3 bg-red-50 rounded border border-red-200 text-xs";
+            }
+            lucide.createIcons();
+        }
+
+        // --- SUBMISSION LOGIC ---
+        function openSubmitModal() {
+            document.getElementById('submitModal').classList.remove('hidden');
+            document.getElementById('studentNameInput').focus();
+        }
+
+        function confirmSubmission() {
+            const name = document.getElementById('studentNameInput').value.trim();
+            if(!name) {
+                document.getElementById('nameError').classList.remove('hidden');
+                return;
+            }
+
+            document.getElementById('submitModal').classList.add('hidden');
+            document.getElementById('nameError').classList.add('hidden');
+            downloadSubmission(name);
+        }
+
+        function downloadSubmission(studentName) {
+            // Generate a hash for the student automatically
+            const correctCount = document.querySelectorAll('.border-emerald-500').length;
+            const totalQuestions = 12; // Approx
+            const score = Math.round((correctCount / totalQuestions) * 100);
+            
+            const data = {
+                n: studentName,
+                s: score,
+                d: new Date().toISOString(),
+                salt: 'teacher_secret_salt_123'
+            };
+            const hash = btoa(JSON.stringify(data));
+
+            const txt = `Student Submission\nStudent Name: ${studentName}\nDate: ${new Date().toLocaleString()}\nScore Estimate: ${score}%\nVerification Code: ${hash}\n\nValues submitted:\nL1Q1: ${document.getElementById('l1q1').value}\nL1Q2: ${document.getElementById('l1q2').value}\n...`;
+            const blob = new Blob([txt], {type: 'text/plain'});
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `submission_${studentName.replace(/\s+/g,'_')}.txt`;
+            link.click();
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,1498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financial Analysis & Valuation Mastery</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        /* CORE SETUP - LIGHT THEME */
+        * { box-sizing: border-box; }
+        body {
+            background-color: #f0f2f5; /* Light Gray Background */
+            color: #1a202c; /* Dark Slate Text */
+            margin: 0;
+            padding: 0;
+            font-family: 'Roboto', sans-serif;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* NAVIGATION CONTROLS */
+        .controls {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            gap: 10px;
+            background: #ffffff;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            border: 1px solid #e2e8f0;
+        }
+
+        .nav-btn {
+            background: #2563eb; /* Primary Blue */
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.2s;
+        }
+        
+        .nav-btn:hover { background: #1d4ed8; }
+        .nav-btn:disabled { background: #cbd5e0; cursor: not-allowed; }
+        
+        .slide-counter {
+            color: #4a5568;
+            align-self: center;
+            margin: 0 15px;
+            font-family: 'Roboto', monospace;
+        }
+
+        /* SLIDE CONTAINER */
+        .slide {
+            display: none;
+            width: 90%;
+            max-width: 1400px;
+            height: 85vh;
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+            padding: 50px;
+            position: relative;
+            flex-direction: column;
+            animation: fadeIn 0.5s ease;
+            overflow-y: auto;
+            border: 1px solid #e2e8f0;
+        }
+
+        .slide.active { display: flex; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* TYPOGRAPHY */
+        h1, h2, h3, h4 {
+            color: #2d3748;
+            font-family: 'Playfair Display', serif;
+            margin: 0;
+        }
+        
+        h1 { font-size: 56px; font-weight: 700; color: #1e3a8a; margin-bottom: 20px; } /* Navy Blue */
+        h2.slide-title { 
+            font-size: 36px; 
+            margin-bottom: 30px; 
+            width: 100%; 
+            border-bottom: 3px solid #3b82f6; /* Bright Blue */
+            padding-bottom: 10px;
+            color: #2d3748;
+        }
+        h3 { font-size: 24px; color: #2b6cb0; margin-bottom: 10px; }
+        p, li { font-size: 20px; line-height: 1.6; color: #4a5568; margin-bottom: 15px; }
+        
+        /* LAYOUT UTILITIES */
+        .two-column { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; height: 100%; align-items: start; }
+        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; width: 100%; }
+        .grid-5 { display: grid; grid-template-columns: repeat(5, 1fr); gap: 15px; width: 100%; }
+        
+        .box-highlight {
+            background: #f7fafc;
+            padding: 25px;
+            border-radius: 8px;
+            border-left: 5px solid #3b82f6;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        /* IMAGES & CHARTS */
+        .img-container {
+            width: 100%;
+            height: 400px;
+            background: #edf2f7;
+            border-radius: 8px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #cbd5e0;
+        }
+        .img-container img { width: 100%; height: 100%; object-fit: cover; }
+
+        /* FLIP CARDS (LIGHT THEME) */
+        .flip-card-container {
+            perspective: 1000px;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 20px;
+        }
+        
+        .flip-card {
+            background-color: transparent;
+            width: 100%;
+            border-radius: 15px;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.8s;
+            cursor: pointer;
+        }
+        
+        .card-lg { width: 600px; height: 320px; }
+        .card-md { height: 350px; }
+        .card-sm { height: 300px; }
+        .card-xs { height: 250px; }
+
+        .flip-card.flipped { transform: rotateY(180deg); }
+        .flip-card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            transition: transform 0.8s;
+            transform-style: preserve-3d;
+        }
+        .flip-card-front, .flip-card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+            border: 1px solid #e2e8f0;
+        }
+        .flip-card-front { background-color: #ffffff; }
+        .flip-card-back { background-color: #ebf8ff; transform: rotateY(180deg); border: 2px solid #3b82f6; }
+
+        /* QUIZ ELEMENTS */
+        .quiz-option {
+            background: #f7fafc;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.2s;
+            border: 1px solid #cbd5e0;
+            color: #2d3748;
+        }
+        .quiz-option:hover { background: #e2e8f0; }
+        .quiz-option.selected { border-color: #3b82f6; background: #ebf8ff; }
+        
+        .feedback { display: none; margin-top: 20px; padding: 15px; border-radius: 5px; }
+        .feedback.correct { background: #c6f6d5; border: 1px solid #48bb78; color: #22543d; }
+        .feedback.incorrect { background: #fed7d7; border: 1px solid #f56565; color: #742a2a; }
+
+        /* ARTICULATION INPUTS */
+        .articulation-input {
+            background: #ffffff;
+            border: 2px solid #cbd5e0;
+            color: #2d3748;
+            padding: 8px;
+            width: 100px;
+            font-size: 18px;
+            border-radius: 4px;
+            text-align: right;
+            margin: 5px 0;
+        }
+        .flow-arrow { font-size: 24px; color: #a0aec0; margin: 10px 0; }
+        .result-box { padding: 15px; border-radius: 8px; background: #ebf8ff; margin-top: 10px; display: none; color: #2c5282; border: 1px solid #bee3f8;}
+
+        /* SORTABLE LIST STYLES */
+        .sortable-item {
+            background: #fff;
+            border: 2px solid #cbd5e0;
+            padding: 15px;
+            margin: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: center;
+            font-weight: bold;
+            color: #4a5568;
+            transition: all 0.3s;
+        }
+        .sortable-item:hover { transform: translateY(-2px); box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .sortable-item.correct { background: #c6f6d5; border-color: #48bb78; color: #22543d; }
+        .sortable-item.clicked { border-color: #3b82f6; background: #ebf8ff; }
+
+        /* DRAG AND DROP ESG */
+        .drag-container {
+            display: flex;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .draggable-item {
+            background: #2d3748;
+            color: white;
+            padding: 10px 15px;
+            margin: 5px;
+            border-radius: 20px;
+            cursor: grab;
+            display: inline-block;
+            font-size: 16px;
+        }
+        .drop-zone {
+            flex: 1;
+            height: 250px;
+            background: #f7fafc;
+            border: 2px dashed #cbd5e0;
+            border-radius: 10px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: background 0.2s;
+        }
+        .drop-zone.dragover { background: #ebf8ff; border-color: #3b82f6; }
+        .drop-header { font-weight: bold; margin-bottom: 10px; color: #2d3748; }
+
+        /* TABLES */
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 18px; }
+        th { background: #2c5282; color: #ffffff; padding: 12px; text-align: left; }
+        td { padding: 12px; border-bottom: 1px solid #e2e8f0; color: #2d3748; }
+        .num { text-align: right; font-family: monospace; }
+
+        /* FLOW CHART */
+        .flow-step {
+            border: 2px solid #3b82f6;
+            padding: 15px;
+            border-radius: 8px;
+            background: #fff;
+            text-align: center;
+            min-width: 200px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        
+        /* CREDIT ANALYSIS FLOW */
+        .leverage-meter-container {
+            width: 100%;
+            height: 30px;
+            background: #cbd5e0;
+            border-radius: 15px;
+            margin: 20px 0;
+            position: relative;
+            overflow: hidden;
+        }
+        .leverage-meter-bar {
+            height: 100%;
+            width: 10%;
+            background: linear-gradient(90deg, #48bb78, #f56565);
+            transition: width 0.5s ease;
+        }
+        .credit-stat-box {
+            text-align: center;
+            padding: 20px;
+            border: 1px solid #e2e8f0;
+            background: #f7fafc;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+        .stat-value { font-size: 32px; font-weight: bold; margin: 10px 0; display: block; color: #2b6cb0; }
+        
+    </style>
+</head>
+<body>
+
+    <!-- NAVIGATION -->
+    <div class="controls">
+        <button class="nav-btn" onclick="changeSlide(-1)" id="prevBtn">Previous</button>
+        <span class="slide-counter" id="slideCounter">1 / 40</span>
+        <button class="nav-btn" onclick="changeSlide(1)" id="nextBtn">Next</button>
+    </div>
+
+    <!-- SLIDE 1: INTRO -->
+    <div class="slide active">
+        <div style="text-align: center; margin-top: 100px;">
+            <p style="color: #3182ce; letter-spacing: 3px; text-transform: uppercase; font-weight: bold;">Course Module 101</p>
+            <h1>From Insight to Valuation</h1>
+            <hr style="width: 150px; border-color: #cbd5e0; margin: 30px auto;">
+            <h3>The Analyst's Roadmap to Financial Mastery</h3>
+            <p>A 4-Step Framework for Developers & Finance Professionals</p>
+        </div>
+    </div>
+
+    <!-- SLIDE 2: THE PROBLEM -->
+    <div class="slide">
+        <h2 class="slide-title">The Core Challenge</h2>
+        <div class="two-column">
+            <div>
+                <p>In a world of infinite data, how do we find a company's true worth?</p>
+                <div class="box-highlight">
+                    <p><strong>The Goal:</strong> To cut through market noise, biased reporting, and complex data to arrive at a defensible conclusion.</p>
+                </div>
+                <p>Every financial decision—from investment to corporate strategy—hinges on valuation. This requires more than just numbers; it requires a rigorous, systematic process.</p>
+            </div>
+            <div class="img-container">
+                <i class="fas fa-chart-line" style="font-size: 100px; color: #2c5282;"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 3: THE FRAMEWORK -->
+    <div class="slide">
+        <h2 class="slide-title">The 4-Step Framework</h2>
+        <div class="grid-3" style="grid-template-columns: repeat(4, 1fr); gap: 15px;">
+            <div class="box-highlight" style="text-align: center;">
+                <div style="font-size: 40px; color: #2b6cb0; margin-bottom: 10px;">1</div>
+                <h3>Environment</h3>
+                <p style="font-size: 16px;">Where does the firm operate?</p>
+            </div>
+            <div class="box-highlight" style="text-align: center;">
+                <div style="font-size: 40px; color: #2b6cb0; margin-bottom: 10px;">2</div>
+                <h3>Performance</h3>
+                <p style="font-size: 16px;">Where is the firm currently?</p>
+            </div>
+            <div class="box-highlight" style="text-align: center;">
+                <div style="font-size: 40px; color: #2b6cb0; margin-bottom: 10px;">3</div>
+                <h3>Forecast</h3>
+                <p style="font-size: 16px;">Where is the firm going?</p>
+            </div>
+            <div class="box-highlight" style="text-align: center;">
+                <div style="font-size: 40px; color: #2b6cb0; margin-bottom: 10px;">4</div>
+                <h3>Valuation</h3>
+                <p style="font-size: 16px;">What is the firm worth?</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 4: SECTION 1 HEADER -->
+    <div class="slide">
+        <div style="display: flex; align-items: center; justify-content: center; height: 100%; flex-direction: column;">
+            <h3 style="color: #718096;">STEP 1</h3>
+            <h1>Understanding the Business Environment</h1>
+            <p>The Analyst's Strategic Toolkit</p>
+        </div>
+    </div>
+
+    <!-- SLIDE 5: STRATEGIC TOOLKIT -->
+    <div class="slide">
+        <h2 class="slide-title">Strategic Toolkit</h2>
+        <p>Before looking at a single number, we must understand the competitive landscape.</p>
+        <p>Assessing a company's performance without first considering its environment is inadvisable. We use three core frameworks:</p>
+        <ul>
+            <li><strong>Porter's Value Chain:</strong> How does the company create value?</li>
+            <li><strong>Porter's Five Forces:</strong> What is the structure of industry competition?</li>
+            <li><strong>SWOT Analysis:</strong> What are the internal and external realities?</li>
+        </ul>
+    </div>
+    
+    <!-- SLIDE 6: PORTER'S 5 FORCES -->
+    <div class="slide">
+        <h2 class="slide-title">Porter's Five Forces</h2>
+        <div class="flip-card-container"><div class="flip-card card-lg" onclick="this.classList.toggle('flipped')"><div class="flip-card-inner"><div class="flip-card-front"><i class="fas fa-fist-raised" style="font-size:60px; color:#3b82f6;"></i><h3>The 5 Structural Drivers</h3></div><div class="flip-card-back"><ul style="text-align:left;"><li>Rivalry</li><li>Buyer Power</li><li>Supplier Power</li><li>Threat of Entry</li><li>Substitutes</li></ul></div></div></div></div>
+    </div>
+
+    <!-- SLIDE 7: PORTER'S EXAMPLES (UPDATED) -->
+    <div class="slide">
+        <h2 class="slide-title">Porter's 5 Forces: Real World Examples (Airlines)</h2>
+        <p>Click each force to see why the Airline industry is structurally tough.</p>
+        <div class="grid-5">
+            <!-- RIVALRY -->
+            <div class="flip-card card-xs" onclick="this.classList.toggle('flipped')">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <h4>Rivalry</h4>
+                        <i class="fas fa-fighter-jet" style="color:#f56565; font-size: 30px;"></i>
+                    </div>
+                    <div class="flip-card-back">
+                        <p><strong>High</strong></p>
+                        <p style="font-size: 14px;">Intense price wars. Zero differentiation between seats.</p>
+                    </div>
+                </div>
+            </div>
+            <!-- BUYER POWER -->
+            <div class="flip-card card-xs" onclick="this.classList.toggle('flipped')">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <h4>Buyer Power</h4>
+                        <i class="fas fa-users" style="color:#f56565; font-size: 30px;"></i>
+                    </div>
+                    <div class="flip-card-back">
+                        <p><strong>High</strong></p>
+                        <p style="font-size: 14px;">Travelers use aggregators to find the cheapest flight instantly.</p>
+                    </div>
+                </div>
+            </div>
+            <!-- SUPPLIER POWER -->
+            <div class="flip-card card-xs" onclick="this.classList.toggle('flipped')">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <h4>Supplier Power</h4>
+                        <i class="fas fa-wrench" style="color:#f56565; font-size: 30px;"></i>
+                    </div>
+                    <div class="flip-card-back">
+                        <p><strong>High</strong></p>
+                        <p style="font-size: 14px;">Boeing/Airbus duopoly controls plane prices. Pilots unions control labor.</p>
+                    </div>
+                </div>
+            </div>
+             <!-- THREAT OF ENTRY -->
+             <div class="flip-card card-xs" onclick="this.classList.toggle('flipped')">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <h4>Entry Threat</h4>
+                        <i class="fas fa-door-open" style="color:#48bb78; font-size: 30px;"></i>
+                    </div>
+                    <div class="flip-card-back">
+                        <p><strong>Medium</strong></p>
+                        <p style="font-size: 14px;">Capital intensive to buy planes, but new budget carriers still pop up.</p>
+                    </div>
+                </div>
+            </div>
+            <!-- SUBSTITUTES -->
+            <div class="flip-card card-xs" onclick="this.classList.toggle('flipped')">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <h4>Substitutes</h4>
+                        <i class="fas fa-train" style="color:#48bb78; font-size: 30px;"></i>
+                    </div>
+                    <div class="flip-card-back">
+                        <p><strong>Medium</strong></p>
+                        <p style="font-size: 14px;">Zoom/Teams replaced business travel. Trains compete in Europe.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 8: CONCEPT CHECK 1 -->
+    <div class="slide">
+        <h2 class="slide-title">Concept Check 1</h2>
+        <div class="quiz-container">
+            <p><strong>Scenario:</strong> A new technology makes it easy for customers to switch from your product to a cheaper alternative without penalty. Which Force is primarily increasing?</p>
+            <div class="quiz-option" onclick="checkQuiz(this, false)">A. Supplier Power</div>
+            <div class="quiz-option" onclick="checkQuiz(this, true)">B. Threat of Substitution</div>
+            <div class="quiz-option" onclick="checkQuiz(this, false)">C. Threat of Entry</div>
+            
+            <div class="feedback">
+                <strong>Correct!</strong> When customers can switch to an alternative (like Zoom vs. Airlines for meetings), the Threat of Substitution rises, limiting pricing power.
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 9: SWOT ANALYSIS (UPDATED) -->
+    <div class="slide">
+        <h2 class="slide-title">SWOT Analysis: Apple Inc.</h2>
+        <p>Analyzing Apple's position. Click cards to reveal detail.</p>
+        <div class="grid-3" style="grid-template-columns: 1fr 1fr; gap: 30px;">
+            <!-- STRENGTHS -->
+            <div class="flip-card card-xs" onclick="this.classList.toggle('flipped')">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <h3>Strengths (Internal)</h3>
+                        <i class="fas fa-dumbbell" style="color:#48bb78; font-size: 30px;"></i>
+                    </div>
+                    <div class="flip-card-back">
+                        <ul style="text-align:left; font-size: 16px;">
+                            <li>Premium Brand Power</li>
+                            <li>Integrated Ecosystem ("Walled Garden")</li>
+                            <li>Massive Cash Reserves</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <!-- WEAKNESSES -->
+            <div class="flip-card card-xs" onclick="this.classList.toggle('flipped')">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <h3>Weaknesses (Internal)</h3>
+                        <i class="fas fa-link" style="color:#f56565; font-size: 30px;"></i>
+                    </div>
+                    <div class="flip-card-back">
+                        <ul style="text-align:left; font-size: 16px;">
+                            <li>High Product Prices (Premium only)</li>
+                            <li>Dependence on iPhone for ~50% rev</li>
+                            <li>Lack of low-end options</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <!-- OPPORTUNITIES -->
+            <div class="flip-card card-xs" onclick="this.classList.toggle('flipped')">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <h3>Opportunities (External)</h3>
+                        <i class="fas fa-rocket" style="color:#48bb78; font-size: 30px;"></i>
+                    </div>
+                    <div class="flip-card-back">
+                        <ul style="text-align:left; font-size: 16px;">
+                            <li>Services Growth (TV+, iCloud)</li>
+                            <li>Expansion into Health/Wearables</li>
+                            <li>AR/VR Markets</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <!-- THREATS -->
+            <div class="flip-card card-xs" onclick="this.classList.toggle('flipped')">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <h3>Threats (External)</h3>
+                        <i class="fas fa-meteor" style="color:#f56565; font-size: 30px;"></i>
+                    </div>
+                    <div class="flip-card-back">
+                        <ul style="text-align:left; font-size: 16px;">
+                            <li>Antitrust Regulation (App Store)</li>
+                            <li>Supply Chain risks (China)</li>
+                            <li>Rapid Tech shifts (AI)</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 10: COMPETITIVE ADVANTAGE (UPDATED) -->
+    <div class="slide">
+        <h2 class="slide-title">Quiz: Identify the Advantage</h2>
+        <p>Which strategy creates value in these scenarios?</p>
+        <div class="two-column">
+            <div class="flip-card card-md" onclick="this.classList.toggle('flipped')">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <h3>Scenario A</h3>
+                        <p>"We relentlessly cut overhead, negotiate bulk discounts, and pass savings to customers to drive massive volume."</p>
+                        <p style="color:#a0aec0;">(Click to Reveal)</p>
+                    </div>
+                    <div class="flip-card-back">
+                        <h3 style="color:#2b6cb0;">Cost Leadership</h3>
+                        <p><strong>Example: Walmart / Costco</strong></p>
+                        <p>Winning by being the cheapest provider.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="flip-card card-md" onclick="this.classList.toggle('flipped')">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <h3>Scenario B</h3>
+                        <p>"We invest heavily in design and R&D to create a unique product that customers will pay a premium for."</p>
+                        <p style="color:#a0aec0;">(Click to Reveal)</p>
+                    </div>
+                    <div class="flip-card-back">
+                        <h3 style="color:#2b6cb0;">Differentiation</h3>
+                        <p><strong>Example: Apple / Ferrari</strong></p>
+                        <p>Winning by being unique/better.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 11: STEP 2 Header -->
+    <div class="slide">
+        <div style="display: flex; align-items: center; justify-content: center; height: 100%; flex-direction: column;">
+            <h3 style="color: #718096;">STEP 2</h3>
+            <h1>Decoding Financial Statements</h1>
+            <p>The Universal Language of Business</p>
+        </div>
+    </div>
+
+    <!-- SLIDE 12: INFO ECOSYSTEM -->
+    <div class="slide">
+        <h2 class="slide-title">The Information Ecosystem</h2>
+        <div class="two-column">
+            <!-- SUPPLY -->
+            <div class="flip-card card-md" onclick="this.classList.toggle('flipped')">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <h3>The Supply Side</h3>
+                        <i class="fas fa-file-contract" style="font-size: 50px; color: #2b6cb0; margin: 20px;"></i>
+                        <p>Who provides the data?</p>
+                    </div>
+                    <div class="flip-card-back">
+                        <h3>Disclosure</h3>
+                        <ul style="text-align:left; padding: 0 30px;">
+                            <li><strong>Form 10-K:</strong> Audited annual report.</li>
+                            <li><strong>Form 10-Q:</strong> Unaudited quarterly report.</li>
+                            <li><strong>8-K:</strong> Major events.</li>
+                        </ul>
+                        <p style="font-size:14px; margin-top:10px;">Source: SEC EDGAR Database</p>
+                    </div>
+                </div>
+            </div>
+            <!-- DEMAND -->
+            <div class="flip-card card-md" onclick="this.classList.toggle('flipped')">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <h3>The Demand Side</h3>
+                        <i class="fas fa-users" style="font-size: 50px; color: #2b6cb0; margin: 20px;"></i>
+                        <p>Who uses the data?</p>
+                    </div>
+                    <div class="flip-card-back">
+                        <h3>Users</h3>
+                        <ul style="text-align:left; padding: 0 30px;">
+                            <li><strong>Investors:</strong> Valuation & Stock picking.</li>
+                            <li><strong>Lenders:</strong> Assessing credit risk.</li>
+                            <li><strong>Regulators:</strong> Ensuring fair play.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 13: 4 CORE ACTIVITIES -->
+    <div class="slide">
+        <h2 class="slide-title">The 4 Core Activities</h2>
+        <p>Financial statements report on a continuous cycle:</p>
+        <div class="grid-3" style="grid-template-columns: repeat(4, 1fr);">
+            <div class="box-highlight" style="text-align: center;">
+                <i class="fas fa-compass" style="font-size: 40px; color: #3b82f6;"></i>
+                <p><strong>Planning</strong></p>
+                <p style="font-size: 14px; color: #718096;">Setting budgets, strategy, and R&D goals.</p>
+            </div>
+            <div class="box-highlight" style="text-align: center;">
+                <i class="fas fa-hand-holding-usd" style="font-size: 40px; color: #3b82f6;"></i>
+                <p><strong>Financing</strong></p>
+                <p style="font-size: 14px; color: #718096;">Issuing bonds (debt) or selling stock (equity) to raise cash.</p>
+            </div>
+            <div class="box-highlight" style="text-align: center;">
+                <i class="fas fa-industry" style="font-size: 40px; color: #3b82f6;"></i>
+                <p><strong>Investing</strong></p>
+                <p style="font-size: 14px; color: #718096;">Buying factories, land, or acquiring other companies.</p>
+            </div>
+            <div class="box-highlight" style="text-align: center;">
+                <i class="fas fa-cogs" style="font-size: 40px; color: #3b82f6;"></i>
+                <p><strong>Operating</strong></p>
+                <p style="font-size: 14px; color: #718096;">Selling goods, paying salaries, marketing products.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 14: BALANCE SHEET -->
+    <div class="slide">
+        <h2 class="slide-title">The Balance Sheet</h2>
+        <div class="flip-card-container">
+            <div class="flip-card card-lg" onclick="this.classList.toggle('flipped')">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <i class="fas fa-balance-scale" style="font-size: 60px; color: #3b82f6; margin-bottom: 20px;"></i>
+                        <h3>The Accounting Equation</h3>
+                        <p>What is the fundamental law of the balance sheet?</p>
+                        <p style="font-size: 14px; color: #718096;">(Click Card)</p>
+                    </div>
+                    <div class="flip-card-back">
+                        <h2 style="color: #2b6cb0;">Assets = Liabilities + Equity</h2>
+                        <hr style="width: 50%; border-color: #3b82f6; margin: 10px auto;">
+                        <p><strong>Assets:</strong> Resources Owned (Investing)</p>
+                        <p><strong>Liabilities:</strong> Non-owner Claims (Debt)</p>
+                        <p><strong>Equity:</strong> Owner Claims (Stock)</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 15: APPLE ASSETS -->
+    <div class="slide">
+        <h2 class="slide-title">Real Data: Apple (Assets)</h2>
+        <div class="two-column">
+            <div>
+                <p>Assets are resources owned by the company.</p>
+                <table>
+                    <tr><th>Item</th><th class="num">Value ($M)</th></tr>
+                    <tr><td>Cash & Equivalents</td><td class="num">23,646</td></tr>
+                    <tr><td>Accounts Receivable</td><td class="num">28,184</td></tr>
+                    <tr><td>Inventory</td><td class="num">4,946</td></tr>
+                    <tr><td>Property, Plant, Equip</td><td class="num">42,117</td></tr>
+                    <tr><td><strong>Total Assets</strong></td><td class="num" style="color: #2b6cb0; font-weight: bold;">352,755</td></tr>
+                </table>
+            </div>
+            <div class="box-highlight">
+                <h3>Analyst Insight</h3>
+                <p>Note how small Apple's inventory is ($4.9B) relative to total assets. This indicates extreme supply chain efficiency.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 16: APPLE LIAB + EQUITY -->
+    <div class="slide">
+        <h2 class="slide-title">Real Data: Apple (Financing)</h2>
+        <div class="two-column">
+            <div>
+                <p>Who paid for the assets?</p>
+                <table>
+                    <tr><th>Item</th><th class="num">Value ($M)</th></tr>
+                    <tr><td>Accounts Payable</td><td class="num">64,115</td></tr>
+                    <tr><td>Term Debt</td><td class="num">98,959</td></tr>
+                    <tr><td><strong>Total Liabilities</strong></td><td class="num">302,083</td></tr>
+                    <tr><td>Stockholders' Equity</td><td class="num">50,672</td></tr>
+                    <tr><td><strong>Total L + E</strong></td><td class="num" style="color: #2b6cb0; font-weight: bold;">352,755</td></tr>
+                </table>
+            </div>
+            <div class="box-highlight">
+                <h3>Analyst Insight</h3>
+                <p>Apple uses significant debt (Liabilities). <br><br>Assets ($352B) = Liab ($302B) + Equity ($50B).</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 17: FINANCING STRATEGY -->
+    <div class="slide">
+        <h2 class="slide-title">Financing Strategy: Pros & Cons</h2>
+        <p>Companies balance risk and return through their capital structure. Click to reveal trade-offs.</p>
+        <div class="two-column">
+            <!-- Card 1: Equity -->
+            <div class="flip-card card-md" onclick="this.classList.toggle('flipped')">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <i class="fas fa-users" style="font-size: 50px; color: #3b82f6; margin-bottom: 20px;"></i>
+                        <h3>Owner Financing (Equity)</h3>
+                        <p>Contributions from stockholders.</p>
+                        <p style="color:#a0aec0; font-size: 14px;">(Click for Pros/Cons)</p>
+                    </div>
+                    <div class="flip-card-back">
+                        <h3 style="color:#2b6cb0;">Equity</h3>
+                        <ul style="text-align:left; padding:0 30px;">
+                            <li style="color:#38a169;"><i class="fas fa-plus"></i> No obligation to pay back.</li>
+                            <li style="color:#38a169;"><i class="fas fa-plus"></i> Low financial risk.</li>
+                            <li style="color:#e53e3e;"><i class="fas fa-minus"></i> Dilutes ownership.</li>
+                            <li style="color:#e53e3e;"><i class="fas fa-minus"></i> Cost of Equity > Cost of Debt.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 2: Debt -->
+            <div class="flip-card card-md" onclick="this.classList.toggle('flipped')">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <i class="fas fa-university" style="font-size: 50px; color: #3b82f6; margin-bottom: 20px;"></i>
+                        <h3>Nonowner Financing (Debt)</h3>
+                        <p>Borrowing from banks/creditors.</p>
+                        <p style="color:#a0aec0; font-size: 14px;">(Click for Pros/Cons)</p>
+                    </div>
+                    <div class="flip-card-back">
+                        <h3 style="color:#2b6cb0;">Debt</h3>
+                        <ul style="text-align:left; padding:0 30px;">
+                            <li style="color:#38a169;"><i class="fas fa-plus"></i> Interest is tax deductible.</li>
+                            <li style="color:#38a169;"><i class="fas fa-plus"></i> Leverage boosts returns.</li>
+                            <li style="color:#e53e3e;"><i class="fas fa-minus"></i> Mandatory interest payments.</li>
+                            <li style="color:#e53e3e;"><i class="fas fa-minus"></i> Bankruptcy risk.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 18: CONCEPT CHECK 2 -->
+    <div class="slide">
+        <h2 class="slide-title">Concept Check 2</h2>
+        <div class="quiz-container">
+            <p><strong>Question:</strong> Which of the following increases the financial risk of a company?</p>
+            <div class="quiz-option" onclick="checkQuiz(this, true)">A. Increasing the proportion of Debt (Liabilities)</div>
+            <div class="quiz-option" onclick="checkQuiz(this, false)">B. Increasing the proportion of Equity</div>
+            <div class="quiz-option" onclick="checkQuiz(this, false)">C. Increasing Cash holdings</div>
+            
+            <div class="feedback">
+                <strong>Correct!</strong> Increasing debt increases mandatory interest and principal payments, raising the risk of bankruptcy if cash flows dip.
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 19: INCOME STATEMENT -->
+    <div class="slide">
+        <h2 class="slide-title">The Income Statement</h2>
+        <div class="box-highlight" style="text-align: center; margin-bottom: 30px;">
+            <h3 style="font-size: 40px;">Revenues - COGS - Expenses = Net Income</h3>
+        </div>
+        <div class="grid-3">
+            <!-- Card 1 -->
+            <div class="flip-card card-sm" onclick="this.classList.toggle('flipped')">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <h3>Revenues</h3>
+                        <i class="fas fa-money-bill-wave" style="font-size: 40px; color: #3b82f6;"></i>
+                    </div>
+                    <div class="flip-card-back">
+                        <h3>Revenues</h3>
+                        <p style="padding: 10px;">The total amount of money brought in from selling goods or services. Also called the "Top Line".</p>
+                    </div>
+                </div>
+            </div>
+            <!-- Card 2 -->
+            <div class="flip-card card-sm" onclick="this.classList.toggle('flipped')">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <h3>COGS</h3>
+                        <i class="fas fa-boxes" style="font-size: 40px; color: #3b82f6;"></i>
+                    </div>
+                    <div class="flip-card-back">
+                        <h3>Cost of Goods Sold</h3>
+                        <p style="padding: 10px;">Direct costs attributable to the production of the goods sold (e.g., Materials, Factory Labor).</p>
+                    </div>
+                </div>
+            </div>
+            <!-- Card 3 -->
+            <div class="flip-card card-sm" onclick="this.classList.toggle('flipped')">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <h3>Expenses</h3>
+                        <i class="fas fa-file-invoice" style="font-size: 40px; color: #3b82f6;"></i>
+                    </div>
+                    <div class="flip-card-back">
+                        <h3>Operating Expenses</h3>
+                        <p style="padding: 10px;">Overhead costs not directly tied to production, such as R&D, Marketing, and HQ Salaries.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 20: APPLE INCOME STATEMENT -->
+    <div class="slide">
+        <h2 class="slide-title">Apple Income Statement (2022)</h2>
+        <table>
+            <tr><th>Item</th><th class="num">Value ($M)</th><th>Note</th></tr>
+            <tr><td>Net Sales</td><td class="num">394,328</td><td>Top Line</td></tr>
+            <tr><td>COGS</td><td class="num" style="color:#e53e3e;">(223,546)</td><td>Hardware costs</td></tr>
+            <tr><td><strong>Gross Profit</strong></td><td class="num"><strong>170,782</strong></td><td>High Margins</td></tr>
+            <tr><td>Op Expenses (R&D, SG&A)</td><td class="num" style="color:#e53e3e;">(51,345)</td><td>Innovation/Ads</td></tr>
+            <tr><td>Taxes/Other</td><td class="num" style="color:#e53e3e;">(19,634)</td><td>Govt cut</td></tr>
+            <tr><td><strong>Net Income</strong></td><td class="num" style="color:#2b6cb0; font-size: 24px;"><strong>99,803</strong></td><td>The Bottom Line</td></tr>
+        </table>
+    </div>
+
+    <!-- SLIDE 21: NONCONTROLLING INTEREST -->
+    <div class="slide">
+        <h2 class="slide-title">Advanced: Noncontrolling Interest</h2>
+        <p>When a company (Parent) owns >50% of a subsidiary, it consolidates 100% of the revenue, even if it doesn't own 100%.</p>
+        <div class="box-highlight">
+            <h3>Pfizer Example (2022)</h3>
+            <p>Reported Net Income: $31,407M</p>
+            <p style="color: #e53e3e;">Less: Income attributable to Noncontrolling Interest: ($35M)</p>
+            <hr>
+            <p><strong>Net Income to Pfizer Shareholders: $31,372M</strong></p>
+            <p><em>Always use the value attributable to shareholders for valuation!</em></p>
+        </div>
+    </div>
+
+    <!-- SLIDE 22: STATEMENT OF EQUITY -->
+    <div class="slide">
+        <h2 class="slide-title">Statement of Stockholders' Equity</h2>
+        <p>Links Income to the Balance Sheet.</p>
+        <div style="font-size: 24px; text-align: center; margin-top: 40px;">
+            <p>Beginning Equity</p>
+            <p style="color: #38a169;">+ Net Income (Profit)</p>
+            <p style="color: #e53e3e;">- Dividends (Payout)</p>
+            <p style="color: #e53e3e;">- Stock Buybacks (Payout)</p>
+            <hr style="width: 300px; margin: 20px auto;">
+            <p><strong>= Ending Equity</strong></p>
+        </div>
+    </div>
+
+    <!-- SLIDE 23: CASH FLOW STATEMENT -->
+    <div class="slide">
+        <h2 class="slide-title">Statement of Cash Flows</h2>
+        <p>Cash is reality. This statement tracks cash movement in 3 buckets:</p>
+        <div class="grid-3">
+            <div class="box-highlight">
+                <h3>Operating</h3>
+                <p>Cash from core business (selling iPhones).</p>
+                <p><em>Apple: +$122B</em></p>
+            </div>
+            <div class="box-highlight">
+                <h3>Investing</h3>
+                <p>Cash used to buy factories or investments.</p>
+                <p><em>Apple: -$22B</em></p>
+            </div>
+            <div class="box-highlight">
+                <h3>Financing</h3>
+                <p>Cash from/to banks and shareholders (Dividends).</p>
+                <p><em>Apple: -$110B</em></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 24: ARTICULATION (UPDATED WITH DIVIDENDS) -->
+    <div class="slide">
+        <h2 class="slide-title">Articulation: Balancing the Books</h2>
+        <p>Try it yourself. Note how <strong>Dividends</strong> reduce Equity.</p>
+        
+        <div class="two-column">
+            <!-- Left: Cash Flow Logic -->
+            <div style="background: #edf2f7; padding: 20px; border-radius: 8px; border: 1px solid #cbd5e0;">
+                <h3 style="border-bottom: 2px solid #cbd5e0; padding-bottom: 10px;">1. Cash Flow Logic</h3>
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 20px;">
+                    <span>Beg. Cash (BS)</span>
+                    <input type="number" id="begCash" class="articulation-input" value="100" oninput="calcArticulation()">
+                </div>
+                <div class="flow-arrow" style="text-align: center;">+</div>
+                
+                <div style="border: 1px dashed #3b82f6; padding: 10px; border-radius: 8px; background: #fff;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom:5px;">
+                        <span style="font-size:14px;">Cash flow from Ops (CFO)</span>
+                        <input type="number" id="valCFO" class="articulation-input" value="100" style="width:70px;" oninput="calcArticulation()">
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom:5px;">
+                        <span style="font-size:14px;">Cash flow from Inv (CFI)</span>
+                        <input type="number" id="valCFI" class="articulation-input" value="-50" style="width:70px;" oninput="calcArticulation()">
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span style="font-size:14px;">Cash flow from Fin (CFF)</span>
+                        <input type="number" id="valCFF" class="articulation-input" value="-20" style="width:70px;" oninput="calcArticulation()">
+                    </div>
+                </div>
+
+                <div class="flow-arrow" style="text-align: center;">=</div>
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <span>End. Cash (BS)</span>
+                    <span id="endCashCalc" style="color: #2b6cb0; font-weight: bold; font-size: 24px;">130</span>
+                </div>
+            </div>
+
+            <!-- Right: Retained Earnings Logic (UPDATED) -->
+            <div style="background: #edf2f7; padding: 20px; border-radius: 8px; border: 1px solid #cbd5e0;">
+                <h3 style="border-bottom: 2px solid #cbd5e0; padding-bottom: 10px;">2. Equity Logic</h3>
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 20px;">
+                    <span>Beg. Retained Earnings</span>
+                    <input type="number" id="begRE" class="articulation-input" value="500" oninput="calcArticulation()">
+                </div>
+                <div class="flow-arrow" style="text-align: center;">+</div>
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <span>Net Income (from IS)</span>
+                    <input type="number" id="netIncome" class="articulation-input" value="100" oninput="calcArticulation()">
+                </div>
+                <div class="flow-arrow" style="text-align: center;">-</div>
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <span>Dividends (Paid out)</span>
+                    <input type="number" id="dividends" class="articulation-input" value="0" oninput="calcArticulation()" style="border-color: #f56565; color: #c53030;">
+                </div>
+                <div class="flow-arrow" style="text-align: center;">=</div>
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <span>End. Retained Earnings (BS)</span>
+                    <span id="endRE" style="color: #2b6cb0; font-weight: bold; font-size: 24px;">600</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 25: BIG PICTURE -->
+    <div class="slide">
+        <h2 class="slide-title">The Big Picture: Statement Relationships</h2>
+        <p>How the stories articulate (connect) over time.</p>
+        <div style="display: flex; align-items: center; justify-content: center; height: 500px;">
+            <div class="flow-step">
+                <h3>Start of Year</h3>
+                <div style="background: #2c5282; color:white; padding: 10px; margin: 10px 0;">Balance Sheet</div>
+                <p style="font-size: 14px;">Assets = Liab + Eq</p>
+                <div style="border-top: 1px solid #3b82f6; padding-top: 5px;">Cash Balance (Beg)</div>
+                <div style="border-top: 1px solid #3b82f6; padding-top: 5px;">Retained Earnings (Beg)</div>
+            </div>
+            <div style="display:flex; flex-direction: column; height: 100%; justify-content: center; margin: 0 20px;">
+                <div style="border-top: 2px dashed #3b82f6; width: 50px; position: relative; top: -50px;"></div>
+                <div style="border-top: 2px dashed #3b82f6; width: 50px; position: relative; top: 50px;"></div>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 30px;">
+                <div class="flow-step">
+                    <h3>During Year</h3>
+                    <div style="background: #2c5282; color:white; padding: 10px; margin: 10px 0;">Income Statement</div>
+                    <p style="font-size: 14px; color: #3b82f6;">Generates Net Income</p>
+                </div>
+                <div class="flow-step">
+                    <h3>During Year</h3>
+                    <div style="background: #2c5282; color:white; padding: 10px; margin: 10px 0;">Cash Flow Stmt</div>
+                    <p style="font-size: 14px; color: #3b82f6;">Explains Change in Cash</p>
+                </div>
+            </div>
+            <div style="display:flex; flex-direction: column; height: 100%; justify-content: center; margin: 0 20px;">
+                <div style="border-top: 2px dashed #3b82f6; width: 50px; position: relative; top: -50px;"></div>
+                <div style="border-top: 2px dashed #3b82f6; width: 50px; position: relative; top: 50px;"></div>
+            </div>
+            <div class="flow-step">
+                <h3>End of Year</h3>
+                <div style="background: #2c5282; color:white; padding: 10px; margin: 10px 0;">Balance Sheet</div>
+                <p style="font-size: 14px;">Assets = Liab + Eq</p>
+                <div style="border-top: 1px solid #3b82f6; padding-top: 5px;">Cash Balance (End)</div>
+                <div style="border-top: 1px solid #3b82f6; padding-top: 5px;">Retained Earnings (End)</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- SLIDE 26: SECTION 3 HEADER -->
+    <div class="slide"><div style="display: flex; align-items: center; justify-content: center; height: 100%; flex-direction: column;"><h3 style="color: #718096;">STEP 3</h3><h1>Assessing Performance</h1><p>Profitability Analysis</p></div></div>
+    
+    <!-- SLIDE 27: ROA INTERACTIVE -->
+    <div class="slide">
+        <h2 class="slide-title">Return on Assets (ROA)</h2>
+        <div class="flip-card-container">
+            <div class="flip-card card-lg" onclick="this.classList.toggle('flipped')">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <i class="fas fa-chart-line" style="font-size: 60px; color: #3b82f6; margin-bottom: 20px;"></i>
+                        <h3>The Holy Grail Metric</h3>
+                        <p>What are the two drivers of ROA?</p>
+                        <p style="font-size: 14px; color: #718096;">(Click Card)</p>
+                    </div>
+                    <div class="flip-card-back">
+                        <h3>Profitability x Productivity</h3>
+                        <p><strong>Profit Margin:</strong> Net Income / Sales</p>
+                        <p>x</p>
+                        <p><strong>Asset Turnover:</strong> Sales / Assets</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 28: DECOMPOSING ROA -->
+    <div class="slide">
+        <h2 class="slide-title">Decomposing ROA: Industry Context</h2>
+        <p>You can achieve high returns in two ways. Click to see industry examples.</p>
+        <div class="two-column">
+            <!-- Card 1 -->
+            <div class="flip-card card-md" onclick="this.classList.toggle('flipped')">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <i class="fas fa-gem" style="font-size: 50px; color: #3b82f6; margin-bottom: 20px;"></i>
+                        <h3>High Margin Strategy</h3>
+                        <p>Make a lot of profit on every unit sold, but sell fewer units.</p>
+                        <p style="color:#a0aec0; font-size: 14px;">(Reveal Industry)</p>
+                    </div>
+                    <div class="flip-card-back">
+                        <h3>Tech & Pharma</h3>
+                        <p><strong>Example: Microsoft</strong></p>
+                        <p>Software has near-zero marginal cost.</p>
+                        <p><strong>Characteristics:</strong> High IP barriers, pricing power, lower turnover.</p>
+                    </div>
+                </div>
+            </div>
+            <!-- Card 2 -->
+            <div class="flip-card card-md" onclick="this.classList.toggle('flipped')">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <i class="fas fa-shopping-cart" style="font-size: 50px; color: #3b82f6; margin-bottom: 20px;"></i>
+                        <h3>High Turnover Strategy</h3>
+                        <p>Make tiny profit per unit, but sell massive volume quickly.</p>
+                        <p style="color:#a0aec0; font-size: 14px;">(Reveal Industry)</p>
+                    </div>
+                    <div class="flip-card-back">
+                        <h3>Retail & Grocery</h3>
+                        <p><strong>Example: Walmart</strong></p>
+                        <p>Groceries spoil; they must move fast.</p>
+                        <p><strong>Characteristics:</strong> Razor-thin margins, massive efficiency, high volume.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 29: TRADE OFF CHART -->
+    <div class="slide">
+        <h2 class="slide-title">The Trade-Off</h2>
+        <p>Companies usually sit on a curve. It is rare to have both High Margin and High Turnover.</p>
+        <div class="img-container">
+            <!-- Simplified CSS Chart -->
+            <div style="position: relative; width: 80%; height: 80%; border-left: 2px solid #2d3748; border-bottom: 2px solid #2d3748;">
+                <div style="position: absolute; bottom: 5px; right: 5px; color: #2d3748;">Turnover -></div>
+                <div style="position: absolute; top: 5px; left: 10px; color: #2d3748;">Margin</div>
+                <div style="position: absolute; top: 20%; left: 20%; background: #3b82f6; width: 15px; height: 15px; border-radius: 50%;"></div>
+                <div style="position: absolute; top: 20%; left: 25%; color: #2d3748;">Pharma</div>
+                <div style="position: absolute; bottom: 10%; right: 10%; background: #e53e3e; width: 15px; height: 15px; border-radius: 50%;"></div>
+                <div style="position: absolute; bottom: 15%; right: 15%; color: #2d3748;">Retail</div>
+                <div style="position: absolute; top: 40%; left: 40%; background: #2d3748; width: 15px; height: 15px; border-radius: 50%;"></div>
+                <div style="position: absolute; top: 40%; left: 45%; color: #2d3748;">Apple</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 30: CONCEPT CHECK 3 -->
+    <div class="slide">
+        <h2 class="slide-title">Concept Check 3</h2>
+        <div class="quiz-container">
+            <p><strong>Question:</strong> Company A has a Profit Margin of 2% and Asset Turnover of 4.0. Company B has a Profit Margin of 10% and Asset Turnover of 0.8. Which has the better ROA?</p>
+            <div class="quiz-option" onclick="checkQuiz(this, false)">A. Company A</div>
+            <div class="quiz-option" onclick="checkQuiz(this, false)">B. Company B</div>
+            <div class="quiz-option" onclick="checkQuiz(this, true)">C. They are the same</div>
+            <div class="feedback">
+                <strong>Correct!</strong> ROA = Margin x Turnover. <br>Company A: 2% x 4.0 = 8%. <br>Company B: 10% x 0.8 = 8%.
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 31: SECTION 4 HEADER -->
+    <div class="slide"><div style="display: flex; align-items: center; justify-content: center; height: 100%; flex-direction: column;"><h3 style="color: #718096;">STEPS 3 & 4</h3><h1>Forecasting & Valuation</h1><p>Looking Forward</p></div></div>
+
+    <!-- SLIDE 32: FORECASTING ORDER (INTERACTIVE GAME) -->
+    <div class="slide">
+        <h2 class="slide-title">Interactive: The Forecasting Order</h2>
+        <p>Click the steps in the correct order to build the financial model.</p>
+        <div id="sortGameContainer" style="text-align: center; margin-top: 40px;">
+            <div id="sortOptions" style="display: flex; justify-content: center; gap: 20px;">
+                <div class="sortable-item" onclick="handleSortClick(this, 'BS')">3. Balance Sheet</div>
+                <div class="sortable-item" onclick="handleSortClick(this, 'Rev')">1. Revenue</div>
+                <div class="sortable-item" onclick="handleSortClick(this, 'CF')">4. Cash Flows</div>
+                <div class="sortable-item" onclick="handleSortClick(this, 'Exp')">2. Expenses</div>
+            </div>
+            
+            <div id="sortResult" style="margin-top: 40px; min-height: 100px; display: flex; flex-direction: column; align-items: center;">
+                <h3 style="color: #718096;">Your Model Flow:</h3>
+                <div id="flowChain" style="display: flex; align-items: center; gap: 10px; margin-top: 20px;">
+                    <!-- Items appear here -->
+                </div>
+            </div>
+            
+            <button class="nav-btn" style="background: #718096; margin-top: 20px;" onclick="resetSortGame()">Reset</button>
+        </div>
+    </div>
+
+    <!-- SLIDE 33: VALUATION CAMPS (UPDATED ANALOGIES) -->
+    <div class="slide">
+        <h2 class="slide-title">Two Camps of Valuation</h2>
+        <p>Click the cards to reveal the analogy.</p>
+        <div class="two-column">
+            <!-- Card 1: Fundamental -->
+            <div class="flip-card card-md" onclick="this.classList.toggle('flipped')">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <i class="fas fa-tree" style="font-size: 50px; color: #48bb78; margin-bottom: 20px;"></i>
+                        <h3>Fundamental Valuation</h3>
+                        <p>(Intrinsic)</p>
+                        <p style="color:#718096; font-size: 14px; margin-top:20px;">The "Farm" Analogy</p>
+                    </div>
+                    <div class="flip-card-back">
+                        <h3 style="color:#2b6cb0;">Buying a Farm</h3>
+                        <p style="padding: 10px;">"I don't care what the neighbor's farm sold for. I only care about the value of the <strong>crops (Cash Flows)</strong> this farm will produce over its lifetime."</p>
+                        <p><strong>Method:</strong> Discounted Cash Flow (DCF)</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 2: Relative -->
+            <div class="flip-card card-md" onclick="this.classList.toggle('flipped')">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <i class="fas fa-home" style="font-size: 50px; color: #ed8936; margin-bottom: 20px;"></i>
+                        <h3>Relative Valuation</h3>
+                        <p>(Market Multiples)</p>
+                        <p style="color:#718096; font-size: 14px; margin-top:20px;">The "House" Analogy</p>
+                    </div>
+                    <div class="flip-card-back">
+                        <h3 style="color:#2b6cb0;">Buying a House</h3>
+                        <p style="padding: 10px;">"I don't need to calculate the cost of bricks. I just need to know what the <strong>similar house across the street</strong> sold for."</p>
+                        <p><strong>Method:</strong> P/E Ratio, EV/EBITDA</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 34: CREDIT ANALYSIS -->
+    <div class="slide">
+        <h2 class="slide-title">Credit Analysis: The Leverage Effect</h2>
+        <p>Adjust leverage to see how it impacts ratings and cost of debt.</p>
+        <div style="padding: 20px; background: #edf2f7; border-radius: 8px;">
+            <label style="font-size: 20px;">Debt Level (Leverage)</label>
+            <input type="range" min="1" max="100" value="10" style="width: 100%; margin: 20px 0;" oninput="updateCredit(this.value)">
+            <div class="leverage-meter-container"><div class="leverage-meter-bar" id="leverageBar"></div></div>
+            <div class="grid-3" style="gap: 20px;">
+                <div class="credit-stat-box"><span>Debt / EBITDA</span><span id="debtEbitdaVal" class="stat-value">1.0x</span></div>
+                <div class="credit-stat-box"><span>Credit Rating</span><span id="ratingVal" class="stat-value">Aaa</span></div>
+                <div class="credit-stat-box"><span>Interest Rate</span><span id="rateVal" class="stat-value">3.0%</span></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 35: ESG (FLIP CARDS) -->
+    <div class="slide">
+        <h2 class="slide-title">Modern Consideration: ESG</h2>
+        <div class="grid-3">
+            <div class="flip-card card-sm" onclick="this.classList.toggle('flipped')">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front"><h3>Environmental</h3><i class="fas fa-leaf" style="font-size: 40px; color: #38a169;"></i></div>
+                    <div class="flip-card-back"><h3>Environmental</h3><p style="padding: 10px;">Climate risk, carbon footprint, waste management.</p></div>
+                </div>
+            </div>
+            <div class="flip-card card-sm" onclick="this.classList.toggle('flipped')">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front"><h3>Social</h3><i class="fas fa-hand-holding-heart" style="font-size: 40px; color: #d69e2e;"></i></div>
+                    <div class="flip-card-back"><h3>Social</h3><p style="padding: 10px;">Labor practices, human rights, community.</p></div>
+                </div>
+            </div>
+            <div class="flip-card card-sm" onclick="this.classList.toggle('flipped')">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front"><h3>Governance</h3><i class="fas fa-gavel" style="font-size: 40px; color: #3182ce;"></i></div>
+                    <div class="flip-card-back"><h3>Governance</h3><p style="padding: 10px;">Board diversity, executive pay, ethics.</p></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 36: ESG DRAG AND DROP (NEW) -->
+    <div class="slide">
+        <h2 class="slide-title">Activity: Classify ESG Risks</h2>
+        <p>Drag the risk factors into the correct bucket (Environmental, Social, or Governance).</p>
+        
+        <div id="dragItems" style="margin-bottom: 20px; text-align: center;">
+            <span class="draggable-item" draggable="true" ondragstart="drag(event)" id="d1">Carbon Footprint</span>
+            <span class="draggable-item" draggable="true" ondragstart="drag(event)" id="d2">Board Diversity</span>
+            <span class="draggable-item" draggable="true" ondragstart="drag(event)" id="d3">Labor Strikes</span>
+            <span class="draggable-item" draggable="true" ondragstart="drag(event)" id="d4">Executive Pay</span>
+            <span class="draggable-item" draggable="true" ondragstart="drag(event)" id="d5">Water Usage</span>
+            <span class="draggable-item" draggable="true" ondragstart="drag(event)" id="d6">Data Privacy</span>
+        </div>
+
+        <div class="drag-container">
+            <div class="drop-zone" ondrop="drop(event, 'E')" ondragover="allowDrop(event)">
+                <div class="drop-header" style="color: #38a169;">Environmental</div>
+                <i class="fas fa-leaf" style="color: #c6f6d5; font-size: 24px;"></i>
+            </div>
+            <div class="drop-zone" ondrop="drop(event, 'S')" ondragover="allowDrop(event)">
+                <div class="drop-header" style="color: #d69e2e;">Social</div>
+                <i class="fas fa-users" style="color: #fefcbf; font-size: 24px;"></i>
+            </div>
+            <div class="drop-zone" ondrop="drop(event, 'G')" ondragover="allowDrop(event)">
+                <div class="drop-header" style="color: #3182ce;">Governance</div>
+                <i class="fas fa-gavel" style="color: #bee3f8; font-size: 24px;"></i>
+            </div>
+        </div>
+        <p id="dragFeedback" style="text-align: center; margin-top: 10px; font-weight: bold; min-height: 24px;"></p>
+    </div>
+
+    <!-- SLIDE 37: FINAL EXAM INTRO -->
+    <div class="slide">
+        <div style="text-align: center; margin-top: 100px;">
+            <i class="fas fa-graduation-cap" style="font-size: 80px; color: #3182ce;"></i>
+            <h1>Final Exam</h1>
+            <p>10 Questions to test your mastery.</p>
+        </div>
+    </div>
+
+    <!-- SLIDE 38: FINAL EXAM -->
+    <div class="slide">
+        <h2 class="slide-title">Final Knowledge Check</h2>
+        <div style="height: 60vh; overflow-y: auto; padding-right: 20px;">
+            <div class="box-highlight"><p><strong>1. The Balance Sheet equation is:</strong></p><div class="quiz-option" onclick="this.style.background='#fed7d7'">A. Assets = Liabilities - Equity</div><div class="quiz-option" onclick="this.style.background='#c6f6d5'">B. Assets = Liabilities + Equity</div></div>
+            <div class="box-highlight"><p><strong>2. Which statement covers a period of time?</strong></p><div class="quiz-option" onclick="this.style.background='#fed7d7'">A. Balance Sheet</div><div class="quiz-option" onclick="this.style.background='#c6f6d5'">B. Income Statement</div></div>
+            <div class="box-highlight"><p><strong>3. High Barriers to Entry lead to:</strong></p><div class="quiz-option" onclick="this.style.background='#c6f6d5'">A. Higher Profit Potential</div><div class="quiz-option" onclick="this.style.background='#fed7d7'">B. Intense Price Wars</div></div>
+            <div class="box-highlight"><p><strong>4. ROA is calculated as:</strong></p><div class="quiz-option" onclick="this.style.background='#fed7d7'">A. Net Income / Equity</div><div class="quiz-option" onclick="this.style.background='#c6f6d5'">B. Net Income / Average Assets</div></div>
+            <div class="box-highlight"><p><strong>5. Which activity relates to borrowing money?</strong></p><div class="quiz-option" onclick="this.style.background='#c6f6d5'">A. Financing</div><div class="quiz-option" onclick="this.style.background='#fed7d7'">B. Investing</div></div>
+            <div class="box-highlight"><p><strong>6. The SEC form for Annual Reports is:</strong></p><div class="quiz-option" onclick="this.style.background='#c6f6d5'">A. 10-K</div><div class="quiz-option" onclick="this.style.background='#fed7d7'">B. 10-Q</div></div>
+            <div class="box-highlight"><p><strong>7. A high debt load generally:</strong></p><div class="quiz-option" onclick="this.style.background='#c6f6d5'">A. Increases Risk</div><div class="quiz-option" onclick="this.style.background='#fed7d7'">B. Decreases Risk</div></div>
+            <div class="box-highlight"><p><strong>8. Apple's Strategy (High Price/Unique Product) is:</strong></p><div class="quiz-option" onclick="this.style.background='#fed7d7'">A. Cost Leadership</div><div class="quiz-option" onclick="this.style.background='#c6f6d5'">B. Differentiation</div></div>
+            <div class="box-highlight"><p><strong>9. In forecasting, which line comes first?</strong></p><div class="quiz-option" onclick="this.style.background='#c6f6d5'">A. Revenue</div><div class="quiz-option" onclick="this.style.background='#fed7d7'">B. Net Income</div></div>
+            <div class="box-highlight"><p><strong>10. Valuation based on "P/E Ratio" is:</strong></p><div class="quiz-option" onclick="this.style.background='#fed7d7'">A. Fundamental Valuation</div><div class="quiz-option" onclick="this.style.background='#c6f6d5'">B. Market Multiple Valuation</div></div>
+        </div>
+    </div>
+
+    <!-- SLIDE 39: CONCLUSION -->
+    <div class="slide">
+        <div style="text-align: center; margin-top: 100px;">
+            <h1>Congratulations!</h1>
+            <p>You have completed the Roadmap to Financial Mastery.</p>
+            <div style="margin-top: 50px;">
+                <p>Remember:</p>
+                <h3 style="color: #3182ce;">"Valuation is the bridge between the story and the numbers."</h3>
+            </div>
+            <button class="nav-btn" style="margin-top: 30px;" onclick="location.reload()">Restart Course</button>
+        </div>
+    </div>
+
+
+    <script>
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const counter = document.getElementById('slideCounter');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+
+        function updateControls() {
+            counter.textContent = `${currentSlide + 1} / ${slides.length}`;
+            prevBtn.disabled = currentSlide === 0;
+            nextBtn.disabled = currentSlide === slides.length - 1;
+        }
+
+        function changeSlide(direction) {
+            slides[currentSlide].classList.remove('active');
+            currentSlide += direction;
+            if (currentSlide < 0) currentSlide = 0;
+            if (currentSlide >= slides.length) currentSlide = slides.length - 1;
+            slides[currentSlide].classList.add('active');
+            updateControls();
+        }
+
+        function checkQuiz(element, isCorrect) {
+            const parent = element.parentElement;
+            const options = parent.querySelectorAll('.quiz-option');
+            options.forEach(opt => opt.classList.remove('selected'));
+            element.classList.add('selected');
+            let feedback = parent.querySelector('.feedback');
+            if (!feedback) feedback = parent.parentElement.querySelector('.feedback');
+            
+            if (feedback) {
+                feedback.style.display = 'block';
+                if (isCorrect) {
+                    feedback.className = 'feedback correct';
+                    feedback.innerHTML = '<strong>Correct!</strong> ' + feedback.innerHTML.replace(/Correct! |Incorrect. /g, '');
+                } else {
+                    feedback.className = 'feedback incorrect';
+                    feedback.innerHTML = '<strong>Incorrect.</strong> Try again.';
+                }
+            }
+        }
+
+        // ARTICULATION CALCULATOR (UPDATED)
+        function calcArticulation() {
+            const begCash = parseFloat(document.getElementById('begCash').value) || 0;
+            const cfo = parseFloat(document.getElementById('valCFO').value) || 0;
+            const cfi = parseFloat(document.getElementById('valCFI').value) || 0;
+            const cff = parseFloat(document.getElementById('valCFF').value) || 0;
+            
+            const totalCF = cfo + cfi + cff;
+            const endCash = begCash + totalCF;
+            document.getElementById('endCashCalc').textContent = endCash;
+
+            // Equity Side
+            const begRE = parseFloat(document.getElementById('begRE').value) || 0;
+            const netIncome = parseFloat(document.getElementById('netIncome').value) || 0;
+            const dividends = parseFloat(document.getElementById('dividends').value) || 0;
+            
+            const endRE = begRE + netIncome - dividends;
+            document.getElementById('endRE').textContent = endRE;
+        }
+
+        // FORECASTING ORDER GAME
+        let sortOrder = [];
+        const correctOrder = ['Rev', 'Exp', 'BS', 'CF'];
+        const labelMap = {'Rev': 'Revenue', 'Exp': 'Expenses', 'BS': 'Balance Sheet', 'CF': 'Cash Flows'};
+
+        function handleSortClick(el, type) {
+            if (el.classList.contains('clicked')) return;
+            
+            // Check if correct in sequence
+            const currentStep = sortOrder.length;
+            if (type === correctOrder[currentStep]) {
+                el.classList.add('clicked');
+                el.classList.add('correct');
+                sortOrder.push(type);
+                
+                const chain = document.getElementById('flowChain');
+                const newItem = document.createElement('div');
+                newItem.className = 'sortable-item correct';
+                newItem.style.margin = '0';
+                newItem.textContent = (currentStep + 1) + ". " + labelMap[type];
+                
+                if (currentStep > 0) {
+                    const arrow = document.createElement('i');
+                    arrow.className = 'fas fa-arrow-right';
+                    arrow.style.color = '#a0aec0';
+                    chain.appendChild(arrow);
+                }
+                chain.appendChild(newItem);
+
+            } else {
+                el.style.borderColor = '#f56565';
+                setTimeout(() => el.style.borderColor = '#cbd5e0', 500);
+            }
+        }
+
+        function resetSortGame() {
+            sortOrder = [];
+            document.getElementById('flowChain').innerHTML = '';
+            document.querySelectorAll('.sortable-item').forEach(el => {
+                el.classList.remove('clicked', 'correct');
+            });
+        }
+        
+        // CREDIT ANALYSIS CALCULATOR
+        function updateCredit(val) {
+            const bar = document.getElementById('leverageBar');
+            const debtVal = document.getElementById('debtEbitdaVal');
+            const ratingVal = document.getElementById('ratingVal');
+            const rateVal = document.getElementById('rateVal');
+
+            bar.style.width = val + "%";
+
+            // Simulate Data
+            const debtEbitda = (val / 10).toFixed(1);
+            debtVal.textContent = debtEbitda + "x";
+
+            if (val < 25) {
+                ratingVal.textContent = "Aaa";
+                ratingVal.style.color = "#38a169";
+                rateVal.textContent = "3.0%";
+            } else if (val < 50) {
+                ratingVal.textContent = "Baa";
+                ratingVal.style.color = "#d69e2e";
+                rateVal.textContent = "5.5%";
+            } else {
+                ratingVal.textContent = "B (Junk)";
+                ratingVal.style.color = "#e53e3e";
+                rateVal.textContent = "9.5%";
+            }
+        }
+
+        // DRAG AND DROP
+        const answers = {
+            'd1': 'E', // Carbon
+            'd2': 'G', // Diversity
+            'd3': 'S', // Labor
+            'd4': 'G', // Pay
+            'd5': 'E', // Water
+            'd6': 'S'  // Privacy
+        };
+
+        function allowDrop(ev) { ev.preventDefault(); }
+        function drag(ev) { ev.dataTransfer.setData("text", ev.target.id); }
+        
+        function drop(ev, category) {
+            ev.preventDefault();
+            var data = ev.dataTransfer.getData("text");
+            var item = document.getElementById(data);
+            var feedback = document.getElementById('dragFeedback');
+
+            if (answers[data] === category) {
+                // Correct
+                // Only allow drop on the drop-zone itself, not children
+                let target = ev.target;
+                if(!target.classList.contains('drop-zone')) target = target.closest('.drop-zone');
+                
+                target.appendChild(item);
+                item.draggable = false;
+                item.style.cursor = 'default';
+                item.style.background = '#48bb78'; // Green
+                feedback.textContent = "Correct!";
+                feedback.style.color = "#2f855a";
+            } else {
+                feedback.textContent = "Incorrect. Try again.";
+                feedback.style.color = "#c53030";
+            }
+            setTimeout(() => feedback.textContent = "", 2000);
+        }
+
+        // Initialize
+        updateControls();
+        calcArticulation();
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === ' ') {
+                if (currentSlide < slides.length - 1) changeSlide(1);
+            }
+            if (e.key === 'ArrowLeft') {
+                if (currentSlide > 0) changeSlide(-1);
+            }
+        });
+    </script>
+</body>
+</html>

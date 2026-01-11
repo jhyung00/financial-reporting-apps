@@ -1,0 +1,1188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financial Reporting and Analysis Simulation</title>
+    
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        
+        /* Custom Table Styles */
+        .ref-table th, .ref-table td {
+            padding: 6px 8px;
+            font-size: 0.75rem;
+            border-bottom: 1px solid #e5e7eb;
+            vertical-align: middle;
+        }
+        .ref-table tr:hover { background-color: #f0f9ff; }
+        .ref-table .val-cell { 
+            text-align: right; 
+            font-family: 'Roboto Mono', monospace; 
+            cursor: pointer;
+            color: #059669;
+            transition: background-color 0.15s;
+        }
+        .ref-table .val-cell:hover { background-color: #d1fae5; font-weight: bold; }
+        
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        .hint-popover {
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s, visibility 0.2s;
+        }
+        .group:hover .hint-popover {
+            opacity: 1;
+            visibility: visible;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo, useRef } = React;
+
+        // --- DATA & CONSTANTS ---
+
+        // Expanded Data with detailed Liabilities for both companies
+        const RAW_DATA = [
+            // --- PARKER HANNIFIN (PH) FIRST ---
+            // PH Balance Sheet Assets
+            {company: "PH", statement: "Balance Sheet", account: "Cash and cash equivalents", year: 2022, value: 535799},
+            {company: "PH", statement: "Balance Sheet", account: "Cash and cash equivalents", year: 2021, value: 733117},
+            {company: "PH", statement: "Balance Sheet", account: "Trade accounts receivable net", year: 2022, value: 2341504},
+            {company: "PH", statement: "Balance Sheet", account: "Trade accounts receivable net", year: 2021, value: 2183594},
+            {company: "PH", statement: "Balance Sheet", account: "Inventories", year: 2022, value: 2214553},
+            {company: "PH", statement: "Balance Sheet", account: "Inventories", year: 2021, value: 2090642},
+            {company: "PH", statement: "Balance Sheet", account: "Total current assets", year: 2022, value: 12046644},
+            {company: "PH", statement: "Balance Sheet", account: "Total current assets", year: 2021, value: 5616750},
+            {company: "PH", statement: "Balance Sheet", account: "Total assets", year: 2022, value: 25943943},
+            {company: "PH", statement: "Balance Sheet", account: "Total assets", year: 2021, value: 20341200},
+            
+            // PH Balance Sheet Liabilities (Detailed)
+            {company: "PH", statement: "Balance Sheet", account: "Accounts payable", year: 2022, value: 1731925},
+            {company: "PH", statement: "Balance Sheet", account: "Accounts payable", year: 2021, value: 1667878},
+            {company: "PH", statement: "Balance Sheet", account: "Accrued expenses", year: 2022, value: 470132},
+            {company: "PH", statement: "Balance Sheet", account: "Accrued expenses", year: 2021, value: 507027},
+            {company: "PH", statement: "Balance Sheet", account: "Accrued taxes", year: 2022, value: 250292},
+            {company: "PH", statement: "Balance Sheet", account: "Accrued taxes", year: 2021, value: 236384},
+            {company: "PH", statement: "Balance Sheet", account: "Other current liabilities", year: 2022, value: 1646636},
+            {company: "PH", statement: "Balance Sheet", account: "Other current liabilities", year: 2021, value: 642197},
+            {company: "PH", statement: "Balance Sheet", account: "Commercial paper", year: 2022, value: 1422000},
+            {company: "PH", statement: "Balance Sheet", account: "Commercial paper", year: 2021, value: 0},
+            {company: "PH", statement: "Balance Sheet", account: "Current portion of LT debt", year: 2022, value: 302280},
+            {company: "PH", statement: "Balance Sheet", account: "Current portion of LT debt", year: 2021, value: 2819},
+            {company: "PH", statement: "Balance Sheet", account: "Current lease liabilities", year: 2022, value: 36023},
+            {company: "PH", statement: "Balance Sheet", account: "Current lease liabilities", year: 2021, value: 40193},
+            {company: "PH", statement: "Balance Sheet", account: "Long-term debt (Noncurrent)", year: 2022, value: 9755825},
+            {company: "PH", statement: "Balance Sheet", account: "Long-term debt (Noncurrent)", year: 2021, value: 6582053},
+            {company: "PH", statement: "Balance Sheet", account: "Noncurrent lease liabilities", year: 2022, value: 100337},
+            {company: "PH", statement: "Balance Sheet", account: "Noncurrent lease liabilities", year: 2021, value: 93904},
+            {company: "PH", statement: "Balance Sheet", account: "Total equity", year: 2022, value: 8859920},
+            {company: "PH", statement: "Balance Sheet", account: "Total equity", year: 2021, value: 8413670},
+
+            // PH Income Statement
+            {company: "PH", statement: "Income Statement", account: "Net sales", year: 2022, value: 15861608},
+            {company: "PH", statement: "Income Statement", account: "Net sales", year: 2021, value: 14347640},
+            {company: "PH", statement: "Income Statement", account: "Cost of sales", year: 2022, value: 11387267},
+            {company: "PH", statement: "Income Statement", account: "Cost of sales", year: 2021, value: 10449680},
+            {company: "PH", statement: "Income Statement", account: "Operating income", year: 2022, value: 2854346},
+            {company: "PH", statement: "Income Statement", account: "Operating income", year: 2021, value: 2479990},
+            {company: "PH", statement: "Income Statement", account: "Net income", year: 2022, value: 1315605},
+            {company: "PH", statement: "Income Statement", account: "Net income", year: 2021, value: 1746100},
+
+            // PH Cash Flow
+            {company: "PH", statement: "Cash Flow Statement", account: "Net cash provided by operating activities", year: 2022, value: 2441730},
+            {company: "PH", statement: "Cash Flow Statement", account: "Net cash provided by operating activities", year: 2021, value: 2575001},
+            {company: "PH", statement: "Cash Flow Statement", account: "Net cash used for investing activities", year: 2022, value: -418837},
+            {company: "PH", statement: "Cash Flow Statement", account: "Net cash used for investing activities", year: 2021, value: -13},
+            {company: "PH", statement: "Cash Flow Statement", account: "Net cash provided by financing activities", year: 2022, value: 3915636},
+            {company: "PH", statement: "Cash Flow Statement", account: "Net cash provided by financing activities", year: 2021, value: -2623339},
+
+            // --- ITW SECOND ---
+            // ITW Balance Sheet Assets
+            {company: "ITW", statement: "Balance Sheet", account: "Cash and equivalents", year: 2022, value: 708},
+            {company: "ITW", statement: "Balance Sheet", account: "Cash and equivalents", year: 2021, value: 1527},
+            {company: "ITW", statement: "Balance Sheet", account: "Trade receivables", year: 2022, value: 3171},
+            {company: "ITW", statement: "Balance Sheet", account: "Trade receivables", year: 2021, value: 2840},
+            {company: "ITW", statement: "Balance Sheet", account: "Inventories", year: 2022, value: 2054},
+            {company: "ITW", statement: "Balance Sheet", account: "Inventories", year: 2021, value: 1694},
+            {company: "ITW", statement: "Balance Sheet", account: "Total current assets", year: 2022, value: 6270},
+            {company: "ITW", statement: "Balance Sheet", account: "Total current assets", year: 2021, value: 6374},
+            {company: "ITW", statement: "Balance Sheet", account: "Total assets", year: 2022, value: 15422},
+            {company: "ITW", statement: "Balance Sheet", account: "Total assets", year: 2021, value: 16077},
+            
+            // ITW Balance Sheet Liabilities (Detailed)
+            {company: "ITW", statement: "Balance Sheet", account: "Short-term debt", year: 2022, value: 1590},
+            {company: "ITW", statement: "Balance Sheet", account: "Short-term debt", year: 2021, value: 778},
+            {company: "ITW", statement: "Balance Sheet", account: "Accounts payable", year: 2022, value: 594},
+            {company: "ITW", statement: "Balance Sheet", account: "Accounts payable", year: 2021, value: 585},
+            {company: "ITW", statement: "Balance Sheet", account: "Current portion of operating lease liabilities", year: 2022, value: 55},
+            {company: "ITW", statement: "Balance Sheet", account: "Current portion of operating lease liabilities", year: 2021, value: 61},
+            {company: "ITW", statement: "Balance Sheet", account: "Accrued expenses", year: 2022, value: 1673},
+            {company: "ITW", statement: "Balance Sheet", account: "Accrued expenses", year: 2021, value: 1587},
+            {company: "ITW", statement: "Balance Sheet", account: "Cash dividends payable", year: 2022, value: 400},
+            {company: "ITW", statement: "Balance Sheet", account: "Cash dividends payable", year: 2021, value: 382},
+            {company: "ITW", statement: "Balance Sheet", account: "Income taxes payable", year: 2022, value: 147},
+            {company: "ITW", statement: "Balance Sheet", account: "Income taxes payable", year: 2021, value: 77},
+            {company: "ITW", statement: "Balance Sheet", account: "Liabilities held for sale", year: 2022, value: 1},
+            {company: "ITW", statement: "Balance Sheet", account: "Liabilities held for sale", year: 2021, value: 0},
+            {company: "ITW", statement: "Balance Sheet", account: "Long-term debt", year: 2022, value: 6173},
+            {company: "ITW", statement: "Balance Sheet", account: "Long-term debt", year: 2021, value: 6909},
+            {company: "ITW", statement: "Balance Sheet", account: "Deferred income taxes (liabilities)", year: 2022, value: 484},
+            {company: "ITW", statement: "Balance Sheet", account: "Deferred income taxes (liabilities)", year: 2021, value: 654},
+            {company: "ITW", statement: "Balance Sheet", account: "Noncurrent income taxes payable", year: 2022, value: 273},
+            {company: "ITW", statement: "Balance Sheet", account: "Noncurrent income taxes payable", year: 2021, value: 365},
+            {company: "ITW", statement: "Balance Sheet", account: "Long-term portion of operating lease liabilities", year: 2022, value: 131},
+            {company: "ITW", statement: "Balance Sheet", account: "Long-term portion of operating lease liabilities", year: 2021, value: 133},
+            {company: "ITW", statement: "Balance Sheet", account: "Other liabilities", year: 2022, value: 812},
+            {company: "ITW", statement: "Balance Sheet", account: "Other liabilities", year: 2021, value: 920},
+            {company: "ITW", statement: "Balance Sheet", account: "Total stockholders' equity", year: 2022, value: 3089},
+            {company: "ITW", statement: "Balance Sheet", account: "Total stockholders' equity", year: 2021, value: 3626},
+
+            // ITW Income Statement
+            {company: "ITW", statement: "Income Statement", account: "Operating revenue", year: 2022, value: 15932},
+            {company: "ITW", statement: "Income Statement", account: "Operating revenue", year: 2021, value: 14455},
+            {company: "ITW", statement: "Income Statement", account: "Cost of revenue", year: 2022, value: 9429},
+            {company: "ITW", statement: "Income Statement", account: "Cost of revenue", year: 2021, value: 8489},
+            {company: "ITW", statement: "Income Statement", account: "Operating income", year: 2022, value: 3790},
+            {company: "ITW", statement: "Income Statement", account: "Operating income", year: 2021, value: 3477},
+            {company: "ITW", statement: "Income Statement", account: "Net income", year: 2022, value: 3034},
+            {company: "ITW", statement: "Income Statement", account: "Net income", year: 2021, value: 2694},
+
+            // ITW Cash Flow
+            {company: "ITW", statement: "Cash Flow Statement", account: "Net cash provided by operating activities", year: 2022, value: 2348},
+            {company: "ITW", statement: "Cash Flow Statement", account: "Net cash provided by operating activities", year: 2021, value: 2557},
+            {company: "ITW", statement: "Cash Flow Statement", account: "Net cash used for investing activities", year: 2022, value: -110},
+            {company: "ITW", statement: "Cash Flow Statement", account: "Net cash used for investing activities", year: 2021, value: -984},
+            {company: "ITW", statement: "Cash Flow Statement", account: "Net cash used for financing activities", year: 2022, value: -3000},
+            {company: "ITW", statement: "Cash Flow Statement", account: "Net cash used for financing activities", year: 2021, value: -2564},
+
+             // Hidden Instructor Notes Data
+            {company: "ITW", statement: "Notes", account: "Warranty liability (end of year)", year: 2022, value: 42},
+            {company: "ITW", statement: "Notes", account: "Warranty liability (end of year)", year: 2021, value: 46},
+            {company: "ITW", statement: "Notes", account: "Warranty settlements", year: 2022, value: 40},
+            {company: "ITW", statement: "Notes", account: "Warranty settlements", year: 2021, value: 34},
+            {company: "ITW", statement: "Notes", account: "Warranty expense", year: 2022, value: 40},
+            {company: "ITW", statement: "Notes", account: "Warranty expense", year: 2021, value: 34},
+            {company: "ITW", statement: "Notes", account: "Fair value of debt", year: 2022, value: 6228},
+
+            {company: "PH", statement: "Notes", account: "Fair value of debt", year: 2022, value: 9709407},
+        ];
+
+        // ANSWER KEY CONSTANT
+        const FULL_ANSWER_KEY = {
+            // Conceptual
+            "mcq_1": 2, "mcq_2": 1, "mcq_3": 1, "research_fye": "December 31",
+            // Operating - PH
+            "ph_ap_22": 1731925, "ph_ap_pct": 6.7,
+            "ph_ae_22": 470132, "ph_ae_pct": 1.8,
+            "ph_at_22": 250292, "ph_at_pct": 1.0,
+            "ph_ot_22": 1646636, "ph_ot_pct": 6.3,
+            // Operating - ITW
+            "itw_ap_22": 594, "itw_ap_pct": 3.9,
+            "itw_ae_22": 1673, "itw_ae_pct": 10.8,
+            "itw_at_22": 147, "itw_at_pct": 1.0,
+            "analysis_2b": "PH had a large derivative contract ('deal contingent forward') related to a pending acquisition.",
+            // Warranty (Updated)
+            "w_liab_21": 46, "w_liab_pct_21": 0.29, 
+            "w_liab_22": 42, "w_liab_pct_22": 0.27,
+            "w_exp_21": 34, "w_exp_pct_21": 0.24,
+            "w_exp_22": 41, "w_exp_pct_22": 0.26, // Updated 41 as requested
+            "w_set_21": 34, 
+            "w_set_22": 40,
+            "w_compare": "The amount expensed is nearly identical to the amount paid to settle claims.",
+            // Debt - ITW
+            "itw_cp_22": 1053, "itw_cplt_22": 535, "itw_cll_22": 55,
+            // Debt - PH
+            "ph_cp_22": 1422000, "ph_cplt_22": 302280, "ph_cll_22": 36023,
+            // Debt - LT
+            "itw_nbv": 6708, "ph_nbv": 10058105,
+            "itw_fv": 6228, "ph_fv": 9709407,
+            "rate_trend": "increase",
+            // Maturities - ITW
+            "itw_mat_23": 535, "itw_mat_24": 1340, "itw_mat_25": 0, "itw_mat_26": 996, "itw_mat_27": 531,
+            // Maturities - PH
+            "ph_mat_23": 302000, "ph_mat_24": 1976000, "ph_mat_25": 1234000, "ph_mat_26": 400000, "ph_mat_27": 700000,
+            // Contingencies
+            "ph_env_22": 16.4, "itw_cont_disc": "no"
+        };
+
+        // --- GLOBAL COMPONENTS (Defined outside to prevent re-mounts) ---
+
+        const MCQuestion = ({ id, answers, onAnswer, question, options, correctIndex, hint, teacherMode }) => {
+            const selected = answers[id];
+            const isCorrect = selected == correctIndex;
+            const [showHint, setShowHint] = useState(false);
+
+            return (
+                <div className="mb-6 border-b pb-6 last:border-0">
+                    <div className="flex justify-between items-start mb-2">
+                        <h4 className="font-semibold text-gray-800 text-sm">{question}</h4>
+                        <button onClick={()=>setShowHint(!showHint)} className="text-blue-500 text-xs hover:underline">Hint?</button>
+                    </div>
+                    {showHint && <div className="bg-blue-50 text-blue-800 text-xs p-2 mb-2 rounded italic">{hint}</div>}
+                    
+                    <div className="space-y-2">
+                        {options.map((opt, idx) => (
+                            <label key={idx} className={`flex items-center p-2 rounded border cursor-pointer transition-colors text-sm ${selected == idx ? (isCorrect ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200') : 'hover:bg-gray-50 border-gray-200'}`}>
+                                <input 
+                                    type="radio" 
+                                    name={id} 
+                                    checked={selected == idx} 
+                                    onChange={() => onAnswer(id, idx)}
+                                    className="mr-3"
+                                />
+                                {opt}
+                                {teacherMode && idx === correctIndex && <span className="ml-auto text-emerald-600 font-bold text-xs">(Correct)</span>}
+                            </label>
+                        ))}
+                    </div>
+                    {selected !== undefined && (
+                        <div className={`mt-2 text-xs font-bold ${isCorrect ? 'text-emerald-600' : 'text-red-500'}`}>
+                            {isCorrect ? "Correct!" : "Try again."}
+                        </div>
+                    )}
+                </div>
+            )
+        };
+
+        const SmartInput = ({ id, value, correctValue, onFocus, onAnswer, isActive, teacherMode, label, isPct = false, type="number", hint }) => {
+            const [localVal, setLocalVal] = useState(value || "");
+            const [status, setStatus] = useState("neutral"); // neutral, correct, incorrect
+            const [showHint, setShowHint] = useState(false);
+
+            useEffect(() => {
+                setLocalVal(value || "");
+                // Reset status to neutral if the field is cleared (value is undefined/null/empty string)
+                if (value === undefined || value === "" || value === null) {
+                    setStatus("neutral");
+                } else {
+                    // Trigger validation on external update (e.g. from reference click)
+                    validate(value);
+                }
+            }, [value]);
+
+            const validate = (val) => {
+                if (correctValue === undefined) return;
+                
+                let numVal = parseFloat(val);
+                
+                // Try evaluating if it's a string math expression
+                if (typeof val === 'string' && val.match(/[+\-*\/]/)) {
+                     try {
+                        numVal = Function('"use strict";return (' + val + ')')();
+                     } catch(e) {}
+                }
+
+                if (isNaN(numVal)) return;
+                
+                // Tolerance logic (2% relative error or absolute 0.1 if small)
+                const tolerance = Math.max(Math.abs(correctValue * 0.02), 0.1); 
+                
+                let isValid = Math.abs(numVal - correctValue) <= tolerance;
+
+                // Special handling for percentages (e.g. user entered 0.067 for 6.7%)
+                if (!isValid && isPct) {
+                    // Check if they entered the decimal equivalent (e.g. 0.067 instead of 6.7)
+                    // If user enters 0.067, we check 0.067 * 100 = 6.7 against correctValue
+                    const decimalVal = numVal * 100;
+                    if (Math.abs(decimalVal - correctValue) <= tolerance) {
+                        isValid = true;
+                    }
+                }
+                
+                if (isValid) setStatus("correct");
+                else setStatus("incorrect");
+            };
+
+            const calculateExpression = (val) => {
+                if (typeof val === 'string' && val.match(/[+\-*\/]/)) {
+                    try {
+                        const calculated = Function('"use strict";return (' + val + ')')();
+                        // For display, round to reasonable decimals
+                        return parseFloat(calculated.toFixed(2));
+                    } catch (e) {
+                        return null;
+                    }
+                }
+                return null;
+            };
+
+            const handleBlur = (e) => {
+                let val = e.target.value;
+                
+                // Try to calculate math expression
+                const calculated = calculateExpression(val);
+                if (calculated !== null) {
+                    onAnswer(id, calculated);
+                    setLocalVal(calculated); // Immediate update for user visibility
+                    validate(calculated);
+                    return;
+                }
+                
+                onAnswer(id, val);
+                validate(val);
+            };
+
+            const handleKeyDown = (e) => {
+                if (e.key === 'Enter') {
+                    e.target.blur(); // Triggers handleBlur
+                }
+            };
+
+            const borderColor = status === 'correct' ? 'border-emerald-500 bg-emerald-50' : 
+                                status === 'incorrect' ? 'border-red-500 bg-red-50' : 
+                                isActive ? 'border-blue-500 ring-2 ring-blue-100' : 'border-gray-300';
+
+            return (
+                <div className="flex flex-col group relative">
+                    {label && <label className="text-[10px] text-gray-500 mb-1 uppercase font-bold tracking-wider">{label}</label>}
+                    <div className="relative flex items-center">
+                        <input
+                            id={id} // Added ID for focusing
+                            type="text" 
+                            value={localVal}
+                            onChange={(e) => { 
+                                setLocalVal(e.target.value); 
+                                onAnswer(id, e.target.value); // Sync to parent immediately
+                            }}
+                            onFocus={() => onFocus(id)}
+                            onBlur={handleBlur}
+                            onKeyDown={handleKeyDown}
+                            className={`w-full p-2 text-sm border rounded transition-all outline-none font-mono ${borderColor} min-w-[120px]`}
+                            placeholder="" 
+                        />
+                        {isPct && <span className="absolute right-8 text-gray-400 text-xs">%</span>}
+                        
+                         {status === 'correct' && (
+                             <div className="absolute right-8 text-emerald-500 pointer-events-none">
+                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                             </div>
+                         )}
+
+                        {hint && (
+                            <button 
+                                className="ml-1 text-gray-400 hover:text-blue-500 focus:outline-none"
+                                onClick={() => setShowHint(!showHint)}
+                                title="Click for Hint"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                            </button>
+                        )}
+
+                        {/* Hint Popover */}
+                        {showHint && (
+                            <div className="absolute z-10 bottom-full mb-2 right-0 w-48 bg-slate-800 text-white text-xs rounded p-2 shadow-lg z-50">
+                                {hint}
+                                <div className="absolute top-full right-2 border-4 border-transparent border-t-slate-800"></div>
+                            </div>
+                        )}
+                    </div>
+                    {/* Instructor Answer Key Display (Replaces Placeholder) */}
+                    {teacherMode && (
+                        <div className="text-[10px] text-emerald-600 font-mono mt-0.5 tracking-tight">
+                            Key: {correctValue}
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // --- COMPONENT: APP ---
+        function App() {
+            const [activeInputId, setActiveInputId] = useState(null);
+            const [studentAnswers, setStudentAnswers] = useState({});
+            const [studentName, setStudentName] = useState("");
+            const [teacherMode, setTeacherMode] = useState(false);
+            const [showPwdModal, setShowPwdModal] = useState(false);
+            // New state for confirmation modal
+            const [confirmation, setConfirmation] = useState({ isOpen: false, message: '', onConfirm: null });
+            const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+            const [currentModule, setCurrentModule] = useState("conceptual");
+
+            // --- GLOBAL HANDLERS ---
+            
+            const handleInputFocus = (id) => {
+                setActiveInputId(id);
+            };
+
+            const handleGlobalValueClick = (val) => {
+                if (!activeInputId) return; // No input focused
+                
+                setStudentAnswers(prev => {
+                    const currentVal = String(prev[activeInputId] || "");
+                    const lastChar = currentVal.trim().slice(-1);
+                    const isOperator = ['+', '-', '*', '/'].includes(lastChar);
+                    
+                    // If empty, just set val
+                    if (currentVal === "") return { ...prev, [activeInputId]: String(val) };
+                    
+                    // If last char is operator, append val directly (e.g. "100/" + "50" => "100/50")
+                    if (isOperator) return { ...prev, [activeInputId]: currentVal + val };
+                    
+                    // Otherwise default to adding (summation logic)
+                    return { ...prev, [activeInputId]: `${currentVal}+${val}` };
+                });
+
+                // Refocus input after state update to prevent focus loss
+                setTimeout(() => {
+                    const el = document.getElementById(activeInputId);
+                    if (el) el.focus();
+                }, 0);
+            };
+
+            const handleAnswerChange = (id, val) => {
+                setStudentAnswers(prev => ({ ...prev, [id]: val }));
+            };
+
+            const checkPassword = (inputPwd) => {
+                if (inputPwd === "teacher") {
+                    setTeacherMode(true);
+                    setShowPwdModal(false);
+                } else {
+                    alert("Incorrect Password");
+                }
+            };
+
+            const autoFillAnswers = () => {
+                setConfirmation({
+                    isOpen: true,
+                    message: "Are you sure you want to overwrite all answers with the key?",
+                    onConfirm: () => {
+                        setStudentAnswers(FULL_ANSWER_KEY);
+                        setConfirmation({ isOpen: false, message: '', onConfirm: null });
+                    }
+                });
+            };
+
+            const clearAnswers = () => {
+                setConfirmation({
+                    isOpen: true,
+                    message: "Are you sure you want to clear all answers? This will also exit Instructor Mode.",
+                    onConfirm: () => {
+                        setStudentAnswers({});
+                        setTeacherMode(false);
+                        setConfirmation({ isOpen: false, message: '', onConfirm: null });
+                    }
+                });
+            };
+
+            const downloadAnswers = () => {
+                const name = studentName || prompt("Please enter your name:");
+                if (!name) return;
+                setStudentName(name);
+
+                let content = `Financial Reporting and Analysis Simulation\nStudent: ${name}\nDate: ${new Date().toLocaleDateString()}\n\n-- ANSWERS --\n\n`;
+                Object.entries(studentAnswers).forEach(([key, val]) => {
+                    content += `${key}: ${val}\n`;
+                });
+
+                const blob = new Blob([content], { type: "text/plain" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `${name.replace(/\s+/g, '_')}_Financial_Report.txt`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            };
+
+            // --- RENDER ---
+            return (
+                <div className="flex h-screen overflow-hidden relative">
+                    {/* CONFIRMATION MODAL */}
+                    {confirmation.isOpen && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                            <div className="bg-white p-6 rounded-lg shadow-xl w-80 animate-in fade-in zoom-in duration-200">
+                                <h3 className="font-bold text-lg mb-4 text-gray-800">Confirm Action</h3>
+                                <p className="text-sm text-gray-600 mb-6">{confirmation.message}</p>
+                                <div className="flex justify-end gap-2">
+                                    <button onClick={() => setConfirmation({ isOpen: false, message: '', onConfirm: null })} className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded">Cancel</button>
+                                    <button onClick={confirmation.onConfirm} className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-sm font-medium">Confirm</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* PASSWORD MODAL */}
+                    {showPwdModal && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                            <div className="bg-white p-6 rounded-lg shadow-xl w-80 animate-in fade-in zoom-in duration-200">
+                                <h3 className="font-bold text-lg mb-4 text-gray-800">Instructor Access</h3>
+                                <div className="mb-4">
+                                    <label className="block text-xs font-bold text-gray-500 mb-1">PASSWORD</label>
+                                    <input 
+                                        type="password" 
+                                        id="pwdInput"
+                                        autoFocus
+                                        className="w-full border p-2 rounded text-sm focus:ring-2 focus:ring-emerald-500 outline-none" 
+                                        placeholder="Enter password..."
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter') checkPassword(e.target.value);
+                                        }}
+                                    />
+                                </div>
+                                <div className="flex justify-end gap-2">
+                                    <button onClick={() => setShowPwdModal(false)} className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded">Cancel</button>
+                                    <button onClick={() => checkPassword(document.getElementById('pwdInput').value)} className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-sm font-medium">Login</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* SIDEBAR */}
+                    <div className={`${isSidebarOpen ? 'w-96' : 'w-16'} transition-all duration-300 bg-slate-900 text-white flex flex-col shadow-xl z-20`}>
+                        <div className="p-4 border-b border-slate-700 flex justify-between items-center">
+                            {isSidebarOpen && <h1 className="font-bold text-sm leading-tight text-emerald-400">Financial Reporting<br/>& Analysis</h1>}
+                            <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-1 hover:bg-slate-700 rounded">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                            </button>
+                        </div>
+
+                        {isSidebarOpen && (
+                            <div className="flex-1 overflow-y-auto hide-scrollbar p-4 space-y-6">
+                                <nav className="space-y-1">
+                                    <NavBtn id="conceptual" label="1. Conceptual Questions" active={currentModule} set={setCurrentModule} />
+                                    <NavBtn id="operating" label="2. Operating Liabilities" active={currentModule} set={setCurrentModule} />
+                                    <NavBtn id="warranty" label="3. Warranty (ITW)" active={currentModule} set={setCurrentModule} />
+                                    <NavBtn id="debt" label="4. Debt & Liquidity" active={currentModule} set={setCurrentModule} />
+                                    <NavBtn id="contingencies" label="5. Contingencies" active={currentModule} set={setCurrentModule} />
+                                </nav>
+
+                                <div className="border-t border-slate-700 pt-4">
+                                    <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Reference Data</h3>
+                                    <p className="text-[10px] text-slate-500 mb-3 leading-relaxed">
+                                        Use the tables below or the 10-K links to find values. Click any number in the table to insert it into your active answer field.
+                                    </p>
+                                    <div className="flex flex-col gap-2 mb-3 text-xs">
+                                        <a href="https://www.sec.gov/ix?doc=/Archives/edgar/data/0000076334/000007633422000034/ph-20220630.htm" target="_blank" className="text-blue-400 hover:text-blue-300 flex items-center gap-1">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                                            PH 10-K (2022)
+                                        </a>
+                                        <a href="https://www.sec.gov/ix?doc=/Archives/edgar/data/0000049826/000004982623000008/itw-20221231.htm" target="_blank" className="text-blue-400 hover:text-blue-300 flex items-center gap-1">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                                            ITW 10-K (2022)
+                                        </a>
+                                    </div>
+                                    <ReferenceTable 
+                                        data={RAW_DATA} 
+                                        onValueClick={handleGlobalValueClick} 
+                                        teacherMode={teacherMode}
+                                    />
+                                </div>
+                            </div>
+                        )}
+                        
+                        <div className="p-4 border-t border-slate-700 bg-slate-900 sticky bottom-0">
+                             {!teacherMode ? (
+                                 <button onClick={() => setShowPwdModal(true)} className="text-xs text-slate-500 hover:text-white flex items-center gap-2">
+                                     <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                                     Instructor Access
+                                 </button>
+                             ) : (
+                                 <div className="space-y-3">
+                                     <div className="text-xs text-emerald-400 font-bold flex items-center gap-2">
+                                         <span>🔓 Instructor Mode</span>
+                                     </div>
+                                     <div className="grid grid-cols-2 gap-2">
+                                        <button onClick={autoFillAnswers} className="bg-emerald-700 hover:bg-emerald-600 text-white text-[10px] py-1 px-2 rounded">
+                                            Auto-Fill All
+                                        </button>
+                                        <button onClick={clearAnswers} className="bg-slate-700 hover:bg-red-600 text-white text-[10px] py-1 px-2 rounded">
+                                            Clear All
+                                        </button>
+                                     </div>
+                                 </div>
+                             )}
+                        </div>
+                    </div>
+
+                    {/* MAIN CONTENT */}
+                    <div className="flex-1 overflow-y-auto bg-gray-50 p-8">
+                        <header className="mb-8 flex justify-between items-center bg-white p-4 rounded shadow-sm border border-gray-100">
+                            <div>
+                                <h2 className="text-xl font-bold text-gray-800">
+                                    {currentModule === 'conceptual' && "1. Conceptual Questions & Research"}
+                                    {currentModule === 'operating' && "2. Operating Liabilities & Obligations"}
+                                    {currentModule === 'warranty' && "3. Warranty Liabilities (ITW Only)"}
+                                    {currentModule === 'debt' && "4. Debt & Liquidity Analysis"}
+                                    {currentModule === 'contingencies' && "5. Contingencies"}
+                                </h2>
+                                <p className="text-gray-500 text-xs mt-1">
+                                    Financial Reporting & Analysis
+                                </p>
+                            </div>
+                            <div className="flex gap-4 items-center">
+                                <input 
+                                    type="text" 
+                                    placeholder="Student Name" 
+                                    className="border rounded px-3 py-2 text-sm w-48"
+                                    value={studentName}
+                                    onChange={(e) => setStudentName(e.target.value)}
+                                />
+                                <button onClick={downloadAnswers} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded shadow text-sm font-medium flex items-center gap-2 transition-colors">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                                    Save
+                                </button>
+                            </div>
+                        </header>
+
+                        <div className="max-w-6xl mx-auto bg-white rounded-xl shadow-sm border border-gray-200 p-8 min-h-[600px]">
+                            {currentModule === 'conceptual' && (
+                                <ModuleConceptual
+                                    answers={studentAnswers}
+                                    onAnswer={handleAnswerChange}
+                                    teacherMode={teacherMode}
+                                />
+                            )}
+                            {currentModule === 'operating' && (
+                                <ModuleOperating 
+                                    answers={studentAnswers} 
+                                    onAnswer={handleAnswerChange} 
+                                    activeId={activeInputId}
+                                    onFocus={handleInputFocus}
+                                    teacherMode={teacherMode}
+                                />
+                            )}
+                            {currentModule === 'warranty' && (
+                                <ModuleWarranty
+                                    answers={studentAnswers} 
+                                    onAnswer={handleAnswerChange} 
+                                    activeId={activeInputId}
+                                    onFocus={handleInputFocus}
+                                    teacherMode={teacherMode}
+                                />
+                            )}
+                            {currentModule === 'debt' && (
+                                <ModuleDebt
+                                    answers={studentAnswers} 
+                                    onAnswer={handleAnswerChange} 
+                                    activeId={activeInputId}
+                                    onFocus={handleInputFocus}
+                                    teacherMode={teacherMode}
+                                />
+                            )}
+                            {currentModule === 'contingencies' && (
+                                <ModuleContingencies
+                                    answers={studentAnswers} 
+                                    onAnswer={handleAnswerChange} 
+                                    activeId={activeInputId}
+                                    onFocus={handleInputFocus}
+                                    teacherMode={teacherMode}
+                                />
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // --- SUB-COMPONENTS ---
+
+        const NavBtn = ({ id, label, active, set }) => (
+            <button 
+                onClick={() => set(id)}
+                className={`w-full text-left px-3 py-2 rounded-md text-xs font-medium transition-colors ${active === id ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-300 hover:bg-slate-800'}`}
+            >
+                {label}
+            </button>
+        );
+
+        const ReferenceTable = ({ data, onValueClick, teacherMode }) => {
+            const [company, setCompany] = useState("PH"); // Default PH
+            const [statement, setStatement] = useState("Balance Sheet");
+
+            const pivotedData = useMemo(() => {
+                const filtered = data.filter(d => d.company === company && d.statement === statement);
+                
+                const grouped = {};
+                filtered.forEach(row => {
+                    if (!grouped[row.account]) grouped[row.account] = { account: row.account };
+                    grouped[row.account][row.year] = row.value;
+                });
+
+                return Object.values(grouped);
+            }, [data, company, statement]);
+
+            return (
+                <div>
+                    <div className="flex gap-2 mb-2">
+                        {/* PH First */}
+                        <button onClick={() => setCompany("PH")} className={`flex-1 text-xs px-2 py-1 rounded transition-colors ${company === 'PH' ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-400'}`}>PH</button>
+                        <button onClick={() => setCompany("ITW")} className={`flex-1 text-xs px-2 py-1 rounded transition-colors ${company === 'ITW' ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-400'}`}>ITW</button>
+                    </div>
+                    <select 
+                        value={statement} 
+                        onChange={(e) => setStatement(e.target.value)}
+                        className="w-full mb-2 bg-slate-800 text-white text-xs p-1 rounded border border-slate-700 outline-none"
+                    >
+                        <option value="Balance Sheet">Balance Sheet</option>
+                        <option value="Income Statement">Income Statement</option>
+                        <option value="Cash Flow Statement">Cash Flow Statement</option>
+                        {teacherMode && <option value="Notes">Notes (Debt/Warranty)</option>}
+                    </select>
+
+                    <div className="max-h-[500px] overflow-y-auto border border-slate-700 rounded bg-white">
+                        <table className="w-full text-left text-xs ref-table">
+                            <thead className="sticky top-0 bg-slate-100 z-10 shadow-sm">
+                                <tr className="text-slate-600">
+                                    <th>Account</th>
+                                    <th className="text-right w-16">2022</th>
+                                    <th className="text-right w-16">2021</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {pivotedData.length > 0 ? pivotedData.map((row, i) => (
+                                    <tr key={i}>
+                                        <td className="text-slate-700">{row.account}</td>
+                                        <td className="val-cell" onClick={() => row[2022] !== undefined && onValueClick(row[2022])}>
+                                            {row[2022] !== undefined ? row[2022].toLocaleString() : "-"}
+                                        </td>
+                                        <td className="val-cell" onClick={() => row[2021] !== undefined && onValueClick(row[2021])}>
+                                            {row[2021] !== undefined ? row[2021].toLocaleString() : "-"}
+                                        </td>
+                                    </tr>
+                                )) : (
+                                    <tr><td colSpan="3" className="p-4 text-center text-slate-400 italic">No data available for this view.</td></tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- NEW: Module 1 - Conceptual ---
+        const ModuleConceptual = ({ answers, onAnswer, teacherMode }) => {
+            return (
+                <div className="fade-in max-w-3xl">
+                    <div className="mb-6 bg-indigo-50 p-4 rounded-lg border border-indigo-100">
+                        <h3 className="font-bold text-indigo-900 text-lg mb-1">1. Conceptual Framework</h3>
+                        <p className="text-indigo-800 text-sm">Before analyzing the numbers, verify your understanding of the underlying financial concepts.</p>
+                    </div>
+
+                    <MCQuestion 
+                        id="mcq_1"
+                        answers={answers}
+                        onAnswer={onAnswer}
+                        teacherMode={teacherMode}
+                        question="1. When analyzing 'Common Size' Balance Sheets, what is the standard denominator used to convert values into percentages?"
+                        options={[
+                            "Total Liabilities",
+                            "Total Equity",
+                            "Total Assets",
+                            "Operating Revenue"
+                        ]}
+                        correctIndex={2}
+                        hint="Think about what represents the total scale of the company's resources."
+                    />
+
+                    <MCQuestion 
+                        id="mcq_2"
+                        answers={answers}
+                        onAnswer={onAnswer}
+                        teacherMode={teacherMode}
+                        question="2. Operating liabilities (like Accounts Payable) are often considered 'free' financing because:"
+                        options={[
+                            "They never have to be paid back.",
+                            "They typically do not bear explicit interest charges.",
+                            "They are funded by the government.",
+                            "They are long-term obligations."
+                        ]}
+                        correctIndex={1}
+                        hint="Does a supplier usually charge interest if you pay within 30 days?"
+                    />
+
+                    <MCQuestion 
+                        id="mcq_3"
+                        answers={answers}
+                        onAnswer={onAnswer}
+                        teacherMode={teacherMode}
+                        question="3. If the Fair Value of a company's debt is LOWER than its Book Value, what does this generally imply about interest rates since issuance?"
+                        options={[
+                            "Market interest rates have decreased.",
+                            "Market interest rates have increased.",
+                            "The company's credit rating has improved significantly.",
+                            "Inflation has dropped to zero."
+                        ]}
+                        correctIndex={1}
+                        hint="Bond prices and interest rates have an inverse relationship."
+                    />
+                    
+                    <div className="mt-8 pt-6 border-t">
+                        <label className="block text-sm font-bold text-gray-700 mb-2">Research Question:</label>
+                        <p className="text-sm text-gray-600 mb-3">Open the 10-K for ITW (link in sidebar). What is their Fiscal Year End date?</p>
+                        <input 
+                            type="text" 
+                            className="w-full border p-2 rounded text-sm" 
+                            placeholder="e.g., December 31"
+                            value={answers['research_fye'] || ''}
+                            onChange={(e) => onAnswer('research_fye', e.target.value)}
+                        />
+                    </div>
+                </div>
+            )
+        }
+
+        // --- MODULE 2: Operating Liabilities ---
+        const ModuleOperating = ({ answers, onAnswer, activeId, onFocus, teacherMode }) => {
+            return (
+                <div className="space-y-8 fade-in">
+                    <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
+                        <h3 className="font-semibold text-blue-900 mb-2">2. Operating Liabilities</h3>
+                        <p className="text-sm text-blue-800">
+                            Perform common-size analysis (Liability / Total Assets) to compare structures.
+                            <br/><span className="italic text-xs">Note: PH figures in thousands, ITW in millions. Use reference data.</span>
+                        </p>
+                    </div>
+
+                    <div className="flex flex-col gap-10">
+                        {/* Parker Hannifin - Stacked Top */}
+                        <div className="border p-5 rounded-lg bg-white shadow-sm ring-1 ring-gray-100">
+                            <h4 className="font-bold border-b pb-2 mb-4 text-emerald-700 text-lg">Parker Hannifin (2022)</h4>
+                            <div className="grid grid-cols-12 gap-4 text-xs font-semibold mb-2 text-gray-500 uppercase">
+                                <div className="col-span-3">Account</div>
+                                <div className="col-span-5">Value ($ Thousands)</div>
+                                <div className="col-span-4">% Assets</div>
+                            </div>
+                            
+                            {[
+                                {label: "Accounts Payable", keyVal: "ph_ap_22", corVal: 1731925, keyPct: "ph_ap_pct", corPct: 6.7, h:"Find 'Accounts payable' in PH Notes/BS."},
+                                {label: "Accrued Expenses", keyVal: "ph_ae_22", corVal: 470132, keyPct: "ph_ae_pct", corPct: 1.8, h:"Look for payroll/wages accruals."},
+                                {label: "Accrued Taxes", keyVal: "ph_at_22", corVal: 250292, keyPct: "ph_at_pct", corPct: 1.0, h:"Taxes payable."},
+                                {label: "Other", keyVal: "ph_ot_22", corVal: 1646636, keyPct: "ph_ot_pct", corPct: 6.3, h:"Residual operating liabilities."}
+                            ].map((row) => (
+                                <div key={row.keyVal} className="grid grid-cols-12 gap-4 items-center mb-4">
+                                    <div className="col-span-3 text-sm text-gray-800 font-medium">{row.label}</div>
+                                    <div className="col-span-5">
+                                        <SmartInput 
+                                            id={row.keyVal} value={answers[row.keyVal]} correctValue={row.corVal} 
+                                            onFocus={onFocus} onAnswer={onAnswer} isActive={activeId === row.keyVal} teacherMode={teacherMode} 
+                                            hint={row.h}
+                                        />
+                                    </div>
+                                    <div className="col-span-4">
+                                        <SmartInput 
+                                            id={row.keyPct} value={answers[row.keyPct]} correctValue={row.corPct} isPct 
+                                            onFocus={onFocus} onAnswer={onAnswer} isActive={activeId === row.keyPct} teacherMode={teacherMode} 
+                                            hint={`(${row.label} / Total Assets) * 100`}
+                                        />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* ITW - Stacked Bottom */}
+                        <div className="border p-5 rounded-lg bg-white shadow-sm ring-1 ring-gray-100">
+                            <h4 className="font-bold border-b pb-2 mb-4 text-emerald-700 text-lg">ITW (2022)</h4>
+                            <div className="grid grid-cols-12 gap-4 text-xs font-semibold mb-2 text-gray-500 uppercase">
+                                <div className="col-span-3">Account</div>
+                                <div className="col-span-5">Value ($ Millions)</div>
+                                <div className="col-span-4">% Assets</div>
+                            </div>
+                             {[
+                                {label: "Accounts Payable", keyVal: "itw_ap_22", corVal: 594, keyPct: "itw_ap_pct", corPct: 3.9, h:"Find 'Accounts payable' in ITW BS."},
+                                {label: "Accrued Expenses", keyVal: "itw_ae_22", corVal: 1673, keyPct: "itw_ae_pct", corPct: 10.8, h:"Often the largest op liability for ITW."},
+                                {label: "Accrued Taxes", keyVal: "itw_at_22", corVal: 147, keyPct: "itw_at_pct", corPct: 1.0, h:"Income taxes payable."}
+                            ].map((row) => (
+                                <div key={row.keyVal} className="grid grid-cols-12 gap-4 items-center mb-4">
+                                    <div className="col-span-3 text-sm text-gray-800 font-medium">{row.label}</div>
+                                    <div className="col-span-5">
+                                        <SmartInput 
+                                            id={row.keyVal} value={answers[row.keyVal]} correctValue={row.corVal} 
+                                            onFocus={onFocus} onAnswer={onAnswer} isActive={activeId === row.keyVal} teacherMode={teacherMode} 
+                                            hint={row.h}
+                                        />
+                                    </div>
+                                    <div className="col-span-4">
+                                        <SmartInput 
+                                            id={row.keyPct} value={answers[row.keyPct]} correctValue={row.corPct} isPct 
+                                            onFocus={onFocus} onAnswer={onAnswer} isActive={activeId === row.keyPct} teacherMode={teacherMode} 
+                                            hint={`(${row.label} / Total Assets) * 100`}
+                                        />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="mt-6 p-4 bg-gray-50 border rounded text-sm text-gray-700">
+                        <h4 className="font-bold mb-2">Analysis Question:</h4>
+                        <p className="mb-2">Compare the "Other" liabilities for PH in 2022 vs 2021. Why is there a significant increase?</p>
+                        <textarea 
+                            className="w-full p-2 border rounded" 
+                            rows="3" 
+                            placeholder="Hint: Check Note 8 regarding Financial Instruments or Acquisitions..."
+                            value={answers['analysis_2b'] || ''}
+                            onChange={(e) => onAnswer('analysis_2b', e.target.value)}
+                        />
+                        {teacherMode && <p className="mt-2 text-emerald-600 text-xs">Answer: PH had a large derivative contract ("deal contingent forward") related to a pending acquisition.</p>}
+                    </div>
+                </div>
+            );
+        };
+
+        // --- MODULE 3: Warranty ---
+        const ModuleWarranty = ({ answers, onAnswer, activeId, onFocus, teacherMode }) => {
+            return (
+                <div className="space-y-6 fade-in">
+                     <div className="bg-emerald-50 p-4 rounded-lg border border-emerald-100">
+                        <h3 className="font-semibold text-emerald-900 mb-2">3. Warranty Liability Analysis (ITW)</h3>
+                        <p className="text-sm text-emerald-800">
+                            Examine ITW's warranty data (See Notes in 10-K). 
+                            <br/>Calculate percentages: 
+                            <ul className="list-disc list-inside mt-1 ml-2">
+                                <li><strong>Liability %</strong> = Warranty Liability / Total Assets</li>
+                                <li><strong>Expense %</strong> = Warranty Expense / Operating Revenue</li>
+                            </ul>
+                        </p>
+                    </div>
+
+                    <div className="overflow-x-auto bg-white rounded shadow-sm border">
+                        <table className="w-full text-sm text-left border-collapse">
+                            <thead>
+                                <tr className="bg-gray-100 border-b">
+                                    <th className="p-3 text-gray-600 font-bold">ITW ($ millions)</th>
+                                    <th className="p-3 w-24 text-gray-600 font-bold text-right">2021</th>
+                                    <th className="p-3 w-24 text-gray-600 font-bold text-right">%</th>
+                                    <th className="p-3 w-24 text-gray-600 font-bold text-right">2022</th>
+                                    <th className="p-3 w-24 text-gray-600 font-bold text-right">%</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr className="border-b hover:bg-gray-50">
+                                    <td className="p-3 font-medium text-gray-800">Warranty Liability (End of Year)</td>
+                                    <td className="p-3"><SmartInput id="w_liab_21" value={answers.w_liab_21} correctValue={46} onFocus={onFocus} onAnswer={onAnswer} isActive={activeId === 'w_liab_21'} teacherMode={teacherMode} hint="Check Notes"/></td>
+                                    <td className="p-3"><SmartInput id="w_liab_pct_21" value={answers.w_liab_pct_21} correctValue={0.29} isPct onFocus={onFocus} onAnswer={onAnswer} isActive={activeId === 'w_liab_pct_21'} teacherMode={teacherMode} hint="Liab / Assets"/></td>
+                                    <td className="p-3"><SmartInput id="w_liab_22" value={answers.w_liab_22} correctValue={42} onFocus={onFocus} onAnswer={onAnswer} isActive={activeId === 'w_liab_22'} teacherMode={teacherMode} hint="Check Notes"/></td>
+                                    <td className="p-3"><SmartInput id="w_liab_pct_22" value={answers.w_liab_pct_22} correctValue={0.27} isPct onFocus={onFocus} onAnswer={onAnswer} isActive={activeId === 'w_liab_pct_22'} teacherMode={teacherMode} hint="Liab / Assets"/></td>
+                                </tr>
+                                <tr className="border-b hover:bg-gray-50">
+                                    <td className="p-3 font-medium text-gray-800">Warranty Expense</td>
+                                    <td className="p-3"><SmartInput id="w_exp_21" value={answers.w_exp_21} correctValue={34} onFocus={onFocus} onAnswer={onAnswer} isActive={activeId === 'w_exp_21'} teacherMode={teacherMode} hint="Check Notes"/></td>
+                                    <td className="p-3"><SmartInput id="w_exp_pct_21" value={answers.w_exp_pct_21} correctValue={0.24} isPct onFocus={onFocus} onAnswer={onAnswer} isActive={activeId === 'w_exp_pct_21'} teacherMode={teacherMode} hint="Exp / Rev"/></td>
+                                    <td className="p-3"><SmartInput id="w_exp_22" value={answers.w_exp_22} correctValue={41} onFocus={onFocus} onAnswer={onAnswer} isActive={activeId === 'w_exp_22'} teacherMode={teacherMode} hint="Check Notes"/></td>
+                                    <td className="p-3"><SmartInput id="w_exp_pct_22" value={answers.w_exp_pct_22} correctValue={0.26} isPct onFocus={onFocus} onAnswer={onAnswer} isActive={activeId === 'w_exp_pct_22'} teacherMode={teacherMode} hint="Exp / Rev"/></td>
+                                </tr>
+                                <tr className="hover:bg-gray-50">
+                                    <td className="p-3 font-medium text-gray-800">Warranty Settlements (Paid)</td>
+                                    <td className="p-3"><SmartInput id="w_set_21" value={answers.w_set_21} correctValue={34} onFocus={onFocus} onAnswer={onAnswer} isActive={activeId === 'w_set_21'} teacherMode={teacherMode} hint="Check Notes"/></td>
+                                    <td className="p-3 bg-gray-50"></td>
+                                    <td className="p-3"><SmartInput id="w_set_22" value={answers.w_set_22} correctValue={40} onFocus={onFocus} onAnswer={onAnswer} isActive={activeId === 'w_set_22'} teacherMode={teacherMode} hint="Check Notes"/></td>
+                                    <td className="p-3 bg-gray-50"></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div className="mt-4 p-4 bg-gray-50 border rounded text-sm text-gray-700">
+                        <h4 className="font-bold mb-2">Observation:</h4>
+                        <p className="mb-2">Compare the <strong>Warranty Expense</strong> and <strong>Warranty Settlements</strong> rows. What do you notice about the relationship between the amount expensed and the amount paid?</p>
+                        <textarea 
+                            className="w-full p-2 border rounded" 
+                            rows="2" 
+                            placeholder="Type your observation here..."
+                            value={answers['w_compare'] || ''}
+                            onChange={(e) => onAnswer('w_compare', e.target.value)}
+                        />
+                        {teacherMode && <p className="mt-2 text-emerald-600 text-xs"><strong>Key Point:</strong> The amount expensed is nearly identical to the amount "paid" to settle the warranty claims.</p>}
+                    </div>
+                </div>
+            );
+        };
+
+        // --- MODULE 4: Debt ---
+        const ModuleDebt = ({ answers, onAnswer, activeId, onFocus, teacherMode }) => {
+            return (
+                <div className="space-y-10 fade-in">
+                    
+                    {/* Overarching Tip */}
+                    <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
+                        <p className="text-sm text-gray-800">
+                            <strong>Tip:</strong> You may need to refer to the <strong>Debt-related disclosure notes (Note 9. Financial Arrangements, Note 10. Debt and Note 16.Financial Instruments) </strong> in the company 10-K filings to find the Fair Value and specific maturity schedules.
+                        </p>
+                    </div>
+
+                    {/* Short Term */}
+                    <div>
+                        <h3 className="font-bold text-lg mb-4 text-gray-800">4.1 Short-Term Debt & Liquidity (2022)</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            
+                             <div className="bg-white p-6 border rounded-lg shadow-sm">
+                                <h4 className="font-semibold text-center mb-4 text-blue-600 border-b pb-2">PH ($ Thousands)</h4>
+                                <div className="space-y-4">
+                                    <SmartInput label="Commercial Paper" id="ph_cp_22" value={answers.ph_cp_22} correctValue={1422000} onFocus={onFocus} onAnswer={onAnswer} isActive={activeId === 'ph_cp_22'} teacherMode={teacherMode} hint="See Debt Note: Commercial Paper"/>
+                                    <SmartInput label="Current Portion of LT Debt" id="ph_cplt_22" value={answers.ph_cplt_22} correctValue={302280} onFocus={onFocus} onAnswer={onAnswer} isActive={activeId === 'ph_cplt_22'} teacherMode={teacherMode} hint="See Debt Note table"/>
+                                    <SmartInput label="Current Lease Liabilities" id="ph_cll_22" value={answers.ph_cll_22} correctValue={36023} onFocus={onFocus} onAnswer={onAnswer} isActive={activeId === 'ph_cll_22'} teacherMode={teacherMode} hint="See Balance Sheet"/>
+                                </div>
+                            </div>
+
+                            <div className="bg-white p-6 border rounded-lg shadow-sm">
+                                <h4 className="font-semibold text-center mb-4 text-emerald-600 border-b pb-2">ITW ($ Millions)</h4>
+                                <div className="space-y-4">
+                                    <SmartInput label="Commercial Paper" id="itw_cp_22" value={answers.itw_cp_22} correctValue={1053} onFocus={onFocus} onAnswer={onAnswer} isActive={activeId === 'itw_cp_22'} teacherMode={teacherMode} hint="See Debt Note: Commercial Paper"/>
+                                    <SmartInput label="Current Portion of LT Debt" id="itw_cplt_22" value={answers.itw_cplt_22} correctValue={535} onFocus={onFocus} onAnswer={onAnswer} isActive={activeId === 'itw_cplt_22'} teacherMode={teacherMode} hint="See Debt Note table"/>
+                                    <SmartInput label="Current Lease Liabilities" id="itw_cll_22" value={answers.itw_cll_22} correctValue={55} onFocus={onFocus} onAnswer={onAnswer} isActive={activeId === 'itw_cll_22'} teacherMode={teacherMode} hint="See Balance Sheet"/>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    {/* Long Term */}
+                    <div>
+                        <h3 className="font-bold text-lg mb-4 text-gray-800">4.2 Long-Term Debt Analysis (2022)</h3>
+                        
+                        <div className="bg-orange-50 p-6 border border-orange-200 rounded-lg mb-6">
+                            <h4 className="font-semibold text-orange-900 mb-2">Book Value vs. Fair Value</h4>
+                            <p className="text-sm mb-4 text-orange-800">Compare the Net Book Value to the Fair Value of debt. What does this imply about interest rates?</p>
+                            
+                            <table className="w-full text-sm bg-white rounded border overflow-hidden">
+                                <thead>
+                                    <tr className="bg-orange-100 text-left text-orange-900">
+                                        <th className="p-3">Metric</th>
+                                        <th className="p-3">PH (Thousands)</th>
+                                        <th className="p-3">ITW (Millions)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr className="border-t">
+                                        <td className="p-3 font-medium">Net Book Value (Total Debt)</td>
+                                        <td className="p-3"><SmartInput id="ph_nbv" value={answers.ph_nbv} correctValue={10058105} onFocus={onFocus} onAnswer={onAnswer} isActive={activeId === 'ph_nbv'} teacherMode={teacherMode} hint="Sum of ST + LT debt or see Notes"/></td>
+                                        <td className="p-3"><SmartInput id="itw_nbv" value={answers.itw_nbv} correctValue={6708} onFocus={onFocus} onAnswer={onAnswer} isActive={activeId === 'itw_nbv'} teacherMode={teacherMode} hint="Sum of ST + LT debt or see Notes"/></td>
+                                    </tr>
+                                    <tr className="border-t">
+                                        <td className="p-3 font-medium">Fair Value (Disclosed in Notes)</td>
+                                        <td className="p-3"><SmartInput id="ph_fv" value={answers.ph_fv} correctValue={9709407} onFocus={onFocus} onAnswer={onAnswer} isActive={activeId === 'ph_fv'} teacherMode={teacherMode} hint="Search 'Fair Value' in Notes"/></td>
+                                        <td className="p-3"><SmartInput id="itw_fv" value={answers.itw_fv} correctValue={6228} onFocus={onFocus} onAnswer={onAnswer} isActive={activeId === 'itw_fv'} teacherMode={teacherMode} hint="Search 'Fair Value' in Notes"/></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            
+                            <div className="mt-4 bg-white p-4 rounded border">
+                                <label className="text-sm font-semibold block mb-2">Conclusion (Rate Trend):</label>
+                                <select 
+                                    className="block w-full p-2 border rounded bg-gray-50"
+                                    value={answers.rate_trend || ''}
+                                    onChange={(e) => onAnswer('rate_trend', e.target.value)}
+                                >
+                                    <option value="">Select conclusion...</option>
+                                    <option value="decrease">Fair Value > Book Value implies rates have decreased</option>
+                                    <option value="increase">Fair Value &lt; Book Value implies rates have increased</option>
+                                    <option value="same">Rates are unchanged</option>
+                                </select>
+                                {teacherMode && answers.rate_trend === 'increase' && <span className="text-emerald-500 text-xs mt-1 block font-bold">Correct</span>}
+                            </div>
+                        </div>
+
+                        {/* Maturities */}
+                        <div className="bg-white p-6 border rounded-lg shadow-sm">
+                            <h4 className="font-bold mb-4 text-gray-800">4.3 Debt Maturities (Next 5 Years)</h4>
+                            <div className="grid grid-cols-6 gap-2 text-center text-xs font-semibold bg-gray-100 p-3 rounded-t-lg">
+                                <div className="text-left pl-2">Company</div>
+                                <div>2023</div>
+                                <div>2024</div>
+                                <div>2025</div>
+                                <div>2026</div>
+                                <div>2027</div>
+                            </div>
+                            
+                            {/* PH Row */}
+                             <div className="grid grid-cols-6 gap-2 items-center p-2 border-b">
+                                <div className="font-bold text-sm pl-2 text-gray-700">PH</div>
+                                <SmartInput id="ph_mat_23" value={answers.ph_mat_23} correctValue={302000} onFocus={onFocus} onAnswer={onAnswer} isActive={activeId === 'ph_mat_23'} teacherMode={teacherMode} hint="Debt Maturity Table 2023"/>
+                                <SmartInput id="ph_mat_24" value={answers.ph_mat_24} correctValue={1976000} onFocus={onFocus} onAnswer={onAnswer} isActive={activeId === 'ph_mat_24'} teacherMode={teacherMode} hint="Debt Maturity Table 2024"/>
+                                <SmartInput id="ph_mat_25" value={answers.ph_mat_25} correctValue={1234000} onFocus={onFocus} onAnswer={onAnswer} isActive={activeId === 'ph_mat_25'} teacherMode={teacherMode} hint="Debt Maturity Table 2025"/>
+                                <SmartInput id="ph_mat_26" value={answers.ph_mat_26} correctValue={400000} onFocus={onFocus} onAnswer={onAnswer} isActive={activeId === 'ph_mat_26'} teacherMode={teacherMode} hint="Debt Maturity Table 2026"/>
+                                <SmartInput id="ph_mat_27" value={answers.ph_mat_27} correctValue={700000} onFocus={onFocus} onAnswer={onAnswer} isActive={activeId === 'ph_mat_27'} teacherMode={teacherMode} hint="Debt Maturity Table 2027"/>
+                            </div>
+
+                            {/* ITW Row */}
+                            <div className="grid grid-cols-6 gap-2 items-center mb-3 p-2">
+                                <div className="font-bold text-sm pl-2 text-gray-700">ITW</div>
+                                <SmartInput id="itw_mat_23" value={answers.itw_mat_23} correctValue={535} onFocus={onFocus} onAnswer={onAnswer} isActive={activeId === 'itw_mat_23'} teacherMode={teacherMode} hint="Debt Maturity Table 2023"/>
+                                <SmartInput id="itw_mat_24" value={answers.itw_mat_24} correctValue={1340} onFocus={onFocus} onAnswer={onAnswer} isActive={activeId === 'itw_mat_24'} teacherMode={teacherMode} hint="Debt Maturity Table 2024"/>
+                                <SmartInput id="itw_mat_25" value={answers.itw_mat_25} correctValue={0} onFocus={onFocus} onAnswer={onAnswer} isActive={activeId === 'itw_mat_25'} teacherMode={teacherMode} hint="Debt Maturity Table 2025"/>
+                                <SmartInput id="itw_mat_26" value={answers.itw_mat_26} correctValue={996} onFocus={onFocus} onAnswer={onAnswer} isActive={activeId === 'itw_mat_26'} teacherMode={teacherMode} hint="Debt Maturity Table 2026"/>
+                                <SmartInput id="itw_mat_27" value={answers.itw_mat_27} correctValue={531} onFocus={onFocus} onAnswer={onAnswer} isActive={activeId === 'itw_mat_27'} teacherMode={teacherMode} hint="Debt Maturity Table 2027"/>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const ModuleContingencies = ({ answers, onAnswer, activeId, onFocus, teacherMode }) => {
+            return (
+                <div className="space-y-6 fade-in">
+                    <div className="bg-purple-50 p-6 rounded-lg border border-purple-100">
+                        <h3 className="font-bold text-lg text-purple-900 mb-2">5. Contingencies & Legal Proceedings</h3>
+                        <p className="text-sm text-purple-800 mb-4">
+                            Review the notes for both companies regarding legal/environmental contingencies.
+                        </p>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="bg-white p-4 rounded shadow-sm">
+                                <h4 className="font-semibold mb-2 text-purple-800">Parker Hannifin</h4>
+                                <label className="text-xs text-gray-500 font-bold">Accrued Environmental Remediation (2022)</label>
+                                <SmartInput 
+                                    id="ph_env_22" 
+                                    value={answers.ph_env_22} 
+                                    correctValue={16.4} 
+                                    onFocus={onFocus} 
+                                    onAnswer={onAnswer} 
+                                    isActive={activeId === 'ph_env_22'} 
+                                    teacherMode={teacherMode}
+                                    label="($ Millions)"
+                                    hint="Search 'Environmental' in Notes"
+                                />
+                                <div className="mt-2 text-xs text-gray-600 bg-gray-50 p-2 rounded">
+                                    <strong>Common Types:</strong> Product liability, workers comp, environmental issues.
+                                </div>
+                            </div>
+                             <div className="bg-white p-4 rounded shadow-sm">
+                                <h4 className="font-semibold mb-2 text-purple-800">ITW</h4>
+                                <label className="text-xs text-gray-500 font-bold">Accrued Amount Disclosed?</label>
+                                <select 
+                                    className="w-full mt-1 p-2 border rounded text-sm bg-gray-50"
+                                    value={answers.itw_cont_disc || ''}
+                                    onChange={(e) => onAnswer('itw_cont_disc', e.target.value)}
+                                >
+                                    <option value="">Select...</option>
+                                    <option value="yes">Yes, specific amount listed</option>
+                                    <option value="no">No, aggregate exposure not material</option>
+                                </select>
+                                {teacherMode && answers.itw_cont_disc === 'no' && <span className="text-emerald-500 text-xs block mt-1 font-bold">Correct</span>}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

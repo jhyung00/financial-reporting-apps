@@ -1,0 +1,1356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financial Analyst Simulation</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- React & ReactDOM (Production for Stability) -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Lucide Icons (Vanilla UMD + Wrapper for Stability) -->
+    <script src="https://unpkg.com/lucide@0.292.0/dist/umd/lucide.min.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .font-mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        
+        /* Custom Scrollbar for the reference panel */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; 
+        }
+
+        .animate-fade-in {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* SmartInput Status Styles */
+        .input-correct {
+            border-color: #22c55e !important; /* Green-500 */
+            background-color: #f0fdf4 !important; /* Green-50 */
+            color: #15803d !important; /* Green-700 */
+        }
+        .input-incorrect {
+            border-color: #ef4444 !important; /* Red-500 */
+            background-color: #fef2f2 !important; /* Red-50 */
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-900 h-screen flex flex-col">
+
+    <div id="root" class="flex-1 flex flex-col h-full overflow-hidden"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // --- ICON SHIM START ---
+        const createLucideIcon = (iconName, iconNode) => {
+            return ({ color = "currentColor", size = 24, strokeWidth = 2, className, ...props }) => {
+                const [tag, attrs, children] = iconNode;
+                
+                const renderChildren = (childList) => {
+                    return childList.map(([childTag, childAttrs, grandChildren], index) => {
+                        return React.createElement(childTag, { ...childAttrs, key: index }, grandChildren ? renderChildren(grandChildren) : null);
+                    });
+                };
+
+                return React.createElement(
+                    'svg',
+                    {
+                        ...attrs,
+                        width: size,
+                        height: size,
+                        stroke: color,
+                        strokeWidth: strokeWidth,
+                        className: `lucide lucide-${iconName.toLowerCase()} ${className || ''}`,
+                        ...props
+                    },
+                    renderChildren(children)
+                );
+            };
+        };
+
+        const lucideReact = Object.keys(window.lucide.icons).reduce((acc, key) => {
+            const pascalCaseKey = key.charAt(0).toUpperCase() + key.slice(1);
+            acc[pascalCaseKey] = createLucideIcon(key, window.lucide.icons[key]);
+            return acc;
+        }, {});
+        // --- ICON SHIM END ---
+
+        const { 
+            Lock, Unlock, Calculator, BookOpen, TrendingUp, AlertTriangle, 
+            CheckCircle, Info, LayoutGrid, ArrowRight, Menu, X, 
+            BarChart2, Scale, HelpCircle, Download, FileText, Eraser, List, RefreshCw
+        } = lucideReact;
+
+        // --- FINANCIAL DATA ---
+        const FINANCIAL_DATA = {
+        incomeStatement: [
+            { label: "Postpaid revenues", value: 45919 },
+            { label: "Prepaid revenues", value: 9857 },
+            { label: "Wholesale and other service revenues", value: 5547 },
+            { label: "Total service revenues", value: 61323, isTotal: true },
+            { label: "Equipment revenues", value: 17130 },
+            { label: "Other revenues", value: 1118 },
+            { label: "Total Revenues", value: 79571, isTotal: true, bold: true },
+            { label: "Cost of services", value: 14666 },
+            { label: "Cost of equipment sales", value: 21540 },
+            { label: "Selling, general and administrative", value: 22084 }, 
+            { label: "Depreciation and amortization", value: 13651 },
+            { label: "Loss on disposal group held for sale", value: 1087 },
+            { label: "Total operating expenses", value: 73028, isTotal: true },
+            { label: "Operating Income (EBIT)", value: 6543, isTotal: true, bold: true, bg: "bg-yellow-50" },
+            { label: "Interest expense, net", value: 3364, negative: true }, 
+            { label: "Other expense, net", value: 33, negative: true },
+            { label: "Income before income taxes", value: 3146, isTotal: true },
+            { label: "Income tax expense", value: 556, negative: true },
+            { label: "Net Income", value: 2590, isTotal: true, bold: true, bg: "bg-green-50" },
+        ],
+        balanceSheetAssets: [
+            { label: "Cash and cash equivalents", value: 4507 },
+            { label: "Accounts receivable, net", value: 4445 },
+            { label: "Equipment installment plan receivables (Current)", value: 5123 },
+            { label: "Inventory", value: 1884 },
+            { label: "Prepaid expenses", value: 673 },
+            { label: "Other current assets", value: 2435 },
+            { label: "Total Current Assets", value: 19067, isTotal: true, bold: true },
+            { label: "Property and equipment, net", value: 42086 },
+            { label: "Operating lease right-of-use assets", value: 28715 },
+            { label: "Financing lease right-of-use assets", value: 3257 },
+            { label: "Spectrum licenses, Goodwill & Other Intangibles", value: 118213 }, 
+            { label: "Total Assets", value: 211338, isTotal: true, bold: true, bg: "bg-blue-50" },
+        ],
+        balanceSheetLiabilities: [
+            { label: "Accounts payable and accrued liabilities", value: 12275 },
+            { label: "Short-term debt", value: 5164 },
+            { label: "Deferred revenue", value: 780 },
+            { label: "Short-term lease liabilities (Op & Fin)", value: 4673 },
+            { label: "Other current liabilities", value: 1850 },
+            { label: "Total Current Liabilities", value: 24742, isTotal: true, bold: true },
+            { label: "Long-term debt", value: 65301 },
+            { label: "Long-term debt to affiliates", value: 1495 },
+            { label: "Tower obligations", value: 3934 },
+            { label: "Deferred tax liabilities", value: 10884 },
+            { label: "Operating lease liabilities", value: 29855 },
+            { label: "Financing lease liabilities", value: 1370 },
+            { label: "Other long-term liabilities", value: 4101 },
+            { label: "Total Long-Term Liabilities", value: 116940, isTotal: true },
+            { label: "Total Liabilities", value: 141682, isTotal: true, bold: true },
+            { label: "Stockholders' Equity", value: 69656, isTotal: true, bold: true, bg: "bg-blue-50" },
+        ],
+        supplemental: [
+            { label: "Funds From Operations (FFO)", value: 19422 },
+            { label: "Depreciation & Amortization (D&A)", value: 13651 },
+            { label: "Amortization Only", value: 1200 },
+            { label: "CAPEX", value: 13970 },
+            { label: "Operating Cash Flow", value: 16781 },
+            { label: "Total Debt (Calculated)", value: 107858 }, 
+            { label: "Average Assets", value: 208950.5 },
+            { label: "Market Value of Equity", value: 172754 },
+        ]
+        };
+
+        const Z_SCORE_REF_DATA = [
+        { label: "Current assets", value: 19067, id: 'ca' },
+        { label: "Current liabilities", value: 24742, id: 'cl' },
+        { label: "Total assets", value: 211338, id: 'ta_a' },
+        { label: "Retained earnings", value: -223, id: 're' },
+        { label: "Shares outstanding", value: 1233960078, isRaw: true, id: 'shares' },
+        { label: "Stock price per share", value: 140, id: 'price' },
+        { label: "Total liabilities", value: 141682, id: 'tl' },
+        { label: "Operating income", value: 6543, id: 'ebit' },
+        { label: "Total revenues", value: 79571, id: 'sales' }
+        ];
+
+        const RATING_GRID = [
+        { grade: 'Aaa', debtEbitda: 1.1, ebitaInterest: 63.0, revenue: 146.0, ebitaMargin: 38.26, opMargin: 34.1, ffoDebt: 83.5, fixedCharge: 62.4, ebitaAssets: 21.0, capexDeprec: 1.6 },
+        { grade: 'Aa',  debtEbitda: 1.3, ebitaInterest: 29.7, revenue: 143.2, ebitaMargin: 22.85, opMargin: 22.2, ffoDebt: 65.4, fixedCharge: 30.9, ebitaAssets: 12.0, capexDeprec: 1.2 },
+        { grade: 'A',   debtEbitda: 2.1, ebitaInterest: 14.4, revenue: 22.4, ebitaMargin: 19.71, opMargin: 16.9, ffoDebt: 41.7, fixedCharge: 16.1, ebitaAssets: 15.1, capexDeprec: 1.2 },
+        { grade: 'Baa', debtEbitda: 2.6, ebitaInterest: 8.4,  revenue: 10.7, ebitaMargin: 17.04, opMargin: 15.0, ffoDebt: 32.6, fixedCharge: 10.4, ebitaAssets: 10.2, capexDeprec: 1.2 },
+        { grade: 'Ba',  debtEbitda: 3.3, ebitaInterest: 5.1,  revenue: 3.5,  ebitaMargin: 14.32, opMargin: 12.3, ffoDebt: 24.9, fixedCharge: 6.7,  ebitaAssets: 10.8, capexDeprec: 1.1 },
+        { grade: 'B',   debtEbitda: 6.0, ebitaInterest: 2.1,  revenue: 0.9,  ebitaMargin: 12.28, opMargin: 7.4,  ffoDebt: 9.7,  fixedCharge: 2.7,  ebitaAssets: 7.2,  capexDeprec: 1.1 },
+        { grade: 'Caa', debtEbitda: 9.5, ebitaInterest: 0.8,  revenue: 0.5,  ebitaMargin: 7.08,  opMargin: 2.2,  ffoDebt: 3.1,  fixedCharge: 1.4,  ebitaAssets: 4.4,  capexDeprec: 0.8 },
+        ];
+
+        const SOLVENCY_EXERCISES = [
+        { id: 'liabEquity', title: '1. Liabilities to Equity', formula: 'Total Liabilities / Total Equity', numLabel: 'Total Liabilities', denomLabel: 'Total Equity', correctNum: 141682, correctDenom: 69656, displayFormat: '0.00x', verizonVal: '3.11x', hint: "Measures capital structure. Higher means more debt.", implication: 'T-Mobile (2.03x) is BETTER than Verizon (3.11x). It relies less on liabilities.' },
+        { 
+            id: 'debtEquity', 
+            title: '2. Debt to Equity', 
+            formula: 'Total Debt / Total Equity', 
+            numLabel: 'Total Debt', 
+            denomLabel: 'Total Equity', 
+            correctNum: 107858, 
+            correctDenom: 69656, 
+            displayFormat: '0.00x', 
+            verizonVal: '1.91x', 
+            calculationTip: "See Supplemental Data for pre-calculated Total Debt ($107,858)",
+            hint: "Total Debt = Short-term Debt + Long-term Debt + Affiliate Debt + Tower Obligations + Leases.", 
+            implication: 'T-Mobile (1.55x) is BETTER than Verizon (1.91x). Note: Total Debt ($107.9B) includes Lease Liabilities and Tower Obligations.' 
+        },
+        { id: 'tie', title: '3. Times Interest Earned', formula: 'Operating Income / Interest Expense', numLabel: 'Operating Income', denomLabel: 'Interest Expense', correctNum: 6543, correctDenom: 3364, displayFormat: '0.00x', verizonVal: '8.43x', hint: "Ability to pay interest from operating profit.", implication: 'T-Mobile (1.94x) is WORSE than Verizon (8.43x).' },
+        { 
+            id: 'ebitdaCoverage', 
+            title: '4. EBITDA Coverage', 
+            formula: 'EBITDA / Interest Expense', 
+            numLabel: 'EBITDA', 
+            denomLabel: 'Interest Expense', 
+            calculationTip: "EBITDA = Op Income ($6,543) + D&A ($13,651) = $20,194", 
+            correctNum: 20194, 
+            correctDenom: 3364, 
+            displayFormat: '0.00x', 
+            verizonVal: '13.17x', 
+            hint: "EBITDA = Earnings Before Interest, Taxes, Depreciation, and Amortization. Measures core profitability.", 
+            implication: 'T-Mobile (6.00x) is WORSE than Verizon (13.17x).' 
+        },
+        { id: 'ocfDebt', title: '5. Operating Cash Flow to Debt', formula: 'Operating Cash Flow / Total Debt', numLabel: 'Operating Cash Flow', denomLabel: 'Total Debt', correctNum: 16781, correctDenom: 107858, displayFormat: '0.00%', verizonVal: '21.1%', isPct: true, hint: "Debt payoff capacity using cash flow.", implication: 'T-Mobile (15.6%) is WORSE than Verizon (21.1%).' },
+        { id: 'fcfDebt', title: '6. Free Operating Cash Flow to Debt', formula: '(Op Cash Flow - CAPEX) / Total Debt', numLabel: 'Free Operating Cash Flow', denomLabel: 'Total Debt', calculationTip: "Free Cash Flow = OCF ($16,781) - CAPEX ($13,970) = $2,811", correctNum: 2811, correctDenom: 107858, displayFormat: '0.00%', verizonVal: '8.0%', isPct: true, hint: "Ability to pay debt after CAPEX.", implication: 'T-Mobile (2.6%) is WORSE than Verizon (8.0%).' },
+        { id: 'currRatio', title: '7. Current Ratio', formula: 'Current Assets / Current Liabilities', numLabel: 'Current Assets', denomLabel: 'Current Liabilities', correctNum: 19067, correctDenom: 24742, displayFormat: '0.00x', verizonVal: '0.75x', hint: "Short-term liquidity.", implication: 'T-Mobile (0.77x) is comparable to Verizon (0.75x).' },
+        { id: 'quickRatio', title: '8. Quick Ratio', formula: '(Current Assets - Inventory) / Current Liabilities', numLabel: 'Quick Assets', denomLabel: 'Current Liabilities', calculationTip: "Quick Assets = CA ($19,067) - Inventory ($1,884) = $17,183", correctNum: 17183, correctDenom: 24742, displayFormat: '0.00x', verizonVal: '0.54x', hint: "Strict liquidity excluding inventory.", implication: 'T-Mobile (0.69x) is BETTER than Verizon (0.54x).' }
+        ];
+
+        const RATING_EXERCISES = [
+        { id: 'debtEbitda', title: '1. Debt / EBITDA', formula: 'Total Debt / EBITDA', numLabel: 'Total Debt', denomLabel: 'EBITDA', correctNum: 107858, correctDenom: 20194, displayFormat: '0.00x', gridKey: 'debtEbitda', lowerIsBetter: true, calculationTip: "EBITDA = $20,194", implication: '5.34x leverage is high. Supports Ba/B rating.', targetRating: 'Ba' },
+        { id: 'ebitaInterest', title: '2. EBITA / Interest Expense', formula: 'EBITA / Interest Expense', numLabel: 'EBITA', denomLabel: 'Interest Expense', correctNum: 7743, correctDenom: 3364, displayFormat: '0.00x', gridKey: 'ebitaInterest', lowerIsBetter: false, calculationTip: "EBITA = OpInc ($6,543) + Amort ($1,200) = $7,743", implication: '2.30x coverage is weak. Supports B rating.', targetRating: 'B' },
+        { id: 'revenue', title: '3. Revenue ($ Billions)', formula: 'Total Revenue (in Billions)', numLabel: 'Revenue', denomLabel: '1', correctNum: 79.57, correctDenom: 1, displayFormat: '0.00', gridKey: 'revenue', lowerIsBetter: false, implication: 'Massive scale ($79B) supports A rating.', targetRating: 'A' },
+        { id: 'ebitaMargin', title: '4. EBITA Margin', formula: 'EBITA / Revenue', numLabel: 'EBITA', denomLabel: 'Revenue', correctNum: 7743, correctDenom: 79571, displayFormat: '0.00%', gridKey: 'ebitaMargin', lowerIsBetter: false, isPct: true, implication: '9.7% margin is low (Caa range).', targetRating: 'Caa' },
+        { id: 'opMargin', title: '5. Operating Margin', formula: 'Operating Income / Revenue', numLabel: 'Operating Income', denomLabel: 'Revenue', correctNum: 6543, correctDenom: 79571, displayFormat: '0.00%', gridKey: 'opMargin', lowerIsBetter: false, isPct: true, implication: '8.2% margin supports B rating.', targetRating: 'B' },
+        { id: 'ffoDebt', title: '6. FFO / Debt', formula: 'FFO / Total Debt', numLabel: 'FFO', denomLabel: 'Total Debt', correctNum: 19422, correctDenom: 107858, displayFormat: '0.00%', gridKey: 'ffoDebt', lowerIsBetter: false, isPct: true, implication: '18.0% is solid (B+/Ba- range).', targetRating: 'B' },
+        { id: 'fixedCharge', title: '7. (FFO + Int) / Interest', formula: '(FFO + Interest) / Interest', numLabel: 'FFO + Interest', denomLabel: 'Interest Expense', correctNum: 22786, correctDenom: 3364, displayFormat: '0.00x', gridKey: 'fixedCharge', lowerIsBetter: false, implication: '6.77x coverage supports Ba rating.', targetRating: 'Ba' },
+        { id: 'ebitaAssets', title: '8. EBITA / Avg Assets', formula: 'EBITA / Average Assets', numLabel: 'EBITA', denomLabel: 'Average Assets', correctNum: 7743, correctDenom: 208950, displayFormat: '0.00%', gridKey: 'ebitaAssets', lowerIsBetter: false, isPct: true, implication: '3.7% return on assets is low (Caa).', targetRating: 'Caa' },
+        { id: 'capexDeprec', title: '9. CAPEX / Depreciation', formula: 'Capital Expenditures / D&A', numLabel: 'CAPEX', denomLabel: 'D&A', correctNum: 13970, correctDenom: 13651, displayFormat: '0.00x', gridKey: 'capexDeprec', lowerIsBetter: false, implication: '1.02x reinvestment supports B rating.', targetRating: 'B' }
+        ];
+
+        // --- MATH PARSING & UTILS ---
+        const safeEvaluate = (expression) => {
+            try {
+                if(!expression) return "";
+                let clean = expression.toString().replace(/,/g, '');
+                // Handle %: "10%" -> "0.1", "5 * 10%" -> "5 * 0.1"
+                // Regex looks for number followed immediately by %
+                clean = clean.replace(/(\d+(\.\d+)?)%/g, '($1/100)');
+                
+                // Allow only digits, +, -, *, /, (, ), ., and space
+                if (/[^0-9+\-*/().\s]/.test(clean)) return NaN;
+                
+                // Use Function constructor for safer eval
+                const result = new Function('return ' + clean)();
+                return isFinite(result) ? result : NaN;
+            } catch (e) {
+                return NaN;
+            }
+        };
+
+        // --- COMPONENTS ---
+
+        const SmartInput = ({ id, value, onChange, correctValue, isPct, onFocus, isInstructor, inputRef }) => {
+            const [status, setStatus] = useState('neutral');
+
+            useEffect(() => {
+                validate(value);
+            }, [value]);
+
+            const validate = (valToCheck) => {
+                const numVal = safeEvaluate(valToCheck);
+                
+                if (valToCheck === '' || valToCheck === null || isNaN(numVal)) {
+                    setStatus('neutral');
+                    return;
+                }
+                
+                let isCorrect = false;
+                const tolerance = Math.abs(correctValue * 0.02); // 2% tolerance
+                
+                if (Math.abs(numVal - correctValue) <= tolerance) {
+                    isCorrect = true;
+                } 
+                else if (isPct && Math.abs((numVal / 100) - correctValue) <= tolerance) {
+                    isCorrect = true;
+                }
+
+                setStatus(isCorrect ? 'correct' : 'incorrect');
+            };
+
+            const handleCalculation = () => {
+                const calculated = safeEvaluate(value);
+                // Only update if it's a valid number and different from current raw string
+                if (!isNaN(calculated) && calculated.toString() !== value) {
+                    onChange(calculated.toString());
+                }
+            };
+
+            const handleKeyDown = (e) => {
+                if (e.key === 'Enter') {
+                    handleCalculation();
+                    e.target.blur();
+                }
+            };
+
+            return (
+                <div className="relative">
+                    <input 
+                        ref={inputRef}
+                        type="text"
+                        className={`w-full p-2 border rounded font-mono text-sm transition-colors outline-none focus:ring-2 focus:ring-blue-200
+                            ${status === 'correct' ? 'input-correct' : ''}
+                            ${status === 'incorrect' ? 'input-incorrect' : ''}
+                        `}
+                        placeholder="Expression or Value"
+                        value={value || ''}
+                        onChange={(e) => onChange(e.target.value)}
+                        onFocus={() => onFocus && onFocus()}
+                        onBlur={handleCalculation}
+                        onKeyDown={handleKeyDown}
+                    />
+                    {status === 'correct' && (
+                        <div className="absolute right-2 top-2.5 text-green-600 animate-fade-in pointer-events-none">
+                            <CheckCircle size={16} />
+                        </div>
+                    )}
+                    {isInstructor && (
+                        <div className="text-xs font-bold text-purple-600 mt-1 animate-fade-in">
+                            Key: {isPct ? (correctValue * 100).toFixed(2) + '%' : correctValue.toLocaleString()}
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const Card = ({ children, className = "" }) => (
+        <div className={`bg-white rounded-lg shadow border border-slate-200 ${className}`}>
+            {children}
+        </div>
+        );
+
+        const SectionHeader = ({ icon: Icon, title, subtitle }) => (
+        <div className="flex items-center gap-3 mb-6 border-b pb-4">
+            <div className="p-2 bg-blue-100 rounded-lg text-blue-700">
+            <Icon size={24} />
+            </div>
+            <div>
+            <h2 className="text-xl font-bold text-slate-800">{title}</h2>
+            <p className="text-sm text-slate-500">{subtitle}</p>
+            </div>
+        </div>
+        );
+
+        // Sticky Financial Reference Panel
+        const FinancialReferencePanel = ({ onClose, onDataClick }) => {
+        return (
+            <div className="h-full overflow-y-auto bg-slate-50 border-r border-slate-200 p-4 text-xs font-mono">
+            {onClose && (
+                <button onClick={onClose} className="mb-4 flex items-center gap-1 text-slate-500 hover:text-slate-800">
+                <X size={14} /> Close Reference
+                </button>
+            )}
+            
+            <div className="mb-6">
+                <h4 className="font-bold text-slate-800 border-b border-slate-300 pb-1 mb-2">Income Statement</h4>
+                <div className="space-y-1">
+                {FINANCIAL_DATA.incomeStatement.map((row, i) => (
+                    <div 
+                        key={i} 
+                        onClick={() => onDataClick(row.value)}
+                        className={`flex justify-between cursor-pointer hover:bg-blue-100 p-1 rounded transition-colors ${row.bold ? 'font-bold' : ''} ${row.bg || ''}`}
+                    >
+                    <span className={row.isTotal ? 'text-slate-900' : 'text-slate-600'}>{row.label}</span>
+                    <span>{row.negative ? `(${row.value.toLocaleString()})` : row.value.toLocaleString()}</span>
+                    </div>
+                ))}
+                </div>
+            </div>
+
+            <div className="mb-6">
+                <h4 className="font-bold text-slate-800 border-b border-slate-300 pb-1 mb-2">Balance Sheet</h4>
+                <div className="space-y-1">
+                {FINANCIAL_DATA.balanceSheetAssets.map((row, i) => (
+                    <div key={i} onClick={() => onDataClick(row.value)} className={`flex justify-between cursor-pointer hover:bg-blue-100 p-1 rounded transition-colors ${row.bold ? 'font-bold' : ''} ${row.bg || ''}`}>
+                    <span className={row.isTotal ? 'text-slate-900' : 'text-slate-600'}>{row.label}</span>
+                    <span>{row.value.toLocaleString()}</span>
+                    </div>
+                ))}
+                <div className="my-2 border-t border-slate-200"></div>
+                {FINANCIAL_DATA.balanceSheetLiabilities.map((row, i) => (
+                    <div key={i} onClick={() => onDataClick(row.value)} className={`flex justify-between cursor-pointer hover:bg-blue-100 p-1 rounded transition-colors ${row.bold ? 'font-bold' : ''} ${row.bg || ''}`}>
+                    <span className={row.isTotal ? 'text-slate-900' : 'text-slate-600'}>{row.label}</span>
+                    <span>{row.value.toLocaleString()}</span>
+                    </div>
+                ))}
+                </div>
+            </div>
+
+            <div>
+                <h4 className="font-bold text-slate-800 border-b border-slate-300 pb-1 mb-2">Supplemental</h4>
+                <div className="space-y-1">
+                {FINANCIAL_DATA.supplemental.map((row, i) => (
+                    <div key={i} onClick={() => onDataClick(row.value)} className="flex justify-between cursor-pointer hover:bg-blue-100 p-1 rounded transition-colors">
+                    <span className="text-slate-600">{row.label}</span>
+                    <span className="font-bold">{row.value.toLocaleString()}</span>
+                    </div>
+                ))}
+                </div>
+            </div>
+            </div>
+        );
+        };
+
+        function CreditSim() {
+        const [activeTab, setActiveTab] = useState('solvency');
+        const [studentName, setStudentName] = useState('');
+        // Inputs store RAW STRINGS now
+        const [inputs, setInputs] = useState({});
+        const [zInputs, setZInputs] = useState({});
+        const [implications, setImplications] = useState({});
+        const [hintsVisible, setHintsVisible] = useState({});
+        const [isTeacher, setIsTeacher] = useState(false);
+        const [passwordInput, setPasswordInput] = useState('');
+        const [showLogin, setShowLogin] = useState(false);
+        const [showSidePanel, setShowSidePanel] = useState(true);
+        const [feedbackVisible, setFeedbackVisible] = useState({});
+        
+        // Active Input State for Clickable Reference
+        const [activeInput, setActiveInput] = useState(null); 
+        const [showClearConfirm, setShowClearConfirm] = useState(false);
+        const [showKeyTable, setShowKeyTable] = useState(false);
+        
+        // Ref map to focus inputs programmatically
+        const inputRefs = useRef({});
+
+        // --- HANDLERS ---
+        const handleInputChange = (id, field, value) => {
+            setInputs(prev => ({
+            ...prev,
+            [id]: { ...prev[id], [field]: value }
+            }));
+        };
+
+        const handleZRawChange = (field, value) => {
+            setZInputs(prev => ({ ...prev, [field]: value }));
+        };
+
+        const handleReferenceDataClick = (val) => {
+            if (!activeInput) return;
+            
+            // Logic: Append value to current string
+            // We use the ID to find the current state
+            
+            if (activeInput.section === 'main') {
+                const currentStr = inputs[activeInput.id]?.[activeInput.field] || '';
+                const newVal = currentStr + val;
+                handleInputChange(activeInput.id, activeInput.field, newVal);
+                
+                // Attempt to re-focus
+                const refKey = `${activeInput.id}-${activeInput.field}`;
+                if(inputRefs.current[refKey]) {
+                    setTimeout(() => inputRefs.current[refKey].focus(), 0);
+                }
+
+            } else if (activeInput.section === 'z') {
+                const currentStr = zInputs[activeInput.id] || '';
+                const newVal = currentStr + val;
+                handleZRawChange(activeInput.id, newVal);
+                
+                 // Attempt to re-focus
+                const refKey = `z-${activeInput.id}`;
+                if(inputRefs.current[refKey]) {
+                    setTimeout(() => inputRefs.current[refKey].focus(), 0);
+                }
+            }
+        };
+
+        const toggleHint = (id) => {
+            setHintsVisible(prev => ({ ...prev, [id]: !prev[id] }));
+        };
+
+        const toggleFeedback = (id) => {
+            setFeedbackVisible(prev => ({ ...prev, [id]: !prev[id] }));
+        };
+
+        const calculateRatio = (exercise) => {
+            const userVals = inputs[exercise.id] || {};
+            // Evaluate raw string
+            const n = safeEvaluate(userVals.num);
+            const d = safeEvaluate(userVals.denom);
+            
+            if (!n || !d) return null;
+            return n / d;
+        };
+
+        const checkAnswer = (exercise) => {
+            const userVals = inputs[exercise.id] || {};
+            const n = safeEvaluate(userVals.num);
+            const d = safeEvaluate(userVals.denom);
+            // Tolerance logic
+            const tolN = exercise.correctNum * 0.02;
+            const tolD = exercise.correctDenom * 0.02;
+            
+            const nOk = Math.abs(n - exercise.correctNum) <= tolN;
+            const dOk = Math.abs(d - exercise.correctDenom) <= tolD;
+            return { nOk, dOk, correct: nOk && dOk };
+        };
+
+        const handleLogin = () => {
+            if (passwordInput === 'teacher') {
+            setIsTeacher(true);
+            setShowLogin(false);
+            } else {
+            alert('Incorrect password');
+            }
+        };
+
+        const performClearAll = () => {
+            setInputs({});
+            setZInputs({});
+            setImplications({});
+            setStudentName('');
+            setIsTeacher(false); 
+            setShowClearConfirm(false);
+        };
+
+        const autoFillAnswers = () => {
+            const newInputs = {};
+            [...SOLVENCY_EXERCISES, ...RATING_EXERCISES].forEach(ex => {
+            newInputs[ex.id] = { num: ex.correctNum.toString(), denom: ex.correctDenom.toString() };
+            });
+            setInputs(newInputs);
+            
+            const newZInputs = {};
+            Z_SCORE_REF_DATA.forEach(item => {
+                newZInputs[item.id] = item.value.toString();
+            });
+            setZInputs(newZInputs);
+
+            const newImplications = { 
+            zScoreCalc: "Autofilled: Low Z-score is typical for capital intensive telecoms."
+            };
+            [...SOLVENCY_EXERCISES, ...RATING_EXERCISES].forEach(ex => {
+                newImplications[ex.id] = ex.implication;
+            });
+            setImplications(prev => ({...prev, ...newImplications}));
+        };
+
+        const downloadSubmission = () => {
+            if (!studentName.trim()) {
+                alert("Please enter your name before downloading.");
+                return;
+            }
+
+            let content = `Financial Analyst Simulation - Submission\n`;
+            content += `Student Name: ${studentName}\n`;
+            content += `Date: ${new Date().toLocaleString()}\n\n`;
+
+            content += `==================================\n`;
+            content += `PART 1: SOLVENCY & LIQUIDITY\n`;
+            content += `==================================\n\n`;
+            
+            SOLVENCY_EXERCISES.forEach(ex => {
+                const userVals = inputs[ex.id] || {};
+                const reflection = implications[ex.id] || "No reflection provided.";
+                content += `${ex.title}\n`;
+                content += `-----------------\n`;
+                content += `Numerator:   ${userVals.num || 'Not entered'}\n`;
+                content += `Denominator: ${userVals.denom || 'Not entered'}\n`;
+                content += `Calculated:  ${calculateRatio(ex) ? calculateRatio(ex).toFixed(2) : 'N/A'}\n`;
+                content += `Reflection:  ${reflection}\n\n`;
+            });
+
+            content += `==================================\n`;
+            content += `PART 2: RATING ANALYSIS\n`;
+            content += `==================================\n\n`;
+
+            RATING_EXERCISES.forEach(ex => {
+                const userVals = inputs[ex.id] || {};
+                const reflection = implications[ex.id] || "No reflection provided.";
+                content += `${ex.title}\n`;
+                content += `-----------------\n`;
+                content += `Numerator:   ${userVals.num || 'Not entered'}\n`;
+                content += `Denominator: ${userVals.denom || 'Not entered'}\n`;
+                content += `Calculated:  ${calculateRatio(ex) ? calculateRatio(ex).toFixed(2) : 'N/A'}\n`;
+                content += `Reflection:  ${reflection}\n\n`;
+            });
+
+            content += `==================================\n`;
+            content += `PART 3: ALTMAN Z-SCORE\n`;
+            content += `==================================\n\n`;
+            
+            Z_SCORE_REF_DATA.forEach(row => {
+                content += `${row.label}: ${zInputs[row.id] || 'Not entered'}\n`;
+            });
+
+            const fileName = `${studentName.replace(/[^a-z0-9]/gi, '_')}_submission.txt`;
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        };
+
+        // --- RENDERERS ---
+
+        const renderSolvencyRow = (ex, i) => {
+            const userVal = calculateRatio(ex);
+            const status = checkAnswer(ex);
+
+            return (
+            <div key={ex.id} className="mb-8 border-b pb-8 last:border-0">
+                <div className="flex justify-between items-start mb-4">
+                <div className="flex items-center gap-3">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-white ${status.correct ? 'bg-green-500' : 'bg-slate-300'}`}>
+                    {status.correct ? <CheckCircle size={18}/> : i + 1}
+                    </div>
+                    <div>
+                    <div className="flex items-center gap-2">
+                        <h3 className="font-bold text-slate-800">{ex.title}</h3>
+                        <button onClick={() => toggleHint(ex.id)} className="text-slate-400 hover:text-blue-500" title="Show Hint">
+                        <HelpCircle size={14} />
+                        </button>
+                    </div>
+                    <div className="text-xs text-slate-500 font-mono">{ex.formula}</div>
+                    {hintsVisible[ex.id] && (
+                        <div className="mt-1 text-xs text-blue-600 bg-blue-50 p-2 rounded inline-block animate-fade-in border border-blue-100">
+                        💡 <strong>Explanation:</strong> {ex.hint}
+                        </div>
+                    )}
+                    </div>
+                </div>
+                <div className="flex gap-6 text-right">
+                    <div className="opacity-50">
+                        <div className="text-sm font-bold text-slate-500">Verizon 2022</div>
+                        <div className="font-mono">{ex.verizonVal}</div>
+                    </div>
+                    {userVal !== null && (
+                        <div>
+                        <div className="text-xl font-bold font-mono text-blue-800">
+                            {ex.displayFormat === '0.00%' ? (userVal * 100).toFixed(2) + '%' : userVal.toFixed(2) + 'x'}
+                        </div>
+                        <div className="text-xs font-bold text-slate-400 uppercase">T-Mobile (You)</div>
+                        </div>
+                    )}
+                </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 mb-4 bg-slate-50 p-4 rounded">
+                <div>
+                    <label className="text-xs font-bold text-slate-500 uppercase">{ex.numLabel}</label>
+                    <SmartInput 
+                        id={`${ex.id}-num`}
+                        inputRef={el => inputRefs.current[`${ex.id}-num`] = el}
+                        value={inputs[ex.id]?.num}
+                        onChange={(val) => handleInputChange(ex.id, 'num', val)}
+                        correctValue={ex.correctNum}
+                        onFocus={() => setActiveInput({ section: 'main', id: ex.id, field: 'num'})}
+                        isInstructor={isTeacher}
+                    />
+                </div>
+                <div>
+                    <label className="text-xs font-bold text-slate-500 uppercase">{ex.denomLabel}</label>
+                    <SmartInput 
+                        id={`${ex.id}-denom`}
+                        inputRef={el => inputRefs.current[`${ex.id}-denom`] = el}
+                        value={inputs[ex.id]?.denom}
+                        onChange={(val) => handleInputChange(ex.id, 'denom', val)}
+                        correctValue={ex.correctDenom}
+                        onFocus={() => setActiveInput({ section: 'main', id: ex.id, field: 'denom'})}
+                        isInstructor={isTeacher}
+                    />
+                </div>
+                </div>
+                
+                {ex.calculationTip && (
+                <div className="mb-4 flex items-start gap-2 text-xs text-blue-700 bg-blue-50 p-2 rounded border border-blue-100">
+                    <Info size={14} className="mt-0.5 shrink-0"/>
+                    <span className="font-mono">{ex.calculationTip}</span>
+                </div>
+                )}
+
+                <div className="relative">
+                <textarea 
+                    className="w-full p-3 text-sm border border-slate-300 rounded focus:ring-2 focus:ring-blue-200"
+                    rows="2"
+                    placeholder="Comparison Reflection: How does T-Mobile compare to Verizon? (Type your analysis...)"
+                    value={implications[ex.id] || ''}
+                    onChange={(e) => setImplications(prev => ({...prev, [ex.id]: e.target.value}))}
+                />
+                {implications[ex.id]?.length > 2 && !feedbackVisible[ex.id] && !isTeacher && (
+                    <div className="absolute right-2 bottom-2 animate-fade-in">
+                        <button 
+                        onClick={() => toggleFeedback(ex.id)}
+                        className="text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded hover:bg-indigo-200 flex items-center gap-1 shadow-sm font-semibold border border-indigo-200"
+                        >
+                        <CheckCircle size={12}/> Check Comparison
+                        </button>
+                    </div>
+                )}
+                {(isTeacher || feedbackVisible[ex.id]) && (
+                    <div className="mt-2 text-sm bg-yellow-50 p-3 rounded border border-yellow-200 text-yellow-900 animate-fade-in">
+                        <span className="font-bold block mb-1">Instructor Solution:</span>
+                        {ex.implication}
+                    </div>
+                )}
+                </div>
+            </div>
+            );
+        }
+
+        const renderRatingRow = (ex, i) => {
+            const userVal = calculateRatio(ex);
+            const status = checkAnswer(ex);
+            let matchedGrade = null;
+            if (userVal !== null) {
+            if (ex.targetRating && Math.abs(userVal - ex.correctNum/ex.correctDenom) < 0.1) {
+                matchedGrade = ex.targetRating;
+            } else {
+                for (let j = 0; j < RATING_GRID.length; j++) {
+                    const currentGrade = RATING_GRID[j].grade;
+                    const currentVal = RATING_GRID[j][ex.gridKey];
+                    if (ex.lowerIsBetter) {
+                        if (userVal <= currentVal) { matchedGrade = currentGrade; break; }
+                        if (j === RATING_GRID.length - 1 && userVal > currentVal) { matchedGrade = currentGrade; }
+                    } else {
+                        if (userVal >= currentVal) { matchedGrade = currentGrade; break; }
+                        if (j === RATING_GRID.length - 1 && userVal < currentVal) { matchedGrade = currentGrade; }
+                    }
+                }
+            }
+            }
+
+            return (
+            <div key={ex.id} className="mb-8 border-b pb-8 last:border-0">
+                <div className="flex justify-between items-center mb-4">
+                <div className="flex items-center gap-3">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-white ${status.correct ? 'bg-green-500' : 'bg-slate-300'}`}>
+                    {status.correct ? <CheckCircle size={18}/> : i + 1}
+                    </div>
+                    <div>
+                    <div className="flex items-center gap-2">
+                        <h3 className="font-bold text-slate-800">{ex.title}</h3>
+                        <button onClick={() => toggleHint(ex.id)} className="text-slate-400 hover:text-blue-500" title="Show Hint">
+                        <HelpCircle size={14} />
+                        </button>
+                    </div>
+                    <div className="text-xs text-slate-500 font-mono">{ex.formula}</div>
+                    {hintsVisible[ex.id] && (
+                        <div className="mt-1 text-xs text-blue-600 bg-blue-50 p-2 rounded inline-block animate-fade-in border border-blue-100">
+                        💡 <strong>Explanation:</strong> {ex.hint}
+                        </div>
+                    )}
+                    </div>
+                </div>
+                {userVal !== null && (
+                    <div className="text-right">
+                    <div className="text-xl font-bold font-mono text-blue-800">
+                        {ex.displayFormat === '0.00%' ? (userVal * 100).toFixed(2) + '%' : userVal.toFixed(2) + (ex.id === 'revenue' ? '' : 'x')}
+                    </div>
+                    <div className="text-xs font-bold text-slate-400 uppercase">Your Result</div>
+                    </div>
+                )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 mb-4 bg-slate-50 p-4 rounded">
+                <div>
+                    <label className="text-xs font-bold text-slate-500 uppercase">{ex.numLabel}</label>
+                    <SmartInput 
+                        id={`${ex.id}-num`}
+                        inputRef={el => inputRefs.current[`${ex.id}-num`] = el}
+                        value={inputs[ex.id]?.num}
+                        onChange={(val) => handleInputChange(ex.id, 'num', val)}
+                        correctValue={ex.correctNum}
+                        onFocus={() => setActiveInput({ section: 'main', id: ex.id, field: 'num'})}
+                        isInstructor={isTeacher}
+                        isPct={ex.id === 'ebitaMargin' || ex.id === 'opMargin' || ex.id === 'ffoDebt' || ex.id === 'ebitaAssets'} // Manual override for known pct fields
+                    />
+                </div>
+                <div>
+                    <label className="text-xs font-bold text-slate-500 uppercase">{ex.denomLabel}</label>
+                    <SmartInput 
+                        id={`${ex.id}-denom`}
+                        inputRef={el => inputRefs.current[`${ex.id}-denom`] = el}
+                        value={inputs[ex.id]?.denom}
+                        onChange={(val) => handleInputChange(ex.id, 'denom', val)}
+                        correctValue={ex.correctDenom}
+                        onFocus={() => setActiveInput({ section: 'main', id: ex.id, field: 'denom'})}
+                        isInstructor={isTeacher}
+                    />
+                </div>
+                </div>
+                
+                {ex.calculationTip && (
+                <div className="mb-4 flex items-start gap-2 text-xs text-blue-700 bg-blue-50 p-2 rounded border border-blue-100">
+                    <Info size={14} className="mt-0.5 shrink-0"/>
+                    <span className="font-mono">{ex.calculationTip}</span>
+                </div>
+                )}
+
+                <div className="mb-4 overflow-x-auto">
+                <table className="w-full text-xs text-center border-collapse">
+                    <thead>
+                    <tr className="bg-slate-100 text-slate-600">
+                        <th className="p-1 border">Rating</th>
+                        {RATING_GRID.map(r => <th key={r.grade} className="p-1 border w-16">{r.grade}</th>)}
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td className="p-2 border font-bold text-left bg-slate-50">Thresholds</td>
+                        {RATING_GRID.map(r => {
+                        const gridVal = r[ex.gridKey];
+                        const isMatch = (r.grade === matchedGrade);
+                        return (
+                        <td key={r.grade} className={`p-2 border font-mono ${isMatch ? 'bg-blue-600 text-white font-bold' : ''}`}>
+                            {gridVal}
+                        </td>
+                        );
+                        })}
+                    </tr>
+                    </tbody>
+                </table>
+                </div>
+
+                <div className="relative">
+                <textarea 
+                    className="w-full p-3 text-sm border border-slate-300 rounded focus:ring-2 focus:ring-blue-200"
+                    rows="2"
+                    placeholder="Implication for Credit Rating..."
+                    value={implications[ex.id] || ''}
+                    onChange={(e) => setImplications(prev => ({...prev, [ex.id]: e.target.value}))}
+                />
+                {isTeacher && (
+                    <div className="mt-2 text-sm bg-yellow-50 p-3 rounded border border-yellow-200 text-yellow-900 animate-fade-in">
+                        <span className="font-bold block mb-1">Instructor Key:</span>
+                        {ex.implication}
+                    </div>
+                )}
+                </div>
+            </div>
+            );
+        };
+
+        const renderZScoreSection = () => {
+            // Must evaluate raw inputs here too
+            const ca = safeEvaluate(zInputs.ca) || 0;
+            const cl = safeEvaluate(zInputs.cl) || 0;
+            const ta_a = safeEvaluate(zInputs.ta_a) || 1;
+            const wc = ca - cl;
+            const ratioA = wc / ta_a;
+            const scoreA = ratioA * 1.2;
+
+            const re = safeEvaluate(zInputs.re) || 0;
+            const ta_b = safeEvaluate(zInputs.ta_b) || 1;
+            const ratioB = re / ta_b;
+            const scoreB = ratioB * 1.4;
+
+            const ebit = safeEvaluate(zInputs.ebit) || 0;
+            const ta_c = safeEvaluate(zInputs.ta_c) || 1;
+            const ratioC = ebit / ta_c;
+            const scoreC = ratioC * 3.3;
+
+            const shares = safeEvaluate(zInputs.shares) || 0;
+            const price = safeEvaluate(zInputs.price) || 0;
+            const tl = safeEvaluate(zInputs.tl) || 1;
+            const mv = shares * price;
+            
+            const isSharesRaw = shares > 10000; 
+            const mvNormalized = isSharesRaw ? mv : mv * 1000000;
+            const tlNormalized = tl * 1000000;
+            const ratioD = mvNormalized / tlNormalized;
+            const scoreD = ratioD * 0.6;
+
+            const sales = safeEvaluate(zInputs.sales) || 0;
+            const ta_e = safeEvaluate(zInputs.ta_e) || 1;
+            const ratioE = sales / ta_e;
+            const scoreE = ratioE * 1.0;
+
+            const totalZ = scoreA + scoreB + scoreC + scoreD + scoreE;
+            const isCalculated = totalZ > 0.1;
+
+            return (
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <div className="lg:col-span-4 space-y-4">
+                <Card className="p-4 bg-slate-50 border-blue-200">
+                    <div className="flex items-center gap-2 mb-3 border-b border-blue-200 pb-2">
+                    <BookOpen size={18} className="text-blue-700"/>
+                    <h3 className="font-bold text-blue-900">Z-Score Reference</h3>
+                    </div>
+                    <p className="text-xs text-blue-800 mb-3">Copy exact values.</p>
+                    <div className="space-y-0 text-sm">
+                        {Z_SCORE_REF_DATA.map((row, idx) => (
+                        <div key={idx} onClick={() => handleReferenceDataClick(row.value)} className="flex justify-between py-1 border-b border-slate-200 last:border-0 hover:bg-white px-1 rounded transition-colors cursor-pointer">
+                            <span className="text-slate-600 text-xs font-medium">{row.label}</span>
+                            <span className="font-mono text-slate-800 font-bold">
+                            {row.isRaw ? row.value.toLocaleString() : row.value.toLocaleString()}
+                            </span>
+                        </div>
+                        ))}
+                    </div>
+                </Card>
+                
+                {isCalculated && (
+                    <>
+                    <Card className="p-4 border-l-4 border-l-indigo-500 animate-fade-in">
+                        <h4 className="font-bold text-slate-800 mb-2 text-sm flex items-center gap-2">
+                        <Info size={16}/> Interpretation Guide
+                        </h4>
+                        <table className="w-full text-xs text-center border-collapse">
+                        <thead>
+                            <tr className="bg-slate-100 text-slate-600">
+                            <th className="p-1 border">Zone</th>
+                            <th className="p-1 border">Score Range</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr className="bg-green-50">
+                            <td className="p-1 border font-bold text-green-800">Safe</td>
+                            <td className="p-1 border font-mono">{'>'} 2.99</td>
+                            </tr>
+                            <tr className="bg-gray-50">
+                            <td className="p-1 border font-bold text-gray-600">Grey</td>
+                            <td className="p-1 border font-mono">1.81 - 2.99</td>
+                            </tr>
+                            <tr className="bg-red-50">
+                            <td className="p-1 border font-bold text-red-800">Distress</td>
+                            <td className="p-1 border font-mono">&lt; 1.81</td>
+                            </tr>
+                        </tbody>
+                        </table>
+                    </Card>
+                    
+                    <Card className="p-4 bg-indigo-50 border-indigo-100 animate-fade-in">
+                        <div className="flex items-center gap-2 mb-2">
+                            <BarChart2 size={16} className="text-indigo-700"/>
+                            <h4 className="font-bold text-indigo-900 text-sm">Peer Comparison (2022)</h4>
+                        </div>
+                        <div className="flex justify-between items-center mb-1 text-sm">
+                            <span>T-Mobile (Calc):</span>
+                            <span className="font-mono font-bold">~{totalZ.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between items-center mb-3 text-sm">
+                            <span>Verizon:</span>
+                            <span className="font-mono font-bold">~1.3</span>
+                        </div>
+                        <p className="text-xs text-indigo-800 italic leading-tight">
+                        Both companies fall into the "Distress" zone, which is typical for capital-intensive telecoms. T-Mobile's score is slightly lower than Verizon's.
+                        </p>
+                    </Card>
+                    </>
+                )}
+                </div>
+
+                <div className="lg:col-span-8">
+                <Card className="p-6 border-t-4 border-t-purple-600 h-full">
+                    <SectionHeader icon={Calculator} title="Z-Score Calculator" subtitle="Input components to derive the weighted score" />
+                    
+                    <div className="mb-6 p-4 bg-purple-50 rounded-lg border border-purple-100 text-sm">
+                        <div className="font-bold text-purple-900 mb-2 flex items-center gap-2">
+                            <Info size={16} /> Formula Definition:
+                        </div>
+                        <div className="font-mono text-purple-800 space-y-1 ml-6">
+                            <div>Z = 1.2 × (Working Capital / Total Assets)</div>
+                            <div>&nbsp;&nbsp;+ 1.4 × (Retained Earnings / Total Assets)</div>
+                            <div>&nbsp;&nbsp;+ 3.3 × (EBIT / Total Assets)</div>
+                            <div>&nbsp;&nbsp;+ 0.6 × (Market Value of Equity / Total Liabilities)</div>
+                            <div>&nbsp;&nbsp;+ 1.0 × (Sales / Total Assets)</div>
+                        </div>
+                    </div>
+
+                    <div className="space-y-6">
+                    
+                    <div className="bg-slate-50 p-3 rounded border border-slate-200">
+                        <div className="text-xs font-bold text-purple-700 mb-2 uppercase">A. Working Capital / Total Assets (Weight: 1.2)</div>
+                        <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-slate-400 text-sm">(</span>
+                        <div className="w-24">
+                            <SmartInput inputRef={el => inputRefs.current['z-ca'] = el} value={zInputs.ca} onChange={v => handleZRawChange('ca', v)} correctValue={19067} onFocus={() => setActiveInput({section:'z', id:'ca'})} isInstructor={isTeacher} />
+                        </div>
+                        <span className="text-slate-500 font-bold">-</span>
+                        <div className="w-24">
+                            <SmartInput inputRef={el => inputRefs.current['z-cl'] = el} value={zInputs.cl} onChange={v => handleZRawChange('cl', v)} correctValue={24742} onFocus={() => setActiveInput({section:'z', id:'cl'})} isInstructor={isTeacher} />
+                        </div>
+                        <span className="text-slate-400 text-sm">) /</span>
+                        <div className="w-24">
+                            <SmartInput inputRef={el => inputRefs.current['z-ta_a'] = el} value={zInputs.ta_a} onChange={v => handleZRawChange('ta_a', v)} correctValue={211338} onFocus={() => setActiveInput({section:'z', id:'ta_a'})} isInstructor={isTeacher} />
+                        </div>
+                        </div>
+                        <div className="mt-2 flex items-center gap-4 text-xs font-mono text-slate-600 bg-white p-2 rounded border border-slate-100">
+                        <span>WC: <strong>{wc.toLocaleString()}</strong></span>
+                        <ArrowRight size={12}/>
+                        <span>Ratio: <strong>{ratioA.toFixed(4)}</strong></span>
+                        <ArrowRight size={12}/>
+                        <span className="text-purple-700 font-bold">Score: {scoreA.toFixed(4)}</span>
+                        </div>
+                    </div>
+
+                    <div className="bg-slate-50 p-3 rounded border border-slate-200">
+                        <div className="text-xs font-bold text-purple-700 mb-2 uppercase">B. Retained Earnings / Total Assets (Weight: 1.4)</div>
+                        <div className="flex flex-wrap items-center gap-2">
+                        <div className="w-32">
+                             <SmartInput inputRef={el => inputRefs.current['z-re'] = el} value={zInputs.re} onChange={v => handleZRawChange('re', v)} correctValue={-223} onFocus={() => setActiveInput({section:'z', id:'re'})} isInstructor={isTeacher} />
+                        </div>
+                        <span className="text-slate-400 text-sm">/</span>
+                        <div className="w-24">
+                            <SmartInput inputRef={el => inputRefs.current['z-ta_b'] = el} value={zInputs.ta_b} onChange={v => handleZRawChange('ta_b', v)} correctValue={211338} onFocus={() => setActiveInput({section:'z', id:'ta_b'})} isInstructor={isTeacher} />
+                        </div>
+                        </div>
+                        <div className="mt-2 flex items-center gap-4 text-xs font-mono text-slate-600 bg-white p-2 rounded border border-slate-100">
+                        <span>Ratio: <strong>{ratioB.toFixed(4)}</strong></span>
+                        <ArrowRight size={12}/>
+                        <span className="text-purple-700 font-bold">Score: {scoreB.toFixed(4)}</span>
+                        </div>
+                    </div>
+
+                    <div className="bg-slate-50 p-3 rounded border border-slate-200">
+                        <div className="text-xs font-bold text-purple-700 mb-2 uppercase">C. Earnings Before Interest & Taxes (Operating Income) / Total Assets (Weight: 3.3)</div>
+                        <div className="flex flex-wrap items-center gap-2">
+                        <div className="w-32">
+                             <SmartInput inputRef={el => inputRefs.current['z-ebit'] = el} value={zInputs.ebit} onChange={v => handleZRawChange('ebit', v)} correctValue={6543} onFocus={() => setActiveInput({section:'z', id:'ebit'})} isInstructor={isTeacher} />
+                        </div>
+                        <span className="text-slate-400 text-sm">/</span>
+                        <div className="w-24">
+                            <SmartInput inputRef={el => inputRefs.current['z-ta_c'] = el} value={zInputs.ta_c} onChange={v => handleZRawChange('ta_c', v)} correctValue={211338} onFocus={() => setActiveInput({section:'z', id:'ta_c'})} isInstructor={isTeacher} />
+                        </div>
+                        </div>
+                        <div className="mt-2 flex items-center gap-4 text-xs font-mono text-slate-600 bg-white p-2 rounded border border-slate-100">
+                        <span>Ratio: <strong>{ratioC.toFixed(4)}</strong></span>
+                        <ArrowRight size={12}/>
+                        <span className="text-purple-700 font-bold">Score: {scoreC.toFixed(4)}</span>
+                        </div>
+                    </div>
+
+                    <div className="bg-slate-50 p-3 rounded border border-slate-200">
+                        <div className="text-xs font-bold text-purple-700 mb-2 uppercase">D. Market Value Equity / Total Liabilities (Weight: 0.6)</div>
+                        <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-slate-400 text-sm">(</span>
+                        <div className="w-32">
+                            <SmartInput inputRef={el => inputRefs.current['z-shares'] = el} value={zInputs.shares} onChange={v => handleZRawChange('shares', v)} correctValue={1233960078} onFocus={() => setActiveInput({section:'z', id:'shares'})} isInstructor={isTeacher} />
+                        </div>
+                        <span className="text-slate-500 font-bold">×</span>
+                        <div className="w-20">
+                            <SmartInput inputRef={el => inputRefs.current['z-price'] = el} value={zInputs.price} onChange={v => handleZRawChange('price', v)} correctValue={140} onFocus={() => setActiveInput({section:'z', id:'price'})} isInstructor={isTeacher} />
+                        </div>
+                        <span className="text-slate-400 text-sm">) /</span>
+                        <div className="w-32">
+                            <SmartInput inputRef={el => inputRefs.current['z-tl'] = el} value={zInputs.tl} onChange={v => handleZRawChange('tl', v)} correctValue={141682} onFocus={() => setActiveInput({section:'z', id:'tl'})} isInstructor={isTeacher} />
+                        </div>
+                        </div>
+                        <div className="mt-2 flex items-center gap-4 text-xs font-mono text-slate-600 bg-white p-2 rounded border border-slate-100">
+                        <span>MVE (Billions): <strong>${(mvNormalized/1000000000).toFixed(1)}B</strong></span>
+                        <ArrowRight size={12}/>
+                        <span>Ratio: <strong>{ratioD.toFixed(4)}</strong></span>
+                        <ArrowRight size={12}/>
+                        <span className="text-purple-700 font-bold">Score: {scoreD.toFixed(4)}</span>
+                        </div>
+                    </div>
+
+                    <div className="bg-slate-50 p-3 rounded border border-slate-200">
+                        <div className="text-xs font-bold text-purple-700 mb-2 uppercase">E. Sales / Total Assets (Weight: 1.0)</div>
+                        <div className="flex flex-wrap items-center gap-2">
+                        <div className="w-32">
+                            <SmartInput inputRef={el => inputRefs.current['z-sales'] = el} value={zInputs.sales} onChange={v => handleZRawChange('sales', v)} correctValue={79571} onFocus={() => setActiveInput({section:'z', id:'sales'})} isInstructor={isTeacher} />
+                        </div>
+                        <span className="text-slate-400 text-sm">/</span>
+                        <div className="w-24">
+                            <SmartInput inputRef={el => inputRefs.current['z-ta_e'] = el} value={zInputs.ta_e} onChange={v => handleZRawChange('ta_e', v)} correctValue={211338} onFocus={() => setActiveInput({section:'z', id:'ta_e'})} isInstructor={isTeacher} />
+                        </div>
+                        </div>
+                        <div className="mt-2 flex items-center gap-4 text-xs font-mono text-slate-600 bg-white p-2 rounded border border-slate-100">
+                        <span>Ratio: <strong>{ratioE.toFixed(4)}</strong></span>
+                        <ArrowRight size={12}/>
+                        <span className="text-purple-700 font-bold">Score: {scoreE.toFixed(4)}</span>
+                        </div>
+                    </div>
+
+                    <div className="bg-purple-900 text-white p-4 rounded flex justify-between items-center shadow-lg">
+                        <span className="font-bold text-lg">Total Z-Score</span>
+                        <span className="font-mono text-3xl font-bold">{totalZ.toFixed(4)}</span>
+                    </div>
+                    
+                    </div>
+                </Card>
+                </div>
+            </div>
+            );
+        }
+
+        return (
+            <div className="h-full flex flex-col pt-0">
+            {/* Instructor Toolbar */}
+            {isTeacher && (
+                <div className="bg-purple-800 text-white p-3 shadow-md z-30 flex justify-between items-center sticky top-0 w-full">
+                    <div className="flex items-center gap-2 font-bold">
+                        <Unlock size={18} /> Instructor Mode
+                    </div>
+                    <div className="flex gap-3">
+                        <button onClick={() => setShowKeyTable(true)} className="flex items-center gap-1 bg-purple-700 hover:bg-purple-600 px-3 py-1 rounded text-sm transition">
+                            <List size={14} /> Answer Key
+                        </button>
+                        <button onClick={autoFillAnswers} className="flex items-center gap-1 bg-green-600 hover:bg-green-500 px-3 py-1 rounded text-sm transition">
+                            <RefreshCw size={14} /> Auto-Fill All
+                        </button>
+                        <button onClick={() => setShowClearConfirm(true)} className="flex items-center gap-1 bg-red-600 hover:bg-red-500 px-3 py-1 rounded text-sm transition">
+                            <Eraser size={14} /> Clear & Exit
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            <header className="bg-slate-900 text-white p-4 shadow-md z-10">
+                <div className="max-w-7xl mx-auto flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                    <TrendingUp className="text-blue-400" />
+                    <div>
+                    <h1 className="font-bold text-lg leading-tight">Financial Analyst Simulation</h1>
+                    <p className="text-xs text-slate-400">T-Mobile (TMUS) 2022 Credit Analysis</p>
+                    </div>
+                </div>
+                <div className="flex items-center gap-4">
+                    {!isTeacher && (
+                        <button 
+                        onClick={() => setShowLogin(true)}
+                        className="flex items-center gap-2 px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-sm font-medium transition-colors"
+                        >
+                        <Lock size={14} /> Teacher Login
+                        </button>
+                    )}
+                </div>
+                </div>
+            </header>
+
+            <div className="flex-1 overflow-hidden relative">
+                <div className="absolute inset-0 flex">
+                {/* Side Panel (Financial Data) */}
+                <div className={`${showSidePanel ? 'w-80' : 'w-0'} bg-white border-r border-slate-200 transition-all duration-300 ease-in-out overflow-hidden flex-shrink-0 relative`}>
+                    <div className="w-80 h-full">
+                    <FinancialReferencePanel onClose={() => setShowSidePanel(false)} onDataClick={handleReferenceDataClick} />
+                    </div>
+                </div>
+
+                {/* Main Content Area */}
+                <main className="flex-1 overflow-y-auto bg-slate-100 p-6 relative">
+                    {!showSidePanel && (
+                    <button 
+                        onClick={() => setShowSidePanel(true)}
+                        className="absolute left-0 top-6 bg-white p-2 rounded-r shadow border border-l-0 border-slate-200 hover:bg-slate-50 z-20 text-blue-600 flex items-center gap-1 text-xs font-bold"
+                    >
+                        <Menu size={16} /> Data
+                    </button>
+                    )}
+
+                    <div className="max-w-5xl mx-auto space-y-6 pb-20">
+                    {/* Navigation Tabs */}
+                    <div className="flex gap-2 bg-white p-1 rounded-lg shadow-sm border border-slate-200 inline-flex mb-2">
+                        <button 
+                        onClick={() => setActiveTab('solvency')}
+                        className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${activeTab === 'solvency' ? 'bg-blue-600 text-white shadow' : 'text-slate-600 hover:bg-slate-50'}`}
+                        >
+                        1. Solvency & Liquidity
+                        </button>
+                        <button 
+                        onClick={() => setActiveTab('rating')}
+                        className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${activeTab === 'rating' ? 'bg-indigo-600 text-white shadow' : 'text-slate-600 hover:bg-slate-50'}`}
+                        >
+                        2. Rating Analysis
+                        </button>
+                        <button 
+                        onClick={() => setActiveTab('zscore')}
+                        className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${activeTab === 'zscore' ? 'bg-purple-600 text-white shadow' : 'text-slate-600 hover:bg-slate-50'}`}
+                        >
+                        3. Altman Z-Score
+                        </button>
+                    </div>
+
+                    {/* Active Tab Content */}
+                    <div className="animate-fade-in">
+                        
+                        {activeTab === 'solvency' && (
+                        <Card className="p-6 border-t-4 border-t-blue-600">
+                            <SectionHeader icon={Scale} title="Solvency & Liquidity Analysis" subtitle="Compare T-Mobile's ratios against Verizon (2022) to assess financial health." />
+                            <div className="space-y-2">
+                            {SOLVENCY_EXERCISES.map((ex, i) => renderSolvencyRow(ex, i))}
+                            </div>
+                        </Card>
+                        )}
+
+                        {activeTab === 'rating' && (
+                        <Card className="p-6 border-t-4 border-t-indigo-600">
+                            <SectionHeader icon={BarChart2} title="Credit Rating Methodology" subtitle="Determine the implied rating based on Moody's standard adjustments." />
+                            <div className="space-y-2">
+                            {RATING_EXERCISES.map((ex, i) => renderRatingRow(ex, i))}
+                            </div>
+                        </Card>
+                        )}
+
+                        {activeTab === 'zscore' && renderZScoreSection()}
+                    </div>
+
+                    {/* Submission Section */}
+                    <Card className="mt-12 p-6 border-t-4 border-t-green-600 bg-green-50">
+                        <h3 className="text-lg font-bold text-green-900 mb-4 flex items-center gap-2">
+                            <CheckCircle size={20} /> Submission
+                        </h3>
+                        <p className="text-sm text-green-800 mb-4">
+                            Ensure you have completed all sections before submitting. Enter your name below to generate your work file.
+                        </p>
+                        <div className="flex flex-col sm:flex-row gap-4 items-end">
+                            <div className="flex-1 w-full">
+                                <label className="block text-sm font-medium text-green-800 mb-1">Student Name</label>
+                                <input
+                                    type="text"
+                                    value={studentName}
+                                    onChange={(e) => setStudentName(e.target.value)}
+                                    className="w-full p-2 border border-green-300 rounded focus:ring-2 focus:ring-green-500 bg-white"
+                                    placeholder="Enter your full name"
+                                />
+                            </div>
+                            <button
+                                onClick={downloadSubmission}
+                                className="flex items-center gap-2 bg-green-700 hover:bg-green-800 text-white px-6 py-2 rounded font-bold transition-colors shadow-sm w-full sm:w-auto justify-center"
+                            >
+                                <Download size={18} /> Download Submission
+                            </button>
+                        </div>
+                    </Card>
+
+                    </div>
+                </main>
+                </div>
+            </div>
+
+            {/* Login Modal */}
+            {showLogin && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 backdrop-blur-sm">
+                <div className="bg-white p-6 rounded-lg shadow-xl w-80">
+                    <h3 className="font-bold text-lg mb-4 text-slate-800">Instructor Login</h3>
+                    <input 
+                    type="password" 
+                    className="w-full border p-2 mb-4 rounded" 
+                    placeholder="Password" 
+                    value={passwordInput} 
+                    onChange={e => setPasswordInput(e.target.value)} 
+                    onKeyDown={e => e.key === 'Enter' && handleLogin()} 
+                    />
+                    <div className="flex justify-end gap-2">
+                    <button onClick={() => setShowLogin(false)} className="px-3 py-1 text-sm text-slate-600">Cancel</button>
+                    <button onClick={handleLogin} className="px-3 py-1 text-sm bg-blue-700 text-white rounded">Unlock</button>
+                    </div>
+                </div>
+                </div>
+            )}
+
+            {/* Clear Confirm Modal */}
+            {showClearConfirm && (
+                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 backdrop-blur-sm animate-fade-in">
+                    <div className="bg-white p-6 rounded-lg shadow-2xl w-96 border-t-4 border-red-600">
+                        <h3 className="font-bold text-lg mb-2 text-slate-800 flex items-center gap-2">
+                            <AlertTriangle className="text-red-600" /> Confirm Clear
+                        </h3>
+                        <p className="text-slate-600 mb-6 text-sm">
+                            Are you sure? This will clear all student inputs and exit Instructor Mode.
+                        </p>
+                        <div className="flex justify-end gap-3">
+                            <button 
+                                onClick={() => setShowClearConfirm(false)} 
+                                className="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded"
+                            >
+                                Cancel
+                            </button>
+                            <button 
+                                onClick={performClearAll} 
+                                className="px-4 py-2 text-sm bg-red-600 hover:bg-red-700 text-white rounded font-bold shadow-sm"
+                            >
+                                Clear All
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Answer Key Table Modal */}
+            {showKeyTable && (
+                 <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 backdrop-blur-sm animate-fade-in">
+                    <div className="bg-white rounded-lg shadow-2xl w-3/4 max-h-[80vh] flex flex-col">
+                        <div className="p-4 border-b flex justify-between items-center bg-purple-50 rounded-t-lg">
+                            <h3 className="font-bold text-lg text-purple-900 flex items-center gap-2">
+                                <List className="text-purple-700" /> Full Answer Key
+                            </h3>
+                            <button onClick={() => setShowKeyTable(false)} className="text-slate-500 hover:text-slate-800">
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <div className="overflow-y-auto p-6">
+                            <table className="w-full text-sm text-left border-collapse">
+                                <thead>
+                                    <tr className="bg-slate-100">
+                                        <th className="p-2 border">ID</th>
+                                        <th className="p-2 border">Question</th>
+                                        <th className="p-2 border">Numerator</th>
+                                        <th className="p-2 border">Denominator</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {[...SOLVENCY_EXERCISES, ...RATING_EXERCISES].map(ex => (
+                                        <tr key={ex.id} className="border-b">
+                                            <td className="p-2 border font-mono text-xs text-slate-500">{ex.id}</td>
+                                            <td className="p-2 border font-bold">{ex.title}</td>
+                                            <td className="p-2 border font-mono">{ex.correctNum.toLocaleString()}</td>
+                                            <td className="p-2 border font-mono">{ex.correctDenom.toLocaleString()}</td>
+                                        </tr>
+                                    ))}
+                                    {Z_SCORE_REF_DATA.map(item => (
+                                         <tr key={item.id} className="border-b bg-purple-50">
+                                            <td className="p-2 border font-mono text-xs text-slate-500">Z-{item.id}</td>
+                                            <td className="p-2 border font-bold">{item.label}</td>
+                                            <td className="p-2 border font-mono" colSpan="2">{item.value.toLocaleString()}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div className="p-4 border-t bg-slate-50 flex justify-end">
+                             <button onClick={() => setShowKeyTable(false)} className="px-4 py-2 bg-slate-200 hover:bg-slate-300 rounded text-slate-800 text-sm font-bold">
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            </div>
+        );
+        }
+
+        // Render the app
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<CreditSim />);
+    </script>
+</body>
+</html>

@@ -1,0 +1,1373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Module 5 Part 2: Receivables & Non-GAAP Analysis</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #2c3e50; /* Dark Slate */
+            --accent: #e67e22;  /* Pumpkin Orange */
+            --accent-dark: #d35400;
+            --bg: #f8f9fa;      
+            --white: #ffffff;
+            --success: #27ae60;
+            --error: #c0392b;
+            --text: #34495e;
+            --border: #dee2e6;
+            --card-gradient: linear-gradient(135deg, #e67e22 0%, #d35400 100%);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #2c3e50;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        /* Fixed Container */
+        #slide-deck {
+            width: 1280px;
+            height: 720px;
+            background-color: var(--white);
+            position: relative;
+            box-shadow: 0 0 50px rgba(0,0,0,0.5);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Slide Styles */
+        .slide {
+            flex: 1;
+            padding: 40px 60px;
+            display: none;
+            flex-direction: column;
+            animation: fadeIn 0.5s ease;
+            overflow-y: auto; 
+        }
+
+        .slide.active { display: flex; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Typography */
+        h1, h2 { font-family: 'Playfair Display', serif; color: var(--primary); margin-bottom: 10px; }
+        h1 { font-size: 3.5rem; }
+        h2 { font-size: 2.2rem; border-bottom: 3px solid var(--accent); padding-bottom: 15px; margin-bottom: 30px; }
+        h3 { color: var(--accent); font-size: 1.4rem; margin-bottom: 15px; margin-top: 10px; }
+        p, li { font-size: 1.1rem; line-height: 1.6; color: var(--text); margin-bottom: 12px; }
+        ul, ol { margin-left: 30px; }
+
+        /* Components */
+        .problem-box {
+            background-color: #fcf3cf; 
+            border-left: 6px solid var(--accent);
+            padding: 25px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .problem-box h4 {
+            color: var(--accent-dark);
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+            font-family: 'Playfair Display', serif;
+        }
+
+        .financial-data {
+            font-family: 'Courier New', monospace;
+            background: #fff;
+            border: 1px solid var(--border);
+            padding: 15px;
+            margin: 10px 0;
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 10px;
+            font-size: 0.95rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        
+        .data-row { display: contents; cursor: pointer; }
+        .data-label { font-weight: 500; }
+        .data-val { text-align: right; font-weight: bold; }
+
+        .btn-reveal, .btn-reveal-sm {
+            background-color: var(--accent);
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background 0.3s;
+            display: inline-block;
+        }
+        
+        .btn-reveal { padding: 10px 20px; font-size: 1rem; margin-top: 10px; }
+        .btn-reveal-sm { padding: 5px 10px; font-size: 0.9rem; margin-top: 5px; background-color: var(--text); }
+
+        .btn-reveal:hover { background-color: var(--accent-dark); }
+
+        .answer {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #d5f5e3;
+            border: 1px solid var(--success);
+            border-radius: 5px;
+            color: #196f3d;
+            display: none;
+        }
+
+        .answer.visible { display: block; animation: slideDown 0.3s ease; }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Math Fractions CSS */
+        .math-eq {
+            display: inline-flex;
+            align-items: center;
+            font-family: 'Times New Roman', serif;
+            font-style: italic;
+            font-size: 1.3rem;
+            margin: 10px 0;
+            background: #f8f9fa;
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+        }
+        .fraction {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0 10px;
+            vertical-align: middle;
+        }
+        .numerator { border-bottom: 2px solid #000; padding-bottom: 2px; text-align: center; }
+        .denominator { padding-top: 2px; text-align: center; }
+        .eq-symbol { margin: 0 10px; font-weight: bold; font-style: normal;}
+        .eq-result { font-weight: bold; color: var(--accent); font-style: normal; }
+
+        /* Flip Cards */
+        .card-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
+            margin-top: 40px;
+            perspective: 1000px;
+        }
+
+        .flip-card {
+            background-color: transparent;
+            height: 250px;
+            cursor: pointer;
+        }
+
+        .flip-card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            border-radius: 12px;
+        }
+
+        .flip-card.flipped .flip-card-inner { transform: rotateY(180deg); }
+
+        .flip-card-front, .flip-card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .flip-card-front {
+            background: var(--card-gradient);
+            color: white;
+            font-weight: bold;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+        }
+        .flip-card-front h3 { color: white !important; }
+
+        .flip-card-back {
+            background-color: #ecf0f1;
+            color: var(--primary);
+            transform: rotateY(180deg);
+            border: 2px solid var(--accent);
+            overflow-y: auto;
+        }
+
+        /* Insight Card */
+        .insight-card {
+            background: linear-gradient(135deg, #ffffff 0%, #fef5e7 100%);
+            border-left: 5px solid var(--accent);
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            margin-top: 20px;
+        }
+        .insight-card h4 { color: var(--accent); margin-bottom: 10px; }
+
+        /* Real Data Table */
+        .real-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.95rem;
+            margin-top: 20px;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .real-table th { background: var(--primary); color: white; padding: 12px; text-align: left; }
+        .real-table td { border-bottom: 1px solid var(--border); padding: 10px; text-align: left; }
+        .real-table tr:nth-child(even) { background: #f8f9fa; }
+        .real-table tr:hover { background: #e9ecef; }
+        .real-table .num { text-align: right; font-family: 'Courier New', monospace; font-weight: 600; }
+
+        /* FSET Table */
+        .fset-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+            text-align: center;
+            margin-top: 15px;
+        }
+        .fset-table th { background: #2c3e50; color: white; padding: 8px; border: 1px solid #ccc; }
+        .fset-table td { padding: 8px; border: 1px solid #ccc; background: white; }
+        .fset-table .header-group { background: #34495e; text-transform: uppercase; letter-spacing: 1px; font-weight: bold; }
+
+        /* Clickable List Item */
+        .clickable-list li {
+            cursor: pointer;
+            padding: 10px;
+            margin-bottom: 5px;
+            border-bottom: 1px solid #eee;
+            transition: all 0.3s;
+            display: flex;
+            justify-content: space-between;
+        }
+        .clickable-list li:hover { background-color: #fce8cc; }
+        .clickable-list li .detail-text { visibility: hidden; color: var(--text); font-style: italic; }
+        .clickable-list li.revealed .detail-text { visibility: visible; }
+        .clickable-list li.revealed { background-color: #e8f8f5; font-weight: bold; color: var(--primary); }
+
+        /* Quiz Styles */
+        .quiz-option {
+            background: white;
+            border: 2px solid #e2e8f0;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .quiz-option:hover { background: #f1f5f9; border-color: var(--accent); }
+        .quiz-option.correct { background: #dcfce7; border-color: var(--success); color: #166534; }
+        .quiz-option.incorrect { background: #fee2e2; border-color: var(--error); color: #991b1b; }
+        .quiz-explanation {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f0f9ff;
+            border-left: 4px solid var(--accent);
+            display: none;
+        }
+
+        /* Layouts */
+        .cols-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; height: 100%; }
+        
+        /* Navigation */
+        .nav-bar {
+            height: 60px;
+            background-color: var(--primary);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 30px;
+            flex-shrink: 0;
+        }
+        .nav-controls button {
+            background: none;
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 8px 15px;
+            cursor: pointer;
+            border-radius: 4px;
+            margin-left: 10px;
+        }
+        .nav-controls button:hover { background: rgba(255,255,255,0.1); }
+        .page-num { font-family: 'Courier New', monospace; }
+
+        /* Clickable Line */
+        .clickable-line {
+            cursor: pointer;
+            transition: background 0.2s;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+        }
+        .clickable-line.hidden-row { display: none; }
+        .clickable-line.revealed-row { display: flex; animation: fadeIn 0.5s ease; }
+        
+        /* Summary Reveal */
+        .summary-item {
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-left: 4px solid var(--accent);
+        }
+        .summary-item.visible { opacity: 1; }
+    </style>
+</head>
+<body>
+
+<div id="slide-deck">
+    
+    <!-- SLIDE 1: Title -->
+    <div class="slide active">
+        <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; text-align: center;">
+            <p style="text-transform: uppercase; letter-spacing: 2px; color: var(--accent);">Module 5 - Part 2</p>
+            <h1>Receivables, Expenses & Non-GAAP Reporting</h1>
+            <p style="font-size: 1.5rem; margin-top: 20px;">Analyzing the Quality of Earnings</p>
+            <div style="margin-top: 50px; border-top: 1px solid #dee2e6; padding-top: 20px; display: inline-block;">
+                <p><strong>Learning Objectives:</strong></p>
+                <p>1. Analyze Accounts Receivable & Uncollectible Amounts (LO 5-5)</p>
+                <p>2. Analyze Operating Expenses & Discontinued Ops (LO 5-6)</p>
+                <p>3. Interpret Pro Forma and Non-GAAP Disclosures (LO 5-7)</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 2: Hook Story -->
+    <div class="slide">
+        <h2>The Hook: "The Phantom Profit"</h2>
+        <div class="cols-2">
+            <div class="text-lg">
+                <p>Imagine a company that sells $1 Million in products. Profits look great!</p>
+                <p>But... the products were sold to customers who <strong>can't pay</strong>.</p>
+                <p>In Part 2, we learn how to spot these issues. We move from "Revenue" (Top Line) down to "Net Income", checking the quality of every deduction along the way.</p>
+                <div class="insight-card">
+                    <h4>The Reality Check</h4>
+                    <p>Managers have latitude in estimating allowances and defining "Non-GAAP" metrics. It is our job to adjust the numbers for a fair comparison.</p>
+                </div>
+            </div>
+            <div style="display:flex; justify-content:center; align-items:center;">
+                <i class="fas fa-search-dollar" style="font-size: 8rem; color: var(--accent);"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 3: Pfizer A/R Intro -->
+    <div class="slide">
+        <h2>Pfizer's Receivables (Real Data)</h2>
+        <p>Selling on credit carries risk. GAAP requires reporting the <strong>Net Collectible Amount</strong>.</p>
+        
+        <table class="real-table">
+            <thead>
+                <tr><th>As of Dec 31, 2022 ($ Millions)</th><th class="num">Amount</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>Trade Accounts Receivable (Gross)</td><td class="num">$11,401</td></tr>
+                <tr style="color: var(--error);"><td>Less: Allowance for Doubtful Accounts</td><td class="num">($449)</td></tr>
+                <tr style="font-weight:bold; background:#e8f8f5;"><td>Accounts Receivable, Net</td><td class="num">$10,952</td></tr>
+            </tbody>
+        </table>
+
+        <div class="problem-box">
+            <h4>Analysis Question</h4>
+            <p>What percentage of receivables does Pfizer expect <strong>NOT</strong> to collect?</p>
+            <button class="btn-reveal-sm" onclick="toggleAnswer(this)">Reveal Calculation</button>
+            <div class="answer">
+                <p>$449 / $11,401 = <strong>3.9%</strong></p>
+                <p>Pfizer estimates ~3.9% of its customers will default.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 4: Aging Analysis (Cleaned Table) -->
+    <div class="slide">
+        <h2>Estimating Uncollectibles: Aging Analysis</h2>
+        <p>Companies group receivables by age to estimate the allowance. Older debts = Higher risk.</p>
+        
+        <table class="real-table">
+            <thead>
+                <tr>
+                    <th>Category</th>
+                    <th class="num">Balance</th>
+                    <th class="num">% Uncollectible</th>
+                    <th class="num">Est. Loss</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td>Current</td><td class="num">$50,000</td><td class="num">2%</td><td class="num">$1,000</td></tr>
+                <tr><td>1-60 Days Past Due</td><td class="num">$30,000</td><td class="num">3%</td><td class="num">$900</td></tr>
+                <tr><td>61-90 Days Past Due</td><td class="num">$15,000</td><td class="num">4%</td><td class="num">$600</td></tr>
+                <tr><td>Over 90 Days Past Due</td><td class="num">$5,000</td><td class="num">8%</td><td class="num">$400</td></tr>
+                <tr style="font-weight:bold; border-top:2px solid #000;">
+                    <td>TOTAL</td>
+                    <td class="num">$100,000</td>
+                    <td></td>
+                    <td class="num" style="color:var(--error);">$2,900</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- SLIDE 5: Transactions: Sales & Estimate (Combined) -->
+    <div class="slide">
+        <h2>Transactions: Sales & Estimation</h2>
+        <p>1. Company sells goods for <strong>$100,000</strong> on account.</p>
+        <p>2. Estimates <strong>$2,900</strong> will be uncollectible.</p>
+        
+        <table class="fset-table">
+            <thead>
+                <tr class="header-group"><th colspan="6">Balance Sheet</th><th colspan="4">Income Statement</th></tr>
+                <tr>
+                    <th>Cash</th><th>Noncash</th><th>=</th><th>Liab</th><th>Contrib. Cap.</th><th>Earned Cap.</th><th>Rev</th><th>Exp</th><th>=</th><th>Net Inc</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>-</td>
+                    <td>
+                        Accts Rec<br>
+                        <span style="color:var(--success); font-weight:bold;">+$100,000</span>
+                    </td>
+                    <td>=</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td>
+                        Ret. Earnings<br>
+                        <span style="color:var(--success); font-weight:bold;">+$100,000</span>
+                    </td>
+                    <td>
+                        Sales<br>
+                        <span style="color:var(--success); font-weight:bold;">$100,000</span>
+                    </td>
+                    <td>-</td>
+                    <td>=</td>
+                    <td><span style="color:var(--success); font-weight:bold;">$100,000</span></td>
+                </tr>
+                <tr style="border-top:2px solid #ccc;">
+                    <td>-</td>
+                    <td>
+                        Allowance<br>
+                        <span style="color:var(--error); font-weight:bold;">-$2,900</span>
+                    </td>
+                    <td>=</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td>
+                        Ret. Earnings<br>
+                        <span style="color:var(--error); font-weight:bold;">-$2,900</span>
+                    </td>
+                    <td>-</td>
+                    <td>
+                        Bad Debt<br>
+                        <span style="color:var(--error); font-weight:bold;">$2,900</span>
+                    </td>
+                    <td>=</td>
+                    <td><span style="color:var(--error); font-weight:bold;">-$2,900</span></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="card-container" style="grid-template-columns: 1fr; margin-top:20px;">
+            <div class="flip-card" onclick="this.classList.toggle('flipped')" style="height:150px;">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front" style="background:var(--primary); color:white;"><h3>What is the Net Realizable Value (NRV)?</h3></div>
+                    <div class="flip-card-back">
+                        <p><strong>$100,000 (Gross) - $2,900 (Allowance) = $97,100</strong></p>
+                        <p>This is the amount reported on the Balance Sheet.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 6: Transaction 3 (Write-Off) -->
+    <div class="slide">
+        <h2>Transaction: Writing Off Bad Debt</h2>
+        <p>Assume a specific customer who owes <strong>$500</strong> files for bankruptcy.</p>
+        
+        <table class="fset-table">
+            <thead>
+                <tr class="header-group"><th colspan="6">Balance Sheet</th><th colspan="4">Income Statement</th></tr>
+                <tr>
+                    <th>Cash</th><th>Noncash</th><th>=</th><th>Liab</th><th>Contrib. Cap.</th><th>Earned Cap.</th><th>Rev</th><th>Exp</th><th>=</th><th>Net Inc</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>-</td>
+                    <td>
+                        Allowance: <strong>+$500</strong><br>
+                        Accts Rec: <span style="color:var(--error);"><strong>-$500</strong></span><br>
+                        <span style="border-top:1px solid #000;">Net: $0</span>
+                    </td>
+                    <td>=</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td>=</td>
+                    <td>-</td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <div class="card-container" style="grid-template-columns: 1fr 1fr; margin-top:20px;">
+            <div class="flip-card" onclick="this.classList.toggle('flipped')" style="height:150px;">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front" style="background:var(--accent);"><h3>What is the NRV now?</h3></div>
+                    <div class="flip-card-back">
+                        <p>Gross AR: $99,500 ($100k - 500)</p>
+                        <p>Allowance: $2,400 ($2.9k - 500)</p>
+                        <p><strong>NRV: $97,100 (Unchanged!)</strong></p>
+                    </div>
+                </div>
+            </div>
+            <div class="flip-card" onclick="this.classList.toggle('flipped')" style="height:150px;">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front"><h3>Key Takeaway</h3></div>
+                    <div class="flip-card-back">
+                        <p>Writing off a specific bad debt has <strong>NO effect</strong> on Net Income and <strong>NO effect</strong> on Net Assets.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 7: Comprehensive Practice -->
+    <div class="slide">
+        <h2>Practice: Calculating Expense</h2>
+        <div class="cols-2">
+            <div>
+                <h4>Aging Schedule</h4>
+                <table class="real-table">
+                    <tr><th>Category</th><th>Amount</th><th>% Loss</th></tr>
+                    <tr><td>Current</td><td>$80,000</td><td>1%</td></tr>
+                    <tr><td>Past Due</td><td>$20,000</td><td>10%</td></tr>
+                </table>
+                <div class="problem-box">
+                    <p><strong>Prior Balance:</strong> The Allowance account has a credit balance of <strong>$500</strong> left over from the prior period.</p>
+                </div>
+            </div>
+            <div>
+                <div class="problem-box" style="background-color:#e8f8f5; border-left-color:var(--success);">
+                    <h4>Question</h4>
+                    <p>1. What is the Target Allowance?</p>
+                    <p>2. How much Bad Debt Expense should be recorded?</p>
+                    <button class="btn-reveal" onclick="toggleAnswer(this)">Reveal Answer</button>
+                    <div class="answer">
+                        <p><strong>1. Target Allowance:</strong><br>($80k × 1%) + ($20k × 10%)<br>= $800 + $2,000 = <strong>$2,800</strong></p>
+                        <hr style="margin:10px 0;">
+                        <p><strong>2. Bad Debt Expense:</strong><br>Target ($2,800) - Prior ($500)<br>= <strong>$2,300</strong></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 8: Analysis Magnitude -->
+    <div class="slide">
+        <h2>Analysis: Magnitude of Receivables</h2>
+        <p>How efficiently is the company collecting cash?</p>
+        
+        <div class="cols-2">
+            <div class="problem-box">
+                <h4>1. Accounts Receivable Turnover</h4>
+                <div class="math-eq">
+                    <div class="fraction">
+                        <span class="numerator">Sales</span>
+                        <span class="denominator">Average Accounts Receivable</span>
+                    </div>
+                </div>
+                <p style="margin-top:10px;"><strong>Question:</strong> Better High or Low?</p>
+                <button class="btn-reveal-sm" onclick="toggleAnswer(this)">Reveal</button>
+                <div class="answer"><strong>Higher is better</strong> (faster collection).</div>
+            </div>
+            <div class="problem-box">
+                <h4>2. Days Sales Outstanding (DSO)</h4>
+                <p>The average number of days it takes to collect payment.</p>
+                <div class="math-eq">
+                    <div class="fraction">
+                        <span class="numerator">365 days</span>
+                        <span class="denominator">AR Turnover</span>
+                    </div>
+                </div>
+                <p style="margin-top:10px;"><strong>Question:</strong> Better High or Low?</p>
+                <button class="btn-reveal-sm" onclick="toggleAnswer(this)">Reveal</button>
+                <div class="answer"><strong>Lower is better</strong> (customers pay quicker).</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 9: Pfizer Trend -->
+    <div class="slide">
+        <h2>Pfizer's A/R Ratios (2017-2022)</h2>
+        <p>Data from S&P Capital IQ.</p>
+        
+        <table class="real-table">
+            <thead>
+                <tr><th>Year</th><th class="num">A/R Turnover</th><th class="num">DSO (Days)</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>2017</td><td class="num">6.4x</td><td class="num">57.1</td></tr>
+                <tr><td>2018</td><td class="num">5.0x</td><td class="num">72.6</td></tr>
+                <tr><td>2021</td><td class="num">8.4x</td><td class="num">43.5</td></tr>
+                <tr style="background:#e8f8f5; font-weight:bold;"><td>2022</td><td class="num">8.9x</td><td class="num">40.8</td></tr>
+            </tbody>
+        </table>
+        
+        <div class="card-container" style="grid-template-columns: 1fr; margin-top:20px;">
+            <div class="flip-card" onclick="this.classList.toggle('flipped')" style="height:150px;">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front"><h3>Observation: What does this trend tell us?</h3></div>
+                    <div class="flip-card-back">
+                        <p>Pfizer's DSO ranged from a high of 72.6 in 2018 to a low of 40.8 in 2022.</p>
+                        <p><strong>Collecting cash much faster!</strong></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 10: Cash Impact -->
+    <div class="slide">
+        <h2>Cash Impact of Improved DSO</h2>
+        <p>Pfizer reduced DSO from <strong>43.5 days</strong> (2021) to <strong>40.8 days</strong> (2022).</p>
+        <p>Does 2.7 days matter? Yes. <strong>Calculate the cash generated.</strong></p>
+
+        <div class="financial-data">
+            <div class="data-row"><span class="data-label">2022 Sales:</span> <span class="data-val">$100,330 M</span></div>
+            <div class="data-row"><span class="data-label">Sales per Day:</span> <span class="data-val">$274.87 M</span></div>
+            <div class="data-row"><span class="data-label">Days Saved:</span> <span class="data-val">2.7 Days</span></div>
+        </div>
+
+        <button class="btn-reveal" onclick="toggleAnswer(this)">Reveal Cash Flow</button>
+        <div class="answer">
+            <p>2.7 Days × $274.87 Million/Day =</p>
+            <h3 style="color:var(--success);">$742.17 Million</h3>
+            <p>Pfizer generated an extra $742M in cash just by collecting faster.</p>
+        </div>
+    </div>
+
+    <!-- SLIDE 11: AT&T Case Study -->
+    <div class="slide">
+        <h2>Case Study: AT&T's Allowance</h2>
+        <p>AT&T's Allowance decreased from $1,457M (2020) to $1,011M (2022).</p>
+        
+        <div class="cols-2">
+            <table class="real-table">
+                <thead><tr><th>Year</th><th class="num">Ending Allowance</th></tr></thead>
+                <tbody>
+                    <tr><td>2020</td><td class="num">$1,457</td></tr>
+                    <tr><td>2021</td><td class="num">$1,163</td></tr>
+                    <tr><td>2022</td><td class="num">$1,011</td></tr>
+                </tbody>
+            </table>
+            
+            <div class="card-container" style="grid-template-columns: 1fr; margin-top:0;">
+                <div class="flip-card" onclick="this.classList.toggle('flipped')" style="height:250px;">
+                    <div class="flip-card-inner">
+                        <div class="flip-card-front" style="background:var(--card-gradient);"><h3>Analyst Takeaway</h3><p>Click for Interpretation</p></div>
+                        <div class="flip-card-back" style="text-align:left; padding:20px;">
+                            <ul style="padding-left: 20px;">
+                                <li style="margin-bottom:10px;"><strong>Optimistic:</strong> Credit quality has genuinely improved.</li>
+                                <li><strong>Skeptical:</strong> Underestimating bad debt to boost profit ("Cookie Jar" Shaving).</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 12: Analyst Adjustments -->
+    <div class="slide">
+        <h2>Analyst Adjustments 5.2: Allowances</h2>
+        <p>Managers have latitude. Analysts seek to "undo" deliberate variation.</p>
+        <div class="problem-box">
+            <h4>The Method</h4>
+            <ol>
+                <li>Calculate the <strong>Average Rate</strong> of (Allowance / Gross AR) over ~3 years.</li>
+                <li>Apply that average rate to the current Gross AR to find the "Adjusted Allowance".</li>
+                <li>Calculate the difference to see if Income was Over/Under stated.</li>
+            </ol>
+        </div>
+    </div>
+
+    <!-- SLIDE 13: Pfizer Adjustment Calc -->
+    <div class="slide">
+        <h2>Pfizer Adjustment Calculation</h2>
+        <p>Pfizer's Average Allowance % (2020-2022) = <strong>4.558%</strong></p>
+        
+        <div class="financial-data">
+            <div class="data-row"><span class="data-label">2022 Gross A/R:</span> <span class="data-val">$11,401</span></div>
+            <div class="data-row"><span class="data-label">Reported Allowance (3.94%):</span> <span class="data-val">$449.0</span></div>
+            <div class="data-row"><span class="data-label">Adjusted Allowance (4.56%):</span> <span class="data-val">$519.6</span></div>
+            <div class="data-row" style="border-top:1px solid #ccc;"><span class="data-label">Difference (Shortfall):</span> <span class="data-val" style="color:var(--error);">($70.6)</span></div>
+        </div>
+        
+        <div class="card-container" style="grid-template-columns: 1fr; margin-top:20px;">
+            <div class="flip-card" onclick="this.classList.toggle('flipped')" style="height:150px;">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front"><h3>Implication</h3><p>Is 2022 Net Income Overstated or Understated?</p></div>
+                    <div class="flip-card-back">
+                        <p><strong>Overstated.</strong></p>
+                        <p>A smaller allowance means less Bad Debt Expense was recorded, inflating income by ~$71M.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 14: Deductions from Income -->
+    <div class="slide">
+        <h2>Deductions from Income</h2>
+        <p>Moving down the Income Statement. <strong>Click to reveal details.</strong></p>
+        <ul class="clickable-list">
+            <li onclick="this.classList.add('revealed')"><span>Cost of Sales</span> <span class="detail-text">: Costs to make/buy products</span></li>
+            <li onclick="this.classList.add('revealed')"><span>SG&A</span> <span class="detail-text">: Selling, General, Admin (Overhead)</span></li>
+            <li onclick="this.classList.add('revealed')"><span>R&D</span> <span class="detail-text">: Research & Development (Pharma)</span></li>
+            <li onclick="this.classList.add('revealed')"><span>Amortization</span> <span class="detail-text">: Non-cash expense for intangibles</span></li>
+            <li onclick="this.classList.add('revealed')"><span>Restructuring</span> <span class="detail-text">: Costs to realign operations</span></li>
+            <li onclick="this.classList.add('revealed')"><span>Provision for Taxes</span> <span class="detail-text">: Payments to governments</span></li>
+        </ul>
+    </div>
+
+    <!-- SLIDE 15: R&D Expense Details -->
+    <div class="slide">
+        <h2>R&D Expense Composition</h2>
+        <p>R&D is not just scientists in lab coats. It includes:</p>
+        <div class="cols-2">
+            <div>
+                <ul>
+                    <li>Salaries & Benefits</li>
+                    <li>Supplies & Lab Equipment</li>
+                    <li>Licensing fees for IP/Software</li>
+                    <li>Payments to collaborators (Universities)</li>
+                    <li>Property/Buildings (Depreciated)</li>
+                </ul>
+            </div>
+            <div class="problem-box">
+                <h4>Accounting Rule</h4>
+                <p><strong>Internal R&D:</strong> Expensed as Incurred (due to high uncertainty).</p>
+                <p><strong>General Purpose PPE:</strong> Capitalized & Depreciated.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 16: Industry Benchmarks -->
+    <div class="slide">
+        <h2>R&D Benchmarks (S&P 500)</h2>
+        <p>R&D intensity varies wildly by industry.</p>
+        
+        <div style="display:flex; align-items:flex-end; height:300px; gap:20px; padding:20px;">
+            <div style="width:15%; height:1.1%; background:#95a5a6; text-align:center;">Chemicals</div>
+            <div style="width:15%; height:1.2%; background:#95a5a6; text-align:center;">Machinery</div>
+            <div style="width:15%; height:6.7%; background:#34495e; color:white; text-align:center;">Tech Hardware</div>
+            <div style="width:15%; height:8.5%; background:#2c3e50; color:white; text-align:center;">Software</div>
+            <div style="width:15%; height:13.4%; background:var(--accent); color:white; text-align:center;">Semiconductors</div>
+            <div style="width:15%; height:16%; background:var(--accent-dark); color:white; text-align:center;">Pharma/Bio</div>
+        </div>
+        <p style="text-align:center;"><strong>Median R&D / Revenue (2022)</strong></p>
+    </div>
+
+    <!-- SLIDE 17: Analyzing R&D vs Peers -->
+    <div class="slide">
+        <h2>Analyzing R&D vs Peers</h2>
+        <p>Compare R&D Expense as a % of Revenue over time.</p>
+        
+        <table class="real-table">
+            <thead>
+                <tr><th>Company</th><th>2021</th><th>2022</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>Eli Lilly</td><td class="num">25.1%</td><td class="num">25.3%</td></tr>
+                <tr><td>Merck</td><td class="num">25.1%</td><td class="num">32.3%</td></tr>
+                <tr><td>Bristol-Myers</td><td class="num">24.5%</td><td class="num">22.4%</td></tr>
+                <tr><td>Johnson & Johnson</td><td class="num">16.7%</td><td class="num">16.2%</td></tr>
+                <tr style="font-weight:bold; background:#e8f8f5;"><td>Pfizer</td><td class="num">12.7%</td><td class="num">11.4%</td></tr>
+            </tbody>
+        </table>
+        
+        <div class="card-container" style="grid-template-columns: 1fr; margin-top:20px;">
+            <div class="flip-card" onclick="this.classList.toggle('flipped')" style="height:150px;">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front"><h3>Interpretation</h3></div>
+                    <div class="flip-card-back">
+                        <p>Pfizer spends significantly less on R&D relative to sales than its peers.</p>
+                        <p><strong>Is it efficient? Or is it underinvesting in the future pipeline?</strong></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 18: Acquired R&D (IPR&D) -->
+    <div class="slide">
+        <h2>Acquired R&D (IPR&D)</h2>
+        <div class="cols-2">
+            <div class="text-lg">
+                <p>When a company acquires another firm with promising R&D projects.</p>
+                <p><strong>Accounting:</strong> Capitalize as an Asset (Intangible).</p>
+                <p><strong>Reasoning:</strong> Fair value is established by the acquisition price.</p>
+            </div>
+            <div class="problem-box">
+                <h4>Treatment</h4>
+                <p>IPR&D is an <strong>Indefinite-Lived Intangible Asset</strong>.</p>
+                <p>It is NOT amortized until the project is completed or abandoned.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 19: Pfizer's Intangibles -->
+    <div class="slide">
+        <h2>Pfizer's Intangible Assets (2022)</h2>
+        <p>Note the massive IPR&D balance.</p>
+        <table class="real-table">
+            <thead>
+                <tr><th>Asset Class</th><th class="num">Gross Amount ($M)</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>Developed Technology</td><td class="num">$85,604</td></tr>
+                <tr><td>Finite-Lived Brands</td><td class="num">$922</td></tr>
+                <tr style="background:#fcf3cf; font-weight:bold;"><td>IPR&D (Indefinite)</td><td class="num">$11,357</td></tr>
+                <tr><td>Indefinite Brands</td><td class="num">$827</td></tr>
+                <tr style="border-top:2px solid #000;"><td><strong>Total Identifiable</strong></td><td class="num"><strong>$101,919</strong></td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- SLIDE 20: Income Taxes -->
+    <div class="slide">
+        <h2>Provision for Taxes</h2>
+        <p>The Tax Cuts and Jobs Act (TCJA) of 2017 radically changed corporate taxes.</p>
+        <div class="card-container" style="grid-template-columns: 1fr 1fr;">
+            <div class="flip-card" onclick="this.classList.toggle('flipped')">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front"><h3>Rate Change</h3></div>
+                    <div class="flip-card-back"><p>Federal Corporate Rate dropped from 35% to <strong>21%</strong>.</p></div>
+                </div>
+            </div>
+            <div class="flip-card" onclick="this.classList.toggle('flipped')">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front"><h3>Global Tax</h3></div>
+                    <div class="flip-card-back"><p>Imposed tax on future foreign earnings and a one-time repatriation tax on past profits.</p></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 21: EBITDA -->
+    <div class="slide">
+        <h2>EBITDA Analysis</h2>
+        <p><strong>E</strong>arnings <strong>B</strong>efore <strong>I</strong>nterest, <strong>T</strong>axes, <strong>D</strong>epreciation & <strong>A</strong>mortization.</p>
+        
+        <div class="financial-data">
+            <div class="data-row"><span class="data-label">Net Income:</span> <span class="data-val">$12,584</span></div>
+            <div class="data-row"><span class="data-label">+ Taxes:</span> <span class="data-val">$4,195</span></div>
+            <div class="data-row"><span class="data-label">+ Interest:</span> <span class="data-val">$2,269</span></div>
+            <div class="data-row"><span class="data-label">+ Depr & Amort:</span> <span class="data-val">$3,157</span></div>
+            <div class="data-row" style="background:#e8f8f5; border-top:2px solid #000;"><span class="data-label"><strong>EBITDA:</strong></span> <span class="data-val"><strong>$22,206</strong></span></div>
+        </div>
+
+        <div class="problem-box">
+            <h4>The Debate</h4>
+            <p><strong>Proponents:</strong> Captures core operating cash flow.</p>
+            <p><strong>Detractors (Buffett):</strong> Ignoring depreciation ignores the real cost of maintaining assets (CapEx).</p>
+        </div>
+    </div>
+
+    <!-- SLIDE 22: Discontinued Operations -->
+    <div class="slide">
+        <h2>Discontinued Operations</h2>
+        <p>When a company divests of a business segment representing a <strong>Strategic Shift</strong>.</p>
+        
+        <p>Pfizer Income Statement 2022:</p>
+        <div class="financial-data">
+            <div class="data-row"><span class="data-label">Income from Continuing Ops:</span> <span class="data-val">$31,401</span></div>
+            <div class="data-row"><span class="data-label">Discontinued Ops (Net of Tax):</span> <span class="data-val">$6</span></div>
+            <div class="data-row" style="border-top:1px solid #000;"><span class="data-label">Net Income:</span> <span class="data-val">$31,407</span></div>
+        </div>
+
+        <div class="problem-box" style="margin-top:20px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div>
+                <h4>Hypothetical Loss Case</h4>
+                <div class="financial-data compact" style="margin-bottom:0; background:transparent; border:none; box-shadow:none;">
+                    <div class="data-row"><span class="data-label">Revenue:</span> <span class="data-val">$500</span></div>
+                    <div class="data-row"><span class="data-label">Expenses:</span> <span class="data-val">($600)</span></div>
+                    <div class="data-row" style="border-top:1px solid #999;"><span class="data-label">Loss from Disc Ops (Pre-Tax):</span> <span class="data-val">($100)</span></div>
+                    <div class="data-row"><span class="data-label">Income Tax Benefit (21%):</span> <span class="data-val">+$21</span></div>
+                    <div class="data-row" style="border-top:2px solid #000;"><span class="data-label"><strong>Loss from Disc Ops (Net):</strong></span> <span class="data-val" style="color:var(--error);"><strong>($79)</strong></span></div>
+                </div>
+            </div>
+            <div>
+                <h4>Hypothetical Profit Case</h4>
+                <div class="financial-data compact" style="margin-bottom:0; background:transparent; border:none; box-shadow:none;">
+                    <div class="data-row"><span class="data-label">Revenue:</span> <span class="data-val">$800</span></div>
+                    <div class="data-row"><span class="data-label">Expenses:</span> <span class="data-val">($600)</span></div>
+                    <div class="data-row" style="border-top:1px solid #999;"><span class="data-label">Profit from Disc Ops (Pre-Tax):</span> <span class="data-val">$200</span></div>
+                    <div class="data-row"><span class="data-label">Income Tax Expense (21%):</span> <span class="data-val">($42)</span></div>
+                    <div class="data-row" style="border-top:2px solid #000;"><span class="data-label"><strong>Profit from Disc Ops (Net):</strong></span> <span class="data-val" style="color:var(--success);"><strong>$158</strong></span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 23: Components of Disc Ops Table -->
+    <div class="slide">
+        <h2>Components of Discontinued Operations (Pfizer 2020)</h2>
+        <p>Details often found in the footnotes.</p>
+        
+        <table class="real-table">
+            <thead>
+                <tr>
+                    <th>Year Ended December 31</th>
+                    <th class="num">2020 ($M)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td><strong>Revenues</strong></td><td class="num"><strong>$7,572</strong></td></tr>
+                <tr><td colspan="2" style="background:#f8f9fa; font-style:italic;">Costs and expenses:</td></tr>
+                <tr><td style="padding-left:20px;">Cost of sales</td><td class="num">2,106</td></tr>
+                <tr><td style="padding-left:20px;">Selling, info & admin expenses</td><td class="num">1,682</td></tr>
+                <tr><td style="padding-left:20px;">Research and development expenses</td><td class="num">224</td></tr>
+                <tr><td style="padding-left:20px;">Amortization of intangible assets</td><td class="num">224</td></tr>
+                <tr><td style="padding-left:20px;">Restructuring charges</td><td class="num">29</td></tr>
+                <tr><td style="padding-left:20px;">Other (income) deductions-net</td><td class="num">428</td></tr>
+                <tr style="border-top:1px solid #ccc;"><td><strong>Pre-tax income from disc ops</strong></td><td class="num"><strong>2,879</strong></td></tr>
+                <tr><td>Provision for taxes on income</td><td class="num">349</td></tr>
+                <tr style="border-top:2px solid #000; background:#e8f8f5;"><td><strong>Discontinued operations-net of tax</strong></td><td class="num"><strong>$2,529</strong></td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- SLIDE 24: Why Segregate? -->
+    <div class="slide">
+        <h2>Why Segregate Discontinued Ops?</h2>
+        <div class="insight-card">
+            <h4>Transitory Items</h4>
+            <p>These items will <strong>NOT recur</strong>. They are irrelevant for predicting future performance.</p>
+            <p>Investors focus on <strong>Income from Continuing Operations</strong> as the "Persistence" metric.</p>
+        </div>
+        
+        <div class="card-container" style="grid-template-columns: 1fr; margin-top:20px;">
+            <div class="flip-card" onclick="this.classList.toggle('flipped')" style="height:200px;">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front"><h3>Criteria for Classification</h3></div>
+                    <div class="flip-card-back" style="text-align:left; padding:20px;">
+                        <p><strong>1. Strategic Shift:</strong><br>e.g., Pfizer spinning off its Upjohn generic drug business.</p>
+                        <p><strong>2. Major Effect:</strong><br>e.g., The business unit accounted for ~20% of total revenue.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 25: Analyst Adjustment 5.3 -->
+    <div class="slide">
+        <h2>Analyst Adjustment 5.3</h2>
+        <p>When calculating ROE or ROA for forecasting...</p>
+        <div class="card-container" style="grid-template-columns: 1fr 1fr;">
+            <div class="flip-card" onclick="this.classList.toggle('flipped')">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front" style="background:#e74c3c;"><h3>Do NOT Use</h3></div>
+                    <div class="flip-card-back">
+                        <p><strong>Net Income</strong></p>
+                        <p>If Discontinued Ops are present, Net Income includes "noise" from the divested business.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="flip-card" onclick="this.classList.toggle('flipped')">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front" style="background:#2ecc71;"><h3>DO Use</h3></div>
+                    <div class="flip-card-back">
+                        <p><strong>Income from Continuing Operations</strong></p>
+                        <p>This captures the underlying, persistent operations of the firm.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 26: Pro Forma Intro (With Real Example) -->
+    <div class="slide">
+        <h2>Pro Forma (Non-GAAP) Reporting</h2>
+        <p>Management often believes GAAP doesn't tell the whole story.</p>
+        
+        <div class="insight-card">
+            <h4>Real Life Example: Uber (2019)</h4>
+            <p>Uber reported a GAAP Net Loss of <strong>$8.5 Billion</strong>.</p>
+            <p>But reported "Adjusted EBITDA" as a <strong>Loss of $2.7 Billion</strong>.</p>
+            <p>They added back Stock Based Compensation, Legal Settlements, and Depreciation to make the loss look smaller.</p>
+        </div>
+
+        <div class="problem-box" style="margin-top:20px;">
+            <h4>Discussion</h4>
+            <p>What do you think are the potential problems of Non-GAAP reporting?</p>
+            <button class="btn-reveal" onclick="toggleAnswer(this)">Reveal Answer</button>
+            <div class="answer">
+                <p>1. <strong>Lack of Standardization:</strong> Hard to compare across companies.</p>
+                <p>2. <strong>Opportunism:</strong> Management can exclude "bad" real costs to make results look better.</p>
+                <p>3. <strong>Confusion:</strong> Can mislead investors about core profitability.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 27: Pfizer's Non-GAAP Claims -->
+    <div class="slide">
+        <h2>Pfizer's 2022 Headline</h2>
+        <div class="problem-box">
+            <h4>Press Release</h4>
+            <p><strong>GAAP EPS:</strong> $5.47 (Up 42%)</p>
+            <p><strong>Adjusted EPS:</strong> $6.58 (Up 62%)</p>
+        </div>
+        <p>Pfizer highlights the Adjusted number, which is $1.11 higher per share.</p>
+    </div>
+
+    <!-- SLIDE 28: Regulation G Reconciliation -->
+    <div class="slide">
+        <h2>Regulation G Reconciliation</h2>
+        <p>SEC requires a walk from GAAP to Non-GAAP. <strong>Click to reveal adjustments.</strong></p>
+        
+        <div class="financial-data" style="display:flex; flex-direction:column; gap:5px;">
+            <div class="data-row" style="background:#ecf0f1; padding:10px;"><span class="data-label">GAAP Net Income</span> <span class="data-val">$31,372</span></div>
+            
+            <div class="clickable-line hidden-row" id="reg-g-row-1">
+                <span>(+) Amortization of Intangibles</span> <span class="data-val">3,609</span>
+            </div>
+            <div class="clickable-line hidden-row" id="reg-g-row-2">
+                <span>(+) Acquisition-related items</span> <span class="data-val">832</span>
+            </div>
+            <div class="clickable-line hidden-row" id="reg-g-row-3">
+                <span>(+) Restructuring charges</span> <span class="data-val">1,396</span>
+            </div>
+            <div class="clickable-line hidden-row" id="reg-g-row-4">
+                <span>(+) Loss on equity securities</span> <span class="data-val">1,270</span>
+            </div>
+            <div class="clickable-line hidden-row" id="reg-g-row-5">
+                <span>(-) Tax effect of adjustments</span> <span class="data-val">(1,683)</span>
+            </div>
+
+            <div class="data-row" style="background:#fcf3cf; border-top:2px solid #000; padding:10px;"><span class="data-label">Non-GAAP Adjusted Income</span> <span class="data-val">$37,718</span></div>
+        </div>
+        <button class="btn-reveal-sm" onclick="revealRegG()">Show Adjustments</button>
+    </div>
+
+    <!-- SLIDE 29: SEC Warning -->
+    <div class="slide">
+        <h2>SEC Warning on Pro Forma</h2>
+        <p class="text-lg">"We wish to caution public companies on their use of this 'pro forma' financial information..."</p>
+        <ul>
+            <li>Non-GAAP has no defined meaning.</li>
+            <li>Hard to compare across companies.</li>
+            <li>Can mislead if it obscures GAAP results.</li>
+        </ul>
+        <p style="font-weight:bold; margin-top:30px; font-size:1.5rem; color:var(--error);">"Read before you invest; understand before you commit."</p>
+    </div>
+
+    <!-- SLIDE 30: Analyst Checklist -->
+    <div class="slide">
+        <h2>Analyst Checklist</h2>
+        <p>For a thorough reading of financials:</p>
+        <ol>
+            <li>Read the external audit report (look for deviations).</li>
+            <li>Peruse notes on accounting policies (compare to peers).</li>
+            <li>Examine changes in policies.</li>
+            <li>Identify nonrecurring items.</li>
+            <li><strong>Recast</strong> financial statements (Adjust Allowances, Remove Disc Ops).</li>
+        </ol>
+    </div>
+
+    <!-- SLIDE 31: Summary -->
+    <div class="slide">
+        <h2>Summary: Quality of Earnings</h2>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div id="summary-1" class="summary-item">
+                <h3>Accounts Receivable</h3>
+                <ul>
+                    <li>Net AR = Gross - Allowance.</li>
+                    <li>Watch <strong>Aging</strong> and <strong>DSO</strong> trends.</li>
+                </ul>
+            </div>
+            <div id="summary-2" class="summary-item">
+                <h3>Allowances</h3>
+                <ul>
+                    <li>Susceptible to "Cookie Jar" accounting.</li>
+                    <li>Compare Allowance % over time.</li>
+                </ul>
+            </div>
+            <div id="summary-3" class="summary-item">
+                <h3>Operating Expenses</h3>
+                <ul>
+                    <li>R&D: Expensed (Internal) vs Capitalized (Acquired).</li>
+                    <li>Benchmark against peers.</li>
+                </ul>
+            </div>
+            <div id="summary-4" class="summary-item">
+                <h3>Non-GAAP</h3>
+                <ul>
+                    <li>Adjusted Earnings usually > GAAP.</li>
+                    <li>Check the <strong>Reconciliation</strong> carefully.</li>
+                </ul>
+            </div>
+        </div>
+        <div style="text-align: center; margin-top: 40px;">
+            <button id="summary-btn" class="btn-reveal" onclick="revealSummaryStep()">Reveal Next</button>
+        </div>
+    </div>
+
+    <!-- SLIDE 32: QUIZ -->
+    <div class="slide">
+        <h2>Comprehensive Quiz (Part 2)</h2>
+        <div style="max-width: 800px; margin: 0 auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3>Question <span id="quiz-progress">1</span> / 10</h3>
+                <button onclick="resetQuiz()" style="padding: 5px 10px; cursor: pointer;">Restart Quiz</button>
+            </div>
+
+            <div id="quiz-container" class="problem-box" style="background: white; border: 1px solid var(--border);">
+                <p id="quiz-question" style="font-size: 1.3rem; margin-bottom: 20px; font-weight: bold;"></p>
+                <div id="quiz-options"></div>
+                <div id="quiz-feedback" class="quiz-explanation"></div>
+                <button id="next-q-btn" onclick="nextQuestion()" class="btn-reveal" style="display:none; margin-top: 15px;">Next Question</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="nav-bar">
+        <span class="page-num" id="page-num">Slide 1 / 32</span>
+        <div class="nav-controls">
+            <button onclick="changeSlide(-1)">Previous</button>
+            <button onclick="changeSlide(1)">Next</button>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    let currentSlide = 0;
+    const slides = document.querySelectorAll('.slide');
+    const pageNum = document.getElementById('page-num');
+    let summaryStep = 0;
+
+    function updateSlide() {
+        slides.forEach((slide, index) => {
+            slide.classList.remove('active');
+            if (index === currentSlide) {
+                slide.classList.add('active');
+            }
+        });
+        pageNum.innerText = `Slide ${currentSlide + 1} / ${slides.length}`;
+    }
+
+    function changeSlide(direction) {
+        currentSlide += direction;
+        if (currentSlide < 0) currentSlide = 0;
+        if (currentSlide >= slides.length) currentSlide = slides.length - 1;
+        updateSlide();
+    }
+
+    function toggleAnswer(btn) {
+        let answerDiv;
+        // Check if next sibling is the answer div
+        if (btn.nextElementSibling && btn.nextElementSibling.classList.contains('answer')) {
+            answerDiv = btn.nextElementSibling;
+        } else {
+            return; // Exit if no answer div found
+        }
+        
+        if (answerDiv.classList.contains('visible')) {
+            answerDiv.classList.remove('visible');
+            btn.innerText = "Reveal Answer";
+        } else {
+            answerDiv.classList.add('visible');
+            btn.innerText = "Hide Answer";
+        }
+    }
+
+    function revealSummaryStep() {
+        summaryStep++;
+        const box = document.getElementById(`summary-${summaryStep}`);
+        if(box) {
+            box.classList.add('visible');
+            box.style.opacity = "1";
+        }
+        if(summaryStep >= 4) {
+            const btn = document.getElementById('summary-btn');
+            if(btn) btn.style.display = 'none';
+        }
+    }
+
+    function revealRegG() {
+        const rows = document.querySelectorAll('.clickable-line.hidden-row');
+        rows.forEach(row => {
+            row.classList.remove('hidden-row');
+            row.classList.add('revealed-row');
+        });
+    }
+
+    // --- QUIZ DATA ---
+    const quizData = [
+        {
+            q: "If a company writes off a specific uncollectible account of $500, what is the impact on Net Accounts Receivable?",
+            options: ["Decreases by $500", "Increases by $500", "No Change", "Decreases Net Income"],
+            correct: 2,
+            explanation: "Write-offs reduce both Gross AR and the Allowance by the same amount, so the Net Receivable balance remains unchanged."
+        },
+        {
+            q: "Internal Research & Development (R&D) costs are generally:",
+            options: ["Capitalized as an asset", "Expensed as incurred", "Amortized over 20 years", "Ignored"],
+            correct: 1,
+            explanation: "Due to the uncertainty of future benefits, GAAP requires internal R&D to be expensed immediately."
+        },
+        {
+            q: "Acquired In-Process R&D (IPR&D) is recorded as:",
+            options: ["An Expense", "An Intangible Asset", "Goodwill", "A Liability"],
+            correct: 1,
+            explanation: "IPR&D acquired in a business combination is capitalized as an indefinite-lived intangible asset until completed or abandoned."
+        },
+        {
+            q: "If Days Sales Outstanding (DSO) increases significantly, it usually indicates:",
+            options: ["Faster cash collection", "Deteriorating credit quality or channel stuffing", "Higher sales volume", "Lower accounts receivable"],
+            correct: 1,
+            explanation: "Rising DSO means it takes longer to collect cash, which can signal customer financial trouble or aggressive sales tactics."
+        },
+        {
+            q: "What is the purpose of Regulation G?",
+            options: ["To ban Non-GAAP reporting", "To require reconciliation of Non-GAAP to GAAP measures", "To set tax rates", "To regulate R&D spending"],
+            correct: 1,
+            explanation: "Regulation G requires companies to provide a reconciliation between their Non-GAAP (Adjusted) numbers and the official GAAP numbers."
+        },
+        {
+            q: "If a company 'Under-Reserves' its allowance for doubtful accounts (Shaving), what happens to current Net Income?",
+            options: ["It is overstated (inflated)", "It is understated", "No impact", "It becomes a liability"],
+            correct: 0,
+            explanation: "A smaller allowance means less Bad Debt Expense, which artificially increases Net Income for the period."
+        },
+        {
+            q: "Discontinued Operations are reported:",
+            options: ["As part of Operating Income", "Net of tax, below Income from Continuing Operations", "In the Balance Sheet only", "As a Note only"],
+            correct: 1,
+            explanation: "They are segregated at the bottom of the Income Statement, net of tax, to separate transitory results from persistent operations."
+        },
+        {
+            q: "EBITDA stands for:",
+            options: ["Earnings Before Interest, Taxes, Depreciation, and Amortization", "Earnings Before Income, Tax, Debt, and Assets", "Estimated Business Income Tax Deductions Allowed", "None of the above"],
+            correct: 0,
+            explanation: "EBITDA is a common Non-GAAP metric used to approximate operating cash flow."
+        },
+        {
+            q: "In an Aging Analysis, accounts that are 'Past Due > 90 Days' typically have:",
+            options: ["Lower estimated loss %", "Higher estimated loss %", "Zero risk", "Same risk as current"],
+            correct: 1,
+            explanation: "The longer an account goes unpaid, the probability of collecting it drops significantly, requiring a higher loss percentage."
+        },
+        {
+            q: "Why do analysts focus on 'Income from Continuing Operations'?",
+            options: ["It is always higher", "It excludes taxes", "It is the best predictor of future performance", "It includes discontinued operations"],
+            correct: 2,
+            explanation: "Continuing operations reflect the persistent, recurring business activities, making them better for forecasting."
+        }
+    ];
+
+    let currentQ = 0;
+    
+    function loadQuiz() {
+        const qData = quizData[currentQ];
+        document.getElementById('quiz-question').innerText = qData.q;
+        document.getElementById('quiz-progress').innerText = currentQ + 1;
+        const optsDiv = document.getElementById('quiz-options');
+        optsDiv.innerHTML = '';
+        document.getElementById('quiz-feedback').style.display = 'none';
+        document.getElementById('next-q-btn').style.display = 'none';
+
+        qData.options.forEach((opt, idx) => {
+            const div = document.createElement('div');
+            div.className = 'quiz-option';
+            div.innerText = opt;
+            div.onclick = () => checkAnswer(div, idx, qData.correct);
+            optsDiv.appendChild(div);
+        });
+    }
+
+    function checkAnswer(el, idx, correctIdx) {
+        const opts = document.querySelectorAll('.quiz-option');
+        if (idx === correctIdx) {
+            el.classList.add('correct');
+            const fb = document.getElementById('quiz-feedback');
+            fb.innerText = "Correct! " + quizData[currentQ].explanation;
+            fb.style.display = 'block';
+            fb.style.backgroundColor = "#dcfce7";
+            fb.style.borderColor = "var(--success)";
+            opts.forEach(o => o.onclick = null);
+            document.getElementById('next-q-btn').style.display = 'inline-block';
+        } else {
+            el.classList.add('incorrect');
+            const fb = document.getElementById('quiz-feedback');
+            fb.innerText = "Incorrect. Try again!";
+            fb.style.display = 'block';
+            fb.style.backgroundColor = "#fee2e2";
+            fb.style.borderColor = "var(--error)";
+        }
+    }
+
+    function nextQuestion() {
+        currentQ++;
+        if (currentQ < quizData.length) {
+            loadQuiz();
+        } else {
+            document.getElementById('quiz-container').innerHTML = `
+                <h3 style="text-align:center; color:var(--success);">Quiz Complete!</h3>
+                <p style="text-align:center;">Great job mastering the Quality of Earnings.</p>
+                <div style="text-align:center; margin-top:20px;">
+                    <button class="btn-reveal" onclick="resetQuiz()">Start Over</button>
+                </div>
+            `;
+        }
+    }
+
+    function resetQuiz() {
+        currentQ = 0;
+        document.getElementById('quiz-container').innerHTML = `
+             <p id="quiz-question" style="font-size: 1.3rem; margin-bottom: 20px; font-weight: bold;"></p>
+                <div id="quiz-options"></div>
+                <div id="quiz-feedback" class="quiz-explanation"></div>
+                <button id="next-q-btn" onclick="nextQuestion()" class="btn-reveal" style="display:none; margin-top: 15px;">Next Question</button>
+        `;
+        loadQuiz();
+    }
+
+    // Initialize
+    updateSlide();
+    loadQuiz();
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowRight') changeSlide(1);
+        if (e.key === 'ArrowLeft') changeSlide(-1);
+    });
+</script>
+
+</body>
+</html>

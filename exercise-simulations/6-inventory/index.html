@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financial Analyst Simulator: Phillips 66</title>
+    
+    <!-- React & ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+        /* Custom scrollbar for data panel */
+        .scrollbar-thin::-webkit-scrollbar {
+            width: 6px;
+        }
+        .scrollbar-thin::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        .scrollbar-thin::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 3px;
+        }
+        html {
+            scroll-behavior: smooth;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // --- Icons ---
+        const Icons = {
+            Calculator: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><rect width="16" height="20" x="4" y="2" rx="2"/><line x1="8" x2="16" y1="6" y2="6"/><line x1="16" x2="16" y1="14" y2="18"/><path d="M16 10h.01"/><path d="M12 10h.01"/><path d="M8 10h.01"/><path d="M12 14h.01"/><path d="M8 14h.01"/><path d="M12 18h.01"/><path d="M8 18h.01"/></svg>,
+            TrendingUp: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>,
+            BookOpen: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>,
+            HelpCircle: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>,
+            CheckCircle: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>,
+            XCircle: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="12" cy="12" r="10"/><line x1="15" x2="9" y1="9" y2="15"/><line x1="9" x2="15" y1="9" y2="15"/></svg>,
+            ArrowRight: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>,
+            DollarSign: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>,
+            Scale: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></svg>,
+            Download: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>,
+            Lock: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>,
+            Unlock: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>,
+            RefreshCw: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>,
+            Key: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/></svg>,
+            Shield: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>,
+            Award: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg>,
+            Trash2: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>,
+            User: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        };
+
+        // --- Data & Config ---
+        const GAME_DATA = {
+            company: "Phillips 66",
+            taxRate: 0.22,
+            currentYear: {
+                lifoInventory: 3276,
+                lifoReserve: 6300,
+                totalAssets: 76442,
+                revenue: 169990,
+                cogs: 149932,
+                netIncome: 11391
+            },
+            priorYear: {
+                lifoInventory: 3394,
+                lifoReserve: 5700,
+                totalAssets: 55594,
+                revenue: 111476,
+                cogs: 102102,
+                netIncome: 1594
+            }
+        };
+
+        const LEVELS = [
+            { id: 1, title: "Balance Sheet Adjustments", description: "Convert LIFO values to FIFO values.", icon: <Icons.BookOpen className="w-5 h-5" /> },
+            { id: 2, title: "Income Statement Impact", description: "Analyze COGS and Net Income effects.", icon: <Icons.TrendingUp className="w-5 h-5" /> },
+            { id: 3, title: "Ratio Analysis & Conclusion", description: "Compare efficiency and draw conclusions.", icon: <Icons.Scale className="w-5 h-5" /> }
+        ];
+
+        const QUESTIONS = [
+            {
+                id: 'q1', level: 1, type: 'input',
+                prompt: "Report Inventory at FIFO value using 'Current Year' data.",
+                label: "FIFO Inventory ($ millions)",
+                correctValue: 9576, tolerance: 1, isPct: false,
+                hint: "FIFO Inventory = LIFO Inventory + LIFO Reserve."
+            },
+            {
+                id: 'q2', level: 1, type: 'input',
+                prompt: "Calculate the adjustment to Equity to account for Deferred Taxes.",
+                label: "Adjustment to Equity ($ millions)",
+                correctValue: 4914, tolerance: 1, isPct: false,
+                hint: "LIFO Reserve × (1 - Tax Rate)."
+            },
+            {
+                id: 'q3', level: 2, type: 'input',
+                prompt: "Calculate the Change in LIFO Reserve (Current - Prior).",
+                label: "Change in Reserve ($ millions)",
+                correctValue: 600, tolerance: 0, isPct: false,
+                hint: "Current Reserve - Prior Reserve."
+            },
+            {
+                id: 'q4', level: 2, type: 'choice',
+                prompt: "Since the LIFO Reserve INCREASED, does this mean our COGS was higher or lower under LIFO?",
+                options: [ { id: 'higher', text: "LIFO COGS was Higher" }, { id: 'lower', text: "LIFO COGS was Lower" } ],
+                correctValue: 'higher',
+                hint: "Inflation increases costs. LIFO uses newest (highest) costs."
+            },
+            {
+                id: 'q5', level: 2, type: 'input',
+                prompt: "Calculate the Net Income if we had used FIFO.",
+                label: "FIFO Net Income ($ millions)",
+                correctValue: 11859, tolerance: 1, isPct: false,
+                hint: "LIFO NI + (Change in Reserve × (1 - Tax Rate))."
+            },
+            {
+                id: 'q6', level: 3, type: 'input',
+                prompt: "Calculate Inventory Turnover under LIFO. (Avg Inventory = (Current + Prior)/2).",
+                label: "LIFO Inventory Turnover",
+                correctValue: 44.96, tolerance: 0.5, isPct: false,
+                hint: "LIFO COGS / Average LIFO Inventory."
+            },
+            {
+                id: 'q7', level: 3, type: 'choice',
+                prompt: "What is the primary trade-off of using LIFO?",
+                showComparison: true,
+                options: [
+                    { id: 'a', text: "Better Cash Flow, Lower Reported Assets" },
+                    { id: 'b', text: "Higher Reported Income, Higher Taxes" },
+                    { id: 'c', text: "Higher Inventory Valuation" }
+                ],
+                correctValue: 'a',
+                hint: "LIFO reduces taxes (saving cash) but reports lower inventory values."
+            }
+        ];
+
+        // --- Utility Functions ---
+        const evaluateMath = (str) => {
+            if (!str) return NaN;
+            // Remove commas, treat % as /100
+            let clean = str.replace(/,/g, '').replace(/(\d+)%/g, '($1/100)');
+            try {
+                // Security: Only allow basic math chars
+                if (/[^0-9+\-*/().\s]/.test(clean)) return NaN;
+                return Function('"use strict";return (' + clean + ')')();
+            } catch (e) { return NaN; }
+        };
+
+        const checkCorrectness = (val, correct, type, isPct = false, tolerance = 0) => {
+            if (type === 'choice') return val === correct;
+            
+            const numVal = parseFloat(val);
+            if (isNaN(numVal)) return false;
+
+            if (isPct) {
+                // e.g. correct 0.067. Accept 6.7 or 0.067
+                if (Math.abs(numVal - correct) <= 0.002) return true; // Decimal match
+                if (Math.abs(numVal - (correct * 100)) <= 0.2) return true; // Percent integer match
+                return false;
+            }
+            // Standard Numeric with tolerance percent check (2% of correct value)
+            const allowedDev = Math.abs(correct * 0.02);
+            // Or use explicit tolerance if tighter
+            const effectiveTol = Math.max(allowedDev, tolerance);
+            return Math.abs(numVal - correct) <= effectiveTol;
+        };
+
+        // --- SMART INPUT COMPONENT ---
+        const SmartInput = ({ id, value, correctValue, isPct, onChange, onEnter, locked, showKey }) => {
+            const [localVal, setLocalVal] = useState(value || '');
+            const [status, setStatus] = useState('idle'); // idle, correct, incorrect
+
+            // Sync with parent value (e.g. for auto-fill)
+            useEffect(() => {
+                setLocalVal(value || '');
+                if (value) {
+                    const isValid = checkCorrectness(value, correctValue, 'input', isPct);
+                    setStatus(isValid ? 'correct' : 'incorrect');
+                } else {
+                    setStatus('idle');
+                }
+            }, [value, correctValue, isPct]);
+
+            const handleBlur = (e) => {
+                const raw = e.target.value;
+                const evaluated = evaluateMath(raw);
+                
+                if (isNaN(evaluated)) {
+                    setStatus('incorrect');
+                    return; // Don't update parent with NaN
+                }
+
+                // Format for display
+                const displayVal = evaluated.toString(); 
+                setLocalVal(displayVal); // Show calculated value
+                onChange(displayVal); // Update parent
+
+                // Validate
+                const isValid = checkCorrectness(displayVal, correctValue, 'input', isPct);
+                setStatus(isValid ? 'correct' : 'incorrect');
+            };
+
+            const handleKeyDown = (e) => {
+                if (e.key === 'Enter') {
+                    e.target.blur(); // Trigger blur logic
+                    if (onEnter) onEnter();
+                }
+            };
+
+            return (
+                <div className="w-full max-w-md">
+                    <div className="relative">
+                        <div className={`absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none ${
+                            status === 'correct' ? 'text-emerald-500' : 'text-slate-400'
+                        }`}>
+                            {status === 'correct' ? <Icons.CheckCircle className="w-5 h-5" /> : <Icons.DollarSign className="w-5 h-5" />}
+                        </div>
+                        <input
+                            type="text"
+                            value={localVal}
+                            disabled={locked}
+                            onChange={(e) => setLocalVal(e.target.value)}
+                            onBlur={handleBlur}
+                            onKeyDown={handleKeyDown}
+                            placeholder="Enter value or math (e.g. 500/2)"
+                            className={`block w-full pl-10 pr-12 py-3 sm:text-lg font-mono border-2 rounded-lg focus:ring-4 focus:ring-opacity-50 transition-all outline-none ${
+                                status === 'correct' 
+                                    ? 'border-emerald-500 focus:ring-emerald-200 bg-emerald-50 text-emerald-900' 
+                                    : status === 'incorrect'
+                                        ? 'border-red-400 focus:ring-red-200 bg-white'
+                                        : 'border-slate-300 focus:border-indigo-500 focus:ring-indigo-200 bg-white'
+                            }`}
+                        />
+                        <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                           {status === 'incorrect' && <span className="text-red-500 font-bold text-lg">!</span>}
+                        </div>
+                    </div>
+                    {/* INSTRUCTOR KEY DISPLAY */}
+                    {showKey && (
+                        <div className="mt-1 text-sm font-bold text-purple-700 bg-purple-100 border border-purple-200 inline-block px-2 py-1 rounded">
+                            Key: {correctValue}
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // --- CONFIRMATION MODAL ---
+        const ConfirmationModal = ({ isOpen, message, onConfirm, onCancel }) => {
+            if (!isOpen) return null;
+            return (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-fade-in">
+                    <div className="bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full">
+                        <h3 className="text-lg font-bold text-slate-800 mb-2">Confirm Action</h3>
+                        <p className="text-slate-600 mb-6">{message}</p>
+                        <div className="flex justify-end space-x-3">
+                            <button onClick={onCancel} className="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg font-medium hover:bg-slate-300">Cancel</button>
+                            <button onClick={onConfirm} className="px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 shadow-md">Confirm</button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- QUESTION CARD COMPONENT ---
+        const QuestionCard = ({ question, answer, instructorUnlocked, onAnswerChange }) => {
+            const [showHint, setShowHint] = useState(false);
+            const renderComparisonData = () => {
+                const lifoNI = 11391;
+                const fifoNI = 11391 + (600 * (1 - 0.22)); 
+                return (
+                    <div className="grid grid-cols-3 bg-white text-sm border rounded-lg overflow-hidden mb-6">
+                        <div className="p-3 bg-slate-50 font-semibold border-b">Metric</div>
+                        <div className="p-3 bg-indigo-50 font-bold text-indigo-700 text-right border-b">LIFO (Reported)</div>
+                        <div className="p-3 bg-emerald-50 font-bold text-emerald-700 text-right border-b">FIFO (Adjusted)</div>
+                        
+                        <div className="p-3 border-b text-slate-600">Net Income</div>
+                        <div className="p-3 border-b text-right font-mono">${lifoNI.toLocaleString()}</div>
+                        <div className="p-3 border-b text-right font-mono">${fifoNI.toLocaleString()}</div>
+
+                        <div className="p-3 border-b text-slate-600">Inventory Value</div>
+                        <div className="p-3 border-b text-right font-mono">$3,276</div>
+                        <div className="p-3 border-b text-right font-mono">$9,576</div>
+                    </div>
+                );
+            };
+
+            return (
+                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                     <div className="mb-4">
+                        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Problem {QUESTIONS.findIndex(q => q.id === question.id) + 1}</span>
+                        <h3 className="text-lg font-bold text-slate-800 mt-1">{question.prompt}</h3>
+                    </div>
+
+                    {question.showComparison && renderComparisonData()}
+
+                    <div className="mt-4">
+                        {question.type === 'input' ? (
+                            <div className="space-y-2">
+                                <label className="text-sm font-semibold text-slate-500 block mb-1">{question.label}</label>
+                                <SmartInput 
+                                    id={question.id}
+                                    value={answer}
+                                    correctValue={question.correctValue}
+                                    isPct={question.isPct}
+                                    locked={false}
+                                    onChange={onAnswerChange}
+                                    showKey={instructorUnlocked}
+                                />
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 gap-2 max-w-lg">
+                                {question.options.map(opt => (
+                                    <button
+                                        key={opt.id}
+                                        onClick={() => onAnswerChange(opt.id)}
+                                        className={`p-3 text-left border-2 rounded-lg transition-all text-sm ${
+                                            answer === opt.id 
+                                                ? 'border-indigo-600 bg-indigo-50 text-indigo-900 font-medium' 
+                                                : 'border-slate-100 hover:border-indigo-200'
+                                        }`}
+                                    >
+                                        {opt.text}
+                                    </button>
+                                ))}
+                                {instructorUnlocked && (
+                                    <div className="mt-2 text-sm font-bold text-purple-700 bg-purple-100 px-2 py-1 inline-block rounded">
+                                        Key: Option '{question.correctValue}'
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+
+                     <div className="mt-4 flex items-center">
+                        <button 
+                            onClick={() => setShowHint(!showHint)}
+                            className="text-slate-400 hover:text-indigo-600 text-sm flex items-center gap-1 transition-colors"
+                        >
+                            <Icons.HelpCircle className="w-4 h-4"/>
+                            {showHint ? "Hide Hint" : "Hint"}
+                        </button>
+                     </div>
+                     {showHint && (
+                        <div className="mt-2 p-3 bg-amber-50 text-amber-800 text-sm rounded border border-amber-100 animate-fade-in">
+                            <strong>Hint:</strong> {question.hint}
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // --- MAIN SIMULATION COMPONENT ---
+        function FinancialAnalystSim() {
+            const [answers, setAnswers] = useState({}); // { qId: value }
+            const [gameComplete, setGameComplete] = useState(false);
+            const [studentName, setStudentName] = useState("");
+            
+            // Instructor States
+            const [instructorUnlocked, setInstructorUnlocked] = useState(false);
+            const [showAuthModal, setShowAuthModal] = useState(false);
+            const [showDashModal, setShowDashModal] = useState(false);
+            const [authPass, setAuthPass] = useState('');
+            const [authError, setAuthError] = useState(false);
+            
+            // Dashboard Tools States
+            const [hashInput, setHashInput] = useState('');
+            const [verifyResult, setVerifyResult] = useState(null);
+            const [manualName, setManualName] = useState('');
+            const [manualScore, setManualScore] = useState('');
+            const [generatedHash, setGeneratedHash] = useState('');
+
+            // Confirmation Modal State
+            const [confirmState, setConfirmState] = useState({ isOpen: false, action: null, msg: '' });
+
+            // --- Handlers ---
+
+            const handleAnswerChange = (qId, val) => {
+                setAnswers(prev => ({ ...prev, [qId]: val }));
+            };
+
+            const calculateScore = () => {
+                let s = 0;
+                QUESTIONS.forEach(q => {
+                    if (checkCorrectness(answers[q.id], q.correctValue, q.type, q.isPct, q.tolerance)) {
+                        s += 100 / QUESTIONS.length; // Even weight
+                    }
+                });
+                return Math.round(s);
+            };
+
+            const handleFinish = () => {
+                if (!studentName.trim()) {
+                    alert("Please enter your name before submitting.");
+                    return;
+                }
+                setGameComplete(true);
+                window.scrollTo(0, 0);
+            };
+
+            const generateSubmission = () => {
+                // Use state name instead of prompt
+                const name = studentName || "Student";
+                
+                const finalScore = calculateScore();
+                const now = new Date();
+                
+                // Create robust hash payload
+                const payload = {
+                    n: name,
+                    s: finalScore,
+                    t: now.toISOString(),
+                    salt: "P66_SIM_SECURE"
+                };
+                const hash = btoa(JSON.stringify(payload));
+
+                let content = `PHILLIPS 66 FINANCIAL ANALYST SIMULATION\n`;
+                content += `SUBMISSION REPORT\n`;
+                content += `==========================================\n`;
+                content += `Student: ${name}\n`;
+                content += `Date:    ${now.toLocaleString()}\n`;
+                content += `Score:   ${finalScore}%\n`;
+                content += `==========================================\n\n`;
+                content += `ANSWERS:\n`;
+                
+                QUESTIONS.forEach((q, idx) => {
+                    const userVal = answers[q.id] || "(No Answer)";
+                    const isCorrect = checkCorrectness(userVal, q.correctValue, q.type, q.isPct, q.tolerance);
+                    content += `${idx + 1}. ${q.prompt.substring(0, 50)}...\n`;
+                    content += `   Answer: ${userVal} [${isCorrect ? 'CORRECT' : 'INCORRECT'}]\n\n`;
+                });
+
+                content += `VERIFICATION HASH (Instructor Use Only):\n`;
+                content += `${hash}\n`;
+
+                const blob = new Blob([content], {type: 'text/plain'});
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = `${name.replace(/\s+/g, '_')}_submission.txt`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            };
+
+            // --- Instructor Logic ---
+
+            const attemptUnlock = (e) => {
+                e.preventDefault();
+                if (authPass.toLowerCase() === 'teacher') {
+                    setInstructorUnlocked(true);
+                    setShowAuthModal(false);
+                    setAuthPass('');
+                    setAuthError(false);
+                } else {
+                    setAuthError(true);
+                }
+            };
+
+            const handleAutoFill = () => {
+                const newAnswers = {};
+                QUESTIONS.forEach(q => {
+                    newAnswers[q.id] = q.correctValue.toString();
+                });
+                setAnswers(newAnswers);
+            };
+
+            const requestClearAll = () => {
+                setConfirmState({
+                    isOpen: true,
+                    msg: "This will clear all answers and lock Instructor Mode. Are you sure?",
+                    action: () => {
+                        setAnswers({});
+                        setStudentName("");
+                        setGameComplete(false);
+                        setInstructorUnlocked(false); 
+                    }
+                });
+            };
+
+            const confirmAction = () => {
+                if (confirmState.action) confirmState.action();
+                setConfirmState({ isOpen: false, action: null, msg: '' });
+            };
+
+            const verifyHash = () => {
+                try {
+                    const decoded = atob(hashInput.trim());
+                    const json = JSON.parse(decoded);
+                    if (json.salt !== "P66_SIM_SECURE") throw new Error("Invalid Salt");
+                    setVerifyResult({ valid: true, data: json });
+                } catch (e) {
+                    setVerifyResult({ valid: false });
+                }
+            };
+
+            const generateManualHash = () => {
+                if (!manualName || !manualScore) return;
+                const payload = {
+                    n: manualName,
+                    s: parseInt(manualScore),
+                    t: new Date().toISOString(),
+                    salt: "P66_SIM_SECURE"
+                };
+                setGeneratedHash(btoa(JSON.stringify(payload)));
+            };
+
+            // --- Render Helpers ---
+
+            return (
+                <div className="min-h-screen font-sans flex flex-col md:flex-row">
+                    
+                    {/* INSTRUCTOR STICKY TOOLBAR */}
+                    {instructorUnlocked && (
+                        <div className="fixed top-0 left-0 right-0 h-16 bg-purple-900 text-white z-50 flex items-center justify-between px-6 shadow-lg">
+                            <div className="flex items-center space-x-2">
+                                <Icons.Shield className="w-5 h-5 text-purple-300" />
+                                <span className="font-bold tracking-wider">INSTRUCTOR MODE</span>
+                            </div>
+                            <div className="flex items-center space-x-3">
+                                <button onClick={() => setShowDashModal(true)} className="px-3 py-1 bg-purple-700 hover:bg-purple-600 rounded text-sm font-medium transition-colors">
+                                    Dashboard
+                                </button>
+                                <button onClick={handleAutoFill} className="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 rounded text-sm font-medium transition-colors">
+                                    Auto-Fill
+                                </button>
+                                <button onClick={requestClearAll} className="px-3 py-1 bg-red-500 hover:bg-red-400 rounded text-sm font-medium transition-colors flex items-center">
+                                    <Icons.Trash2 className="w-4 h-4 mr-1" />
+                                    Clear & Exit
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* CONFIRMATION MODAL */}
+                    <ConfirmationModal 
+                        isOpen={confirmState.isOpen} 
+                        message={confirmState.msg} 
+                        onConfirm={confirmAction} 
+                        onCancel={() => setConfirmState({ isOpen: false })} 
+                    />
+
+                    {/* AUTH MODAL */}
+                    {showAuthModal && (
+                        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+                            <div className="bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full">
+                                <div className="text-center mb-6">
+                                    <div className="bg-indigo-100 p-3 rounded-full inline-block mb-3">
+                                        <Icons.Lock className="w-8 h-8 text-indigo-600" />
+                                    </div>
+                                    <h2 className="text-xl font-bold">Instructor Access</h2>
+                                </div>
+                                <form onSubmit={attemptUnlock}>
+                                    <input 
+                                        type="password" 
+                                        autoFocus
+                                        placeholder="Enter Password..."
+                                        className="w-full p-3 border rounded-lg mb-4 focus:ring-2 focus:ring-indigo-500 outline-none"
+                                        value={authPass}
+                                        onChange={e => setAuthPass(e.target.value)}
+                                    />
+                                    {authError && <p className="text-red-500 text-sm mb-4">Incorrect password.</p>}
+                                    <div className="flex justify-end space-x-2">
+                                        <button type="button" onClick={() => setShowAuthModal(false)} className="px-4 py-2 text-slate-500 hover:bg-slate-100 rounded">Cancel</button>
+                                        <button type="submit" className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700">Unlock</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* DASHBOARD MODAL */}
+                    {showDashModal && (
+                        <div className="fixed inset-0 bg-slate-900/90 z-[60] flex items-center justify-center p-4 overflow-y-auto">
+                            <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[90vh]">
+                                <div className="bg-purple-900 p-4 flex justify-between items-center text-white shrink-0">
+                                    <h2 className="font-bold text-lg flex items-center"><Icons.Key className="w-5 h-5 mr-2"/> Instructor Dashboard</h2>
+                                    <button onClick={() => setShowDashModal(false)}><Icons.XCircle className="w-6 h-6 hover:text-purple-300"/></button>
+                                </div>
+                                <div className="p-6 overflow-y-auto">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                        <div>
+                                            <h3 className="font-bold text-slate-800 border-b pb-2 mb-4">Answer Key</h3>
+                                            <div className="overflow-x-auto">
+                                                <table className="w-full text-sm">
+                                                    <thead>
+                                                        <tr className="bg-slate-100 text-left"><th className="p-2">Q</th><th className="p-2">Label</th><th className="p-2">Value</th></tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {QUESTIONS.map((q, i) => (
+                                                            <tr key={q.id} className="border-b">
+                                                                <td className="p-2 font-mono text-slate-500">{i+1}</td>
+                                                                <td className="p-2">{q.label || "Choice Question"}</td>
+                                                                <td className="p-2 font-mono font-bold text-purple-700">{q.correctValue}</td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                        <div className="space-y-8">
+                                            <div className="bg-slate-50 p-4 rounded-lg border">
+                                                <h3 className="font-bold text-slate-800 mb-2">Submission Verifier</h3>
+                                                <p className="text-xs text-slate-500 mb-2">Paste hash from bottom of student text file.</p>
+                                                <textarea 
+                                                    className="w-full p-2 border rounded text-xs font-mono" 
+                                                    rows="3" 
+                                                    placeholder="Paste Hash Here..."
+                                                    value={hashInput}
+                                                    onChange={e => setHashInput(e.target.value)}
+                                                />
+                                                <button onClick={verifyHash} className="mt-2 w-full py-2 bg-indigo-600 text-white rounded text-sm">Verify</button>
+                                                {verifyResult && (
+                                                    <div className={`mt-2 p-2 rounded text-sm ${verifyResult.valid ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}`}>
+                                                        {verifyResult.valid ? (
+                                                            <>
+                                                                <div><strong>Verified!</strong></div>
+                                                                <div>Name: {verifyResult.data.n}</div>
+                                                                <div>Score: {verifyResult.data.s}%</div>
+                                                                <div className="text-xs opacity-75">{new Date(verifyResult.data.t).toLocaleString()}</div>
+                                                            </>
+                                                        ) : "Invalid Hash / Tampered"}
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <div className="bg-slate-50 p-4 rounded-lg border">
+                                                <h3 className="font-bold text-slate-800 mb-2">Hash Generator</h3>
+                                                <div className="flex space-x-2 mb-2">
+                                                    <input type="text" placeholder="Name" className="flex-1 p-2 border rounded text-sm" value={manualName} onChange={e => setManualName(e.target.value)}/>
+                                                    <input type="number" placeholder="Score" className="w-20 p-2 border rounded text-sm" value={manualScore} onChange={e => setManualScore(e.target.value)}/>
+                                                </div>
+                                                <button onClick={generateManualHash} className="w-full py-2 bg-slate-700 text-white rounded text-sm">Generate Valid Hash</button>
+                                                {generatedHash && (
+                                                    <div className="mt-2 p-2 bg-slate-200 rounded font-mono text-xs break-all select-all">
+                                                        {generatedHash}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* SIDEBAR DATA PANEL */}
+                    <div className={`md:w-80 bg-slate-900 text-slate-100 flex flex-col h-screen md:sticky md:top-0 border-r border-slate-800 shrink-0 ${instructorUnlocked ? 'mt-16' : ''}`}>
+                        <div className="p-6 overflow-y-auto flex-1 scrollbar-thin">
+                            <h2 className="text-lg font-bold text-indigo-400 mb-6 flex items-center gap-2">
+                                <Icons.Calculator /> Data Terminal
+                            </h2>
+                            
+                            <div className="space-y-6 text-sm">
+                                <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-700">
+                                    <h3 className="text-xs uppercase tracking-wider text-slate-500 mb-3 font-semibold">Current Year ($M)</h3>
+                                    <DataRow label="LIFO Inventory" value={GAME_DATA.currentYear.lifoInventory} />
+                                    <DataRow label="LIFO Reserve" value={GAME_DATA.currentYear.lifoReserve} highlight />
+                                    <DataRow label="Total Assets" value={GAME_DATA.currentYear.totalAssets} />
+                                    <DataRow label="Revenue" value={GAME_DATA.currentYear.revenue} />
+                                    <DataRow label="COGS" value={GAME_DATA.currentYear.cogs} />
+                                    <DataRow label="Net Income" value={GAME_DATA.currentYear.netIncome} />
+                                </div>
+                                <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-700 opacity-75">
+                                    <h3 className="text-xs uppercase tracking-wider text-slate-500 mb-3 font-semibold">Prior Year ($M)</h3>
+                                    <DataRow label="LIFO Inventory" value={GAME_DATA.priorYear.lifoInventory} />
+                                    <DataRow label="LIFO Reserve" value={GAME_DATA.priorYear.lifoReserve} highlight />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* MAIN CONTENT AREA */}
+                    <div className={`flex-1 flex flex-col min-h-screen bg-slate-50 ${instructorUnlocked ? 'mt-16' : ''}`}>
+                        {/* Header */}
+                        <header className="bg-white p-4 border-b flex justify-between items-center sticky top-0 z-40 shadow-sm">
+                            <h1 className="font-bold text-lg text-slate-800">Financial Analysis Module</h1>
+                            <button 
+                                onClick={() => setShowAuthModal(true)}
+                                className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition text-sm font-medium"
+                            >
+                                <Icons.Lock className="w-4 h-4" />
+                                <span>Instructor</span>
+                            </button>
+                        </header>
+
+                        <main className="flex-1 p-4 md:p-8 max-w-4xl mx-auto w-full">
+                            {!gameComplete ? (
+                                <div className="animate-fade-in space-y-12 pb-20">
+                                    <div className="bg-indigo-50 border border-indigo-100 p-6 rounded-xl">
+                                        <h2 className="text-xl font-bold text-indigo-900 mb-2">Instructions</h2>
+                                        <p className="text-indigo-800">
+                                            Complete all sections below using the Data Terminal on the left. 
+                                            You may enter math directly into the input fields (e.g., 500/2). 
+                                            When finished, enter your name at the bottom and submit.
+                                        </p>
+                                    </div>
+
+                                    {LEVELS.map((level) => (
+                                        <div key={level.id} className="scroll-mt-20">
+                                            <div className="flex items-center gap-3 mb-6">
+                                                <div className="p-2 bg-slate-200 text-slate-700 rounded-lg">{level.icon}</div>
+                                                <div>
+                                                    <h2 className="text-xl font-bold text-slate-800">{level.title}</h2>
+                                                    <p className="text-sm text-slate-500">{level.description}</p>
+                                                </div>
+                                            </div>
+                                            
+                                            <div className="space-y-6">
+                                                {QUESTIONS.filter(q => q.level === level.id).map(q => (
+                                                    <QuestionCard 
+                                                        key={q.id} 
+                                                        question={q} 
+                                                        answer={answers[q.id]}
+                                                        instructorUnlocked={instructorUnlocked}
+                                                        onAnswerChange={(val) => handleAnswerChange(q.id, val)}
+                                                    />
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ))}
+
+                                    {/* Submission Footer */}
+                                    <div className="bg-slate-800 text-white p-8 rounded-2xl shadow-xl mt-12">
+                                        <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+                                            <Icons.User className="w-6 h-6"/> Submission
+                                        </h3>
+                                        <div className="max-w-md space-y-4">
+                                            <div>
+                                                <label className="block text-sm font-medium text-slate-400 mb-1">Student Name</label>
+                                                <input 
+                                                    type="text" 
+                                                    value={studentName}
+                                                    onChange={(e) => setStudentName(e.target.value)}
+                                                    placeholder="Enter your full name..."
+                                                    className="w-full p-3 rounded bg-slate-700 border border-slate-600 text-white placeholder-slate-400 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                                                />
+                                            </div>
+                                            <button 
+                                                onClick={handleFinish}
+                                                className="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-3 rounded-lg font-bold shadow-lg transition-all flex justify-center items-center gap-2"
+                                            >
+                                                Submit Assessment <Icons.ArrowRight className="w-5 h-5"/>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="bg-white rounded-2xl shadow-xl p-10 text-center animate-fade-in max-w-lg mx-auto mt-12">
+                                    <div className="inline-block p-4 bg-emerald-100 rounded-full text-emerald-600 mb-6">
+                                        <Icons.Award className="w-12 h-12" />
+                                    </div>
+                                    <h2 className="text-3xl font-bold text-slate-800 mb-4">Assessment Submitted</h2>
+                                    <p className="text-slate-600 mb-8">
+                                        Thank you, <span className="font-bold text-slate-900">{studentName}</span>. 
+                                        Your responses have been recorded. Please download your official submission report below.
+                                    </p>
+                                    <div className="space-y-3">
+                                        <button 
+                                            onClick={generateSubmission}
+                                            className="w-full py-4 bg-indigo-600 text-white rounded-xl font-bold text-lg hover:bg-indigo-700 transition shadow-lg flex items-center justify-center gap-2"
+                                        >
+                                            <Icons.Download className="w-6 h-6"/>
+                                            Download Report
+                                        </button>
+                                        <button 
+                                            onClick={() => window.location.reload()}
+                                            className="w-full py-3 text-slate-500 hover:text-slate-800 font-medium"
+                                        >
+                                            Start Over
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </main>
+                    </div>
+                </div>
+            );
+        }
+
+        const DataRow = ({ label, value, highlight }) => (
+            <div className={`flex justify-between py-1 border-b border-slate-700/50 last:border-0 ${highlight ? 'text-amber-400 font-medium' : 'text-slate-300'}`}>
+                <span>{label}</span>
+                <span className="font-mono">{typeof value === 'number' ? value.toLocaleString() : value}</span>
+            </div>
+        );
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<FinancialAnalystSim />);
+    </script>
+</body>
+</html>

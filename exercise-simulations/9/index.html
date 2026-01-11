@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E9-9: Investment Accounting Simulator</title>
+    
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        body {
+            background-color: #0f172a; /* Slate 900 */
+            color: #e2e8f0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+        /* Animation classes */
+        .fade-in { animation: fadeIn 0.4s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .sticky-toolbar {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Table Styles */
+        .fin-table th {
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+        }
+        .fin-table td {
+            vertical-align: top;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo, useRef } = React;
+
+        // --- ICONS COMPONENT ---
+        // Critical: Manually triggers Lucide to replace <i> tags
+        const Icon = ({ name, size = 16, className, label }) => {
+            useEffect(() => {
+                if (window.lucide) window.lucide.createIcons();
+            }, [name]);
+
+            return (
+                <span className={`inline-flex items-center gap-1 ${className}`}>
+                    <i data-lucide={name} width={size} height={size}></i>
+                    {label && <span>{label}</span>}
+                </span>
+            );
+        };
+
+        // --- DATA CONFIGURATION ---
+        const SCENARIO_A_DATA = [
+            { 
+                id: 'a1', 
+                text: "a. Purchase 5,000 common shares ($30/share)", 
+                correct: { cash: -150000, noncash: 150000, liab: 0, cc: 0, ec: 0, rev: 0, exp: 0, ni: 0 } 
+            },
+            { 
+                id: 'a2', 
+                text: "b. Report net income (Cloud reports $88,000)", 
+                correct: { cash: 0, noncash: 0, liab: 0, cc: 0, ec: 0, rev: 0, exp: 0, ni: 0 } 
+            },
+            { 
+                id: 'a3', 
+                text: "c. Record receipt of cash dividend ($1.10/share)", 
+                correct: { cash: 5500, noncash: 0, liab: 0, cc: 0, ec: 5500, rev: 5500, exp: 0, ni: 5500 } 
+            },
+            { 
+                id: 'a4', 
+                text: "d. Record change in share market value (Price $38/share)", 
+                correct: { cash: 0, noncash: 40000, liab: 0, cc: 0, ec: 40000, rev: 40000, exp: 0, ni: 40000 } 
+            }
+        ];
+
+        const SCENARIO_B_DATA = [
+            { 
+                id: 'b1', 
+                text: "a. Purchase 5,000 common shares ($30/share)", 
+                correct: { cash: -150000, noncash: 150000, liab: 0, cc: 0, ec: 0, rev: 0, exp: 0, ni: 0 } 
+            },
+            { 
+                id: 'b2', 
+                text: "b. Report share of net income (30% of $88,000)", 
+                correct: { cash: 0, noncash: 26400, liab: 0, cc: 0, ec: 26400, rev: 26400, exp: 0, ni: 26400 } 
+            },
+            { 
+                id: 'b3', 
+                text: "c. Record receipt of cash dividend ($1.10/share)", 
+                correct: { cash: 5500, noncash: -5500, liab: 0, cc: 0, ec: 0, rev: 0, exp: 0, ni: 0 } 
+            },
+            { 
+                id: 'b4', 
+                text: "d. Record change in share market value (Price $38/share)", 
+                correct: { cash: 0, noncash: 0, liab: 0, cc: 0, ec: 0, rev: 0, exp: 0, ni: 0 } 
+            }
+        ];
+
+        const QUIZ_DATA = [
+            {
+                id: 'q1',
+                question: "How are dividends received treated under the Equity Method compared to Passive Investment?",
+                options: [
+                    "Both methods record dividends as Investment Income.",
+                    "Equity Method records them as a reduction of the Investment account; Passive records them as Revenue.",
+                    "Equity Method records them as Revenue; Passive records them as a reduction of the Investment account.",
+                    "Both methods ignore dividends."
+                ],
+                correctIndex: 1
+            },
+            {
+                id: 'q2',
+                question: "How does the Investee's Net Income affect the Investor's books?",
+                options: [
+                    "Passive: Increases Investment Asset | Equity: No Entry",
+                    "Passive: Records Revenue | Equity: Records Dividend Income",
+                    "Passive: No Entry (ignore) | Equity: Increases Investment Asset & Records Revenue",
+                    "Both methods record a share of Net Income as Revenue."
+                ],
+                correctIndex: 2
+            },
+            {
+                id: 'q3',
+                question: "At year-end, the stock price increased. How is this handled?",
+                options: [
+                    "Passive: Recognize Unrealized Gain in Net Income | Equity: No Entry (ignore fair value changes).",
+                    "Passive: No Entry | Equity: Increase Investment account to Fair Value.",
+                    "Both methods recognize the gain in Net Income.",
+                    "Both methods adjust the Investment account to market value but record it in OCI."
+                ],
+                correctIndex: 0
+            },
+            {
+                id: 'q4',
+                question: "Which method generally results in a higher Investment Asset balance over time if the investee is profitable and retains earnings?",
+                options: [
+                    "Passive Investment Method",
+                    "Equity Method",
+                    "They result in the exact same balance.",
+                    "Impossible to determine."
+                ],
+                correctIndex: 1
+            }
+        ];
+
+        // --- COMPONENT: SMART INPUT ---
+        const SmartInput = ({ 
+            value, 
+            onChange, 
+            correctValue, 
+            isPct = false, 
+            instructorMode,
+            placeholder = "0"
+        }) => {
+            const [localVal, setLocalVal] = useState(value || "");
+            const [isValid, setIsValid] = useState(null);
+
+            // Sync with parent state
+            useEffect(() => {
+                setLocalVal(value === 0 || value ? value : "");
+                if (value === "" || value === undefined) setIsValid(null);
+                else validate(value);
+            }, [value]);
+
+            const validate = (val) => {
+                if (val === "" || val === null || val === undefined) {
+                    setIsValid(null);
+                    return;
+                }
+                const numVal = parseFloat(val);
+                if (isNaN(numVal)) {
+                    setIsValid(false);
+                    return;
+                }
+                const target = parseFloat(correctValue);
+                if (isNaN(target)) return;
+
+                let valid = false;
+                // Tolerance Check (Absolute or Relative)
+                if (Math.abs(numVal - target) < 0.01) valid = true;
+                else if (target !== 0 && Math.abs((numVal - target) / target) <= 0.02) valid = true; // 2% tolerance
+                
+                // Percentage logic handling (e.g. 6.7 vs 0.067)
+                if (!valid && isPct) {
+                    const altVal = numVal / 100;
+                    if (Math.abs(altVal - target) < 0.001) valid = true;
+                }
+                setIsValid(valid);
+            };
+
+            const handleBlur = () => {
+                let processedVal = localVal;
+                // Math Expression Evaluation
+                if (typeof localVal === 'string') {
+                    // Remove commas for calculation
+                    const cleanStr = localVal.replace(/,/g, '');
+                    // Check if it's a math expression
+                    if (cleanStr.match(/[+\-*\/]/)) {
+                        try {
+                            // Safe eval for numbers only
+                            const result = Function('"use strict";return (' + cleanStr.replace(/[^0-9+\-*\/.\(\)]/g, '') + ')')();
+                            if (isFinite(result)) {
+                                processedVal = parseFloat(result.toFixed(2));
+                                onChange(processedVal); // Update parent
+                            }
+                        } catch (e) {
+                            // Invalid math, leave as is
+                        }
+                    }
+                }
+                validate(processedVal);
+            };
+
+            const handleKeyDown = (e) => {
+                if (e.key === 'Enter') {
+                    e.target.blur();
+                }
+            };
+
+            // Styles
+            let borderClass = "border-slate-600 focus:border-blue-500 bg-[#1e293b]";
+            if (isValid === true) borderClass = "border-green-500 bg-green-900/20 text-green-300";
+            else if (isValid === false) borderClass = "border-red-500 bg-red-900/20 text-red-300";
+
+            return (
+                <div className="relative w-full group">
+                    <input
+                        type="text"
+                        className={`w-full px-2 py-1.5 text-right text-sm rounded border outline-none transition-all font-mono ${borderClass}`}
+                        value={localVal}
+                        onChange={(e) => { setLocalVal(e.target.value); onChange(e.target.value); }}
+                        onBlur={handleBlur}
+                        onKeyDown={handleKeyDown}
+                        placeholder={placeholder}
+                    />
+                    {isValid === true && (
+                        <div className="absolute right-1 top-2 text-green-500 pointer-events-none">
+                            <Icon name="check" size={12} />
+                        </div>
+                    )}
+                    {instructorMode && (
+                        <div className="mt-1 text-[10px] font-bold text-center bg-purple-900/80 text-purple-200 border border-purple-500/30 rounded py-0.5 fade-in shadow-lg">
+                            Key: {correctValue}
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // --- MAIN APPLICATION ---
+        const App = () => {
+            const [activeTab, setActiveTab] = useState('A'); // A, B, or Quiz
+            
+            // --- STATE MANAGEMENT ---
+            // State for Scenario A
+            const [transA, setTransA] = useState(SCENARIO_A_DATA.map(t => ({
+                ...t,
+                userValues: { cash: '', noncash: '', liab: '', cc: '', ec: '', rev: '', exp: '' }
+            })));
+
+            // State for Scenario B
+            const [transB, setTransB] = useState(SCENARIO_B_DATA.map(t => ({
+                ...t,
+                userValues: { cash: '', noncash: '', liab: '', cc: '', ec: '', rev: '', exp: '' }
+            })));
+
+            // State for Quiz
+            const [quizAnswers, setQuizAnswers] = useState({});
+
+            // Instructor & Modal States
+            const [showAuthModal, setShowAuthModal] = useState(false);
+            const [isInstructor, setIsInstructor] = useState(false);
+            const [teacherPass, setTeacherPass] = useState('');
+            const [authError, setAuthError] = useState('');
+            
+            const [confirmation, setConfirmation] = useState({ isOpen: false, message: '', onConfirm: null });
+            const [showDownloadModal, setShowDownloadModal] = useState(false);
+            const [studentName, setStudentName] = useState('');
+
+            // Verification Tool States
+            const [verifyHash, setVerifyHash] = useState('');
+            const [verifyResult, setVerifyResult] = useState(null);
+            const [genName, setGenName] = useState('');
+            const [genScore, setGenScore] = useState('');
+            const [generatedHash, setGeneratedHash] = useState('');
+
+            // --- COMPUTED TOTALS & BALANCE CHECK ---
+            const calculateTotals = (transactions) => {
+                const sums = { cash: 0, noncash: 0, liab: 0, cc: 0, ec: 0, rev: 0, exp: 0, ni: 0 };
+                transactions.forEach(t => {
+                    const rRev = parseFloat(t.userValues.rev) || 0;
+                    const rExp = parseFloat(t.userValues.exp) || 0;
+                    const rNI = rRev - rExp;
+                    
+                    sums.cash += parseFloat(t.userValues.cash) || 0;
+                    sums.noncash += parseFloat(t.userValues.noncash) || 0;
+                    sums.liab += parseFloat(t.userValues.liab) || 0;
+                    sums.cc += parseFloat(t.userValues.cc) || 0;
+                    sums.ec += (parseFloat(t.userValues.ec) || 0) + rNI; // Add NI to EC for balance check
+                    sums.rev += rRev;
+                    sums.exp += rExp;
+                    sums.ni += rNI;
+                });
+                return sums;
+            };
+
+            const totalsA = useMemo(() => calculateTotals(transA), [transA]);
+            const totalsB = useMemo(() => calculateTotals(transB), [transB]);
+
+            const isBalancedA = Math.abs((totalsA.cash + totalsA.noncash) - (totalsA.liab + totalsA.cc + totalsA.ec)) < 0.1;
+            const isBalancedB = Math.abs((totalsB.cash + totalsB.noncash) - (totalsB.liab + totalsB.cc + totalsB.ec)) < 0.1;
+
+            const quizScore = useMemo(() => {
+                let score = 0;
+                QUIZ_DATA.forEach(q => {
+                    if (quizAnswers[q.id] === q.correctIndex) score++;
+                });
+                return score;
+            }, [quizAnswers]);
+
+            // --- HANDLERS ---
+            const handleTransChange = (scenario, id, field, val) => {
+                const setFunc = scenario === 'A' ? setTransA : setTransB;
+                setFunc(prev => prev.map(t => t.id === id ? {
+                    ...t,
+                    userValues: { ...t.userValues, [field]: val }
+                } : t));
+            };
+
+            const handleQuizSelect = (qId, optionIndex) => {
+                setQuizAnswers(prev => ({...prev, [qId]: optionIndex}));
+            };
+
+            // --- INSTRUCTOR FUNCTIONS ---
+            const attemptLogin = () => {
+                if (teacherPass.toLowerCase() === 'teacher') {
+                    setIsInstructor(true);
+                    setShowAuthModal(false);
+                    setAuthError('');
+                    setTeacherPass('');
+                } else {
+                    setAuthError('Incorrect Password');
+                }
+            };
+
+            const autoFill = () => {
+                const fillValues = (item) => ({
+                    ...item,
+                    userValues: { ...item.correct }
+                });
+                
+                if (activeTab === 'A') {
+                    setTransA(prev => prev.map(fillValues));
+                } else if (activeTab === 'B') {
+                    setTransB(prev => prev.map(fillValues));
+                } else {
+                    // Fill Quiz
+                    const autoQuiz = {};
+                    QUIZ_DATA.forEach(q => autoQuiz[q.id] = q.correctIndex);
+                    setQuizAnswers(autoQuiz);
+                }
+            };
+
+            const performClear = () => {
+                const clearValues = (item) => ({
+                    ...item,
+                    userValues: { cash: '', noncash: '', liab: '', cc: '', ec: '', rev: '', exp: '' }
+                });
+                setTransA(prev => prev.map(clearValues));
+                setTransB(prev => prev.map(clearValues));
+                setQuizAnswers({});
+                setIsInstructor(false);
+                setConfirmation({ isOpen: false, message: '', onConfirm: null });
+            };
+
+            const clearAll = () => {
+                setConfirmation({
+                    isOpen: true,
+                    message: "Clear all data (Tables & Quiz) and exit Instructor Mode?",
+                    onConfirm: performClear
+                });
+            };
+
+            // --- DOWNLOAD/EXPORT ---
+            const executeDownload = () => {
+                try {
+                    const name = studentName || "Student";
+                    const score = (isBalancedA && isBalancedB) ? "Balanced" : "Review Needed";
+                    const quizPct = Math.round((quizScore / QUIZ_DATA.length) * 100);
+
+                    // Create verification payload
+                    const payload = JSON.stringify({
+                        name: name,
+                        score: score,
+                        niA: totalsA.ni,
+                        niB: totalsB.ni,
+                        qScore: quizPct,
+                        timestamp: new Date().toISOString()
+                    });
+                    const hash = btoa(payload);
+
+                    const content = `
+E9-9 INVESTMENT SCENARIOS - SUBMISSION
+Student: ${name}
+Date: ${new Date().toLocaleString()}
+Status: ${score}
+Quiz Score: ${quizPct}% (${quizScore}/${QUIZ_DATA.length})
+
+-- SCENARIO A: PASSIVE INVESTMENT --
+Cash: ${totalsA.cash}
+Investment (Non-cash): ${totalsA.noncash}
+Net Income Impact: ${totalsA.ni}
+Balanced: ${isBalancedA ? 'Yes' : 'No'}
+
+-- SCENARIO B: EQUITY METHOD --
+Cash: ${totalsB.cash}
+Investment (Non-cash): ${totalsB.noncash}
+Net Income Impact: ${totalsB.ni}
+Balanced: ${isBalancedB ? 'Yes' : 'No'}
+
+-- COMPARATIVE QUIZ RESULTS --
+${QUIZ_DATA.map(q => {
+    const ans = quizAnswers[q.id];
+    return `Q: ${q.question}\nSelected: ${ans !== undefined ? q.options[ans] : 'No Answer'}\nCorrect: ${ans === q.correctIndex ? 'Yes' : 'No'}`;
+}).join('\n\n')}
+
+-- VERIFICATION HASH --
+${hash}
+`.trim();
+
+                    const blob = new Blob([content], { type: 'text/plain' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `${name.replace(/\s+/g, '_')}_E9-9_Submission.txt`;
+                    document.body.appendChild(a);
+                    a.click();
+                    setTimeout(() => {
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                        setShowDownloadModal(false);
+                        setStudentName('');
+                    }, 100);
+                } catch (e) {
+                    alert("Error creating file: " + e.message);
+                }
+            };
+
+            // --- VERIFICATION TOOLS ---
+            const verifyCode = () => {
+                try {
+                    const decoded = atob(verifyHash);
+                    const json = JSON.parse(decoded);
+                    setVerifyResult(json);
+                } catch (e) {
+                    setVerifyResult({ error: "Invalid Hash Format" });
+                }
+            };
+            
+            const generateAdminHash = () => {
+                if(!genName || !genScore) return;
+                const payload = JSON.stringify({
+                    name: genName,
+                    score: genScore,
+                    timestamp: new Date().toISOString(),
+                    admin_generated: true
+                });
+                setGeneratedHash(btoa(payload));
+            };
+
+            // --- RENDER HELPERS ---
+            const renderTable = (data, scenarioId, totals, isBalanced) => (
+                <div className="overflow-x-auto rounded-lg border border-slate-700 shadow-xl bg-[#1e293b] animate-fade-in">
+                    <table className="w-full text-left fin-table min-w-[1000px]">
+                        <thead>
+                            <tr className="bg-slate-900 text-slate-300 border-b border-slate-700">
+                                <th className="p-3 w-64 border-r border-slate-700 sticky left-0 bg-slate-900 z-10">Transaction</th>
+                                <th className="text-center border-r border-slate-700 bg-emerald-900/30" colSpan="2">Assets</th>
+                                <th className="text-center w-8 text-slate-500 font-bold">=</th>
+                                <th className="text-center border-r border-slate-700 bg-red-900/30">Liabilities</th>
+                                <th className="text-center w-8 text-slate-500 font-bold">+</th>
+                                <th className="text-center border-r border-slate-700 bg-blue-900/30" colSpan="2">Equity</th>
+                                <th className="w-1 bg-slate-800"></th>
+                                <th className="text-center bg-purple-900/30" colSpan="3">Income Statement</th>
+                            </tr>
+                            <tr className="bg-slate-800 text-xs text-slate-400 border-b border-slate-700">
+                                <th className="p-2 border-r border-slate-700 sticky left-0 bg-slate-800 z-10"></th>
+                                <th className="p-2 border-r border-slate-700 w-32">Cash</th>
+                                <th className="p-2 border-r border-slate-700 w-32">Non-Cash Assets</th>
+                                <th></th>
+                                <th className="p-2 border-r border-slate-700 w-32">Liabilities</th>
+                                <th></th>
+                                <th className="p-2 border-r border-slate-700 w-32">Contrib. Capital</th>
+                                <th className="p-2 border-r border-slate-700 w-32">Earned Capital</th>
+                                <th className="w-1 bg-slate-800"></th>
+                                <th className="p-2 border-r border-slate-700 w-28">Revenue</th>
+                                <th className="p-2 border-r border-slate-700 w-28">Expense</th>
+                                <th className="p-2 w-24">Net Income</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {data.map((row) => (
+                                <tr key={row.id} className="border-b border-slate-700/50 hover:bg-slate-800/50 transition-colors group">
+                                    <td className="p-3 text-sm text-slate-200 border-r border-slate-700 bg-[#1e293b] group-hover:bg-[#253045] sticky left-0 z-10 font-medium">
+                                        {row.text}
+                                    </td>
+                                    
+                                    {/* Assets */}
+                                    <td className="p-2 border-r border-slate-700/50">
+                                        <SmartInput value={row.userValues.cash} onChange={v => handleTransChange(scenarioId, row.id, 'cash', v)} correctValue={row.correct.cash} instructorMode={isInstructor} />
+                                    </td>
+                                    <td className="p-2 border-r border-slate-700/50">
+                                        <SmartInput value={row.userValues.noncash} onChange={v => handleTransChange(scenarioId, row.id, 'noncash', v)} correctValue={row.correct.noncash} instructorMode={isInstructor} />
+                                    </td>
+
+                                    <td className="text-center py-3 text-slate-600 font-bold">=</td>
+
+                                    {/* Liab */}
+                                    <td className="p-2 border-r border-slate-700/50">
+                                        <SmartInput value={row.userValues.liab} onChange={v => handleTransChange(scenarioId, row.id, 'liab', v)} correctValue={row.correct.liab} instructorMode={isInstructor} />
+                                    </td>
+
+                                    <td className="text-center py-3 text-slate-600 font-bold">+</td>
+
+                                    {/* Equity */}
+                                    <td className="p-2 border-r border-slate-700/50">
+                                        <SmartInput value={row.userValues.cc} onChange={v => handleTransChange(scenarioId, row.id, 'cc', v)} correctValue={row.correct.cc} instructorMode={isInstructor} />
+                                    </td>
+                                    <td className="p-2 border-r border-slate-700/50">
+                                        <SmartInput value={row.userValues.ec} onChange={v => handleTransChange(scenarioId, row.id, 'ec', v)} correctValue={row.correct.ec} instructorMode={isInstructor} />
+                                    </td>
+
+                                    <td className="w-1 bg-slate-800"></td>
+
+                                    {/* Income Statement */}
+                                    <td className="p-2 border-r border-slate-700/50">
+                                        <SmartInput value={row.userValues.rev} onChange={v => handleTransChange(scenarioId, row.id, 'rev', v)} correctValue={row.correct.rev} instructorMode={isInstructor} />
+                                    </td>
+                                    <td className="p-2 border-r border-slate-700/50">
+                                        <SmartInput value={row.userValues.exp} onChange={v => handleTransChange(scenarioId, row.id, 'exp', v)} correctValue={row.correct.exp} instructorMode={isInstructor} />
+                                    </td>
+                                    
+                                    {/* Calculated NI Display */}
+                                    <td className="p-2 text-center">
+                                        <div className={`py-1 px-2 rounded font-mono font-bold text-sm ${
+                                            ((parseFloat(row.userValues.rev) || 0) - (parseFloat(row.userValues.exp) || 0)) !== 0 ? 'bg-purple-900/40 text-purple-300' : 'text-slate-600'
+                                        }`}>
+                                            {((parseFloat(row.userValues.rev) || 0) - (parseFloat(row.userValues.exp) || 0)) || '-'}
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                        <tfoot>
+                            <tr className={`font-bold border-t-2 border-slate-500 ${isBalanced ? 'bg-emerald-900/20 text-emerald-400' : 'bg-red-900/20 text-orange-400'}`}>
+                                <td className="p-3 text-right sticky left-0 z-10 bg-slate-800 border-r border-slate-600">TOTALS:</td>
+                                <td className="p-2 text-center">{totals.cash}</td>
+                                <td className="p-2 text-center">{totals.noncash}</td>
+                                <td></td>
+                                <td className="p-2 text-center">{totals.liab}</td>
+                                <td></td>
+                                <td className="p-2 text-center">{totals.cc}</td>
+                                <td className="p-2 text-center">{totals.ec}</td>
+                                <td className="bg-slate-800"></td>
+                                <td className="p-2 text-center">{totals.rev}</td>
+                                <td className="p-2 text-center">{totals.exp}</td>
+                                <td className="p-2 text-center">{totals.ni}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            );
+
+            return (
+                <div className="min-h-screen pb-24">
+                    {/* TOP NAVIGATION */}
+                    <nav className="bg-slate-900 border-b border-slate-700 px-6 py-4 flex justify-between items-center shadow-md relative z-40">
+                        <div>
+                            <h1 className="text-xl md:text-2xl font-bold text-blue-400 flex items-center gap-2">
+                                <Icon name="calculator" className="text-blue-500" />
+                                E9-9: Investments
+                            </h1>
+                            <p className="text-slate-500 text-xs">Sky Corporation & Cloud Company Scenarios</p>
+                        </div>
+                        <button 
+                            onClick={() => setShowAuthModal(true)}
+                            className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 px-4 py-2 rounded text-slate-300 transition-colors border border-slate-600 group"
+                        >
+                            <Icon name="lock" size={16} className="text-slate-400 group-hover:text-white" label="Instructor" />
+                        </button>
+                    </nav>
+
+                    {/* INSTRUCTOR TOOLBAR */}
+                    {isInstructor && (
+                        <div className="sticky-toolbar bg-purple-900/95 backdrop-blur-md text-white border-b-4 border-purple-500 fade-in p-3">
+                            <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="bg-purple-800 p-2 rounded-full"><Icon name="shield-check" className="text-green-300" /></div>
+                                    <div>
+                                        <div className="font-bold text-sm uppercase tracking-wide text-purple-200">Instructor Mode Active</div>
+                                        <div className="text-xs text-purple-300">Keys visible • Tools unlocked</div>
+                                    </div>
+                                </div>
+                                <div className="flex gap-3">
+                                    <button onClick={autoFill} className="bg-blue-600 hover:bg-blue-500 px-4 py-1.5 rounded-md font-bold shadow-lg flex items-center gap-2 text-sm transition-all hover:scale-105 active:scale-95">
+                                        <Icon name="wand-2" size={16} label="Auto-Fill" />
+                                    </button>
+                                    <button onClick={clearAll} className="bg-red-600 hover:bg-red-500 px-4 py-1.5 rounded-md font-bold shadow-lg flex items-center gap-2 text-sm transition-all hover:scale-105 active:scale-95">
+                                        <Icon name="trash-2" size={16} label="Clear All" />
+                                    </button>
+                                </div>
+                            </div>
+                             {/* Verification Tools Panel */}
+                             <div className="max-w-7xl mx-auto mt-3 pt-3 border-t border-purple-700 grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
+                                {/* Verifier */}
+                                <div className="flex gap-2 items-center bg-purple-950/50 p-2 rounded border border-purple-800">
+                                    <input 
+                                        value={verifyHash} 
+                                        onChange={e => setVerifyHash(e.target.value)} 
+                                        placeholder="Paste Student Verification Hash..." 
+                                        className="bg-purple-900 text-white px-2 py-1 rounded border border-purple-600 flex-1 outline-none font-mono text-xs"
+                                    />
+                                    <button onClick={verifyCode} className="bg-emerald-600 px-3 py-1 rounded text-white font-bold text-xs hover:bg-emerald-500">Verify</button>
+                                </div>
+                                {verifyResult && (
+                                    <div className="col-span-1 md:col-span-2 bg-black/40 p-2 rounded text-xs border border-purple-500/30">
+                                        {verifyResult.error ? <span className="text-red-300 font-bold">{verifyResult.error}</span> : 
+                                            <div className="flex justify-between text-green-300">
+                                                <span><span className="text-purple-300">Student:</span> {verifyResult.name}</span>
+                                                <span><span className="text-purple-300">Score:</span> {verifyResult.score}</span>
+                                                <span><span className="text-purple-300">Time:</span> {new Date(verifyResult.timestamp).toLocaleTimeString()}</span>
+                                            </div>
+                                        }
+                                    </div>
+                                )}
+                                {/* Generator */}
+                                <div className="flex gap-2 items-center bg-purple-950/50 p-2 rounded border border-purple-800">
+                                    <span className="text-purple-300 font-bold text-xs">HASH GEN:</span>
+                                    <input value={genName} onChange={e => setGenName(e.target.value)} placeholder="Name" className="w-24 bg-purple-900 px-2 py-1 rounded border border-purple-600 text-xs" />
+                                    <input value={genScore} onChange={e => setGenScore(e.target.value)} placeholder="Score" className="w-16 bg-purple-900 px-2 py-1 rounded border border-purple-600 text-xs" />
+                                    <button onClick={generateAdminHash} className="bg-blue-600 px-3 py-1 rounded text-white text-xs hover:bg-blue-500">Gen</button>
+                                    {generatedHash && <span className="ml-auto font-mono text-[10px] bg-black px-2 py-1 rounded select-all cursor-pointer truncate max-w-[100px]" title={generatedHash}>{generatedHash.substring(0,12)}...</span>}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* MAIN CONTENT AREA */}
+                    <div className="max-w-[1400px] mx-auto p-4 md:p-8">
+                        
+                        {/* Scenario Context Card */}
+                        <div className="bg-slate-800 border border-slate-700 rounded-lg p-6 mb-8 shadow-lg">
+                            <div className="flex flex-col lg:flex-row gap-8">
+                                {/* Problem Narrative */}
+                                <div className="flex-1 space-y-4">
+                                    <div className="border-b border-slate-700 pb-4">
+                                        <h2 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
+                                            <Icon name="book-open" className="text-blue-400" size={24} /> 
+                                            Exercise 9-9: Problem Statement
+                                        </h2>
+                                        <p className="text-slate-300 text-sm leading-relaxed">
+                                            On January 1, <strong className="text-white">Sky Corporation</strong> purchased shares of <strong className="text-white">Cloud Company</strong> common stock. 
+                                            You are required to use the financial statement effects template to record the transactions for the year under two different assumptions regarding the level of influence Sky has over Cloud.
+                                        </p>
+                                    </div>
+                                    
+                                    <div className="space-y-2">
+                                        <h3 className="text-sm font-bold text-slate-400 uppercase">Required:</h3>
+                                        <div className="bg-slate-900/50 p-3 rounded border-l-2 border-blue-500">
+                                            <p className="text-xs text-slate-300">
+                                                <strong className="text-blue-400 block mb-1">Scenario A (Tab 1)</strong>
+                                                Assume the stock acquired represents <strong className="text-white">15%</strong> of Cloud's voting stock and Sky has <strong className="text-white">no influence</strong>.
+                                            </p>
+                                        </div>
+                                        <div className="bg-slate-900/50 p-3 rounded border-l-2 border-purple-500">
+                                            <p className="text-xs text-slate-300">
+                                                <strong className="text-purple-400 block mb-1">Scenario B (Tab 2)</strong>
+                                                Assume the stock acquired represents <strong className="text-white">30%</strong> of Cloud's voting stock and Sky exercises <strong className="text-white">significant influence</strong> (Equity Method).
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Data Points Grid */}
+                                <div className="flex-1 bg-slate-900 rounded-lg border border-slate-700 p-4">
+                                    <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                                        <Icon name="database" size={16} /> Transaction Data
+                                    </h3>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="p-2 bg-slate-800/50 rounded border border-slate-700/50">
+                                            <div className="text-[10px] uppercase text-slate-500 font-bold">Shares Purchased</div>
+                                            <div className="text-white font-mono text-lg">5,000</div>
+                                            <div className="text-xs text-slate-500">@ $30/share</div>
+                                        </div>
+                                        <div className="p-2 bg-slate-800/50 rounded border border-slate-700/50">
+                                            <div className="text-[10px] uppercase text-slate-500 font-bold">Total Cost</div>
+                                            <div className="text-white font-mono text-lg">$150,000</div>
+                                            <div className="text-xs text-slate-500">Investment Basis</div>
+                                        </div>
+                                        <div className="p-2 bg-slate-800/50 rounded border border-slate-700/50">
+                                            <div className="text-[10px] uppercase text-slate-500 font-bold">Cloud Net Income</div>
+                                            <div className="text-white font-mono text-lg">$88,000</div>
+                                            <div className="text-xs text-slate-500">Annual Total</div>
+                                        </div>
+                                        <div className="p-2 bg-slate-800/50 rounded border border-slate-700/50">
+                                            <div className="text-[10px] uppercase text-slate-500 font-bold">Dividends Rec'd</div>
+                                            <div className="text-white font-mono text-lg">$5,500</div>
+                                            <div className="text-xs text-slate-500">@ $1.10/share</div>
+                                        </div>
+                                        <div className="col-span-2 p-2 bg-slate-800/50 rounded border border-slate-700/50 flex justify-between items-center">
+                                            <div>
+                                                <div className="text-[10px] uppercase text-slate-500 font-bold">Year-End Market Price</div>
+                                                <div className="text-white font-mono text-lg">$38.00 <span className="text-xs text-slate-500">/ share</span></div>
+                                            </div>
+                                            <div className="text-right">
+                                                <div className="text-[10px] uppercase text-slate-500 font-bold">Fair Value Increase</div>
+                                                <div className="text-emerald-400 font-mono text-lg">+$40,000</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* TABS */}
+                        <div className="flex gap-2 mb-0 border-b border-slate-700">
+                            <button 
+                                onClick={() => setActiveTab('A')}
+                                className={`px-6 py-3 rounded-t-lg font-bold text-sm md:text-base transition-all flex items-center gap-2 ${
+                                    activeTab === 'A' 
+                                    ? 'bg-[#1e293b] text-blue-400 border-x border-t border-slate-600 border-b-[#1e293b] translate-y-[1px]' 
+                                    : 'bg-slate-900 text-slate-500 hover:text-slate-300'
+                                }`}
+                            >
+                                <Icon name="pie-chart" size={18} /> Scenario A: Passive (15%)
+                            </button>
+                            <button 
+                                onClick={() => setActiveTab('B')}
+                                className={`px-6 py-3 rounded-t-lg font-bold text-sm md:text-base transition-all flex items-center gap-2 ${
+                                    activeTab === 'B' 
+                                    ? 'bg-[#1e293b] text-purple-400 border-x border-t border-slate-600 border-b-[#1e293b] translate-y-[1px]' 
+                                    : 'bg-slate-900 text-slate-500 hover:text-slate-300'
+                                }`}
+                            >
+                                <Icon name="briefcase" size={18} /> Scenario B: Equity (30%)
+                            </button>
+                            <button 
+                                onClick={() => setActiveTab('Quiz')}
+                                className={`px-6 py-3 rounded-t-lg font-bold text-sm md:text-base transition-all flex items-center gap-2 ${
+                                    activeTab === 'Quiz' 
+                                    ? 'bg-[#1e293b] text-orange-400 border-x border-t border-slate-600 border-b-[#1e293b] translate-y-[1px]' 
+                                    : 'bg-slate-900 text-slate-500 hover:text-slate-300'
+                                }`}
+                            >
+                                <Icon name="brain-circuit" size={18} /> 3. Comparative Analysis
+                            </button>
+                        </div>
+
+                        {/* TAB CONTENT */}
+                        <div className="bg-[#1e293b] p-6 rounded-b-lg rounded-tr-lg border border-slate-600 shadow-2xl min-h-[400px]">
+                            {activeTab === 'A' && (
+                                <div className="animate-fade-in">
+                                    <div className="mb-4 text-slate-400 text-sm italic border-l-4 border-blue-500 pl-3">
+                                        Record transactions assuming <strong>No Significant Influence</strong>. Changes in fair value are recognized in Net Income.
+                                    </div>
+                                    {renderTable(transA, 'A', totalsA, isBalancedA)}
+                                </div>
+                            )}
+
+                            {activeTab === 'B' && (
+                                <div className="animate-fade-in">
+                                    <div className="mb-4 text-slate-400 text-sm italic border-l-4 border-purple-500 pl-3">
+                                        Record transactions using the <strong>Equity Method</strong>. Investment account reflects share of Net Income and Dividends.
+                                    </div>
+                                    {renderTable(transB, 'B', totalsB, isBalancedB)}
+                                </div>
+                            )}
+
+                            {activeTab === 'Quiz' && (
+                                <div className="animate-fade-in max-w-4xl mx-auto space-y-6">
+                                    <div className="mb-6 text-center">
+                                        <h3 className="text-xl font-bold text-white mb-2">Passive vs. Equity Method Analysis</h3>
+                                        <p className="text-slate-400 text-sm">Select the best answer for each question regarding the financial statement effects of these methods.</p>
+                                    </div>
+
+                                    {QUIZ_DATA.map((q, idx) => {
+                                        const userAnswer = quizAnswers[q.id];
+                                        const isCorrect = userAnswer === q.correctIndex;
+                                        
+                                        return (
+                                            <div key={q.id} className="bg-slate-800 p-6 rounded-lg border border-slate-700 shadow-lg">
+                                                <div className="flex items-start gap-3 mb-4">
+                                                    <div className="bg-slate-700 text-slate-300 w-8 h-8 rounded-full flex items-center justify-center font-bold flex-shrink-0">
+                                                        {idx + 1}
+                                                    </div>
+                                                    <div className="flex-1">
+                                                        <h4 className="font-semibold text-white text-lg">{q.question}</h4>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div className="space-y-2 ml-11">
+                                                    {q.options.map((opt, optIdx) => {
+                                                        const isSelected = userAnswer === optIdx;
+                                                        // Styles for option buttons
+                                                        let btnClass = "w-full text-left p-3 rounded-md transition-all border border-transparent text-sm ";
+                                                        
+                                                        if (isSelected) {
+                                                            btnClass += isCorrect 
+                                                                ? "bg-green-900/30 border-green-500/50 text-green-300 " 
+                                                                : "bg-red-900/30 border-red-500/50 text-red-300 ";
+                                                        } else {
+                                                            btnClass += "bg-slate-900 hover:bg-slate-750 text-slate-300 hover:text-white border-slate-700 ";
+                                                        }
+
+                                                        // Instructor Key Highlight
+                                                        if (isInstructor && optIdx === q.correctIndex) {
+                                                            btnClass += " ring-2 ring-purple-500 ring-offset-2 ring-offset-slate-900";
+                                                        }
+
+                                                        return (
+                                                            <button 
+                                                                key={optIdx}
+                                                                onClick={() => handleQuizSelect(q.id, optIdx)}
+                                                                className={btnClass}
+                                                            >
+                                                                <div className="flex items-center justify-between">
+                                                                    <span>{opt}</span>
+                                                                    {isSelected && (
+                                                                        isCorrect 
+                                                                            ? <Icon name="check-circle" size={18} className="text-green-500" />
+                                                                            : <Icon name="x-circle" size={18} className="text-red-500" />
+                                                                    )}
+                                                                    {isInstructor && optIdx === q.correctIndex && !isSelected && (
+                                                                        <span className="text-xs text-purple-400 font-bold px-2 py-0.5 bg-purple-900/50 rounded">KEY</span>
+                                                                    )}
+                                                                </div>
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Floating Submit Button */}
+                    <div className="fixed bottom-6 right-6 z-50">
+                        <button 
+                            onClick={() => setShowDownloadModal(true)}
+                            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-6 rounded-full shadow-lg transition-transform hover:scale-105 active:scale-95 border border-emerald-400"
+                        >
+                            <Icon name="download" /> Submit Work
+                        </button>
+                    </div>
+
+                    {/* --- MODALS --- */}
+                    
+                    {/* 1. Confirmation Modal */}
+                    {confirmation.isOpen && (
+                        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[100] backdrop-blur-sm fade-in">
+                            <div className="bg-slate-800 p-6 rounded-lg shadow-2xl w-96 border border-slate-600">
+                                <h3 className="font-bold text-lg mb-2 text-white flex items-center gap-2">
+                                    <Icon name="alert-triangle" className="text-orange-500" /> Confirm Action
+                                </h3>
+                                <p className="text-slate-300 mb-6">{confirmation.message}</p>
+                                <div className="flex justify-end gap-3">
+                                    <button onClick={() => setConfirmation({ isOpen: false, message: '', onConfirm: null })} className="px-4 py-2 text-slate-400 hover:text-white transition-colors">Cancel</button>
+                                    <button onClick={confirmation.onConfirm} className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded font-medium">Yes, Proceed</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* 2. Download Modal */}
+                    {showDownloadModal && (
+                        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[100] backdrop-blur-sm fade-in">
+                            <div className="bg-slate-800 p-6 rounded-lg shadow-2xl w-96 border border-slate-600">
+                                <h3 className="font-bold text-lg mb-4 text-white flex items-center gap-2">
+                                    <Icon name="file-down" className="text-emerald-500" /> Save & Submit
+                                </h3>
+                                <div className="mb-6">
+                                    <label className="block text-sm font-medium text-slate-400 mb-2">Enter Student Name</label>
+                                    <input 
+                                        type="text" 
+                                        value={studentName}
+                                        onChange={(e) => setStudentName(e.target.value)}
+                                        className="w-full bg-slate-900 border border-slate-600 p-3 rounded text-white outline-none focus:border-blue-500"
+                                        placeholder="First Last"
+                                        autoFocus
+                                    />
+                                </div>
+                                <div className="flex justify-end gap-3">
+                                    <button onClick={() => setShowDownloadModal(false)} className="px-4 py-2 text-slate-400 hover:text-white transition-colors">Cancel</button>
+                                    <button onClick={executeDownload} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded font-medium flex items-center gap-2">
+                                        <Icon name="check" size={16} /> Save File
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* 3. Auth Modal */}
+                    {showAuthModal && (
+                        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4 backdrop-blur-sm fade-in">
+                            <div className="bg-white text-slate-900 p-8 rounded-xl shadow-2xl max-w-sm w-full relative">
+                                <button onClick={() => setShowAuthModal(false)} className="absolute top-2 right-3 text-2xl text-slate-400 hover:text-slate-600">&times;</button>
+                                <div className="text-center mb-6">
+                                    <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-200">
+                                        <Icon name="lock" size={32} className="text-slate-700" />
+                                    </div>
+                                    <h2 className="text-2xl font-bold">Instructor Access</h2>
+                                    <p className="text-slate-500 text-sm mt-1">Enter password to unlock keys and tools.</p>
+                                </div>
+                                <input 
+                                    type="password" 
+                                    className="w-full border border-slate-300 rounded-lg p-3 mb-4 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all"
+                                    placeholder="Password"
+                                    value={teacherPass}
+                                    onChange={e => setTeacherPass(e.target.value)}
+                                    onKeyDown={e => e.key === 'Enter' && attemptLogin()}
+                                    autoFocus
+                                />
+                                {authError && <div className="text-red-600 text-sm mb-4 text-center bg-red-50 p-2 rounded border border-red-100 flex items-center justify-center gap-2"><Icon name="x-circle" size={14} />{authError}</div>}
+                                <button 
+                                    onClick={attemptLogin}
+                                    className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 rounded-lg transition-colors shadow-lg"
+                                >
+                                    Unlock Dashboard
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

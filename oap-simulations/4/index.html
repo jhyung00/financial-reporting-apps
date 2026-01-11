@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Module 4: Credit Analysis Simulation</title>
+    
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        /* Custom Scrollbar for financial statements */
+        .scroller::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        .scroller::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        .scroller::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        .scroller::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        /* Disable number input spinner */
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+            -webkit-appearance: none; 
+            margin: 0; 
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 h-screen flex flex-col overflow-hidden font-sans">
+
+    <div id="root" class="h-full flex flex-col"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo, useRef } = React;
+
+        // ==========================================
+        // DATASETS
+        // ==========================================
+        const DATA_SETS = {
+            ITW: {
+                name: "Illinois Tool Works (ITW)",
+                currency: "$ Millions",
+                CASE_DATA: {
+                    bs: {
+                        title: "Balance Sheet (ITW)",
+                        headers: ["Item", "Dec 31, 2022", "Dec 31, 2021"],
+                        rows: [
+                            ["Total Current Assets", "6,270", "6,374"],
+                            ["Net Plant & Equipment", "1,848", "1,809"],
+                            ["Goodwill & Intangibles", "5,632", "5,937"],
+                            ["Deferred Income Taxes", "494", "552"],
+                            ["Other Assets", "1,178", "1,405"],
+                            ["Total Assets", "15,422", "16,077"],
+                            ["", "", ""],
+                            ["Total Current Liabilities", "4,460", "3,470"],
+                            ["Long-Term Debt", "6,173", "6,909"],
+                            ["Deferred Income Taxes (Liab)", "484", "654"],
+                            ["Other Noncurrent Liabs", "1,216", "1,418"],
+                            ["Total Liabilities", "12,333", "12,451"],
+                            ["Total Equity", "3,089", "3,626"]
+                        ]
+                    },
+                    is: {
+                        title: "Income Statement (ITW)",
+                        headers: ["Item", "2022", "2021"],
+                        rows: [
+                            ["Operating Revenue", "15,932", "14,455"],
+                            ["Cost of Revenue", "9,429", "8,489"],
+                            ["Gross Profit", "6,503", "5,966"],
+                            ["SG&A Expenses", "2,538", "2,333"],
+                            ["Amortization", "134", "133"],
+                            ["Operating Income", "3,831", "3,500"],
+                            ["Interest Expense", "203", "222"],
+                            ["Other Income (Expense)", "(192)", "150"],
+                            ["Income Before Tax", "3,842", "3,428"],
+                            ["Income Taxes", "808", "734"],
+                            ["Net Income", "3,034", "2,694"]
+                        ]
+                    },
+                    scf: {
+                        title: "Cash Flow Statement (ITW)",
+                        headers: ["Item", "2022", "2021"],
+                        rows: [
+                            ["Net Cash from Operating Activities", "2,348", "2,557"],
+                            ["Additions to Plant & Equipment (Capex)", "-412", "-296"],
+                            ["Acquisition of Businesses", "-2", "-731"],
+                            ["Net Cash Used for Investing Activities", "-110", "-984"],
+                            ["Cash Dividends Paid", "-1,542", "-1,463"],
+                            ["Repurchases of Common Stock", "-1,750", "-1,000"],
+                            ["Net Cash Used for Financing Activities", "-3,000", "-2,564"],
+                            ["Effect of Exchange Rate Changes", "-57", "-46"],
+                            ["Net Increase (Decrease) in Cash", "-819", "-1,037"],
+                            ["Cash at End of Year", "708", "1,527"]
+                        ]
+                    }
+                }
+            },
+            PH: {
+                name: "Parker Hannifin (PH)",
+                currency: "$ Thousands",
+                CASE_DATA: {
+                    bs: {
+                        title: "Balance Sheet (PH)",
+                        headers: ["Item", "Jun 30, 2022", "Jun 30, 2021"],
+                        rows: [
+                            ["Total Current Assets", "12,046,644", "5,616,750"],
+                            ["Net PPE", "2,122,758", "2,266,476"],
+                            ["Goodwill", "7,740,082", "8,059,687"],
+                            ["Intangible Assets", "3,135,817", "3,519,797"],
+                            ["Other Assets", "898,642", "878,490"],
+                            ["Total Assets", "25,943,943", "20,341,200"],
+                            ["", "", ""],
+                            ["Total Current Liabilities", "5,859,318", "3,096,503"],
+                            ["Long-term Debt", "9,755,825", "6,582,053"],
+                            ["Pensions", "639,939", "1,055,638"],
+                            ["Deferred Income Taxes", "307,044", "553,981"],
+                            ["Other Liabilities", "521,897", "639,355"],
+                            ["Total Liabilities", "17,084,023", "11,927,530"],
+                            ["Total Equity", "8,859,920", "8,413,670"]
+                        ]
+                    },
+                    is: {
+                        title: "Income Statement (PH)",
+                        headers: ["Item", "2022", "2021"],
+                        rows: [
+                            ["Net Sales", "15,861,608", "14,347,640"],
+                            ["Cost of Sales", "11,387,267", "10,449,680"],
+                            ["Gross Profit", "4,474,341", "3,897,960"],
+                            ["SG&A Expenses", "1,627,116", "1,527,302"],
+                            ["Operating Income", "2,854,346", "2,479,990"],
+                            ["Interest Expense", "255,252", "250,036"],
+                            ["Other Expense (Income)", "984,868", "(17,003)"],
+                            ["Income Before Taxes", "1,614,226", "2,246,957"],
+                            ["Income Taxes", "298,040", "500,096"],
+                            ["Net Income", "1,316,186", "1,746,861"]
+                        ]
+                    },
+                    scf: {
+                        title: "Cash Flow Statement (PH)",
+                        headers: ["Item", "2022", "2021"],
+                        rows: [
+                            ["Net Cash Provided by Operating Activities", "2,441,730", "2,575,001"],
+                            ["Capital Expenditures", "-230,044", "-209,957"],
+                            ["Net Cash Used in Investing Activities", "-418,837", "-13"],
+                            ["Dividends Paid", "-569,855", "-475,174"],
+                            ["Net Cash Provided by (Used in) Financing", "3,915,636", "-2,623,339"],
+                            ["Effect of Exchange Rate Changes", "-23,770", "95,954"],
+                            ["Net Increase (Decrease) in Cash", "5,914,759", "47,603"],
+                            ["Cash at End of Year", "6,647,876", "733,117"]
+                        ]
+                    }
+                }
+            }
+        };
+
+        // ==========================================
+        // ANSWER KEY LOGIC (Updated with Ratings)
+        // ==========================================
+        const ANSWER_KEYS = {
+            PH: {
+                // Capital Structure
+                'liab_equity_2022': 1.928, 'liab_equity_2021': 1.418,
+                'debt_equity_2022': 1.311, 'debt_equity_2021': 0.799,
+                // Coverage
+                'tie_2022': 11.18, 'tie_2021': 9.92,
+                'ebitda_cov_2022': 13.42, 'ebitda_cov_2021': 12.30,
+                // Cash Flow Coverage
+                'cfo_debt_2022': 0.210, 'cfo_debt_2021': 0.383,
+                'focf_debt_2022': 0.190, 'focf_debt_2021': 0.352,
+                // Liquidity
+                'current_ratio_2022': 2.06, 'current_ratio_2021': 1.81,
+                'quick_ratio_2022': 0.50, 'quick_ratio_2021': 0.96,
+                // Moody's Metrics 2022 & Implied Ratings
+                'moody_debt_ebitda': 3.39, 'moody_debt_ebitda_rating': 'Ba',
+                'moody_ebita_int': 12.41, 'moody_ebita_int_rating': 'A',
+                'moody_rev': 15.86, 'moody_rev_rating': 'Baa',
+                'moody_ebita_marg': 19.98, 'moody_ebita_marg_rating': 'A',
+                'moody_op_marg': 18.00, 'moody_op_marg_rating': 'A',
+                'moody_ffo_debt': 17.43, 'moody_ffo_debt_rating': 'Ba',
+                'moody_ffo_int_int': 8.93, 'moody_ffo_int_int_rating': 'Ba',
+                'moody_ebita_assets': 13.69, 'moody_ebita_assets_rating': 'Baa',
+                'moody_capex_dep': 0.89, 'moody_capex_dep_rating': 'B',
+                // Z-Score 2022
+                'z_wc_ta': 0.2385, 'z_re_ta': 0.6037, 'z_ebit_ta': 0.1100, 
+                'z_mve_tl': 1.8500, 'z_sales_ta': 0.6114, 'z_score_total': 3.21
+            },
+            ITW: {
+                 // Capital Structure
+                'liab_equity_2022': 3.993, 'liab_equity_2021': 3.434,
+                'debt_equity_2022': 2.573, 'debt_equity_2021': 2.173,
+                // Coverage
+                'tie_2022': 18.67, 'tie_2021': 17.21,
+                'ebitda_cov_2022': 20.69, 'ebitda_cov_2021': 19.24,
+                // Cash Flow Coverage
+                'cfo_debt_2022': 0.295, 'cfo_debt_2021': 0.324,
+                'focf_debt_2022': 0.244, 'focf_debt_2021': 0.287,
+                // Liquidity
+                'current_ratio_2022': 1.41, 'current_ratio_2021': 1.84,
+                'quick_ratio_2022': 0.87, 'quick_ratio_2021': 1.26,
+                // Moody's Metrics 2022 & Implied Ratings
+                'moody_debt_ebitda': 1.89, 'moody_debt_ebitda_rating': 'A',
+                'moody_ebita_int': 19.33, 'moody_ebita_int_rating': 'A',
+                'moody_rev': 15.93, 'moody_rev_rating': 'Baa',
+                'moody_ebita_marg': 24.63, 'moody_ebita_marg_rating': 'Aa',
+                'moody_op_marg': 23.79, 'moody_op_marg_rating': 'Aa',
+                'moody_ffo_debt': 42.23, 'moody_ffo_debt_rating': 'A',
+                'moody_ffo_int_int': 17.54, 'moody_ffo_int_int_rating': 'A',
+                'moody_ebita_assets': 24.92, 'moody_ebita_assets_rating': 'Aaa',
+                'moody_capex_dep': 1.49, 'moody_capex_dep_rating': 'Aa',
+                // Z-Score 2022
+                'z_wc_ta': 0.1174, 'z_re_ta': 1.6729, 'z_ebit_ta': 0.2458, 
+                'z_mve_tl': 5.4481, 'z_sales_ta': 1.0331, 'z_score_total': 7.59
+            }
+        };
+
+        const MOODY_RATINGS = ["Aaa", "Aa", "A", "Baa", "Ba", "B", "Caa"];
+
+        // ==========================================
+        // COMPONENTS
+        // ==========================================
+
+        const InfoIcon = () => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline text-blue-500 hover:text-blue-700 cursor-help"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>
+        );
+
+        // Updated SmartInput: Controlled component pattern
+        const SmartInput = ({ id, value, onChange, correctValue, tolerance = 0.05, label, isPercent = false, activeId, setActiveId }) => {
+            const [isCorrect, setIsCorrect] = useState(null);
+
+            // Re-check correctness whenever the value changes (either from typing or evaluation)
+            useEffect(() => {
+                checkCorrectness(value);
+            }, [value, correctValue]); 
+
+            const evaluateMath = (str) => {
+                if (!str) return "";
+                try {
+                    // Safety check: only allow numbers and basic math operators
+                    const sanitized = str.replace(/[^0-9+\-*/()., %]/g, ''); 
+                    if (!sanitized) return "";
+                    // Handle percentage input like "15%" -> 15
+                    if (sanitized.includes('%')) {
+                        return parseFloat(sanitized.replace('%', ''));
+                    }
+                    // Evaluate math
+                    return Function('"use strict";return (' + sanitized + ')')();
+                } catch (e) {
+                    return str;
+                }
+            };
+
+            const checkCorrectness = (val) => {
+                if (!val || val === "" || correctValue === undefined) {
+                    setIsCorrect(null);
+                    return;
+                }
+                const numVal = parseFloat(val);
+                if (isNaN(numVal)) {
+                    setIsCorrect(false);
+                    return;
+                }
+
+                let valid = false;
+                
+                // Direct comparison
+                if (Math.abs(numVal - correctValue) <= tolerance) valid = true;
+                else if (Math.abs(numVal - correctValue) <= (correctValue * tolerance)) valid = true; // Relative tolerance
+
+                // Percent handling
+                if (!valid && isPercent) {
+                    if (Math.abs((numVal * 100) - correctValue) <= tolerance) valid = true;
+                }
+
+                setIsCorrect(valid);
+            };
+
+            const handleBlur = () => {
+                const computed = evaluateMath(value);
+                // If computed is a number with many decimals, round it slightly for display
+                let displayVal = computed;
+                if (typeof computed === 'number' && !Number.isInteger(computed)) {
+                     displayVal = Math.round(computed * 10000) / 10000;
+                }
+                // Update parent with the evaluated result
+                if (displayVal !== undefined && displayVal !== null) {
+                     onChange(id, displayVal.toString());
+                }
+                setActiveId(null);
+            };
+
+            const handleKeyDown = (e) => {
+                if (e.key === 'Enter') {
+                    e.target.blur();
+                }
+            };
+
+            const handleFocus = () => {
+                setActiveId(id);
+            };
+
+            let borderColor = "border-slate-300";
+            if (isCorrect === true) borderColor = "border-green-500 bg-green-50";
+            else if (isCorrect === false) borderColor = "border-red-400 bg-red-50";
+            if (activeId === id) borderColor = "border-blue-500 ring-1 ring-blue-500";
+
+            return (
+                <div className="flex flex-col">
+                    <div className="flex justify-between items-center mb-1">
+                         <label className="text-xs font-medium text-slate-600 truncate mr-2" title={label}>{label}</label>
+                         {isCorrect === true && <span className="text-green-600 text-[10px]">✔</span>}
+                    </div>
+                    <input
+                        type="text"
+                        className={`w-full text-sm p-1.5 rounded border ${borderColor} focus:outline-none transition-colors text-right font-mono`}
+                        value={value || ""}
+                        onChange={(e) => onChange(id, e.target.value)}
+                        onBlur={handleBlur}
+                        onKeyDown={handleKeyDown}
+                        onFocus={handleFocus}
+                        placeholder={isPercent ? "%" : "#"}
+                    />
+                </div>
+            );
+        };
+
+        const RatingSelect = ({ id, value, onChange, correctRating, activeId, setActiveId }) => {
+             const [isCorrect, setIsCorrect] = useState(null);
+
+             useEffect(() => {
+                 if(!value) { setIsCorrect(null); return; }
+                 setIsCorrect(true); 
+             }, [value]);
+
+             return (
+                 <select 
+                    value={value || ""} 
+                    onChange={(e) => onChange(id, e.target.value)}
+                    className="w-full text-sm p-1.5 rounded border border-slate-300 focus:border-blue-500 bg-white"
+                 >
+                    <option value="">Select Rating</option>
+                    {MOODY_RATINGS.map(r => <option key={r} value={r}>{r}</option>)}
+                 </select>
+             )
+        }
+
+        const SectionHeader = ({ title, isOpen, toggle }) => (
+            <div 
+                className="flex items-center justify-between bg-slate-100 p-2 cursor-pointer hover:bg-slate-200 border-b border-slate-200"
+                onClick={toggle}
+            >
+                <h3 className="font-bold text-slate-700 text-sm uppercase tracking-wide">{title}</h3>
+                <span className="text-slate-500 transform transition-transform duration-200" style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+                    ▼
+                </span>
+            </div>
+        );
+
+        // ==========================================
+        // MAIN APP
+        // ==========================================
+        const App = () => {
+            const [company, setCompany] = useState("PH");
+            const [inputs, setInputs] = useState({ PH: {}, ITW: {} });
+            const [activeInputId, setActiveInputId] = useState(null);
+            
+            // UI State
+            const [sections, setSections] = useState({
+                capStructure: true,
+                coverage: true,
+                liquidity: true,
+                cashFlow: true,
+                moody: true,
+                zScore: true
+            });
+            const [teacherMode, setTeacherMode] = useState(false);
+            const [showTeacherLogin, setShowTeacherLogin] = useState(false);
+            const [password, setPassword] = useState("");
+            const [showRefTable, setShowRefTable] = useState(false);
+
+            // Modals State
+            const [modal, setModal] = useState({ isOpen: false, type: null, studentName: "" });
+
+            // Ref for scrolling logic
+            const workspaceRef = useRef(null);
+
+            const toggleSection = (sec) => setSections(prev => ({...prev, [sec]: !prev[sec]}));
+
+            const handleInputChange = (id, val) => {
+                setInputs(prev => ({
+                    ...prev,
+                    [company]: {
+                        ...prev[company],
+                        [id]: val
+                    }
+                }));
+            };
+
+            const handleDataClick = (valStr) => {
+                if (!activeInputId) return;
+                
+                // Clean value string (remove commas)
+                const cleanVal = valStr.replace(/,/g, '').replace(/\(/g, '-').replace(/\)/g, '');
+                
+                setInputs(prev => {
+                    const currentVal = prev[company][activeInputId] || "";
+                    return {
+                        ...prev,
+                        [company]: {
+                            ...prev[company],
+                            [activeInputId]: currentVal + cleanVal
+                        }
+                    };
+                });
+            };
+
+            const requestDownload = () => setModal({ isOpen: true, type: 'download', studentName: "" });
+            const requestClear = () => setModal({ isOpen: true, type: 'clear', studentName: "" });
+
+            const handleConfirmDownload = () => {
+                const name = modal.studentName.trim();
+                if (!name) {
+                    alert("Please enter a name."); // Backup validation
+                    return;
+                }
+                
+                let content = `Student: ${name}\nDate: ${new Date().toLocaleString()}\nCompany: ${company}\n\n`;
+                const currInputs = inputs[company];
+                
+                // Create sorted content
+                const sections = [
+                    "Liquidity", "Capital Structure", "Coverage", "Cash Flow", "Moody's", "Z-Score"
+                ];
+                
+                content += "--- INPUTS ---\n";
+                Object.keys(currInputs).forEach(k => {
+                    content += `${k}: ${currInputs[k]}\n`;
+                });
+                
+                const blob = new Blob([content], { type: "text/plain" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `${name.replace(/ /g, '_')}_Module4_CreditAnalysis.txt`;
+                a.click();
+                
+                setModal({ isOpen: false, type: null, studentName: "" });
+            };
+
+            const handleConfirmClear = () => {
+                setInputs(prev => ({ ...prev, [company]: {} }));
+                setModal({ isOpen: false, type: null, studentName: "" });
+            };
+
+            const closeModal = () => setModal({ isOpen: false, type: null, studentName: "" });
+
+            const handleTeacherLogin = () => {
+                if (password === "teacher") {
+                    setTeacherMode(true);
+                    setShowTeacherLogin(false);
+                } else {
+                    // Simple error handling in UI
+                    setPassword(""); // Clear pass
+                }
+            };
+
+            const autoFill = () => {
+                // Fill current company inputs with answer key
+                const key = ANSWER_KEYS[company];
+                const newInputs = {};
+                Object.keys(key).forEach(k => newInputs[k] = key[k].toString());
+                setInputs(prev => ({ ...prev, [company]: newInputs }));
+            };
+
+            // Render Helpers
+            const renderRow = (label, idPrefix, isPercent=false, hint="") => (
+                <div className="grid grid-cols-3 gap-2 mb-2 items-end border-b border-slate-100 pb-2">
+                    <div className="col-span-1 text-sm text-slate-700 flex items-center">
+                        {label}
+                        {hint && <div className="ml-1 group relative">
+                            <InfoIcon />
+                            <div className="hidden group-hover:block absolute z-50 bottom-full left-0 w-48 bg-slate-800 text-white text-xs p-2 rounded shadow-lg pointer-events-none">
+                                {hint}
+                            </div>
+                        </div>}
+                    </div>
+                    <SmartInput 
+                        id={`${idPrefix}_2022`} 
+                        label="2022" 
+                        value={inputs[company][`${idPrefix}_2022`]} 
+                        onChange={handleInputChange} 
+                        correctValue={ANSWER_KEYS[company][`${idPrefix}_2022`]} 
+                        isPercent={isPercent}
+                        activeId={activeInputId}
+                        setActiveId={setActiveInputId}
+                    />
+                    <SmartInput 
+                        id={`${idPrefix}_2021`} 
+                        label="2021" 
+                        value={inputs[company][`${idPrefix}_2021`]} 
+                        onChange={handleInputChange} 
+                        correctValue={ANSWER_KEYS[company][`${idPrefix}_2021`]} 
+                        isPercent={isPercent}
+                        activeId={activeInputId}
+                        setActiveId={setActiveInputId}
+                    />
+                </div>
+            );
+
+            // Special Renderer for Moody's (Single Year)
+            const renderMoodyRow = (label, id, unit, hint) => (
+                <div className="grid grid-cols-4 gap-2 mb-2 items-center border-b border-slate-100 pb-1">
+                    <div className="col-span-2 text-sm text-slate-700 flex items-center">
+                        {label}
+                        <div className="ml-1 group relative"><InfoIcon />
+                            <div className="hidden group-hover:block absolute z-50 left-0 bottom-full mb-1 w-64 bg-slate-800 text-white text-xs p-2 rounded shadow-lg pointer-events-none">{hint}</div>
+                        </div>
+                    </div>
+                    <div className="col-span-1">
+                        <SmartInput 
+                            id={id} 
+                            label={`Value (${unit})`} 
+                            value={inputs[company][id]} 
+                            onChange={handleInputChange} 
+                            correctValue={ANSWER_KEYS[company][id]} 
+                            isPercent={unit==="%"}
+                            activeId={activeInputId}
+                            setActiveId={setActiveInputId}
+                        />
+                    </div>
+                    <div className="col-span-1 pt-4">
+                        <RatingSelect 
+                            id={`${id}_rating`} 
+                            value={inputs[company][`${id}_rating`]} 
+                            onChange={handleInputChange} 
+                            activeId={activeInputId} 
+                            setActiveId={setActiveInputId} 
+                        />
+                    </div>
+                </div>
+            );
+
+            // Special Renderer for Z-Score (Single Year, Weight display)
+            const renderZRow = (label, id, weight, hint) => (
+                <div className="grid grid-cols-12 gap-2 mb-2 items-center border-b border-slate-100 pb-1">
+                    <div className="col-span-4 text-sm text-slate-700 flex items-center">
+                        {label}
+                        <div className="ml-1 group relative"><InfoIcon />
+                            <div className="hidden group-hover:block absolute z-50 left-0 bottom-full mb-1 w-56 bg-slate-800 text-white text-xs p-2 rounded shadow-lg pointer-events-none">{hint}</div>
+                        </div>
+                    </div>
+                    <div className="col-span-2 text-xs text-center text-slate-400 font-mono pt-4">x {weight}</div>
+                    <div className="col-span-3">
+                        <SmartInput 
+                            id={id} 
+                            label="Ratio Value" 
+                            value={inputs[company][id]} 
+                            onChange={handleInputChange} 
+                            correctValue={ANSWER_KEYS[company][id]} 
+                            activeId={activeInputId}
+                            setActiveId={setActiveInputId}
+                        />
+                    </div>
+                    <div className="col-span-3 pt-5 text-xs text-right text-slate-400">
+                         {/* Dynamic calculation preview could go here, but simple is better */}
+                         = {(parseFloat(inputs[company][id] || 0) * weight).toFixed(4)}
+                    </div>
+                </div>
+            );
+
+            const companyData = DATA_SETS[company];
+
+            return (
+                <div className="flex flex-col h-full">
+                    {/* TOP BAR */}
+                    <div className="bg-slate-900 text-white p-3 flex justify-between items-center shadow-md z-10">
+                        <div className="flex items-center gap-4">
+                            <h1 className="font-bold text-lg tracking-tight">Financial Simulation <span className="text-slate-400 font-normal">| Module 4 Credit Analysis</span></h1>
+                            <div className="bg-slate-700 rounded p-1 flex">
+                                <button 
+                                    className={`px-3 py-1 rounded text-sm font-medium transition-all ${company === 'ITW' ? 'bg-blue-500 text-white shadow' : 'text-slate-300 hover:text-white'}`}
+                                    onClick={() => setCompany('ITW')}
+                                >ITW</button>
+                                <button 
+                                    className={`px-3 py-1 rounded text-sm font-medium transition-all ${company === 'PH' ? 'bg-blue-500 text-white shadow' : 'text-slate-300 hover:text-white'}`}
+                                    onClick={() => setCompany('PH')}
+                                >Parker Hannifin</button>
+                            </div>
+                        </div>
+                        <div className="flex gap-2">
+                             <button onClick={() => setShowRefTable(!showRefTable)} className="text-xs bg-slate-700 hover:bg-slate-600 px-3 py-1.5 rounded transition">
+                                {showRefTable ? "Hide" : "Show"} Moody's Matrix
+                            </button>
+                            <button onClick={requestDownload} className="text-xs bg-green-600 hover:bg-green-700 px-3 py-1.5 rounded transition flex items-center gap-1">
+                                <span>Save Work</span>
+                            </button>
+                            {!teacherMode ? (
+                                <button onClick={() => setShowTeacherLogin(true)} className="text-xs text-slate-500 hover:text-white underline px-2">Instructor</button>
+                            ) : (
+                                <div className="flex gap-2">
+                                    <button onClick={autoFill} className="text-xs bg-yellow-600 hover:bg-yellow-700 px-2 py-1 rounded">Auto-Fill</button>
+                                    <button onClick={requestClear} className="text-xs bg-red-600 hover:bg-red-700 px-2 py-1 rounded">Clear</button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* GENERIC ACTION MODAL (Replacement for prompts/confirms) */}
+                    {modal.isOpen && (
+                        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
+                            <div className="bg-white p-6 rounded-lg shadow-2xl w-80 animate-fade-in">
+                                
+                                {modal.type === 'download' && (
+                                    <>
+                                        <h3 className="font-bold text-lg mb-2 text-slate-800">Save Your Work</h3>
+                                        <p className="text-sm text-slate-600 mb-4">Enter your name to download your results.</p>
+                                        <input 
+                                            type="text" 
+                                            className="w-full border border-slate-300 p-2 rounded mb-4 focus:border-blue-500 outline-none" 
+                                            placeholder="Student Name"
+                                            value={modal.studentName}
+                                            onChange={(e) => setModal(prev => ({ ...prev, studentName: e.target.value }))}
+                                            onKeyDown={(e) => e.key === 'Enter' && handleConfirmDownload()}
+                                            autoFocus
+                                        />
+                                        <div className="flex justify-end gap-2">
+                                            <button onClick={closeModal} className="text-slate-500 text-sm px-3 py-1 hover:bg-slate-100 rounded">Cancel</button>
+                                            <button 
+                                                onClick={handleConfirmDownload} 
+                                                disabled={!modal.studentName.trim()}
+                                                className="bg-green-600 text-white px-4 py-1.5 rounded text-sm hover:bg-green-700 disabled:opacity-50"
+                                            >
+                                                Download .txt
+                                            </button>
+                                        </div>
+                                    </>
+                                )}
+
+                                {modal.type === 'clear' && (
+                                    <>
+                                        <h3 className="font-bold text-lg mb-2 text-red-600">Clear All Data?</h3>
+                                        <p className="text-sm text-slate-600 mb-6">Are you sure you want to clear all inputs for <strong>{company}</strong>? This cannot be undone.</p>
+                                        <div className="flex justify-end gap-2">
+                                            <button onClick={closeModal} className="text-slate-500 text-sm px-3 py-1 hover:bg-slate-100 rounded">Cancel</button>
+                                            <button onClick={handleConfirmClear} className="bg-red-600 text-white px-4 py-1.5 rounded text-sm hover:bg-red-700">Yes, Clear All</button>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* MODAL: Moody's Table */}
+                    {showRefTable && (
+                        <div className="absolute top-16 right-4 z-50 bg-white shadow-xl border rounded p-4 w-[600px] text-xs">
+                            <div className="flex justify-between mb-2 font-bold text-slate-700 border-b pb-1">
+                                <span>Exhibit 4.4: Moody's Ratios & Risk Classes</span>
+                                <button onClick={() => setShowRefTable(false)} className="text-red-500">Close</button>
+                            </div>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left border-collapse">
+                                    <thead>
+                                        <tr className="bg-slate-100">
+                                            <th className="p-1 border">Rating</th>
+                                            <th className="p-1 border">Debt/EBITDA</th>
+                                            <th className="p-1 border">EBITA/Int</th>
+                                            <th className="p-1 border">Rev ($B)</th>
+                                            <th className="p-1 border">EBITA %</th>
+                                            <th className="p-1 border">Op %</th>
+                                            <th className="p-1 border">FFO/Debt %</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {[
+                                            ["Aaa", "1.1", "63.0", "146.0", "38.3", "34.1", "83.5"],
+                                            ["Aa", "1.3", "29.7", "143.2", "22.9", "22.2", "65.4"],
+                                            ["A", "2.1", "14.4", "22.4", "19.7", "16.9", "41.7"],
+                                            ["Baa", "2.6", "8.4", "10.7", "17.0", "15.0", "32.6"],
+                                            ["Ba", "3.3", "5.1", "3.5", "14.3", "12.3", "24.9"],
+                                            ["B", "6.0", "2.1", "0.9", "12.3", "7.4", "9.7"],
+                                            ["Caa", "9.5", "0.8", "0.5", "7.1", "2.2", "3.1"],
+                                        ].map((r, i) => (
+                                            <tr key={i} className={i%2===0 ? "bg-white" : "bg-slate-50"}>
+                                                <td className="font-bold border p-1 text-center">{r[0]}</td>
+                                                {r.slice(1).map((c, j) => <td key={j} className="border p-1 text-center">{c}</td>)}
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* MODAL: Teacher Login */}
+                    {showTeacherLogin && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                            <div className="bg-white p-6 rounded shadow-lg w-64">
+                                <h3 className="font-bold mb-4">Instructor Access</h3>
+                                <input 
+                                    type="password" 
+                                    className="w-full border p-2 mb-4 rounded" 
+                                    placeholder="Password" 
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    onKeyDown={(e) => e.key === 'Enter' && handleTeacherLogin()}
+                                    autoFocus
+                                />
+                                <div className="flex justify-end gap-2">
+                                    <button onClick={() => setShowTeacherLogin(false)} className="text-slate-500">Cancel</button>
+                                    <button onClick={handleTeacherLogin} className="bg-blue-600 text-white px-3 py-1 rounded">Login</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* MAIN CONTENT AREA */}
+                    <div className="flex flex-1 overflow-hidden">
+                        
+                        {/* LEFT PANEL: DATA */}
+                        <div className="w-1/2 bg-white border-r border-slate-200 overflow-y-auto scroller p-4">
+                            <h2 className="text-xl font-bold text-slate-800 mb-1">{companyData.name}</h2>
+                            <p className="text-xs text-slate-500 mb-6 font-mono">Currency: {companyData.currency}</p>
+
+                            {Object.entries(companyData.CASE_DATA).map(([key, section]) => (
+                                <div key={key} className="mb-8">
+                                    <h3 className="font-bold text-blue-800 border-b-2 border-blue-100 mb-2 pb-1">{section.title}</h3>
+                                    <table className="w-full text-sm text-left border-collapse">
+                                        <thead>
+                                            <tr className="text-xs text-slate-500 border-b">
+                                                {section.headers.map((h, i) => (
+                                                    <th key={i} className={`p-2 ${i > 0 ? 'text-right' : ''}`}>{h}</th>
+                                                ))}
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {section.rows.map((row, rIndex) => (
+                                                <tr key={rIndex} className="hover:bg-blue-50 transition-colors group">
+                                                    {row.map((cell, cIndex) => (
+                                                        <td 
+                                                            key={cIndex} 
+                                                            className={`p-1.5 border-b border-slate-50 ${cIndex > 0 ? 'text-right font-mono text-slate-700 cursor-pointer hover:bg-blue-100 hover:text-blue-700 hover:font-bold' : 'text-slate-600'}`}
+                                                            onMouseDown={(e) => e.preventDefault()} // Prevents focus loss from input
+                                                            onClick={() => cIndex > 0 && handleDataClick(cell)}
+                                                            title={cIndex > 0 ? "Click to insert value" : ""}
+                                                        >
+                                                            {cell}
+                                                        </td>
+                                                    ))}
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* RIGHT PANEL: WORKSPACE */}
+                        <div className="w-1/2 bg-slate-50 overflow-y-auto scroller p-4 pb-20" ref={workspaceRef}>
+                            <h2 className="text-xl font-bold text-slate-700 mb-4">Credit Analysis Workspace</h2>
+
+                            {/* 1. LIQUIDITY */}
+                            <div className="bg-white rounded shadow-sm border border-slate-200 mb-4">
+                                <SectionHeader title="1. Liquidity Ratios" isOpen={sections.liquidity} toggle={() => toggleSection('liquidity')} />
+                                {sections.liquidity && <div className="p-4">
+                                    {renderRow("Current Ratio", "current_ratio", false, "Current Assets / Current Liabilities")}
+                                    {renderRow("Quick Ratio", "quick_ratio", false, "(Cash + S/T Inv + AR) / Current Liabilities. Note: For this module, simplify to Quick Assets provided.")}
+                                </div>}
+                            </div>
+
+                            {/* 2. CAPITAL STRUCTURE */}
+                            <div className="bg-white rounded shadow-sm border border-slate-200 mb-4">
+                                <SectionHeader title="2. Capital Structure" isOpen={sections.capStructure} toggle={() => toggleSection('capStructure')} />
+                                {sections.capStructure && <div className="p-4">
+                                    {renderRow("Liabilities to Equity", "liab_equity", false, "Total Liabilities / Total Equity")}
+                                    {renderRow("Debt to Equity", "debt_equity", false, "Total Debt (incl. Leases) / Total Equity")}
+                                </div>}
+                            </div>
+
+                            {/* 3. COVERAGE */}
+                            <div className="bg-white rounded shadow-sm border border-slate-200 mb-4">
+                                <SectionHeader title="3. Coverage Ratios" isOpen={sections.coverage} toggle={() => toggleSection('coverage')} />
+                                {sections.coverage && <div className="p-4">
+                                    {renderRow("Times Interest Earned", "tie", false, "EBIT / Interest Expense")}
+                                    {renderRow("EBITDA Coverage", "ebitda_cov", false, "EBITDA / Interest Expense")}
+                                </div>}
+                            </div>
+
+                            {/* 4. CASH FLOW */}
+                            <div className="bg-white rounded shadow-sm border border-slate-200 mb-4">
+                                <SectionHeader title="4. Cash Flow Protection" isOpen={sections.cashFlow} toggle={() => toggleSection('cashFlow')} />
+                                {sections.cashFlow && <div className="p-4">
+                                    {renderRow("CFO to Debt", "cfo_debt", false, "Cash from Ops / Total Debt")}
+                                    {renderRow("Free Op Cash Flow to Debt", "focf_debt", false, "(CFO - Capex) / Total Debt")}
+                                </div>}
+                            </div>
+
+                            {/* 5. MOODY'S ANALYSIS */}
+                            <div className="bg-white rounded shadow-sm border border-indigo-100 ring-1 ring-indigo-50 mb-4">
+                                <div 
+                                    className="flex items-center justify-between bg-indigo-50 p-2 cursor-pointer hover:bg-indigo-100 border-b border-indigo-200"
+                                    onClick={() => toggleSection('moody')}
+                                >
+                                    <h3 className="font-bold text-indigo-900 text-sm uppercase tracking-wide">5. Moody's Credit Rating (2022)</h3>
+                                    <span className="text-indigo-500">{sections.moody ? '▼' : '▶'}</span>
+                                </div>
+                                {sections.moody && <div className="p-4 bg-white">
+                                    <div className="grid grid-cols-4 gap-2 mb-2 font-bold text-xs text-slate-400 uppercase">
+                                        <div className="col-span-2">Metric</div>
+                                        <div className="col-span-1">Computed Value</div>
+                                        <div className="col-span-1">Implied Rating</div>
+                                    </div>
+                                    {renderMoodyRow("Debt / EBITDA", "moody_debt_ebitda", "x", "Total Debt / EBITDA")}
+                                    {renderMoodyRow("EBITA / Interest", "moody_ebita_int", "x", "EBITA / Interest Expense")}
+                                    {renderMoodyRow("Revenue ($Bn)", "moody_rev", "$", "Revenue in Billions")}
+                                    {renderMoodyRow("EBITA Margin", "moody_ebita_marg", "%", "EBITA / Revenue")}
+                                    {renderMoodyRow("Operating Margin", "moody_op_marg", "%", "Operating Income / Revenue")}
+                                    {renderMoodyRow("FFO / Debt", "moody_ffo_debt", "%", "Funds From Ops / Total Debt")}
+                                    {renderMoodyRow("(FFO+Int) / Int", "moody_ffo_int_int", "x", "(FFO + Interest) / Interest")}
+                                    {renderMoodyRow("EBITA / Avg Assets", "moody_ebita_assets", "%", "EBITA / Average Assets")}
+                                    {renderMoodyRow("Capex / Depreciation", "moody_capex_dep", "x", "Capex / Depreciation & Amort.")}
+                                </div>}
+                            </div>
+
+                            {/* 6. ALTMAN Z-SCORE */}
+                            <div className="bg-white rounded shadow-sm border border-slate-200 mb-4">
+                                <SectionHeader title="6. Altman Z-Score (2022)" isOpen={sections.zScore} toggle={() => toggleSection('zScore')} />
+                                {sections.zScore && <div className="p-4">
+                                    <p className="text-xs text-slate-500 mb-3 italic">Formula: Z = 1.2A + 1.4B + 3.3C + 0.6D + 0.99E</p>
+                                    {renderZRow("(A) Working Cap / Assets", "z_wc_ta", 1.2, "Working Capital / Total Assets")}
+                                    {renderZRow("(B) Retained Earnings / Assets", "z_re_ta", 1.4, "Retained Earnings / Total Assets")}
+                                    {renderZRow("(C) EBIT / Assets", "z_ebit_ta", 3.3, "EBIT / Total Assets")}
+                                    {renderZRow("(D) Mkt Value Equity / Liabs", "z_mve_tl", 0.6, "Market Cap / Total Liabilities")}
+                                    {renderZRow("(E) Sales / Assets", "z_sales_ta", 0.99, "Revenue / Total Assets")}
+                                    
+                                    <div className="mt-4 pt-3 border-t-2 border-slate-100 flex justify-between items-center">
+                                        <label className="font-bold text-slate-800">Total Z-Score:</label>
+                                        <div className="w-32">
+                                            <SmartInput 
+                                                id="z_score_total" 
+                                                label="" 
+                                                value={inputs[company]["z_score_total"]} 
+                                                onChange={handleInputChange} 
+                                                correctValue={ANSWER_KEYS[company]["z_score_total"]} 
+                                                activeId={activeInputId}
+                                                setActiveId={setActiveInputId}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Z-SCORE LEGEND */}
+                                    <div className="mt-6 border border-slate-200 rounded-md overflow-hidden">
+                                        <div className="bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-600 border-b border-slate-200">
+                                            Z-Score Interpretation Guide
+                                        </div>
+                                        <div className="divide-y divide-slate-100">
+                                            <div className="grid grid-cols-2 p-2 bg-green-50 text-green-800 text-xs">
+                                                <span className="font-mono font-bold">&gt; 3.0</span>
+                                                <span className="font-semibold text-right">Low Bankruptcy Risk</span>
+                                            </div>
+                                            <div className="grid grid-cols-2 p-2 bg-yellow-50 text-yellow-800 text-xs">
+                                                <span className="font-mono font-bold">1.8 – 3.0</span>
+                                                <span className="font-semibold text-right">Grey Zone</span>
+                                            </div>
+                                            <div className="grid grid-cols-2 p-2 bg-red-50 text-red-800 text-xs">
+                                                <span className="font-mono font-bold">&lt; 1.8</span>
+                                                <span className="font-semibold text-right">High Bankruptcy Risk</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                </div>}
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

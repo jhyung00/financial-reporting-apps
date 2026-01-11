@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financial Reporting & Analysis Simulation</title>
+    
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Lucide Icons (Latest Version) -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        /* Aggressive Custom Scrollbar for ALL scrollable areas */
+        .custom-scroll {
+            scrollbar-width: auto; /* Firefox: Show scrollbar */
+            scrollbar-color: #94a3b8 #f1f5f9; /* Firefox: Thumb Track */
+        }
+        
+        /* Webkit (Chrome, Edge, Safari) */
+        .custom-scroll::-webkit-scrollbar {
+            width: 10px; /* Vertical Scrollbar Width */
+            height: 10px; /* Horizontal Scrollbar Height */
+        }
+        
+        .custom-scroll::-webkit-scrollbar-track {
+            background: #f1f5f9; 
+            border: 1px solid #e2e8f0;
+        }
+        
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background-color: #cbd5e1; /* Visible Grey */
+            border-radius: 5px;
+            border: 2px solid #f1f5f9; /* Creates a padding effect */
+        }
+        
+        .custom-scroll::-webkit-scrollbar-thumb:hover {
+            background-color: #64748b; /* Darker on hover */
+        }
+
+        body {
+            background-color: #f8fafc;
+        }
+        .icon-fix svg {
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useMemo } = React;
+
+        // ==========================================
+        // DATA CONSTANTS
+        // ==========================================
+
+        const RAW_DATA = [
+            // --- ITW Data ---
+            // Market Data
+            { company: "ITW", statement: "Market Data", account: "Stock Price at Year End", y2022: 220.30, y2021: 246.80 },
+
+            // Balance Sheet
+            { company: "ITW", statement: "Balance Sheet", account: "Cash and equivalents", y2022: 708, y2021: 1527 },
+            { company: "ITW", statement: "Balance Sheet", account: "Trade receivables", y2022: 3171, y2021: 2840 },
+            { company: "ITW", statement: "Balance Sheet", account: "Inventories", y2022: 2054, y2021: 1694 },
+            { company: "ITW", statement: "Balance Sheet", account: "Total current assets", y2022: 6270, y2021: 6374 },
+            { company: "ITW", statement: "Balance Sheet", account: "Total assets", y2022: 15422, y2021: 16077 },
+            { company: "ITW", statement: "Balance Sheet", account: "Total current liabilities", y2022: 4460, y2021: 3470 },
+            { company: "ITW", statement: "Balance Sheet", account: "Long-term debt", y2022: 6173, y2021: 6909 },
+            { company: "ITW", statement: "Balance Sheet", account: "Total noncurrent liabilities", y2022: 7873, y2021: 8981 },
+            { company: "ITW", statement: "Balance Sheet", account: "Total liabilities", y2022: 12333, y2021: 12451 },
+            { company: "ITW", statement: "Balance Sheet", account: "Total stockholders' equity", y2022: 3089, y2021: 3626 },
+            { company: "ITW", statement: "Balance Sheet", account: "Total liabilities and equity", y2022: 15422, y2021: 16077 },
+
+            // Income Statement
+            { company: "ITW", statement: "Income Statement", account: "Operating revenue", y2022: 15932, y2021: 14455 },
+            { company: "ITW", statement: "Income Statement", account: "Net income", y2022: 3034, y2021: 2694 },
+
+            // Cash Flow
+            { company: "ITW", statement: "Cash Flow", account: "Net cash provided by operating activities (CFO)", y2022: 2348, y2021: 2557 },
+            { company: "ITW", statement: "Cash Flow", account: "Net cash used for investing activities (CFI)", y2022: -110, y2021: -984 },
+            { company: "ITW", statement: "Cash Flow", account: "Net cash used for financing activities (CFF)", y2022: -3000, y2021: -2564 },
+            { company: "ITW", statement: "Cash Flow", account: "Repurchases of common stock", y2022: -1750, y2021: -1000 },
+            { company: "ITW", statement: "Cash Flow", account: "Dividends paid", y2022: -1542, y2021: -1463 },
+
+            // Statement of Equity (Total Column Walk)
+            { company: "ITW", statement: "Statement of Equity", account: "Beginning Balance", y2022: 3626, y2021: 3182 },
+            { company: "ITW", statement: "Statement of Equity", account: "Net income", y2022: 3034, y2021: 2694 },
+            { company: "ITW", statement: "Statement of Equity", account: "Common stock issued", y2022: 15, y2021: 40 },
+            { company: "ITW", statement: "Statement of Equity", account: "Stock-based compensation expense", y2022: 63, y2021: 53 },
+            { company: "ITW", statement: "Statement of Equity", account: "Repurchases of common stock", y2022: -1750, y2021: -1000 },
+            { company: "ITW", statement: "Statement of Equity", account: "Dividends declared", y2022: -1560, y2021: -1483 },
+            { company: "ITW", statement: "Statement of Equity", account: "Other comprehensive income (loss)", y2022: -339, y2021: 140 },
+            { company: "ITW", statement: "Statement of Equity", account: "Ending Balance", y2022: 3089, y2021: 3626 },
+
+            // Equity Components
+            { company: "ITW", statement: "Equity Components", account: "Common Stock", y2022: 6, y2021: 6 },
+            { company: "ITW", statement: "Equity Components", account: "Retained earnings", y2022: 25799, y2021: 24325 },
+            { company: "ITW", statement: "Equity Components", account: "Treasury stock", y2022: -22377, y2021: -20636 },
+
+             // Supplemental Data (EPS, Dividends) - Only visible in instructor mode logic
+            { company: "ITW", statement: "Supplemental Data", account: "Dividends per share", y2022: 5.06, y2021: 4.72 },
+            { company: "ITW", statement: "Supplemental Data", account: "Basic EPS", y2022: 9.80, y2021: 8.55 },
+            { company: "ITW", statement: "Supplemental Data", account: "Diluted EPS", y2022: 9.77, y2021: 8.51 },
+            { company: "ITW", statement: "Supplemental Data", account: "Weighted avg shares (Basic)", y2022: 309.6, y2021: 315.1 },
+            { company: "ITW", statement: "Supplemental Data", account: "Weighted avg shares (Diluted)", y2022: 310.7, y2021: 316.4 },
+            { company: "ITW", statement: "Supplemental Data", account: "Antidilutive options", y2022: 0.9, y2021: 0.4 },
+
+            // --- PH Data ---
+            // Market Data
+            { company: "PH", statement: "Market Data", account: "Stock Price at Year End", y2022: 246.05, y2021: 307.11 },
+
+            // Balance Sheet
+            { company: "PH", statement: "Balance Sheet", account: "Cash and cash equivalents", y2022: 535799, y2021: 733117 },
+            { company: "PH", statement: "Balance Sheet", account: "Total current assets", y2022: 12046644, y2021: 5616750 },
+            { company: "PH", statement: "Balance Sheet", account: "Total assets", y2022: 25943943, y2021: 20341200 },
+            { company: "PH", statement: "Balance Sheet", account: "Total liabilities", y2022: 17084023, y2021: 11927530 },
+            { company: "PH", statement: "Balance Sheet", account: "Total equity", y2022: 8859920, y2021: 8413670 },
+            { company: "PH", statement: "Balance Sheet", account: "Total liabilities and equity", y2022: 25943943, y2021: 20341200 },
+
+            // Income Statement
+            { company: "PH", statement: "Income Statement", account: "Net sales", y2022: 15861608, y2021: 14347640 },
+            { company: "PH", statement: "Income Statement", account: "Net income", y2022: 1315605, y2021: 1746100 },
+
+            // Cash Flow
+            { company: "PH", statement: "Cash Flow", account: "Net cash provided by operating activities (CFO)", y2022: 2441730, y2021: 2575001 },
+            { company: "PH", statement: "Cash Flow", account: "Net cash used for investing activities (CFI)", y2022: -418837, y2021: -13 },
+            { company: "PH", statement: "Cash Flow", account: "Net cash provided by financing activities (CFF)", y2022: 3915636, y2021: -2623339 },
+            { company: "PH", statement: "Cash Flow", account: "Shares purchased at cost (Repurchases)", y2022: -380334, y2021: -100000 },
+            
+            // Statement of Equity (Total Column Walk)
+            { company: "PH", statement: "Statement of Equity", account: "Beginning Balance", y2022: 8413670, y2021: 6241770 },
+            { company: "PH", statement: "Statement of Equity", account: "Net income", y2022: 1316186, y2021: 1746861 },
+            { company: "PH", statement: "Statement of Equity", account: "Other comprehensive income (loss)", y2022: 22003, y2021: 992868 },
+            { company: "PH", statement: "Statement of Equity", account: "Dividends declared", y2022: -569855, y2021: -475174 },
+            { company: "PH", statement: "Statement of Equity", account: "Stock incentive plan activity", y2022: 60198, y2021: 7345 },
+            { company: "PH", statement: "Statement of Equity", account: "Acquisition activity", y2022: 0, y2021: 10066 },
+            { company: "PH", statement: "Statement of Equity", account: "Liquidation activity", y2022: -1948, y2021: 0 },
+            { company: "PH", statement: "Statement of Equity", account: "Shares purchased at cost", y2022: -380334, y2021: -100000 },
+            { company: "PH", statement: "Statement of Equity", account: "Ending Balance", y2022: 8859920, y2021: 8413670 },
+
+            // Equity Components
+            { company: "PH", statement: "Equity Components", account: "Common Stock", y2022: 90523, y2021: 90523 },
+            { company: "PH", statement: "Equity Components", account: "Retained earnings", y2022: 15661808, y2021: 14915497 },
+            { company: "PH", statement: "Equity Components", account: "Treasury stock", y2022: -5688429, y2021: -5370605 },
+
+            // Supplemental Data (EPS, Dividends)
+            { company: "PH", statement: "Supplemental Data", account: "Dividends per share", y2022: 4.42, y2021: 3.67 },
+            { company: "PH", statement: "Supplemental Data", account: "Basic EPS", y2022: 10.24, y2021: 13.54 },
+            { company: "PH", statement: "Supplemental Data", account: "Diluted EPS", y2022: 10.09, y2021: 13.35 },
+            { company: "PH", statement: "Supplemental Data", account: "Weighted avg shares (Basic)", y2022: 128539.387, y2021: 128999.879 },
+            { company: "PH", statement: "Supplemental Data", account: "Weighted avg shares (Diluted)", y2022: 130355.943, y2021: 130834.478 },
+            { company: "PH", statement: "Supplemental Data", account: "Antidilutive options", y2022: 400, y2021: 400 }
+        ];
+
+        const LINKS = {
+            PH: "https://www.sec.gov/ix?doc=/Archives/edgar/data/0000076334/000007633422000034/ph-20220630.htm",
+            ITW: "https://www.sec.gov/ix?doc=/Archives/edgar/data/0000049826/000004982623000008/itw-20221231.htm"
+        };
+
+        // ==========================================
+        // UTILITY FUNCTIONS
+        // ==========================================
+
+        const toPascalCase = (str) => 
+            str.replace(/(^\w|-\w)/g, (clear) => clear.replace(/-/, "").toUpperCase());
+
+        // Robust Icon component using Lucide's createIcons to ensure rendering
+        const Icon = ({ name, size = 16, className = "" }) => {
+            const ref = useRef(null);
+
+            useEffect(() => {
+                if (window.lucide && window.lucide.createIcons && ref.current) {
+                    // Force a re-render of the icon by resetting innerHTML
+                    // This allows us to use the latest CDN version which expects [data-lucide] attributes
+                    const iconName = name.toLowerCase().replace(/[A-Z]/g, letter => `-${letter.toLowerCase()}`);
+                    ref.current.innerHTML = `<i data-lucide="${iconName}" style="width: ${size}px; height: ${size}px;"></i>`;
+                    
+                    window.lucide.createIcons({
+                        root: ref.current,
+                        attrs: {
+                            class: className,
+                            width: size,
+                            height: size,
+                            "stroke-width": 2
+                        }
+                    });
+                }
+            }, [name, size, className]);
+
+            return <span ref={ref} className={`icon-fix inline-flex items-center justify-center ${className}`} style={{ width: size, height: size }} />;
+        };
+
+        // Safe math evaluator
+        const evaluateMath = (expression) => {
+            if (!expression) return "";
+            try {
+                // Remove anything that isn't a number or operator
+                const sanitized = String(expression).replace(/[^0-9+\-*/()..]/g, '');
+                // eslint-disable-next-line no-new-func
+                return new Function('return ' + sanitized)();
+            } catch (e) {
+                return expression; 
+            }
+        };
+
+        // ==========================================
+        // COMPONENTS
+        // ==========================================
+
+        const Sidebar = ({ onDataClick, activeTab, onTabChange, modules, isInstructor }) => {
+            const groupedData = useMemo(() => {
+                const groups = {};
+                RAW_DATA.forEach(row => {
+                    // Only show "Supplemental Data" if instructor mode is ON
+                    if (row.statement === "Supplemental Data" && !isInstructor) return;
+
+                    if (!groups[row.company]) groups[row.company] = {};
+                    if (!groups[row.company][row.statement]) groups[row.company][row.statement] = [];
+                    groups[row.company][row.statement].push(row);
+                });
+                return groups;
+            }, [isInstructor]);
+
+            const [expandedCompany, setExpandedCompany] = useState("PH");
+
+            return (
+                <div className="w-96 bg-white border-r border-gray-200 flex flex-col h-screen fixed left-0 top-0 shadow-lg z-20">
+                    
+                    {/* SECTION 1: MODULE NAVIGATION */}
+                    <div className="bg-slate-50 border-b border-gray-200 flex flex-col">
+                        <div className="p-4 pb-2">
+                            <h2 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-2">
+                                <Icon name="list" size={14}/> Worksheet Modules
+                            </h2>
+                            <div className="flex flex-col space-y-1 max-h-24 overflow-y-auto custom-scroll pr-1">
+                                {modules.map((mod, idx) => (
+                                    <button
+                                        key={idx}
+                                        onClick={() => onTabChange(idx)}
+                                        className={`text-left text-sm px-3 py-2.5 rounded-md transition-all flex items-center justify-between group ${
+                                            activeTab === idx 
+                                            ? "bg-blue-600 text-white shadow-md font-semibold" 
+                                            : "bg-white text-slate-600 hover:bg-blue-50 border border-transparent hover:border-blue-100"
+                                        }`}
+                                    >
+                                        <span className="truncate pr-2">{mod.title}</span>
+                                        {activeTab === idx && <Icon name="chevron-right" size={14} className="opacity-80" />}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* SECTION 2: REFERENCE DATA HEADER */}
+                    <div className="p-4 border-b border-gray-200 bg-white">
+                        <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                            <Icon name="database" /> Reference Data
+                        </h2>
+                        <p className="text-xs text-slate-500 mt-1">Click a value to insert into fields.</p>
+                        
+                        <div className="flex gap-2 mt-3">
+                            <a href={LINKS.PH} target="_blank" className="flex-1 text-center text-xs bg-blue-100 text-blue-700 py-1 rounded hover:bg-blue-200 transition font-medium">
+                                PH 10-K
+                            </a>
+                            <a href={LINKS.ITW} target="_blank" className="flex-1 text-center text-xs bg-emerald-100 text-emerald-700 py-1 rounded hover:bg-emerald-200 transition font-medium">
+                                ITW 10-K
+                            </a>
+                        </div>
+                    </div>
+
+                    {/* SECTION 3: SCROLLABLE DATA LIST */}
+                    <div className="flex-1 overflow-y-auto custom-scroll p-2 bg-slate-50">
+                        {Object.keys(groupedData).map(company => (
+                            <div key={company} className="mb-4">
+                                <button 
+                                    onClick={() => setExpandedCompany(company === expandedCompany ? null : company)}
+                                    className="w-full text-left font-bold bg-white border border-gray-200 px-3 py-2 rounded shadow-sm flex justify-between items-center hover:bg-slate-50 transition"
+                                >
+                                    {company === "PH" ? "Parker Hannifin" : "Illinois Tool Works"}
+                                    <Icon name={expandedCompany === company ? "chevron-down" : "chevron-right"} size={14} />
+                                </button>
+                                
+                                {expandedCompany === company && (
+                                    <div className="pl-1 mt-1 space-y-4">
+                                        {Object.keys(groupedData[company]).map(statement => (
+                                            <div key={statement} className="bg-white/50 rounded p-1 border border-slate-100 mt-2">
+                                                <h4 className="text-[10px] font-bold text-blue-600 uppercase tracking-wider mb-2 mt-1 px-1 border-b border-blue-100 pb-1">
+                                                    {statement}
+                                                </h4>
+                                                
+                                                {/* Header Row for Years */}
+                                                <div className="flex justify-between items-center text-[9px] font-bold text-slate-400 uppercase mb-1 px-2">
+                                                    <span>Account</span>
+                                                    <div className="flex gap-3">
+                                                        <span className="w-14 text-right">2022</span>
+                                                        <span className="w-14 text-right">2021</span>
+                                                    </div>
+                                                </div>
+
+                                                <div className="space-y-0.5">
+                                                    {groupedData[company][statement].map((row, idx) => (
+                                                        <div key={idx} className="text-[11px] flex justify-between items-center group hover:bg-white p-1 rounded cursor-pointer border border-transparent hover:border-blue-200 hover:shadow-sm transition-all"
+                                                            title="Click to insert value"
+                                                        >
+                                                            <span className="truncate flex-1 text-slate-600 group-hover:text-blue-700 pr-2">{row.account}</span>
+                                                            <div className="flex gap-3">
+                                                                {row.y2022 !== undefined && (
+                                                                    <span 
+                                                                        onClick={() => onDataClick(row.y2022)}
+                                                                        className="w-14 text-right font-mono text-slate-700 hover:bg-blue-600 hover:text-white rounded px-1 transition cursor-pointer"
+                                                                    >
+                                                                        {row.y2022.toLocaleString()}
+                                                                    </span>
+                                                                )}
+                                                                {row.y2021 !== undefined && (
+                                                                    <span 
+                                                                        onClick={() => onDataClick(row.y2021)}
+                                                                        className="w-14 text-right font-mono text-slate-400 hover:bg-slate-200 hover:text-slate-800 rounded px-1 transition cursor-pointer"
+                                                                    >
+                                                                        {row.y2021.toLocaleString()}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        };
+
+        const SmartInput = ({ id, value, onChange, correctValue, isPct, onFocus, isInstructor }) => {
+            const [status, setStatus] = useState("neutral"); // neutral, correct, incorrect
+            
+            // Validate on mount if value exists (for auto-fill) and on updates
+            useEffect(() => {
+                if (!value) {
+                    setStatus("neutral");
+                    return;
+                }
+                validate(value);
+            }, [value]);
+
+            const validate = (val) => {
+                if (!val) return;
+                const numVal = parseFloat(val);
+                if (isNaN(numVal)) return;
+
+                let isCorrect = false;
+                const tolerance = 0.02; // 2%
+
+                const check = (target) => Math.abs((numVal - target) / target) <= tolerance;
+
+                // 1. Standard exact match check
+                if (check(correctValue)) isCorrect = true;
+
+                // 2. Unit Confusion Check (Factor of 1000)
+                // If key is 3000 (thousands) and student types 3000000 (ones) -> Correct
+                if (check(correctValue * 1000)) isCorrect = true;
+                // If key is 3000000 (ones) and student types 3000 (thousands) -> Correct
+                if (check(correctValue / 1000)) isCorrect = true;
+
+                // 3. Percentage Logic
+                if (isPct) {
+                     // Check if they typed integer (65.8) matching expected (0.658 * 100)
+                     if (check(correctValue * 100)) isCorrect = true;
+                }
+
+                setStatus(isCorrect ? "correct" : "incorrect");
+            };
+
+            const handleBlur = (e) => {
+                const val = e.target.value;
+                const evaluated = evaluateMath(val);
+                
+                // If the user typed math (e.g. 500/10), update the field with the result
+                if (evaluated !== val && evaluated !== "") {
+                    onChange(id, evaluated); // Parent update
+                    validate(evaluated);
+                } else {
+                    validate(val);
+                }
+            };
+
+            const handleKeyDown = (e) => {
+                if (e.key === 'Enter') {
+                    e.target.blur();
+                }
+            };
+
+            let borderClass = "border-gray-300 focus:border-blue-500 focus:ring-blue-500";
+            if (status === "correct") borderClass = "border-green-500 bg-green-50 text-green-700";
+            if (status === "incorrect") borderClass = "border-red-400 bg-red-50 text-red-700";
+
+            // Safety helper for displaying key
+            const getKeyDisplay = () => {
+                if (correctValue === undefined || correctValue === null) return "N/A";
+                return isPct ? (correctValue * 100).toFixed(1) + '%' : correctValue.toLocaleString();
+            };
+
+            return (
+                <div className="relative w-full mb-1">
+                    <input
+                        id={id}
+                        type="text"
+                        value={value || ""}
+                        onChange={(e) => onChange(id, e.target.value)}
+                        onFocus={() => onFocus(id)}
+                        onBlur={handleBlur}
+                        onKeyDown={handleKeyDown}
+                        placeholder={isPct ? "%" : "#"}
+                        className={`w-full text-sm p-2 border rounded shadow-sm outline-none transition-colors font-mono ${borderClass}`}
+                    />
+                    <div className="absolute right-2 top-2.5">
+                        {status === "correct" && <Icon name="check" size={14} className="text-green-600" />}
+                        {status === "incorrect" && <Icon name="x" size={14} className="text-red-500" />}
+                    </div>
+                    {isInstructor && (
+                        <div className="mt-1 px-2 py-1 bg-purple-100 text-purple-700 text-xs font-bold rounded border border-purple-200 inline-block">
+                            Key: {getKeyDisplay()}
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const InstructorModal = ({ isOpen, onClose, onUnlock }) => {
+            const [pass, setPass] = useState("");
+            if (!isOpen) return null;
+
+            const handleLogin = () => {
+                if (pass === "teacher") {
+                    onUnlock();
+                    onClose();
+                    setPass("");
+                } else {
+                    alert("Incorrect Password");
+                }
+            };
+
+            return (
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+                    <div className="bg-white p-6 rounded-lg shadow-xl w-80">
+                        <h3 className="font-bold text-lg mb-4 flex items-center gap-2"><Icon name="lock" /> Instructor Access</h3>
+                        <input 
+                            type="password" 
+                            className="w-full border p-2 rounded mb-4" 
+                            placeholder="Password" 
+                            value={pass}
+                            onChange={(e) => setPass(e.target.value)}
+                        />
+                        <div className="flex justify-end gap-2">
+                            <button onClick={onClose} className="px-3 py-1 text-sm text-gray-500 hover:bg-gray-100 rounded">Cancel</button>
+                            <button onClick={handleLogin} className="px-3 py-1 text-sm bg-purple-600 text-white rounded hover:bg-purple-700">Unlock</button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const App = () => {
+            const [activeTab, setActiveTab] = useState(0);
+            const [inputs, setInputs] = useState({});
+            const [activeInputId, setActiveInputId] = useState(null);
+            const [isInstructor, setIsInstructor] = useState(false);
+            const [showModal, setShowModal] = useState(false);
+            const [studentName, setStudentName] = useState("");
+
+            // --- Handlers ---
+
+            const handleInputChange = (id, val) => {
+                setInputs(prev => ({ ...prev, [id]: val }));
+            };
+
+            const handleFocus = (id) => {
+                setActiveInputId(id);
+            };
+
+            // Core Logic: Sidebar Click-to-Fill
+            const handleReferenceClick = (val) => {
+                if (!activeInputId) return;
+                
+                const currentVal = String(inputs[activeInputId] || "").trim();
+                const clickedVal = String(val);
+                
+                let newVal = "";
+
+                // Check for operators at end of string
+                const operatorRegex = /[+\-*/(]$/;
+                
+                if (operatorRegex.test(currentVal)) {
+                    // Append
+                    newVal = currentVal + clickedVal;
+                } else if (currentVal === "") {
+                    // Insert
+                    newVal = clickedVal;
+                } else {
+                    // Default behavior: Assume addition if number exists
+                    newVal = currentVal + "+" + clickedVal;
+                }
+
+                handleInputChange(activeInputId, newVal);
+                
+                // Attempt to re-focus the input
+                setTimeout(() => {
+                    const el = document.getElementById(activeInputId);
+                    if (el) el.focus();
+                }, 50);
+            };
+
+            const handleDownload = () => {
+                let content = `Student Name: ${studentName || "Unknown"}\nDate: ${new Date().toLocaleString()}\n\n`;
+                
+                content += "--- ANSWERS ---\n";
+                Object.keys(inputs).forEach(key => {
+                    content += `${key}: ${inputs[key]}\n`;
+                });
+
+                const blob = new Blob([content], { type: "text/plain" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `${studentName.replace(/\s+/g, '_')}_Financial_Analysis.txt`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            };
+
+            // Auto-fill logic (using the 'correctValue' from structure)
+            const handleAutoFill = () => {
+                const newInputs = {};
+                MODULES.forEach(mod => {
+                    mod.sections.forEach(sec => {
+                        sec.rows.forEach((row, rIdx) => {
+                            // Fixed: Include row index (rIdx) in ID generation to match the SmartInput IDs
+                            if (row.ph_2022_key !== undefined) newInputs[`${sec.id}_ph_22_r${rIdx}`] = row.ph_2022_key;
+                            if (row.ph_2021_key !== undefined) newInputs[`${sec.id}_ph_21_r${rIdx}`] = row.ph_2021_key;
+                            if (row.itw_2022_key !== undefined) newInputs[`${sec.id}_itw_22_r${rIdx}`] = row.itw_2022_key;
+                            if (row.itw_2021_key !== undefined) newInputs[`${sec.id}_itw_21_r${rIdx}`] = row.itw_2021_key;
+                        });
+                    });
+                });
+                setInputs(newInputs);
+            };
+
+            const handleClear = () => {
+                setInputs({});
+                setIsInstructor(false);
+            };
+
+            // ==========================================
+            // MODULE CONFIGURATION
+            // ==========================================
+            // Defines the structure of the worksheets
+            
+            const MODULES = [
+                {
+                    title: "1. Equity Big Picture",
+                    sections: [
+                        {
+                            title: "1.1 Percentage of Assets Financed by Owners vs. Nonowners",
+                            id: "1.1",
+                            isPct: true,
+                            rows: [
+                                { label: "% of assets financed by nonowners", ph_2022_key: 0.658, ph_2021_key: 0.586, itw_2022_key: 0.800, itw_2021_key: 0.774 },
+                                { label: "% of assets financed by owners", ph_2022_key: 0.342, ph_2021_key: 0.414, itw_2022_key: 0.200, itw_2021_key: 0.226 }
+                            ]
+                        }
+                    ],
+                    observation: "Parker Hannifin is primarily financed by nonowners. Illinois Tool Works leverage increased over time, driven largely by aggressive share repurchases."
+                },
+                {
+                    title: "2. Equity Accounts",
+                    sections: [
+                        {
+                            title: "2.1 Preferred Stock",
+                            id: "2.1",
+                            note: "Consult the balance sheet and equity footnote.",
+                            rows: [
+                                { label: "Preferred shares authorized", ph_2022_key: 3000, ph_2021_key: 3000, itw_2022_key: 0.3, itw_2021_key: 0.3 },
+                                { label: "Preferred shares outstanding", ph_2022_key: 0, ph_2021_key: 0, itw_2022_key: 0, itw_2021_key: 0 }
+                            ]
+                        },
+                        {
+                            title: "2.2 Common Stock Details",
+                            id: "2.2",
+                            note: "See balance sheet equity section and Equity Note.",
+                            rows: [
+                                { label: "Par value per share ($)", ph_2022_key: 0.50, ph_2021_key: 0.50, itw_2022_key: 0.01, itw_2021_key: 0.01 },
+                                { label: "Shares authorized", ph_2022_key: 600000, ph_2021_key: 600000, itw_2022_key: 700, itw_2021_key: 700 },
+                                { label: "Shares issued", ph_2022_key: 181046.128, ph_2021_key: 181046.128, itw_2022_key: 550, itw_2021_key: 550 },
+                                { label: "Treasury shares", ph_2022_key: 52594.956, ph_2021_key: 51900.460, itw_2022_key: 245, itw_2021_key: 237.1 },
+                                { label: "Shares outstanding", ph_2022_key: 128451.172, ph_2021_key: 129145.668, itw_2022_key: 305, itw_2021_key: 312.9 }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    title: "3. Market Capitalization",
+                    sections: [
+                        {
+                            title: "3.1 Market Capitalization at Year End",
+                            id: "3.1",
+                            rows: [
+                                { label: "Shares outstanding", ph_2022_key: 128451.172, ph_2021_key: 129145.668, itw_2022_key: 305, itw_2021_key: 312.9 },
+                                { label: "Stock price at year end ($)", ph_2022_key: 246.05, ph_2021_key: 307.11, itw_2022_key: 220.30, itw_2021_key: 246.80 },
+                                { label: "Market capitalization", ph_2022_key: 31605410.87, ph_2021_key: 39661926.10, itw_2022_key: 67191.50, itw_2021_key: 77223.72 }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    title: "4. Market-to-Book",
+                    sections: [
+                        {
+                            title: "4.1 Market to Book Ratio",
+                            id: "4.1",
+                            note: "Hint: Market Capitalization / Total Stockholders' Equity",
+                            rows: [
+                                { label: "Market capitalization", ph_2022_key: 31605411, ph_2021_key: 39661926, itw_2022_key: 67192, itw_2021_key: 77224 },
+                                { label: "Book value of equity", ph_2022_key: 8859920, ph_2021_key: 8413670, itw_2022_key: 3089, itw_2021_key: 3626 },
+                                { label: "Market-to-book ratio", ph_2022_key: 3.57, ph_2021_key: 4.72, itw_2022_key: 21.75, itw_2021_key: 21.30 }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    title: "5. Treasury Stock",
+                    sections: [
+                        {
+                            title: "5.1 Treasury Stock Balances",
+                            id: "5.1",
+                            note: "Consult equity footnote and Statement of Cash Flows. Hint: Average price per share = Treasury stock $ / Treasury shares",
+                            rows: [
+                                { label: "Treasury stock ($ Balance Sheet)", ph_2022_key: 5688429, ph_2021_key: 5370605, itw_2022_key: 22377, itw_2021_key: 20636 },
+                                { label: "Treasury shares at year end", ph_2022_key: 52595, ph_2021_key: 51900, itw_2022_key: 245, itw_2021_key: 237.1 },
+                                { label: "Average price per share ($)", ph_2022_key: 108.16, ph_2021_key: 103.48, itw_2022_key: 91.33, itw_2021_key: 87.04 },
+                                { label: "Cash paid for repurchases ($ SCF)", ph_2022_key: 380334, ph_2021_key: 0, itw_2022_key: 1750, itw_2021_key: 1000 },
+                                { label: "Treasury shares repurchased", ph_2022_key: 1281.818, ph_2021_key: 0, itw_2022_key: 1.2, itw_2021_key: 0 },
+                            ]
+                        }
+                    ]
+                },
+                {
+                    title: "6. Dividends and Ratios",
+                    sections: [
+                        {
+                            title: "6.1 Does the company pay dividends?",
+                            id: "6.1",
+                            note: "Check Statement of Cash Flows (Financing Activities).",
+                            rows: [
+                                { label: "Dividends paid ($ SCF)", ph_2022_key: 569855, ph_2021_key: 475174, itw_2022_key: 1542, itw_2021_key: 1463 },
+                                { label: "Dividends per share ($)", ph_2022_key: 4.42, ph_2021_key: 3.67, itw_2022_key: 5.06, itw_2021_key: 4.72 }
+                            ]
+                        },
+                        {
+                            title: "6.2 Dividend Payout Ratio",
+                            id: "6.2",
+                            note: "Dividends per share: Check Statement of Equity. EPS: Check Income Statement. Dividend Payout Ratio = Dividends per share / Basic EPS",
+                            rows: [
+                                { label: "Dividends per share ($)", ph_2022_key: 4.42, ph_2021_key: 3.67, itw_2022_key: 5.06, itw_2021_key: 4.72 },
+                                { label: "Basic earnings per share ($)", ph_2022_key: 10.24, ph_2021_key: 13.54, itw_2022_key: 9.80, itw_2021_key: 8.55 },
+                                { label: "Dividend payout ratio", ph_2022_key: 0.432, ph_2021_key: 0.271, itw_2022_key: 0.516, itw_2021_key: 0.552, isPct: true }
+                            ]
+                        },
+                        {
+                            title: "6.3 Dividend Yield",
+                            id: "6.3",
+                            note: "Dividends: Statement of Equity. Stock Price: Market Data. Dividend Yield = Dividends per share / Stock Price",
+                            rows: [
+                                { label: "Dividends per share ($)", ph_2022_key: 4.42, ph_2021_key: 3.67, itw_2022_key: 5.06, itw_2021_key: 4.72 },
+                                { label: "Stock price ($)", ph_2022_key: 246.05, ph_2021_key: 307.11, itw_2022_key: 220.30, itw_2021_key: 246.80 },
+                                { label: "Dividend yield", ph_2022_key: 0.018, ph_2021_key: 0.012, itw_2022_key: 0.023, itw_2021_key: 0.019, isPct: true }
+                            ]
+                        },
+                        {
+                            title: "6.4 Verification of Dividends Per Share",
+                            id: "6.4",
+                            note: "Calculated as Dividends Paid / Shares Outstanding (Year End). Compare with reported value. Shares outstanding = Shares issued - Treasury stock. Consult Balance Sheet Stockholders' Equity section.",
+                            rows: [
+                                { label: "Dividends paid ($ SCF)", ph_2022_key: 569855, ph_2021_key: 475174, itw_2022_key: 1542, itw_2021_key: 1463 },
+                                { label: "Shares outstanding (Year End)", ph_2022_key: 128451.172, ph_2021_key: 129145.668, itw_2022_key: 305, itw_2021_key: 312.9 },
+                                { label: "Calculated Dividend per Share", ph_2022_key: 4.44, ph_2021_key: 3.68, itw_2022_key: 5.06, itw_2021_key: 4.67 },
+                                { label: "Reported Dividend per Share", ph_2022_key: 4.42, ph_2021_key: 3.67, itw_2022_key: 5.06, itw_2021_key: 4.72 }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    title: "7. Earnings Per Share (EPS)",
+                    sections: [
+                        {
+                            title: "7.1 Basic EPS",
+                            id: "7.1",
+                            note: "Check Income Statement or EPS Note disclosure.",
+                            rows: [
+                                { label: "Net income (attr. to shareholders)", ph_2022_key: 1315605, ph_2021_key: 1746100, itw_2022_key: 3034, itw_2021_key: 2694 },
+                                { label: "Weighted avg. shares (Basic)", ph_2022_key: 128539.387, ph_2021_key: 128999.879, itw_2022_key: 309.6, itw_2021_key: 315.1 },
+                                { label: "Basic EPS ($)", ph_2022_key: 10.24, ph_2021_key: 13.54, itw_2022_key: 9.80, itw_2021_key: 8.55 }
+                            ]
+                        },
+                        {
+                            title: "7.2 Diluted EPS",
+                            id: "7.2",
+                            note: "Check Income Statement or EPS Note disclosure. Antidilutive options are excluded from diluted EPS calculation.",
+                            rows: [
+                                { label: "Net income (attr. to shareholders)", ph_2022_key: 1315605, ph_2021_key: 1746100, itw_2022_key: 3034, itw_2021_key: 2694 },
+                                { label: "Weighted avg. shares (Diluted)", ph_2022_key: 130355.943, ph_2021_key: 130834.478, itw_2022_key: 310.7, itw_2021_key: 316.4 },
+                                { label: "Diluted EPS ($)", ph_2022_key: 10.09, ph_2021_key: 13.35, itw_2022_key: 9.77, itw_2021_key: 8.51 },
+                                { label: "Antidilutive options", ph_2022_key: 400, ph_2021_key: 400, itw_2022_key: 0.9, itw_2021_key: 0.4 }
+                            ]
+                        }
+                    ]
+                }
+            ];
+
+            return (
+                <div className="flex h-screen overflow-hidden text-slate-800">
+                    <Sidebar 
+                        onDataClick={handleReferenceClick} 
+                        activeTab={activeTab} 
+                        onTabChange={setActiveTab} 
+                        modules={MODULES} 
+                        isInstructor={isInstructor}
+                    />
+
+                    <main className="flex-1 ml-96 h-full flex flex-col">
+                        
+                        {/* Header */}
+                        <header className="bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center shadow-sm z-10">
+                            <div>
+                                <h1 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                                    <Icon name="bar-chart-2" className="text-blue-600"/> Financial Analysis Simulation
+                                </h1>
+                                <p className="text-sm text-slate-500">Parker Hannifin vs. Illinois Tool Works (2021-2022)</p>
+                            </div>
+                            <div className="flex items-center gap-4">
+                                <input 
+                                    type="text" 
+                                    placeholder="Enter Student Name"
+                                    className="border rounded px-3 py-1 text-sm focus:border-blue-500 outline-none"
+                                    value={studentName}
+                                    onChange={(e) => setStudentName(e.target.value)}
+                                />
+                                <button 
+                                    onClick={handleDownload}
+                                    className="bg-blue-600 text-white px-4 py-1.5 rounded text-sm font-medium hover:bg-blue-700 flex items-center gap-2 transition"
+                                >
+                                    <Icon name="download" size={16}/> Save Work
+                                </button>
+                                
+                                <button 
+                                    onClick={() => isInstructor ? handleClear() : setShowModal(true)}
+                                    className={`px-3 py-1.5 rounded text-sm font-medium flex items-center gap-2 transition ${isInstructor ? "bg-purple-100 text-purple-700 hover:bg-purple-200" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
+                                    title="Instructor Access"
+                                >
+                                    <Icon name={isInstructor ? "unlock" : "lock"} size={16} />
+                                    <span>{isInstructor ? "Instructor Mode" : "Instructor Access"}</span>
+                                </button>
+                            </div>
+                        </header>
+
+                        {/* Instructor Banner */}
+                        {isInstructor && (
+                            <div className="bg-purple-600 text-white px-6 py-2 text-sm flex justify-between items-center shadow-md z-10">
+                                <span className="font-semibold flex items-center gap-2"><Icon name="shield-check" size={16}/> Instructor Mode Active</span>
+                                <div className="flex gap-4">
+                                    <button onClick={handleAutoFill} className="hover:bg-purple-700 px-3 py-1 rounded flex items-center gap-2 transition" title="Auto-fill all answers">
+                                        <Icon name="zap" size={14}/> Auto-Fill All
+                                    </button>
+                                    <button onClick={handleClear} className="hover:bg-purple-700 px-3 py-1 rounded flex items-center gap-2 transition" title="Clear all and exit instructor mode">
+                                        <Icon name="trash-2" size={14}/> Clear & Exit
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Module Content */}
+                        <div className="flex-1 overflow-y-auto p-8 bg-slate-50 custom-scroll">
+                            <div className="max-w-5xl mx-auto space-y-8">
+                                
+                                {MODULES[activeTab].observation && (
+                                    <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded text-sm text-blue-800">
+                                        <strong>Observation:</strong> {MODULES[activeTab].observation}
+                                    </div>
+                                )}
+
+                                {MODULES[activeTab].sections.map((section) => (
+                                    <div key={section.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                                        <div className="mb-4">
+                                            <h3 className="text-lg font-bold text-slate-800">{section.title}</h3>
+                                            {section.note && <p className="text-sm text-slate-500 italic mt-1">{section.note}</p>}
+                                        </div>
+
+                                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                            {/* Parker Hannifin Column */}
+                                            <div>
+                                                <h4 className="font-bold text-blue-700 border-b-2 border-blue-100 pb-2 mb-4">
+                                                    Parker Hannifin (PH) 
+                                                    <span className="block text-xs font-normal text-slate-500 mt-0.5">($ thousands)</span>
+                                                </h4>
+                                                <div className="grid grid-cols-[1fr_80px_80px] gap-2 items-center text-sm font-semibold text-slate-500 mb-2">
+                                                    <span>Item</span>
+                                                    <span>2022</span>
+                                                    <span>2021</span>
+                                                </div>
+                                                {section.rows.map((row, rIdx) => (
+                                                    <div key={rIdx} className="grid grid-cols-[1fr_80px_80px] gap-2 items-start mb-3 py-2 border-b border-gray-50 last:border-0">
+                                                        <span className="text-sm pt-2">{row.label}</span>
+                                                        <SmartInput 
+                                                            id={`${section.id}_ph_22_r${rIdx}`}
+                                                            value={inputs[`${section.id}_ph_22_r${rIdx}`]}
+                                                            correctValue={row.ph_2022_key}
+                                                            onChange={handleInputChange}
+                                                            onFocus={handleFocus}
+                                                            isPct={row.isPct !== undefined ? row.isPct : section.isPct}
+                                                            isInstructor={isInstructor}
+                                                        />
+                                                        <SmartInput 
+                                                            id={`${section.id}_ph_21_r${rIdx}`}
+                                                            value={inputs[`${section.id}_ph_21_r${rIdx}`]}
+                                                            correctValue={row.ph_2021_key}
+                                                            onChange={handleInputChange}
+                                                            onFocus={handleFocus}
+                                                            isPct={row.isPct !== undefined ? row.isPct : section.isPct}
+                                                            isInstructor={isInstructor}
+                                                        />
+                                                    </div>
+                                                ))}
+                                            </div>
+
+                                            {/* ITW Column */}
+                                            <div>
+                                                <h4 className="font-bold text-emerald-700 border-b-2 border-emerald-100 pb-2 mb-4">
+                                                    Illinois Tool Works (ITW)
+                                                    <span className="block text-xs font-normal text-slate-500 mt-0.5">($ millions)</span>
+                                                </h4>
+                                                <div className="grid grid-cols-[1fr_80px_80px] gap-2 items-center text-sm font-semibold text-slate-500 mb-2">
+                                                    <span>Item</span>
+                                                    <span>2022</span>
+                                                    <span>2021</span>
+                                                </div>
+                                                {section.rows.map((row, rIdx) => (
+                                                    <div key={rIdx} className="grid grid-cols-[1fr_80px_80px] gap-2 items-start mb-3 py-2 border-b border-gray-50 last:border-0">
+                                                        <span className="text-sm pt-2">{row.label}</span>
+                                                        <SmartInput 
+                                                            id={`${section.id}_itw_22_r${rIdx}`}
+                                                            value={inputs[`${section.id}_itw_22_r${rIdx}`]}
+                                                            correctValue={row.itw_2022_key}
+                                                            onChange={handleInputChange}
+                                                            onFocus={handleFocus}
+                                                            isPct={row.isPct !== undefined ? row.isPct : section.isPct}
+                                                            isInstructor={isInstructor}
+                                                        />
+                                                        <SmartInput 
+                                                            id={`${section.id}_itw_21_r${rIdx}`}
+                                                            value={inputs[`${section.id}_itw_21_r${rIdx}`]}
+                                                            correctValue={row.itw_2021_key}
+                                                            onChange={handleInputChange}
+                                                            onFocus={handleFocus}
+                                                            isPct={row.isPct !== undefined ? row.isPct : section.isPct}
+                                                            isInstructor={isInstructor}
+                                                        />
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </main>
+
+                    <InstructorModal 
+                        isOpen={showModal} 
+                        onClose={() => setShowModal(false)} 
+                        onUnlock={() => setIsInstructor(true)} 
+                    />
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

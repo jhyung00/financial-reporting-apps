@@ -1,0 +1,1537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financial Reporting & Analysis Simulation</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- React & ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        /* Custom scrollbar for sidebar */
+        .scrollbar-thin::-webkit-scrollbar {
+            width: 6px;
+            height: 6px; /* Height for horizontal scrollbar */
+        }
+        .scrollbar-thin::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        .scrollbar-thin::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 3px;
+        }
+        .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        body {
+            background-color: #f3f4f6;
+        }
+        .math-font {
+            font-family: 'Courier New', Courier, monospace;
+        }
+        /* Table Input Styling */
+        .table-input input {
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            padding: 4px 8px;
+            width: 100%;
+            font-size: 0.9em;
+        }
+        .table-input input:focus {
+            border-color: #2563eb;
+            outline: none;
+            box-shadow: 0 0 0 1px #2563eb;
+        }
+        .fade-in { animation: fadeIn 0.2s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        // --- CONSTANTS & DATA ---
+
+        // Reference Data: PH First, ITW Second. Years: 2022, 2021.
+        const RAW_DATA = {
+            PH: {
+                "Balance Sheet": [
+                    { account: "Cash and cash equivalents", 2022: 535799, 2021: 733117 },
+                    { account: "Trade accounts receivable net", 2022: 2341504, 2021: 2183594 },
+                    { account: "Inventories", 2022: 2214553, 2021: 2090642 },
+                    { account: "Total current assets", 2022: 12046644, 2021: 5616750 },
+                    { account: "Goodwill", 2022: 7740082, 2021: 8059687 },
+                    { account: "Total assets", 2022: 25943943, 2021: 20341200 },
+                    { account: "Deferred revenue (Current)", 2022: 60472, 2021: 51211 },
+                    { account: "Deferred revenue (Noncurrent)", 2022: 2225, 2021: 3080 },
+                    { account: "Total liabilities", 2022: 17084023, 2021: 11927530 },
+                    { account: "Total equity", 2022: 8859920, 2021: 8413670 }
+                ],
+                "Income Statement": [
+                    { account: "Net sales", 2022: 15861608, 2021: 14347640 },
+                    { account: "Cost of sales", 2022: 11387267, 2021: 10449680 },
+                    { account: "Gross profit", 2022: 4474341, 2021: 3897960 },
+                    { account: "Operating income", 2022: 2854346, 2021: 2479990 },
+                    { account: "Net income", 2022: 1315605, 2021: 1746100 }
+                ],
+                "Cash Flow": [
+                    { account: "Net cash from operating", 2022: 2441730, 2021: 2575001 },
+                    { account: "Capital expenditures", 2022: -230044, 2021: -209957 },
+                    { account: "Dividends paid", 2022: -569855, 2021: -475174 }
+                ]
+            },
+            ITW: {
+                "Balance Sheet": [
+                    { account: "Cash and equivalents", 2022: 708, 2021: 1527 },
+                    { account: "Trade receivables", 2022: 3171, 2021: 2840 },
+                    { account: "Inventories", 2022: 2054, 2021: 1694 },
+                    { account: "Total current assets", 2022: 6270, 2021: 6374 },
+                    { account: "Net plant and equipment", 2022: 1848, 2021: 1809 },
+                    { account: "Goodwill", 2022: 4864, 2021: 4965 },
+                    { account: "Total assets", 2022: 15422, 2021: 16077 },
+                    { account: "Deferred revenue", 2022: 427, 2021: 394 },
+                    { account: "Total current liabilities", 2022: 4460, 2021: 3470 },
+                    { account: "Long-term debt", 2022: 6173, 2021: 6909 },
+                    { account: "Total stockholders' equity", 2022: 3089, 2021: 3626 }
+                ],
+                "Income Statement": [
+                    { account: "Operating revenue", 2022: 15932, 2021: 14455 },
+                    { account: "Cost of revenue", 2022: 9429, 2021: 8489 },
+                    { account: "Gross profit", 2022: 6503, 2021: 5966 },
+                    { account: "Operating income", 2022: 3790, 2021: 3477 },
+                    { account: "Net income", 2022: 3034, 2021: 2694 }
+                ],
+                "Cash Flow": [
+                    { account: "Net cash from operating", 2022: 2348, 2021: 2557 },
+                    { account: "Capital expenditures", 2022: -412, 2021: -296 },
+                    { account: "Dividends paid", 2022: -1542, 2021: -1463 }
+                ]
+            }
+        };
+
+        const SECTIONS = [
+            {
+                id: 'income_revenue',
+                title: '1. Income Statement & Revenue',
+                subsections: [
+                    {
+                        title: '1.a Horizontal Analysis of the Income Statement',
+                        gridCols: 2,
+                        guidance: {
+                            task: `On the Income Statement tab, determine the year-over-year percentage change for each income statement line item. At a minimum, compute Net sales (Parker Hannifin) and Operating revenue (Illinois Tool Works).`,
+                            source: `Consolidated Income Statement in the Form 10-K (2022 vs 2021).`
+                        },
+                        questions: [
+                            { id: '2b_ph_2022', label: 'PH Net Sales Growth 2022', correct: 10.6, isPct: true, suffix: '%' },
+                            { id: '2b_ph_2021', label: 'PH Net Sales Growth 2021', correct: 4.8, isPct: true, suffix: '%' },
+                            { id: '2b_itw_2022', label: 'ITW Operating Revenue Growth 2022', correct: 10.2, isPct: true, suffix: '%' },
+                            { id: '2b_itw_2021', label: 'ITW Operating Revenue Growth 2021', correct: 15.0, isPct: true, suffix: '%' }
+                        ]
+                    }
+                ]
+            },
+            {
+                id: 'revenue',
+                title: '2. Revenue',
+                subsections: [
+                    {
+                        title: '2.a Revenue Recognition Policy',
+                        gridCols: 1,
+                        guidance: {
+                            task: `Read the Revenue Recognition footnote and assess whether the policy aligns with concepts from the module. Determine whether the company has multiple-element contracts.`,
+                            source: `Form 10-K → Notes: "Revenue Recognition". Segment details in MD&A.`
+                        },
+                        questions: [
+                            { id: '2a_ph_policy', label: 'Does PH recognize revenue for both products and services?', correct: 'Yes' },
+                            { id: '2a_itw_policy', label: 'Does ITW recognize revenue for both products and services?', correct: 'Yes' }
+                        ]
+                    },
+                    {
+                        title: '2.c Revenue by Segment (2022 Focus)',
+                        guidance: {
+                            task: `Find the footnote on segment revenues. Fill out the 2022 data based on the 10-K. The 2021 and 2020 data has been pre-filled for you.`,
+                            source: `Revenue Recognition footnote, Segment Information footnote, or MD&A "Results by Segment".`
+                        },
+                        flexibleTable: {
+                            views: {
+                                PH: {
+                                    headers: ["Segment ($ thousands)", "2022 (Input)", "2021 (Ref)", "2020 (Ref)"],
+                                    rows: [
+                                        [
+                                            { type: 'text', value: 'Diversified Industrial' },
+                                            { type: 'input', id: '2c_ph_div_rev', correct: 13342046 },
+                                            { type: 'static', value: '11,960,159' },
+                                            { type: 'static', value: '10,960,885' }
+                                        ],
+                                        [
+                                            { type: 'text', value: 'Aerospace Systems' },
+                                            { type: 'input', id: '2c_ph_aero_rev', correct: 2519562 },
+                                            { type: 'static', value: '2,387,481' },
+                                            { type: 'static', value: '2,734,635' }
+                                        ],
+                                        [
+                                            { type: 'text', value: 'PH Total Revenue' },
+                                            { type: 'computed', operation: 'sum', dependsOn: ['2c_ph_div_rev', '2c_ph_aero_rev'] },
+                                            { type: 'static', value: '14,347,640' },
+                                            { type: 'static', value: '13,695,520' }
+                                        ]
+                                    ]
+                                },
+                                ITW: {
+                                    headers: ["Segment ($ millions)", "2022 Revenue", "2021 (Ref)", "2020 (Ref)"],
+                                    rows: [
+                                        [
+                                            { type: 'text', value: 'Automotive OEM' },
+                                            { type: 'input', id: '2c_itw_auto_rev', correct: 2969 },
+                                            { type: 'static', value: '2,800' },
+                                            { type: 'static', value: '2,571' }
+                                        ],
+                                        [
+                                            { type: 'text', value: 'Food Equipment' },
+                                            { type: 'input', id: '2c_itw_food_rev', correct: 2444 },
+                                            { type: 'static', value: '2,078' },
+                                            { type: 'static', value: '1,739' }
+                                        ],
+                                        [
+                                            { type: 'text', value: 'Test & Measurement' },
+                                            { type: 'input', id: '2c_itw_test_rev', correct: 2828 },
+                                            { type: 'static', value: '2,346' },
+                                            { type: 'static', value: '1,963' }
+                                        ],
+                                        [
+                                            { type: 'text', value: 'Welding' },
+                                            { type: 'input', id: '2c_itw_weld_rev', correct: 1894 },
+                                            { type: 'static', value: '1,650' },
+                                            { type: 'static', value: '1,384' }
+                                        ],
+                                        [
+                                            { type: 'text', value: 'Polymers & Fluids' },
+                                            { type: 'input', id: '2c_itw_poly_rev', correct: 1905 },
+                                            { type: 'static', value: '1,804' },
+                                            { type: 'static', value: '1,622' }
+                                        ],
+                                        [
+                                            { type: 'text', value: 'Construction Products' },
+                                            { type: 'input', id: '2c_itw_cons_rev', correct: 2113 },
+                                            { type: 'static', value: '1,945' },
+                                            { type: 'static', value: '1,652' }
+                                        ],
+                                        [
+                                            { type: 'text', value: 'Specialty Products' },
+                                            { type: 'input', id: '2c_itw_spec_rev', correct: 1799 },
+                                            { type: 'static', value: '1,854' },
+                                            { type: 'static', value: '1,660' }
+                                        ],
+                                        [
+                                            { type: 'text', value: 'Total Revenue' },
+                                            { type: 'computed', operation: 'sum', dependsOn: ['2c_itw_auto_rev', '2c_itw_food_rev', '2c_itw_test_rev', '2c_itw_weld_rev', '2c_itw_poly_rev', '2c_itw_cons_rev', '2c_itw_spec_rev'] },
+                                            { type: 'static', value: '14,477' },
+                                            { type: 'static', value: '12,591' }
+                                        ]
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    {
+                        title: '2.c Segment Mix % (Auto-Calculated)',
+                        guidance: {
+                            task: `This table automatically calculates the Mix % based on the revenue numbers you entered above.`,
+                            source: `Calculated from table above.`
+                        },
+                        flexibleTable: {
+                            views: {
+                                PH: {
+                                    headers: ["Segment Mix (%)", "2022 (Auto)", "2021 (Ref)", "2020 (Ref)"],
+                                    rows: [
+                                        [
+                                            { type: 'text', value: 'Diversified Industrial' },
+                                            { type: 'computed', dependsOn: ['2c_ph_div_rev', '2c_ph_total_rev'] },
+                                            { type: 'static', value: '83.4%' },
+                                            { type: 'static', value: '80.0%' }
+                                        ],
+                                        [
+                                            { type: 'text', value: 'Aerospace Systems' },
+                                            { type: 'computed', dependsOn: ['2c_ph_aero_rev', '2c_ph_total_rev'] },
+                                            { type: 'static', value: '16.6%' },
+                                            { type: 'static', value: '20.0%' }
+                                        ],
+                                        [
+                                            { type: 'text', value: 'Total' },
+                                            { type: 'static', value: '100%' },
+                                            { type: 'static', value: '100%' },
+                                            { type: 'static', value: '100%' }
+                                        ]
+                                    ]
+                                },
+                                ITW: {
+                                    headers: ["Segment Mix (%)", "2022 (Auto)", "2021 (Ref)", "2020 (Ref)"],
+                                    rows: [
+                                        [
+                                            { type: 'text', value: 'Automotive OEM' },
+                                            { type: 'computed', dependsOn: ['2c_itw_auto_rev', '2c_itw_total_rev'] },
+                                            { type: 'static', value: '19.3%' },
+                                            { type: 'static', value: '20.4%' }
+                                        ],
+                                        [
+                                            { type: 'text', value: 'Food Equipment' },
+                                            { type: 'computed', dependsOn: ['2c_itw_food_rev', '2c_itw_total_rev'] },
+                                            { type: 'static', value: '14.4%' },
+                                            { type: 'static', value: '13.8%' }
+                                        ],
+                                        [
+                                            { type: 'text', value: 'Test & Measurement' },
+                                            { type: 'computed', dependsOn: ['2c_itw_test_rev', '2c_itw_total_rev'] },
+                                            { type: 'static', value: '16.2%' },
+                                            { type: 'static', value: '15.6%' }
+                                        ],
+                                        [
+                                            { type: 'text', value: 'Welding' },
+                                            { type: 'computed', dependsOn: ['2c_itw_weld_rev', '2c_itw_total_rev'] },
+                                            { type: 'static', value: '11.4%' },
+                                            { type: 'static', value: '11.0%' }
+                                        ],
+                                        [
+                                            { type: 'text', value: 'Polymers & Fluids' },
+                                            { type: 'computed', dependsOn: ['2c_itw_poly_rev', '2c_itw_total_rev'] },
+                                            { type: 'static', value: '12.5%' },
+                                            { type: 'static', value: '12.9%' }
+                                        ],
+                                        [
+                                            { type: 'text', value: 'Construction Products' },
+                                            { type: 'computed', dependsOn: ['2c_itw_cons_rev', '2c_itw_total_rev'] },
+                                            { type: 'static', value: '13.4%' },
+                                            { type: 'static', value: '13.1%' }
+                                        ],
+                                        [
+                                            { type: 'text', value: 'Specialty Products' },
+                                            { type: 'computed', dependsOn: ['2c_itw_spec_rev', '2c_itw_total_rev'] },
+                                            { type: 'static', value: '12.8%' },
+                                            { type: 'static', value: '13.2%' }
+                                        ],
+                                        [
+                                            { type: 'text', value: 'Total' },
+                                            { type: 'static', value: '100%' },
+                                            { type: 'static', value: '100%' },
+                                            { type: 'static', value: '100%' }
+                                        ]
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    {
+                        title: '2.d Year-Over-Year Segment Growth',
+                        guidance: {
+                            task: `Calculate the growth rates for PH segments and ITW Automotive OEM. Other ITW segments are pre-filled.`,
+                            source: `Segment revenue tables in 10-K footnotes or MD&A.`
+                        },
+                        openQuestions: {
+                            PH: "Compare the growth rates of the two segments in 2022. Which segment is growing faster?",
+                            ITW: "Which segments grew in 2022? Which segment had the largest increase?"
+                        },
+                        flexibleTable: {
+                            views: {
+                                PH: {
+                                    headers: ["Segment", "2022 Growth (Calc)", "2021 Growth (Ref)"],
+                                    rows: [
+                                        [
+                                            { type: 'text', value: 'PH Diversified Industrial' },
+                                            { type: 'input', id: '2d_ph_div_growth', correct: 11.6, isPct: true, suffix: '%' },
+                                            { type: 'static', value: '9.1%' }
+                                        ],
+                                        [
+                                            { type: 'text', value: 'PH Aerospace Systems' },
+                                            { type: 'input', id: '2d_ph_aero_growth', correct: 5.5, isPct: true, suffix: '%' },
+                                            { type: 'static', value: '-12.7%' }
+                                        ]
+                                    ]
+                                },
+                                ITW: {
+                                    headers: ["Segment", "2022 Growth (Calc)", "2021 Growth (Ref)"],
+                                    rows: [
+                                        [
+                                            { type: 'text', value: 'ITW Automotive OEM' },
+                                            { type: 'input', id: '2d_itw_auto_growth', correct: 6.0, isPct: true, suffix: '%' },
+                                            { type: 'static', value: '8.9%' }
+                                        ],
+                                        [
+                                            { type: 'text', value: 'ITW Food Equipment' },
+                                            { type: 'static', value: '17.6%' },
+                                            { type: 'static', value: '19.5%' }
+                                        ],
+                                        [
+                                            { type: 'text', value: 'ITW Test & Measurement' },
+                                            { type: 'static', value: '20.5%' },
+                                            { type: 'static', value: '19.5%' }
+                                        ],
+                                        [
+                                            { type: 'text', value: 'ITW Welding' },
+                                            { type: 'static', value: '14.8%' },
+                                            { type: 'static', value: '19.2%' }
+                                        ],
+                                        [
+                                            { type: 'text', value: 'ITW Polymers & Fluids' },
+                                            { type: 'static', value: '5.6%' },
+                                            { type: 'static', value: '11.2%' }
+                                        ],
+                                        [
+                                            { type: 'text', value: 'ITW Construction Products' },
+                                            { type: 'static', value: '8.6%' },
+                                            { type: 'static', value: '17.7%' }
+                                        ],
+                                        [
+                                            { type: 'text', value: 'ITW Specialty Products' },
+                                            { type: 'static', value: '-3.0%' },
+                                            { type: 'static', value: '11.7%' }
+                                        ]
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    {
+                        title: '2.e Revenue by Geography (2022 Focus)',
+                        guidance: {
+                            task: `Fill in the 2022 columns using the 10-K data. Calculate the % International Sales for 2022 yourself.`,
+                            source: `Geographic Information footnote.`
+                        },
+                        flexibleTable: {
+                            views: {
+                                PH: {
+                                    headers: ["Region / Item", "2022 (Input)", "2021 (Ref)", "2020 (Ref)"],
+                                    rows: [
+                                        [
+                                            { type: 'text', value: 'PH Div. Ind. - North America' },
+                                            { type: 'input', id: '2e_ph_div_na', correct: 7703150 },
+                                            { type: 'static', value: '6,676,449' },
+                                            { type: 'static', value: '6,456,298' }
+                                        ],
+                                        [
+                                            { type: 'text', value: 'PH Aerospace Systems (All NA)' },
+                                            { type: 'input', id: '2e_ph_aero_na', correct: 2519562 },
+                                            { type: 'static', value: '2,387,481' },
+                                            { type: 'static', value: '2,734,635' }
+                                        ],
+                                        [
+                                            { type: 'text', value: 'PH Total North America' },
+                                            { type: 'input', id: '2e_ph_total_na', correct: 10222712 },
+                                            { type: 'static', value: '9,063,930' },
+                                            { type: 'static', value: '9,190,933' }
+                                        ],
+                                        [
+                                            { type: 'text', value: 'PH Div. Ind. - International' },
+                                            { type: 'input', id: '2e_ph_div_int', correct: 5638896 },
+                                            { type: 'static', value: '5,283,710' },
+                                            { type: 'static', value: '4,504,587' }
+                                        ],
+                                        [
+                                            { type: 'text', value: 'PH Total Revenue' },
+                                            { type: 'input', id: '2e_ph_total_geo', correct: 15861608 },
+                                            { type: 'static', value: '14,347,640' },
+                                            { type: 'static', value: '13,695,520' }
+                                        ],
+                                        [
+                                            { type: 'text', value: 'PH % International' },
+                                            { type: 'input', id: '2e_ph_pct_int', correct: 35.6, isPct: true, suffix: '%' },
+                                            { type: 'static', value: '36.8%' },
+                                            { type: 'static', value: '32.9%' }
+                                        ]
+                                    ]
+                                },
+                                ITW: {
+                                    headers: ["Region / Item", "2022 (Input)", "2021 (Ref)", "2020 (Ref)"],
+                                    rows: [
+                                        [
+                                            { type: 'text', value: 'ITW United States' },
+                                            { type: 'input', id: '2e_itw_us', correct: 7609 },
+                                            { type: 'static', value: '6,578' },
+                                            { type: 'static', value: '5,834' }
+                                        ],
+                                        [
+                                            { type: 'text', value: 'ITW Canada / Mexico' },
+                                            { type: 'input', id: '2e_itw_can_mex', correct: 1095 },
+                                            { type: 'static', value: '940' },
+                                            { type: 'static', value: '778' }
+                                        ],
+                                        [
+                                            { type: 'text', value: 'ITW EMEA' },
+                                            { type: 'input', id: '2e_itw_emea', correct: 3913 },
+                                            { type: 'static', value: '3,870' },
+                                            { type: 'static', value: '3,447' }
+                                        ],
+                                        [
+                                            { type: 'text', value: 'ITW Asia Pacific' },
+                                            { type: 'input', id: '2e_itw_asia', correct: 2991 },
+                                            { type: 'static', value: '2,802' },
+                                            { type: 'static', value: '2,291' }
+                                        ],
+                                        [
+                                            { type: 'text', value: 'ITW South America' },
+                                            { type: 'input', id: '2e_itw_sa', correct: 324 },
+                                            { type: 'static', value: '265' },
+                                            { type: 'static', value: '224' }
+                                        ],
+                                        [
+                                            { type: 'text', value: 'ITW Total Revenue' },
+                                            { type: 'input', id: '2e_itw_total_geo', correct: 15932 },
+                                            { type: 'static', value: '14,455' },
+                                            { type: 'static', value: '12,574' }
+                                        ],
+                                        [
+                                            { type: 'text', value: 'ITW % International' },
+                                            { type: 'input', id: '2e_itw_pct_int', correct: 52.2, isPct: true, suffix: '%' },
+                                            { type: 'static', value: '54.5%' },
+                                            { type: 'static', value: '53.6%' }
+                                        ]
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                ]
+            },
+            {
+                id: 'deferred',
+                title: '3. Deferred Revenue',
+                subsections: [
+                    {
+                        title: '3.a Source of Deferred Revenue',
+                        guidance: {
+                            task: `Explain what gives rise to deferred revenue for the company. Select all that apply based on the Revenue Recognition notes.`,
+                            source: `Form 10-K → Notes: "Revenue Recognition".`
+                        },
+                        questions: [
+                            { 
+                                id: '3a_ph_sources', 
+                                type: 'multiselect', 
+                                label: 'Parker Hannifin Sources:', 
+                                options: [
+                                    'Customer receives control as work is performed',
+                                    'Customer controls the asset being produced',
+                                    'Contracts with multiple performance obligations',
+                                    'Product has no alternative use & right to payment exists',
+                                    'Sale of scrap material'
+                                ],
+                                correct: [
+                                    'Customer receives control as work is performed',
+                                    'Customer controls the asset being produced',
+                                    'Contracts with multiple performance obligations',
+                                    'Product has no alternative use & right to payment exists'
+                                ] 
+                            },
+                            { 
+                                id: '3a_itw_sources', 
+                                type: 'multiselect', 
+                                label: 'Illinois Tool Works Sources:', 
+                                options: [
+                                    'Installation, acceptance, or service obligations remain after shipment',
+                                    'Revenue recognized over time based on costs incurred',
+                                    'Long-term defense contracts',
+                                    'Sale of scrap material'
+                                ],
+                                correct: [
+                                    'Installation, acceptance, or service obligations remain after shipment',
+                                    'Revenue recognized over time based on costs incurred'
+                                ] 
+                            }
+                        ]
+                    },
+                    {
+                        title: '3.b Deferred Revenue Balances',
+                        guidance: {
+                            task: `Identify deferred revenue balances for the two most recent fiscal years (2022 & 2021). Compute common size deferred revenue (Deferred / Total Revenue).`,
+                            source: `Form 10-K Notes (PH: "Contract Balances", ITW: "Revenue Recognition"). Look for "Other accrued liabilities".`
+                        },
+                        flexibleTable: {
+                            views: {
+                                PH: {
+                                    textContent: [
+                                        { title: 'PH: Contract Balances', body: [
+                                            'Contract assets and contract liabilities are reported on a contract-by-contract basis.',
+                                            'Contract assets reflect revenue recognized and performance obligations satisfied in advance of customer billing.',
+                                            'Contract liabilities relate to payments received in advance of the satisfaction of performance under the contract.',
+                                            'PH’s business involves long-term contracts. They collect from customers before they complete the project.',
+                                            'Therefore, for them, Deferred Revenue takes the form of contract liabilities.'
+                                        ]}
+                                    ],
+                                    headers: ["Line Item", "2022", "2021"],
+                                    rows: [
+                                        [
+                                            { type: 'text', value: 'PH Current (in Other accrued liabilities)' },
+                                            { type: 'input', id: '3b_ph_curr_22', correct: 60472 },
+                                            { type: 'static', value: '51,211' }
+                                        ],
+                                        [
+                                            { type: 'text', value: 'PH Noncurrent (in Other liabilities)' },
+                                            { type: 'input', id: '3b_ph_non_22', correct: 2225 },
+                                            { type: 'static', value: '3,080' }
+                                        ],
+                                        [
+                                            { type: 'text', value: 'PH Total Deferred Revenue' },
+                                            { type: 'computed', operation: 'sum', dependsOn: ['3b_ph_curr_22', '3b_ph_non_22'] },
+                                            { type: 'static', value: '54,291' }
+                                        ],
+                                        [
+                                            { type: 'text', value: 'PH Common Size (%)' },
+                                            { type: 'computed', dependsOn: ['3b_ph_tot_22', '2c_ph_total_rev'] },
+                                            { type: 'static', value: '0.3%' }
+                                        ]
+                                    ]
+                                },
+                                ITW: {
+                                    headers: ["Line Item", "2022", "2021"],
+                                    rows: [
+                                        [
+                                            { type: 'text', value: 'ITW Total Deferred Revenue' },
+                                            { type: 'input', id: '3b_itw_tot_22', correct: 427 },
+                                            { type: 'static', value: '394' }
+                                        ],
+                                        [
+                                            { type: 'text', value: 'ITW Common Size (%)' },
+                                            { type: 'input', id: '3b_itw_common_22', correct: 2.7, isPct: true, suffix: '%' },
+                                            { type: 'static', value: '2.5%' }
+                                        ]
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                ]
+            },
+            {
+                id: 'ar',
+                title: '4. Accounts Receivable',
+                subsections: [
+                    {
+                        title: '4.a Size of Accounts Receivable',
+                        gridCols: 1,
+                        guidance: {
+                            task: `Determine the size of Accounts Receivable relative to Total Assets.`,
+                            source: `Balance Sheet and Notes.`
+                        },
+                        questions: [
+                            { id: '5a_ph_pct', label: 'PH A/R as % of Total Assets 2022', correct: 9.0, isPct: true, suffix: '%' },
+                            { id: '5a_itw_pct', label: 'ITW A/R as % of Total Assets 2022', correct: 20.6, isPct: true, suffix: '%' }
+                        ]
+                    },
+                    {
+                        title: '4.d Days Sales Outstanding (DSO)',
+                        gridCols: 1,
+                        guidance: {
+                            task: `Calculate Days Sales Outstanding to measure collection efficiency. Formula: (Average Accounts Receivable / Net Sales) * 365.`,
+                            source: `Balance Sheet (A/R) and Income Statement (Total Revenue).`
+                        },
+                        questions: [
+                            { id: '5d_ph_dso', label: 'PH DSO 2022 (Days)', correct: 52.06, isPct: false, suffix: 'days' },
+                            { id: '5d_itw_dso', label: 'ITW DSO 2022 (Days)', correct: 68.86, isPct: false, suffix: 'days' }
+                        ]
+                    },
+                    {
+                        title: '4.e Cash Flow Impact of DSO Change (2022)',
+                        guidance: {
+                            task: `Calculate the cash flow impact of the change in DSO. Formula: (Prior DSO - Current DSO) * (Revenue / 365). Note: A decrease in DSO releases cash (positive), an increase uses cash (negative).`,
+                            source: `Prior DSO calculations and Income Statement.`
+                        },
+                        flexibleTable: {
+                            headers: ["Metric", "Parker Hannifin", "Illinois Tool Works"],
+                            rows: [
+                                [
+                                    { type: 'text', value: 'DSO 2021 (Given)' },
+                                    { type: 'static', value: '51.36 days' },
+                                    { type: 'static', value: '67.50 days' }
+                                ],
+                                [
+                                    { type: 'text', value: 'DSO 2022 (Calculated in 4.d)' },
+                                    { type: 'input', id: '5e_ph_dso_22', correct: 52.06 },
+                                    { type: 'input', id: '5e_itw_dso_22', correct: 68.86 }
+                                ],
+                                [
+                                    { type: 'text', value: 'Change in DSO (Prior - Current)' },
+                                    { type: 'input', id: '5e_ph_dso_change', correct: -0.70 },
+                                    { type: 'input', id: '5e_itw_dso_change', correct: -1.36 }
+                                ],
+                                [
+                                    { type: 'text', value: 'Revenue per Day (Net Sales / 365)' },
+                                    { type: 'input', id: '5e_ph_rev_day', correct: 43456 },
+                                    { type: 'input', id: '5e_itw_rev_day', correct: 44 }
+                                ],
+                                [
+                                    { type: 'text', value: 'Cash Flow Impact ($)' },
+                                    { type: 'input', id: '5e_ph_impact', correct: -30508 },
+                                    { type: 'input', id: '5e_itw_impact', correct: -59 }
+                                ]
+                            ]
+                        }
+                    }
+                ]
+            },
+            {
+                id: 'quality',
+                title: '5. Accounting Quality',
+                subsections: [
+                    {
+                        title: '5.a One-Time / Non-Persistent Items',
+                        gridCols: 1,
+                        guidance: {
+                            task: `Identify any one-time or non-persistent items reported in the income statement each year. Select all that apply.`,
+                            source: `Consolidated Income Statement, MD&A, and Notes.`
+                        },
+                        questions: [
+                            { 
+                                id: '6a_ph_items', 
+                                type: 'multiselect', 
+                                label: 'Select PH Non-Persistent Items:', 
+                                options: ['Gain on disposal', 'Loss on forward contracts', 'Other expense (income)', 'Restructuring charges', 'Inventory write-down'],
+                                correct: ['Gain on disposal', 'Loss on forward contracts', 'Other expense (income)'] 
+                            },
+                            { 
+                                id: '6a_itw_items', 
+                                type: 'multiselect', 
+                                label: 'Select ITW Non-Persistent Items:', 
+                                options: ['Gain on sale of operations', 'Asset impairment', 'Legal settlement', 'Restructuring charges'],
+                                correct: ['Gain on sale of operations'] 
+                            }
+                        ]
+                    }
+                ]
+            }
+        ];
+
+        // --- COMPONENTS ---
+
+        const Icon = ({ name, size = 18, className = "" }) => {
+            const iconRef = React.useRef(null);
+
+            React.useEffect(() => {
+                if (window.lucide && iconRef.current) {
+                    const i = document.createElement('i');
+                    i.setAttribute('data-lucide', name);
+                    if (className) {
+                        i.setAttribute('class', className);
+                    }
+                    iconRef.current.innerHTML = '';
+                    iconRef.current.appendChild(i);
+                    window.lucide.createIcons({
+                        root: iconRef.current,
+                        attrs: {
+                            width: size,
+                            height: size
+                        }
+                    });
+                }
+            }, [name, size, className]);
+
+            return <span ref={iconRef} style={{ display: 'inline-flex', alignItems: 'center' }} />;
+        };
+
+        const GuidanceBlock = ({ guidance, openQuestions }) => {
+            if (!guidance) return null;
+            return (
+                <div className="mb-6 bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-md">
+                    <div className="mb-2">
+                        <span className="font-bold text-blue-800 flex items-center gap-1 text-sm uppercase tracking-wide">
+                            <Icon name="clipboard-list" size={14} /> Task
+                        </span>
+                        <p className="text-gray-700 text-sm mt-1 leading-relaxed">{guidance.task}</p>
+                    </div>
+                    <div className="mb-2">
+                        <span className="font-bold text-blue-800 flex items-center gap-1 text-sm uppercase tracking-wide">
+                            <Icon name="search" size={14} /> Where to find this information
+                        </span>
+                        <p className="text-gray-700 text-sm mt-1 italic">{guidance.source}</p>
+                    </div>
+                    {openQuestions && (
+                        <div className="mt-3 pt-3 border-t border-blue-200">
+                             <span className="font-bold text-blue-800 flex items-center gap-1 text-sm uppercase tracking-wide">
+                                <Icon name="message-circle" size={14} /> Questions to Consider
+                            </span>
+                             <div className="mt-1 space-y-2">
+                                {Object.entries(openQuestions).map(([key, q]) => (
+                                    <div key={key} className="text-sm text-gray-800">
+                                        <span className="font-bold">{key}:</span> {q}
+                                    </div>
+                                ))}
+                             </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const TextBlock = ({ content }) => {
+            if (!content) return null;
+            return (
+                <div className="mb-6 bg-gray-50 p-4 rounded border border-gray-200">
+                    <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
+                        {content.map((item, idx) => (
+                            <div key={idx} className="bg-white p-3 rounded shadow-sm border border-gray-100">
+                                <h4 className="font-bold text-blue-800 mb-2 border-b pb-1 text-sm">{item.title}</h4>
+                                <div className="text-sm text-gray-700 space-y-1">
+                                    {Array.isArray(item.body) ? item.body.map((line, lIdx) => (
+                                        <p key={lIdx}>{line}</p>
+                                    )) : <p>{item.body}</p>}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        };
+
+        const SmartInput = ({ id, label, correct, isPct, suffix, value, onChange, onFocus, showKey, compact }) => {
+            const [localValue, setLocalValue] = React.useState(value || '');
+            const [isValid, setIsValid] = React.useState(null);
+
+            React.useEffect(() => {
+                setLocalValue(value || '');
+                // Force reset state if value is cleared externally
+                if (value === '' || value === undefined) {
+                    setIsValid(null);
+                } else {
+                    validate(value);
+                }
+            }, [value]);
+
+            const evaluateExpression = (expression) => {
+                try {
+                    const sanitized = expression.replace(/[^0-9+\-*/().]/g, '');
+                    if (!sanitized) return null;
+                    // eslint-disable-next-line no-new-func
+                    return Function('"use strict";return (' + sanitized + ')')();
+                } catch (e) {
+                    return null;
+                }
+            };
+
+            const validate = (val) => {
+                if (!val && val !== 0) {
+                    setIsValid(null);
+                    return;
+                }
+
+                let numVal = parseFloat(val);
+                if (isNaN(numVal) || typeof val === 'string') {
+                    const evaluated = evaluateExpression(val);
+                    if (evaluated !== null) numVal = evaluated;
+                }
+
+                if (isNaN(numVal)) {
+                    setIsValid(false);
+                    return;
+                }
+
+                let userVal = numVal;
+                let targetVal = correct;
+
+                // Percent Tolerance Logic
+                if (isPct) {
+                     if (Math.abs(userVal) < 1 && Math.abs(targetVal) > 1) {
+                         userVal = userVal * 100;
+                     } else if (Math.abs(userVal) > 1 && Math.abs(targetVal) < 1) {
+                         targetVal = targetVal * 100;
+                     }
+                }
+
+                const diff = Math.abs(userVal - targetVal);
+                const tolerance = Math.abs(targetVal * 0.02); 
+                
+                if (diff <= tolerance || (targetVal === 0 && Math.abs(userVal) < 0.001)) {
+                    setIsValid(true);
+                } else {
+                    setIsValid(false);
+                }
+            };
+
+            const handleBlur = (e) => {
+                const val = e.target.value;
+                const evaluated = evaluateExpression(val);
+                
+                if (evaluated !== null && evaluated !== parseFloat(val)) {
+                    const displayVal = Number.isInteger(evaluated) ? evaluated : evaluated.toFixed(2);
+                    onChange(id, displayVal.toString());
+                } else {
+                    validate(val);
+                }
+            };
+
+            const handleKeyDown = (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    e.target.blur(); // Trigger blur to evaluate
+                }
+            };
+
+            const handleChange = (e) => {
+                setLocalValue(e.target.value);
+                onChange(id, e.target.value);
+            };
+
+            if (compact) {
+                return (
+                    <div className="relative table-input">
+                        <input
+                            id={id} 
+                            type="text"
+                            value={localValue}
+                            onChange={handleChange}
+                            onBlur={handleBlur}
+                            onKeyDown={handleKeyDown}
+                            onFocus={() => onFocus(id)}
+                            className={`${isValid === true ? 'border-green-500 bg-green-50' : 
+                                      isValid === false ? 'border-red-400 bg-red-50' : ''}`}
+                            placeholder="..."
+                        />
+                        {isValid === true && <div className="absolute right-2 top-1.5"><Icon name="check" size={14} className="text-green-600" /></div>}
+                        {isValid === false && <div className="absolute right-2 top-1.5"><Icon name="x" size={14} className="text-red-500" /></div>}
+                    </div>
+                );
+            }
+
+            return (
+                <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+                    <div className="relative">
+                        <input
+                            id={id}
+                            type="text"
+                            value={localValue}
+                            onChange={handleChange}
+                            onBlur={handleBlur}
+                            onKeyDown={handleKeyDown}
+                            onFocus={() => onFocus(id)}
+                            className={`w-full p-2 border-2 rounded pr-10 outline-none transition-colors 
+                                ${isValid === true ? 'border-green-500 bg-green-50' : 
+                                  isValid === false ? 'border-red-400 bg-red-50' : 'border-gray-300 focus:border-blue-500'}`}
+                            placeholder="Calculate or enter value..."
+                        />
+                        <div className="absolute right-3 top-2.5 text-gray-400">
+                            {isValid === true ? <Icon name="check" size={20} className="text-green-600" /> :
+                             isValid === false ? <Icon name="x" size={20} className="text-red-500" /> :
+                             <span className="text-xs font-bold text-gray-400">{suffix || '#'}</span>}
+                        </div>
+                    </div>
+                    {showKey && (
+                        <div className="mt-1 text-sm font-bold text-purple-700 flex items-center gap-1 bg-purple-100 p-1 rounded inline-block">
+                            <Icon name="key" size={14} />
+                            Key: {correct} {suffix}
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const MultiSelect = ({ id, label, options, correct, value, onChange, showKey }) => {
+             const selected = Array.isArray(value) ? value : [];
+             
+             const isCorrect = React.useMemo(() => {
+                 if (selected.length === 0) return null;
+                 if (selected.length !== correct.length) return false;
+                 const sortedSelected = [...selected].sort();
+                 const sortedCorrect = [...correct].sort();
+                 return sortedSelected.every((val, index) => val === sortedCorrect[index]);
+             }, [selected, correct]);
+
+             const toggleOption = (opt) => {
+                 let newSelected;
+                 if (selected.includes(opt)) {
+                     newSelected = selected.filter(s => s !== opt);
+                 } else {
+                     newSelected = [...selected, opt];
+                 }
+                 onChange(id, newSelected);
+             };
+
+             return (
+                <div className="mb-4 bg-white border p-4 rounded shadow-sm">
+                    <label className="block text-sm font-bold text-gray-700 mb-2">{label}</label>
+                    <div className="space-y-2">
+                        {options.map((opt, idx) => (
+                            <label key={idx} className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 p-2 rounded">
+                                <input 
+                                    type="checkbox" 
+                                    checked={selected.includes(opt)}
+                                    onChange={() => toggleOption(opt)}
+                                    className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                />
+                                <span className="text-gray-700 text-sm">{opt}</span>
+                            </label>
+                        ))}
+                    </div>
+                    <div className="mt-2 h-6">
+                        {isCorrect === true && <span className="text-green-600 text-sm font-bold flex items-center gap-1"><Icon name="check" size={14}/> Correct</span>}
+                        {isCorrect === false && <span className="text-red-500 text-sm font-bold flex items-center gap-1"><Icon name="x" size={14}/> Incorrect</span>}
+                    </div>
+                    {showKey && (
+                        <div className="mt-1 text-sm text-purple-700 bg-purple-100 p-2 rounded">
+                            <span className="font-bold">Key:</span> {correct.join(", ")}
+                        </div>
+                    )}
+                </div>
+             );
+        };
+
+        const ComputedCell = ({ dependsOn, operation, answers }) => {
+            const clean = (val) => {
+                if(!val && val !== 0) return 0;
+                // Hack: If a key starts with '3b_ph_tot_22' (which is the Computed Sum ID), re-calculate it here.
+                if (val === '3b_ph_tot_22') {
+                     // Recalculate Sum for dependency
+                     const v1 = clean(answers['3b_ph_curr_22']);
+                     const v2 = clean(answers['3b_ph_non_22']);
+                     return v1 + v2;
+                }
+                
+                // If it's a standard input key
+                if (answers[val] !== undefined) {
+                    return parseFloat(answers[val].toString().replace(/,/g, ''));
+                }
+                
+                // Fallback for direct values passed (unlikely in this design)
+                return 0;
+            };
+
+            // Fix for Dependency Chaining (Computed -> Computed)
+            // Ideally we'd have a true dependency graph, but for this specific layout:
+            let computedValue = 0;
+
+            if (operation === 'sum') {
+                const sum = dependsOn.reduce((acc, key) => acc + clean(answers[key]), 0);
+                computedValue = sum;
+                return (
+                    <div className="p-2 text-sm font-bold text-blue-700 bg-blue-50 border border-blue-100 rounded text-center">
+                        {sum.toLocaleString()}
+                    </div>
+                );
+            }
+
+            // Default: Percentage (Div)
+            // Special handling for PH Common Size which depends on a Sum
+            let val1, val2;
+            
+            // Check if first dependency is our specific computed row
+            if(dependsOn[0] === '3b_ph_tot_22') {
+                 val1 = clean(answers['3b_ph_curr_22']) + clean(answers['3b_ph_non_22']);
+            } else {
+                 val1 = clean(answers[dependsOn[0]]);
+            }
+            
+            // Check if second dependency is the Total Revenue Sum from 2.c
+            // 2c_ph_total_rev is computed. We need to re-sum 2c_ph_div_rev + 2c_ph_aero_rev
+            if(dependsOn[1] === '2c_ph_total_rev') {
+                val2 = clean(answers['2c_ph_div_rev']) + clean(answers['2c_ph_aero_rev']);
+            } else if (dependsOn[1] === '2c_itw_total_rev') {
+                 // Sum of all ITW segments
+                 const itwSegs = ['2c_itw_auto_rev', '2c_itw_food_rev', '2c_itw_test_rev', '2c_itw_weld_rev', '2c_itw_poly_rev', '2c_itw_cons_rev', '2c_itw_spec_rev'];
+                 val2 = itwSegs.reduce((acc, key) => acc + clean(answers[key]), 0);
+            } else {
+                val2 = clean(answers[dependsOn[1]]);
+            }
+            
+            let display = "—";
+            if (val1 && val2 && val2 !== 0) {
+                const pct = (val1 / val2) * 100;
+                display = pct.toFixed(1) + "%";
+            }
+
+            return (
+                <div className="p-2 text-sm font-bold text-blue-700 bg-blue-50 border border-blue-100 rounded text-center">
+                    {display}
+                </div>
+            );
+        };
+
+        const FlexibleTable = ({ headers, rows, views, answers, handleInputChange, setFocusedInput, showKey }) => {
+            const [activeView, setActiveView] = React.useState(views ? Object.keys(views)[0] : null);
+
+            let renderHeaders = headers;
+            let renderRows = rows;
+            let textContent = null;
+            
+            if (views) {
+                renderHeaders = views[activeView].headers;
+                renderRows = views[activeView].rows;
+                textContent = views[activeView].textContent;
+            }
+
+            return (
+                <div>
+                    {views && (
+                        <div className="flex border-b border-gray-200 mb-4">
+                            {Object.keys(views).map(viewKey => (
+                                <button
+                                    key={viewKey}
+                                    onClick={() => setActiveView(viewKey)}
+                                    className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                                        activeView === viewKey 
+                                        ? 'border-blue-500 text-blue-600' 
+                                        : 'border-transparent text-gray-500 hover:text-gray-700'
+                                    }`}
+                                >
+                                    {viewKey === 'PH' ? 'Parker Hannifin' : 'Illinois Tool Works'}
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                    
+                    {textContent && <TextBlock content={textContent} />}
+
+                    <div className="overflow-x-auto border border-gray-200 rounded-lg">
+                        <table className="w-full text-left border-collapse">
+                            <thead>
+                                <tr className="bg-gray-100 text-sm uppercase text-gray-600">
+                                    {renderHeaders.map((h, i) => (
+                                        <th key={i} className="p-3 border-b border-gray-200 font-bold">{h}</th>
+                                    ))}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {renderRows.map((row, rIdx) => (
+                                    <tr key={rIdx} className="hover:bg-gray-50 border-b border-gray-100 last:border-0">
+                                        {row.map((cell, cIdx) => (
+                                            <td key={cIdx} className="p-2 align-middle">
+                                                {cell.type === 'text' && (
+                                                    <span className="text-sm font-medium text-gray-700">{cell.value}</span>
+                                                )}
+                                                {cell.type === 'static' && (
+                                                    <span className="text-sm text-gray-500 font-mono block text-center bg-gray-50 p-1 rounded">
+                                                        {cell.value}
+                                                    </span>
+                                                )}
+                                                {cell.type === 'input' && (
+                                                    <div className="flex flex-col">
+                                                        <SmartInput
+                                                            id={cell.id}
+                                                            correct={cell.correct}
+                                                            isPct={cell.isPct}
+                                                            suffix={cell.suffix}
+                                                            value={answers[cell.id]}
+                                                            onChange={handleInputChange}
+                                                            onFocus={setFocusedInput}
+                                                            showKey={false} 
+                                                            compact={true}
+                                                        />
+                                                        {showKey && (
+                                                            <div className="text-xs text-purple-700 font-bold mt-1 text-center">
+                                                                {cell.correct}{cell.suffix || ''}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+                                                {cell.type === 'computed' && (
+                                                    <ComputedCell dependsOn={cell.dependsOn} operation={cell.operation} answers={answers} />
+                                                )}
+                                            </td>
+                                        ))}
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            );
+        };
+
+        const Sidebar = ({ onDataClick }) => {
+            const [openCompany, setOpenCompany] = React.useState('ITW');
+
+            return (
+                <div className="w-full md:w-1/3 bg-white border-r border-gray-200 h-full flex flex-col overflow-hidden shadow-lg z-10">
+                    <div className="p-4 bg-gray-800 text-white flex items-center gap-2">
+                        <Icon name="database" size={20} />
+                        <h2 className="font-bold">Reference Data</h2>
+                    </div>
+                    <div className="p-2 bg-blue-50 text-xs text-blue-800 border-b border-blue-100">
+                        <p className="flex gap-1 items-center">
+                            <Icon name="mouse-pointer-click" size={14} />
+                            Click any number to insert it into your calculation.
+                        </p>
+                    </div>
+                    <div className="flex-1 overflow-y-auto scrollbar-thin p-2 overflow-x-auto">
+                        {Object.entries(RAW_DATA).map(([company, statements]) => (
+                            <div key={company} className="mb-4 border border-gray-200 rounded-lg overflow-hidden">
+                                <button 
+                                    onClick={() => setOpenCompany(openCompany === company ? null : company)}
+                                    className="w-full p-3 bg-gray-100 font-bold flex justify-between items-center hover:bg-gray-200"
+                                >
+                                    {company} Data
+                                    <Icon name={openCompany === company ? "chevron-up" : "chevron-down"} size={16} />
+                                </button>
+                                
+                                {openCompany === company && (
+                                    <div className="bg-white">
+                                        {Object.entries(statements).map(([stmtName, rows]) => (
+                                            <div key={stmtName} className="border-b last:border-0">
+                                                <div className="px-3 py-2 bg-gray-50 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                                                    {stmtName}
+                                                </div>
+                                                {/* Header Row for Years */}
+                                                <div className="flex justify-between px-3 py-1 bg-gray-100 text-[10px] font-bold text-gray-500 border-b border-gray-200">
+                                                    <div className="w-1/2">Account</div>
+                                                    <div className="flex gap-2">
+                                                        <div className="w-16 text-center">2022</div>
+                                                        <div className="w-16 text-center">2021</div>
+                                                    </div>
+                                                </div>
+                                                {rows.map((row, idx) => (
+                                                    <div key={idx} className="flex justify-between items-center px-3 py-2 border-b last:border-0 hover:bg-yellow-50 text-xs group cursor-pointer transition-colors">
+                                                        <span className="text-gray-700 whitespace-nowrap mr-4 font-medium" title={row.account}>{row.account}</span>
+                                                        <div className="flex gap-2 shrink-0">
+                                                            {['2022', '2021'].map(year => (
+                                                                <button
+                                                                    key={year}
+                                                                    onClick={() => onDataClick(row[year])}
+                                                                    className="w-16 text-right text-blue-600 hover:text-blue-800 font-mono text-xs p-1"
+                                                                    title={`Insert ${year} value`}
+                                                                >
+                                                                    {row[year] ? row[year].toLocaleString() : '-'}
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        };
+
+        const App = () => {
+            const [answers, setAnswers] = React.useState({});
+            const [focusedInput, setFocusedInput] = React.useState(null);
+            const [instructorMode, setInstructorMode] = React.useState(false);
+            const [showLogin, setShowLogin] = React.useState(false);
+            const [password, setPassword] = React.useState('');
+            const [confirmation, setConfirmation] = React.useState({ isOpen: false, message: '', onConfirm: null });
+
+            const handleDataClick = (value) => {
+                if (!focusedInput) return;
+                
+                const currentVal = answers[focusedInput] || '';
+                let newVal = currentVal.toString();
+
+                // Append logic
+                if (/[\+\-\*\/]$/.test(newVal)) {
+                    newVal += value;
+                } else if (newVal === '') {
+                    newVal = value.toString();
+                } else {
+                    newVal += `+${value}`;
+                }
+
+                setAnswers(prev => ({ ...prev, [focusedInput]: newVal }));
+
+                // Focus restoration logic: Keep focus so user can type next operator immediately
+                setTimeout(() => {
+                    const inputEl = document.getElementById(focusedInput);
+                    if (inputEl) {
+                        inputEl.focus();
+                        // Move cursor to end
+                        const len = inputEl.value.length;
+                        inputEl.setSelectionRange(len, len);
+                    }
+                }, 0);
+            };
+
+            const handleInputChange = (id, val) => {
+                setAnswers(prev => ({ ...prev, [id]: val }));
+            };
+
+            const login = () => {
+                if (password.toLowerCase() === 'teacher') {
+                    setInstructorMode(true);
+                    setShowLogin(false);
+                    setPassword('');
+                } else {
+                    alert('Incorrect password');
+                }
+            };
+
+            const autoFill = () => {
+                const newAnswers = { ...answers };
+                SECTIONS.forEach(sec => {
+                    sec.subsections.forEach(sub => {
+                        if (sub.flexibleTable) {
+                            if(sub.flexibleTable.rows) {
+                                sub.flexibleTable.rows.forEach(row => {
+                                    row.forEach(cell => { if(cell.type === 'input') newAnswers[cell.id] = cell.correct; });
+                                });
+                            }
+                            if(sub.flexibleTable.views) {
+                                Object.values(sub.flexibleTable.views).forEach(view => {
+                                    view.rows.forEach(row => {
+                                        row.forEach(cell => { if(cell.type === 'input') newAnswers[cell.id] = cell.correct; });
+                                    });
+                                });
+                            }
+                        } else if (sub.questions) {
+                            sub.questions.forEach(q => {
+                                if (q.type === 'multiselect') {
+                                    newAnswers[q.id] = q.correct;
+                                } else {
+                                    newAnswers[q.id] = q.correct;
+                                }
+                            });
+                        }
+                    });
+                });
+                setAnswers(newAnswers);
+            };
+
+            // Fix: Define handlers for modal actions
+            const performClear = () => {
+                 setAnswers({}); 
+                 setInstructorMode(false);
+                 setConfirmation({ isOpen: false, message: '', onConfirm: null });
+            };
+
+            const clearAll = () => {
+                setConfirmation({
+                    isOpen: true,
+                    message: "Are you sure you want to clear all answers? This will also exit Instructor Mode.",
+                    onConfirm: performClear
+                });
+            };
+
+            const downloadWork = () => {
+                let content = "Financial Reporting Simulation - Student Work\n\n";
+                SECTIONS.forEach(sec => {
+                    content += `--- ${sec.title} ---\n`;
+                    sec.subsections.forEach(sub => {
+                        content += `  [${sub.title}]\n`;
+                        if (sub.flexibleTable) {
+                             if(sub.flexibleTable.rows) {
+                                 sub.flexibleTable.rows.forEach(row => {
+                                    row.forEach(cell => {
+                                        if(cell.type === 'input') {
+                                             content += `    ${cell.id}: ${answers[cell.id] || '(No Answer)'}\n`;
+                                        }
+                                    });
+                                 });
+                             }
+                             if(sub.flexibleTable.views) {
+                                 Object.entries(sub.flexibleTable.views).forEach(([viewName, view]) => {
+                                     content += `    [View: ${viewName}]\n`;
+                                     view.rows.forEach(row => {
+                                        row.forEach(cell => {
+                                            if(cell.type === 'input') {
+                                                 content += `      ${cell.id}: ${answers[cell.id] || '(No Answer)'}\n`;
+                                            }
+                                        });
+                                     });
+                                 });
+                             }
+                        } else if (sub.questions) {
+                            sub.questions.forEach(q => {
+                                content += `    ${q.label}: ${answers[q.id] || '(No Answer)'}\n`;
+                            });
+                        }
+                    });
+                    content += "\n";
+                });
+
+                const element = document.createElement("a");
+                const file = new Blob([content], {type: 'text/plain'});
+                element.href = URL.createObjectURL(file);
+                element.download = "financial_simulation_work.txt";
+                document.body.appendChild(element);
+                element.click();
+            };
+
+            return (
+                <div className="flex h-screen flex-col md:flex-row overflow-hidden font-sans text-gray-800">
+                    {/* Sidebar */}
+                    <Sidebar onDataClick={handleDataClick} />
+
+                    {/* Main Content */}
+                    <div className="flex-1 flex flex-col h-full bg-white relative">
+                        {/* Instructor Toolbar */}
+                        {instructorMode && (
+                            <div className="bg-purple-600 text-white p-2 flex justify-between items-center shadow-md z-20 sticky top-0">
+                                <div className="flex items-center gap-2 font-bold">
+                                    <Icon name="graduation-cap" className="text-white" />
+                                    Instructor Mode Active
+                                </div>
+                                <div className="flex gap-2">
+                                    <button onClick={autoFill} className="bg-white text-purple-700 px-3 py-1 rounded text-sm font-bold hover:bg-gray-100 flex items-center gap-1">
+                                        <Icon name="wand-2" size={14} /> Auto-Fill Key
+                                    </button>
+                                    <button onClick={clearAll} className="bg-red-500 text-white px-3 py-1 rounded text-sm font-bold hover:bg-red-600 flex items-center gap-1">
+                                        <Icon name="trash-2" size={14} /> Clear & Exit
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Header */}
+                        <header className="border-b border-gray-200 p-4 bg-white flex flex-col md:flex-row justify-between items-center gap-4 shadow-sm z-10">
+                            <div>
+                                <h1 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                                    <Icon name="calculator" className="text-blue-600" />
+                                    Financial Analysis Simulation
+                                </h1>
+                                <div className="text-sm text-gray-500 mt-1 flex gap-4">
+                                    <a href="https://www.sec.gov/ix?doc=/Archives/edgar/data/0000076334/000007633422000034/ph-20220630.htm" target="_blank" className="text-blue-600 hover:underline flex items-center gap-1">
+                                        <Icon name="external-link" size={12} /> PH 10-K
+                                    </a>
+                                    <a href="https://www.sec.gov/ix?doc=/Archives/edgar/data/0000049826/000004982623000008/itw-20221231.htm" target="_blank" className="text-blue-600 hover:underline flex items-center gap-1">
+                                        <Icon name="external-link" size={12} /> ITW 10-K
+                                    </a>
+                                </div>
+                            </div>
+
+                            <div className="flex gap-2">
+                                <button 
+                                    onClick={() => setShowLogin(true)}
+                                    className="px-4 py-2 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200 border border-gray-300 flex items-center gap-2"
+                                >
+                                    <Icon name="lock" size={16} /> Instructor
+                                </button>
+                                <button 
+                                    onClick={downloadWork}
+                                    className="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 shadow flex items-center gap-2"
+                                >
+                                    <Icon name="save" size={16} /> Save Work
+                                </button>
+                            </div>
+                        </header>
+
+                        {/* Content Area */}
+                        <div className="flex-1 overflow-y-auto p-6 scrollbar-thin bg-gray-50">
+                            <div className="max-w-5xl mx-auto space-y-8 pb-12">
+                                {SECTIONS.map((sec) => (
+                                    <div key={sec.id} className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                                        <h2 className="text-xl font-bold text-gray-800 mb-6 border-b pb-3 flex items-center gap-2">
+                                            <Icon name="hash" size={24} className="text-blue-500" />
+                                            {sec.title}
+                                        </h2>
+                                        
+                                        <div className="space-y-8">
+                                            {sec.subsections.map((sub, subIdx) => (
+                                                <div key={subIdx} className="bg-white rounded-md">
+                                                    <h3 className="text-md font-bold text-gray-800 mb-4 flex items-center gap-2">
+                                                        <span className="bg-gray-100 text-gray-600 py-1 px-2 rounded text-xs uppercase tracking-wide border border-gray-200">
+                                                            Section {sub.title.split(' ')[0]}
+                                                        </span>
+                                                        {sub.title.split(' ').slice(1).join(' ')}
+                                                    </h3>
+                                                    
+                                                    {/* Guidance Block */}
+                                                    <GuidanceBlock guidance={sub.guidance} openQuestions={sub.openQuestions} />
+
+                                                    {/* Text Block */}
+                                                    {sub.textContent && <TextBlock content={sub.textContent} />}
+
+                                                    {/* Render Table or Standard Inputs */}
+                                                    {sub.flexibleTable ? (
+                                                        <FlexibleTable 
+                                                            headers={sub.flexibleTable.headers}
+                                                            rows={sub.flexibleTable.rows}
+                                                            views={sub.flexibleTable.views}
+                                                            answers={answers}
+                                                            handleInputChange={handleInputChange}
+                                                            setFocusedInput={setFocusedInput}
+                                                            showKey={instructorMode}
+                                                        />
+                                                    ) : (
+                                                        <div className={`grid gap-4 pl-4 border-l-2 border-gray-100 ${sub.gridCols === 2 ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1'}`}>
+                                                            {sub.questions && sub.questions.map(q => (
+                                                                <div key={q.id}>
+                                                                    {q.type === 'multiselect' ? (
+                                                                        <MultiSelect
+                                                                            id={q.id}
+                                                                            label={q.label}
+                                                                            options={q.options}
+                                                                            correct={q.correct}
+                                                                            value={answers[q.id]}
+                                                                            onChange={handleInputChange}
+                                                                            showKey={instructorMode}
+                                                                        />
+                                                                    ) : (
+                                                                        <SmartInput
+                                                                            id={q.id}
+                                                                            label={q.label}
+                                                                            correct={q.correct}
+                                                                            isPct={q.isPct}
+                                                                            suffix={q.suffix}
+                                                                            value={answers[q.id]}
+                                                                            onChange={handleInputChange}
+                                                                            onFocus={setFocusedInput}
+                                                                            showKey={instructorMode}
+                                                                        />
+                                                                    )}
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Confirmation Modal */}
+                        {confirmation.isOpen && (
+                            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 fade-in">
+                                <div className="bg-white p-6 rounded-lg shadow-xl w-80">
+                                    <h3 className="font-bold text-lg mb-4 text-gray-800">Confirm Action</h3>
+                                    <p className="text-sm text-gray-600 mb-6">{confirmation.message}</p>
+                                    <div className="flex justify-end gap-2">
+                                        <button onClick={() => setConfirmation({ isOpen: false, message: '', onConfirm: null })} className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded">Cancel</button>
+                                        <button onClick={confirmation.onConfirm} className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-sm font-medium">Confirm</button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Login Modal */}
+                        {showLogin && (
+                            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 fade-in">
+                                <div className="bg-white p-6 rounded-lg shadow-xl w-80">
+                                    <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
+                                        <Icon name="shield-check" className="text-purple-600" />
+                                        Instructor Access
+                                    </h3>
+                                    <input 
+                                        type="password" 
+                                        placeholder="Password"
+                                        className="w-full border p-2 rounded mb-4 outline-none focus:border-purple-500"
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        onKeyDown={(e) => e.key === 'Enter' && login()}
+                                    />
+                                    <div className="flex justify-end gap-2">
+                                        <button onClick={() => setShowLogin(false)} className="px-3 py-1 text-gray-600 hover:bg-gray-100 rounded">Cancel</button>
+                                        <button onClick={login} className="px-3 py-1 bg-purple-600 text-white rounded hover:bg-purple-700">Unlock</button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

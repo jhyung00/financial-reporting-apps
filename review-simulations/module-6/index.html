@@ -1,0 +1,1290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Financial Reporting and Analysis Simulation</title>
+
+<!-- React & ReactDOM -->
+<script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+
+<!-- Babel -->
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com"></script>
+
+<!-- Lucide Icons -->
+<script src="https://unpkg.com/lucide@latest"></script>
+
+<style>
+    /* Custom scrollbar */
+    .custom-scrollbar::-webkit-scrollbar {
+        width: 8px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+        background: #f1f5f9; 
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: #cbd5e1; 
+        border-radius: 4px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8; 
+    }
+    
+    .sticky-header {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+    }
+
+    .clickable-number {
+        cursor: pointer;
+        border-bottom: 1px dotted #2563eb;
+        transition: all 0.2s;
+    }
+    .clickable-number:hover {
+        background-color: #dbeafe;
+        color: #1e40af;
+        font-weight: bold;
+    }
+    .clickable-number:active {
+        background-color: #bfdbfe;
+    }
+
+    .input-focused {
+        ring: 2px solid #3b82f6;
+    }
+    
+    /* Instructor Toolbar Animation */
+    @keyframes slideDown {
+        from { transform: translateY(-100%); }
+        to { transform: translateY(0); }
+    }
+    .instructor-toolbar {
+        animation: slideDown 0.3s ease-out;
+    }
+</style>
+</head>
+<body class="bg-gray-50 text-slate-900 h-screen overflow-hidden">
+<div id="root" class="h-full"></div>
+
+<script type="text/babel">
+
+// --- 1. CONFIGURATION & DATA ---
+
+const MODULES = [
+    { id: 'm1', title: 'Inventory Costing', reviewId: '6-1' },
+    { id: 'm2', title: 'LCM & LIFO Issues', reviewId: '6-2' },
+    { id: 'c1', title: 'Concept Check: Inventory', reviewId: 'Quiz 1', type: 'concept' },
+    { id: 'm3', title: 'Efficiency Ratios', reviewId: '6-3' },
+    { id: 'm4', title: 'Depreciation', reviewId: '6-4' },
+    { id: 'm5', title: 'Impairment', reviewId: '6-5' },
+    { id: 'm6', title: 'PP&E Analysis', reviewId: '6-6' },
+    { id: 'm7', title: 'Intangible Impairment', reviewId: '6-7' },
+    { id: 'c2', title: 'Concept Check (Long-term assets)', reviewId: 'Quiz 2', type: 'concept' },
+];
+
+const MODULE_DATA = {
+    'm1': [
+        {
+            title: "Home Depot Inventory Data",
+            type: "simple-table",
+            headers: ["Item", "Units", "$/Unit", "Total ($)"],
+            rows: [
+                ["Beg. Inv", "1,000", "18.00", "18,000"],
+                ["Purch 1", "1,800", "18.25", "32,850"],
+                ["Purch 2", "800", "18.50", "14,800"],
+                ["Purch 3", "1,200", "19.00", "22,800"],
+                ["Total Avail", "4,800", "-", "88,450"]
+            ],
+            footer: "Sales: 2,800 units | End Inv: 2,000 units"
+        }
+    ],
+    'm2': [
+        {
+            title: "Home Depot Data (From 6-1)",
+            type: "simple-table",
+            headers: ["Item", "Units", "$/Unit", "Total ($)"],
+            rows: [
+                ["Beg. Inv", "1,000", "18.00", "18,000"],
+                ["Purch 1", "1,800", "18.25", "32,850"],
+                ["Purch 2", "800", "18.50", "14,800"],
+                ["Purch 3", "1,200", "19.00", "22,800"],
+                ["Total Avail", "4,800", "-", "88,450"]
+            ],
+            footer: "Market Value for LCM: $30,000 | Tax Rate: 21%"
+        },
+        {
+            title: "Inventory Scenarios Comparison",
+            type: "sections",
+            sections: [
+                {
+                    title: "Scenario 1: Standard Purchase",
+                    type: "key-value",
+                    data: [
+                        ["Note", "Same inventory data as Review 6-1"]
+                    ]
+                },
+                {
+                    title: "Scenario 2: Delayed Purchase #3",
+                    type: "simple-table",
+                    headers: ["Item", "Units", "Unit Cost", "Total Cost"],
+                    rows: [
+                        ["Beg Inv", "1,000", "18.00", "18,000"],
+                        ["Purch #1", "1,800", "18.25", "32,850"],
+                        ["Purch #2", "800", "18.50", "14,800"],
+                        ["Purch #3", "-", "-", "-"],
+                        ["Total", "3,600", "-", "65,650"]
+                    ],
+                    footer: "Note: Purchase #3 is delayed to next period."
+                }
+            ]
+        }
+    ],
+    'm3': [
+        { 
+            title: "Lowe's Data ($m)", 
+            type: "simple-table",
+            headers: ["Year", "Rev", "COGS", "Inv", "AP"],
+            rows: [
+                ["2022", "97,059", "64,802", "18,532", "10,524"],
+                ["2021", "96,250", "64,194", "17,605", "11,354"],
+                ["2020", "89,597", "60,025", "16,193", "10,884"]
+            ],
+            footer: "Accounts Receivable is 0 for all years."
+        }
+    ],
+    'm4': [
+        { 
+            title: "Equipment Data", 
+            type: "key-value",
+            data: [
+                ["Cost", "$95,000"],
+                ["Useful Life", "5 years"],
+                ["Salvage Value", "$10,000"],
+                ["Method", "Straight-Line"]
+            ]
+        }
+    ],
+    'm5': [
+        { 
+            title: "Equipment Data (From Review 6-4)", 
+            type: "key-value",
+            data: [
+                ["Cost", "$95,000"],
+                ["Useful Life", "5 years"],
+                ["Salvage Value", "$10,000"],
+                ["Method", "Straight-Line"]
+            ]
+        },
+        {
+            title: "Impairment Test Data (Year 3 End)",
+            type: "key-value",
+            data: [
+                ["Undiscounted Future Cash Flows", "$40,000"],
+                ["Current Fair Value", "$36,000"]
+            ]
+        }
+    ],
+    'm6': [
+        {
+            title: "Lowe's Selected Financial Data ($m)",
+            type: "simple-table",
+            headers: ["Item", "2022", "2021", "2020"],
+            rows: [
+                ["Revenue", "97,059", "96,250", "89,597"],
+                ["Depreciation & Amort.", "1,981", "1,882", "1,594"],
+                ["Gross PP&E", "34,911", "36,959", "36,702"],
+                ["Accumulated Depreciation", "(17,344)", "(17,888)", "(17,547)"],
+                ["Net PP&E", "17,567", "19,071", "19,155"],
+                ["Land", "6,793", "7,278", "7,315"],
+                ["Buildings", "17,784", "18,433", "18,090"],
+                ["Machinery", "9,541", "10,533", "10,466"],
+                ["Construction in progress", "793", "715", "831"]
+            ],
+            footer: "Depreciable Base = Gross PPE - Land - Construction in Progress"
+        }
+    ],
+    'm7': [
+        {
+            title: "Acquisition Details (Feb 14, 2022)",
+            type: "sections",
+            sections: [
+                {
+                    title: "Transaction Overview",
+                    type: "key-value",
+                    data: [
+                        ["Date", "Feb 14, 2022"],
+                        ["Target", "Xilinx Inc"],
+                        ["Consideration", "$48,793 million"],
+                        ["Goodwill", "$22,784 million"],
+                        ["Intangibles", "$27,308 million"]
+                    ]
+                },
+                {
+                    title: "Allocation to Intangible Assets",
+                    type: "simple-table",
+                    headers: ["Asset", "Fair Value ($m)", "Life"],
+                    rows: [
+                        ["Developed technology (1)", "12,295", "16 yrs"],
+                        ["Customer relationships (2)", "12,290", "14 yrs"],
+                        ["Customer backlog (3)", "793", "1 yr"],
+                        ["Corporate trade name (4)", "65", "1 yr"],
+                        ["Product trademarks (4)", "895", "12 yrs"],
+                        ["Subtotal: Amortizable", "26,338", "-"],
+                        ["IPR&D (Indefinite) (5)", "970", "N/A"],
+                        ["Total", "27,308", "-"]
+                    ]
+                },
+                {
+                    title: "Valuation Notes",
+                    type: "key-value",
+                    data: [
+                        ["(1) Dev Tech", "Income approach (multiperiod excess earnings)"],
+                        ["(2) Cust Rel", "Income approach (with and without method)"],
+                        ["(3) Backlog", "Income approach (multiperiod excess earnings)"],
+                        ["(4) Trademarks", "Income approach (relief from royalty)"],
+                        ["(5) IPR&D", "Income approach (multiperiod excess earnings)"]
+                    ]
+                }
+            ]
+        },
+        {
+            title: "Assessment Data (24 Months Later)",
+            type: "simple-table",
+            headers: ["Asset", "Fair Value", "Carrying Value"],
+            rows: [
+                ["Developed technologies", "9,800", "10,758"],
+                ["Customer relationships", "11,900", "10,534"],
+                ["Customer backlog", "-", "-"],
+                ["Corporate trade name", "200", "-"],
+                ["Product trademarks", "1,300", "746"],
+                ["IPR&D (Indefinite)", "500", "970"],
+                ["Total", "23,700", "23,008"]
+            ],
+            footer: "Values in $ millions. CV calculated based on straight-line amortization."
+        }
+    ]
+};
+
+const CONCEPT_QUESTIONS = {
+    'c1': [
+        {
+            id: 'q1_1',
+            text: "In a period of rising prices, which inventory method results in the highest Net Income?",
+            options: ["LIFO", "FIFO", "Average Cost", "Specific Identification"],
+            answer: "FIFO",
+            explanation: "FIFO matches older, lower costs with current revenues, resulting in lower COGS and higher Net Income."
+        },
+        {
+            id: 'q1_2',
+            text: "Which of the following triggers a 'LIFO Liquidation'?",
+            options: ["Purchasing more inventory than sold", "Selling more inventory than purchased", "Rising prices", "Falling prices"],
+            answer: "Selling more inventory than purchased",
+            explanation: "When sales exceed purchases, a company dips into older (usually cheaper) LIFO layers, artificially inflating income."
+        },
+        {
+            id: 'q1_3',
+            text: "Why might a company choose LIFO during periods of inflation?",
+            options: ["To maximize reported Net Income", "To reduce Income Tax expense", "To increase the value of assets on the Balance Sheet", "To improve the Current Ratio"],
+            answer: "To reduce Income Tax expense",
+            explanation: "In rising prices, LIFO results in higher COGS and lower taxable income, thus reducing cash paid for taxes."
+        },
+        {
+            id: 'q1_4',
+            text: "True or False: The cost flow assumption (LIFO/FIFO) must match the actual physical flow of goods.",
+            options: ["True", "False"],
+            answer: "False",
+            explanation: "GAAP allows companies to use a cost flow assumption (like LIFO) that differs from how they actually sell goods (physical flow)."
+        }
+    ],
+    'c2': [
+        {
+            id: 'q2_1',
+            text: "When should an intangible asset like a Trademark be amortized?",
+            options: ["Always over 40 years", "Only if it has a definite useful life", "Never, it is only tested for impairment", "When the fair value increases"],
+            answer: "Only if it has a definite useful life",
+            explanation: "Indefinite-lived intangibles (like some trademarks or goodwill) are not amortized but tested annually for impairment."
+        },
+        {
+            id: 'q2_2',
+            text: "Under GAAP, when is an asset considered impaired?",
+            options: ["Fair Value < Carrying Value", "Undiscounted Cash Flows < Carrying Value", "Book Value < Market Cap", "It is never impaired"],
+            answer: "Undiscounted Cash Flows < Carrying Value",
+            explanation: "The recoverability test (Step 1) compares undiscounted future cash flows to the carrying amount. If flows are lower, impairment exists."
+        },
+        {
+            id: 'q2_3',
+            text: "Which of the following costs should be capitalized rather than expensed?",
+            options: ["Annual insurance on a delivery truck", "Routine oil change and maintenance", "Replacing the engine to extend the truck's useful life", "Filling the gas tank"],
+            answer: "Replacing the engine to extend the truck's useful life",
+            explanation: "Expenditures that extend the useful life or increase the efficiency of an asset are capitalized (Betterments). Routine repairs are expensed."
+        },
+        {
+            id: 'q2_4',
+            text: "Which depreciation method results in higher depreciation expense in the early years of an asset's life?",
+            options: ["Straight-Line", "Units of Activity", "Double-Declining Balance", "All result in the same annual expense"],
+            answer: "Double-Declining Balance",
+            explanation: "Double-Declining Balance is an accelerated method, recognizing more expense in early years and less in later years."
+        }
+    ]
+};
+
+const ANSWER_KEY = {
+    // Module 1 (FIFO/LIFO/Avg)
+    "m1_fifo_cogs": { val: 50850, label: "FIFO COGS", hint: "Oldest costs first: Beg Inv + Purch 1 + part of Purch 2." },
+    "m1_fifo_end": { val: 37600, label: "FIFO Ending Inv", hint: "Newest costs remain: Purch 3 + part of Purch 2." },
+    "m1_lifo_cogs": { val: 52200, label: "LIFO COGS", hint: "Newest costs first: Purch 3 + Purch 2 + part of Purch 1." },
+    "m1_lifo_end": { val: 36250, label: "LIFO Ending Inv", hint: "Oldest costs remain: Beg Inv + part of Purch 1." },
+    "m1_avg_cogs": { val: 51596, label: "Avg Cost COGS", hint: "Total Cost ($88,450) / Total Units (4,800) * Sales (2,800)." },
+    "m1_avg_end": { val: 36854, label: "Avg Cost Ending Inv", hint: "Total Cost ($88,450) / Total Units (4,800) * End Units (2,000)." },
+    "m1_fifo_layer1": { val: 18000, label: "FIFO Layer 1", hint: "1,000 units * $18.00" },
+    "m1_fifo_layer2": { val: 32850, label: "FIFO Layer 2", hint: "1,800 units * $18.25" },
+    "m1_lifo_layer1": { val: 22800, label: "LIFO Layer 1", hint: "1,200 units * $19.00" },
+    "m1_lifo_layer2": { val: 14800, label: "LIFO Layer 2", hint: "800 units * $18.50" },
+    "m1_lifo_layer3": { val: 14600, label: "LIFO Layer 3", hint: "800 units * $18.25" },
+    "m1_avg_unit": { val: 18.427, label: "Avg Unit Cost", hint: "$88,450 / 4,800 units (approx $18.43)" },
+
+    // Module 2 (Review 6-2)
+    "m2_q1_inv": { val: 30000, label: "6-2.1 Inventory BS", hint: "Lower of Cost (from 6-1) or Market (30,000)" },
+    "m2_q2_s1_cogs": { val: 52200, label: "6-2.2 Scen 1 COGS", hint: "Linked from 6-1 LIFO COGS" },
+    "m2_q2_s1_inv": { val: 36250, label: "6-2.2 Scen 1 Inv", hint: "Linked from 6-1 LIFO End Inv" },
+    "m2_q2_s2_cogs": { val: 51250, label: "6-2.2 Scen 2 COGS", hint: "Skip Purch 3. Use Purch 2, then Purch 1 layers." },
+    "m2_q2_s2_inv": { val: 14400, label: "6-2.2 Scen 2 Inv", hint: "Remaining Units * Cost" }, 
+    "m2_q2_profit_diff": { val: 950, label: "6-2.2 Profit Diff", hint: "Difference between Scenario 1 and 2 COGS (52,200 - 51,250)" },
+    "m2_q3_fifo_inv": { val: 37600, label: "6-2.3 FIFO Inv", hint: "Linked from 6-1" },
+    "m2_q3_lifo_inv": { val: 36250, label: "6-2.3 LIFO Inv", hint: "Linked from 6-1" },
+    "m2_q3_reserve": { val: 1350, label: "6-2.3 LIFO Reserve", hint: "FIFO Inventory - LIFO Inventory" },
+    "m2_q3_tax": { val: 284, label: "6-2.3 Tax Savings", hint: "LIFO Reserve * 21% (rounded)" },
+
+    // Module 3
+    "m3_gp_2022": { val: 0.3323, isPct: true, label: "Gross Profit Margin 2022", hint: "(Rev - COGS) / Rev" },
+    "m3_gp_2021": { val: 0.3330, isPct: true, label: "Gross Profit Margin 2021", hint: "(Rev - COGS) / Rev" },
+    "m3_dio_2022": { val: 101.8, label: "Days Inventory Outstanding 2022", hint: "(Avg Inv / COGS) * 365" },
+    "m3_dio_2021": { val: 96.1, label: "Days Inventory Outstanding 2021", hint: "(Avg Inv / COGS) * 365" },
+    "m3_dpo_2022": { val: 61.6, label: "Days Payable Outstanding 2022", hint: "(Avg AP / COGS) * 365" },
+    "m3_dpo_2021": { val: 63.2, label: "Days Payable Outstanding 2021", hint: "(Avg AP / COGS) * 365" },
+    "m3_ccc_2022": { val: 40.2, label: "Cash Conversion Cycle 2022", hint: "DIO + DSO - DPO (DSO=0)" },
+    "m3_ccc_2021": { val: 32.9, label: "Cash Conversion Cycle 2021", hint: "DIO + DSO - DPO (DSO=0)" },
+    "m3_ccc_impact": { val: 1296, label: "Cash Impact", hint: "= Change in CCC × Average daily COGS" },
+
+    // Module 4
+    "m4_dep_exp": { val: 17000, label: "Annual Dep Exp", hint: "(Cost - Salvage) / Life" },
+    "m4_bv_y3": { val: 44000, label: "Book Value Y3", hint: "Cost - (Dep Exp * 3)" },
+
+    // Module 5
+    "m5_cv_y3": { val: 44000, label: "Carrying Value (Year 3)", hint: "Cost - Accumulated Depreciation (Yr 3)" },
+    "m5_imp_loss": { val: 8000, label: "Impairment Loss", hint: "Carrying Value - Fair Value (since CV > Undisc CF)" },
+
+    // Module 6
+    "m6_avg_ppe_2022": { val: 18319, label: "Average PPE, net (2022)", hint: "(Net PPE 2022 + Net PPE 2021) / 2" },
+    "m6_turn_2022": { val: 5.3, label: "PPE Turnover (2022)", hint: "Revenue / Average PPE, net" },
+    "m6_dep_base_2022": { val: 27325, label: "Depreciable Base (2022)", hint: "Gross PPE - Land - CIP (2022)" },
+    "m6_dep_base_2021": { val: 28966, label: "Depreciable Base (2021)", hint: "Gross PPE - Land - CIP (2021)" },
+    "m6_avg_dep_base_2022": { val: 28146, label: "Avg Depreciable Base", hint: "(Depreciable Base 2022 + Depreciable Base 2021) / 2" },
+    "m6_life_2022": { val: 14.2, label: "Average Useful Life", hint: "Average Depreciable Base / Depreciation Expense" },
+    "m6_used_2022": { val: 0.635, isPct: true, label: "Percent Used Up (2022)", hint: "Accumulated Depreciation / Depreciable Base (2022)" },
+
+    // Module 7 - AMD Impairment
+    "m7_imp_dev_tech": { val: 958, label: "Imp: Developed Tech", hint: "CV (10,758) - FV (9,800)" },
+    "m7_imp_cust_rel": { val: 0, label: "Imp: Cust Relations", hint: "FV (11,900) > CV (10,534). No impairment." },
+    "m7_imp_trademarks": { val: 0, label: "Imp: Trademarks", hint: "FV (1,300) > CV (746). No impairment." },
+    "m7_imp_iprd": { val: 470, label: "Imp: IPR&D", hint: "CV (970) - FV (500)" },
+    "m7_imp_total": { val: 1428, label: "Total Impairment", hint: "Sum of impairment losses" }
+};
+
+// --- 2. COMPONENTS ---
+
+const Icon = ({ name, className }) => {
+    const ref = React.useRef(null);
+    React.useEffect(() => {
+        if (window.lucide && ref.current) {
+            const i = document.createElement('i');
+            i.setAttribute('data-lucide', name);
+            if (className) i.setAttribute('class', className);
+            ref.current.innerHTML = '';
+            ref.current.appendChild(i);
+            window.lucide.createIcons({ root: ref.current });
+        }
+    }, [name, className]);
+    return <span ref={ref} style={{ display: 'contents' }}></span>;
+};
+
+const Modal = ({ isOpen, title, children, onClose }) => {
+    if (!isOpen) return null;
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[100]">
+            <div className="bg-white rounded-lg shadow-xl p-6 w-96 max-w-full m-4">
+                <div className="flex justify-between items-center mb-4 border-b pb-2">
+                    <h3 className="font-bold text-lg">{title}</h3>
+                    <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+                        <Icon name="x" className="w-5 h-5" />
+                    </button>
+                </div>
+                {children}
+            </div>
+        </div>
+    );
+};
+
+const SmartInput = ({ id, value, onChange, isPct, correctValue, instructorMode, onFocus, isFocused }) => {
+    const evaluateExpression = (expression) => {
+        if (!expression) return { val: "", valid: false };
+        let cleanExp = expression.toString().replace(/,/g, '');
+        cleanExp = cleanExp.replace(/(\d+(\.\d+)?)%/g, (match, p1) => parseFloat(p1) / 100);
+        
+        if (!/^[\d\.\+\-\*\/\(\)\s]+$/.test(cleanExp)) return { val: expression, valid: false };
+        try {
+            const result = new Function('return ' + cleanExp)();
+            return { val: parseFloat(result.toFixed(4)), valid: true };
+        } catch (e) { return { val: expression, valid: false }; }
+    };
+
+    const handleChange = (e) => {
+        onChange(id, e.target.value);
+    };
+
+    const handleBlur = (e) => {
+        const val = e.target.value;
+        const { val: calculated, valid } = evaluateExpression(val);
+        if (valid && calculated != val) {
+            onChange(id, calculated);
+        }
+    };
+
+    let status = "neutral";
+    if (value !== "" && value !== undefined && correctValue !== undefined) {
+        const numVal = parseFloat(value);
+        if (!isNaN(numVal)) {
+            const errorMargin = Math.abs(correctValue * 0.02);
+            let diff = Math.abs(numVal - correctValue);
+            let isCorrect = diff <= errorMargin;
+            if (!isCorrect && isPct) {
+                const diffPct = Math.abs((numVal / 100) - correctValue);
+                if (diffPct <= errorMargin) {
+                    isCorrect = true;
+                }
+            }
+            status = isCorrect ? "correct" : "incorrect";
+        }
+    }
+
+    const borderClass = isFocused 
+        ? "border-blue-500 ring-2 ring-blue-200" 
+        : (status === "correct" ? "border-green-500 bg-green-50 text-green-900 font-bold" : (status === "incorrect" ? "border-red-500 bg-red-50" : "border-gray-300"));
+
+    return (
+        <div className="relative w-full">
+            <input
+                type="text"
+                id={id}
+                value={value || ""}
+                onFocus={() => onFocus(id)}
+                onBlur={handleBlur}
+                onChange={handleChange}
+                onKeyDown={(e) => e.key === 'Enter' && e.target.blur()}
+                className={`w-full p-2 border rounded shadow-sm transition-all outline-none font-mono ${borderClass}`}
+                placeholder={isPct ? "0.0%" : "0"}
+            />
+            {status === "correct" && (
+                <div className="absolute right-3 top-2.5 text-green-600 flex items-center gap-1 text-sm font-bold pointer-events-none">
+                    <Icon name="check" className="w-4 h-4" />
+                </div>
+            )}
+             {instructorMode && correctValue !== undefined && (
+                <div className="mt-1 p-1 bg-purple-100 border border-purple-300 text-purple-900 text-xs font-bold inline-block rounded shadow-sm absolute -bottom-6 left-0 z-10">
+                    Key: {isPct ? (correctValue * 100).toFixed(2) + "%" : correctValue}
+                </div>
+            )}
+        </div>
+    );
+};
+
+const FieldWithHint = ({ id, label, isPct, answers, updateAnswer, correctValue, instructorMode, onFocus, isFocused, linkedValue, className = "mb-4" }) => {
+    const [showHint, setShowHint] = React.useState(false);
+    const hint = ANSWER_KEY[id]?.hint;
+    const displayValue = answers[id] !== undefined ? answers[id] : (linkedValue || "");
+    const handleChange = (fieldId, val) => { updateAnswer(fieldId, val); };
+
+    return (
+        <div className={`flex flex-col ${className}`}>
+             {label && <div className="flex items-center gap-2 mb-1">
+                <label className="text-sm font-semibold text-gray-700">{label}</label>
+                {hint && (
+                    <button 
+                        onClick={() => setShowHint(!showHint)}
+                        className={`text-gray-400 hover:text-blue-600 transition-colors ${showHint ? 'text-blue-600' : ''}`}
+                        title="Show Hint"
+                    >
+                        <Icon name="help-circle" className="w-4 h-4" />
+                    </button>
+                )}
+            </div>}
+            {showHint && (
+                <div className="text-xs text-blue-800 bg-blue-50 p-2 rounded mb-2 border border-blue-100 italic">
+                    💡 {hint}
+                </div>
+            )}
+            <SmartInput 
+                id={id}
+                value={displayValue}
+                onChange={handleChange}
+                correctValue={correctValue}
+                isPct={isPct}
+                instructorMode={instructorMode}
+                onFocus={onFocus}
+                isFocused={isFocused}
+            />
+        </div>
+    );
+};
+
+const ReferenceItem = ({ data, onNumberClick }) => {
+    const renderCell = (content) => {
+        const numRegex = /^[\$]?[\(\-]?[0-9,]+(\.[0-9]+)?[\)]?$/;
+        if (numRegex.test(content) && content !== "-" && content !== "N/A") {
+            return (
+                <span 
+                    className="clickable-number" 
+                    title="Click to insert"
+                    onMouseDown={(e) => {
+                        e.preventDefault(); 
+                        let clean = content.replace(/[^0-9\.-]/g, '');
+                        if (content.includes('(')) clean = '-' + clean;
+                        onNumberClick(clean);
+                    }}
+                >
+                    {content}
+                </span>
+            );
+        }
+        return content;
+    };
+
+    if (data.type === 'simple-table') {
+        return (
+            <div className="overflow-x-auto mb-4 bg-white border border-gray-200 rounded shadow-sm">
+                {data.title && <div className="p-2 bg-gray-50 border-b text-xs font-bold text-gray-700">{data.title}</div>}
+                <table className="w-full text-xs text-left">
+                    <thead>
+                        <tr className="bg-gray-100 border-b">
+                            {data.headers.map((h, i) => <th key={i} className="py-2 px-2 font-semibold text-gray-600">{h}</th>)}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {data.rows.map((row, rIdx) => (
+                            <tr key={rIdx} className="border-b last:border-0 hover:bg-gray-50">
+                                {row.map((cell, cIdx) => <td key={cIdx} className="py-2 px-2 text-gray-800 font-mono">{renderCell(cell)}</td>)}
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+                {data.footer && <div className="p-2 text-xs text-gray-500 italic bg-gray-50 border-t">{data.footer}</div>}
+            </div>
+        );
+    }
+    if (data.type === 'key-value') {
+         return (
+            <div className="mb-4 bg-white border border-gray-200 rounded shadow-sm">
+                {data.title && <div className="p-2 bg-gray-50 border-b text-xs font-bold text-gray-700">{data.title}</div>}
+                <div className="p-2 grid grid-cols-2 gap-2 text-xs">
+                    {data.data.map((pair, idx) => (
+                        <React.Fragment key={idx}>
+                            <div className="text-gray-500">{pair[0]}:</div>
+                            <div className="font-mono text-gray-800 text-right">{renderCell(pair[1])}</div>
+                        </React.Fragment>
+                    ))}
+                </div>
+            </div>
+         );
+    }
+    if (data.type === 'sections') {
+        return (
+            <div className="space-y-2">
+                {data.sections.map((sec, idx) => <ReferenceItem key={idx} data={sec} onNumberClick={onNumberClick} />)}
+            </div>
+        );
+    }
+    return null;
+};
+
+const ConceptCheck = ({ id, questions, instructorMode, answers, updateAnswer }) => {
+    
+    const handleSelect = (qId, option) => {
+        // Prevent changing if already answered or in instructor mode
+        if (answers[qId] || instructorMode) return;
+        updateAnswer(qId, option);
+    };
+
+    return (
+        <div className="space-y-6">
+            {questions.map((q, idx) => {
+                const userSelection = answers[q.id];
+                const isAnswered = !!userSelection;
+                
+                return (
+                    <div key={q.id} className="bg-white p-4 rounded-lg shadow border border-gray-200">
+                        <div className="font-bold text-gray-800 mb-3 flex gap-2">
+                            <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-sm">Q{idx+1}</span>
+                            {q.text}
+                        </div>
+                        <div className="space-y-2 mb-4">
+                            {q.options.map(opt => {
+                                let btnClass = "w-full text-left p-3 rounded text-sm transition-all border ";
+                                
+                                if (instructorMode) {
+                                    if (opt === q.answer) {
+                                        // Instructor View: Highlight correct answer always
+                                        btnClass += "bg-green-100 border-green-500 text-green-900 font-bold shadow-sm ring-2 ring-green-500/50";
+                                    } else {
+                                        // Instructor View: Fade out incorrect answers
+                                        btnClass += "border-gray-100 text-gray-400 opacity-60";
+                                    }
+                                } else {
+                                    if (isAnswered) {
+                                        if (opt === userSelection) {
+                                            if (opt === q.answer) {
+                                                // Student Correct
+                                                btnClass += "bg-green-100 border-green-500 text-green-900 font-bold";
+                                            } else {
+                                                // Student Incorrect
+                                                btnClass += "bg-red-100 border-red-500 text-red-900 font-bold";
+                                            }
+                                        } else {
+                                            // Unselected options when answered
+                                            btnClass += "border-gray-200 text-gray-400 opacity-50 cursor-not-allowed";
+                                        }
+                                    } else {
+                                        // Standard State
+                                        btnClass += "hover:bg-gray-50 border-gray-200 text-gray-600";
+                                    }
+                                }
+
+                                return (
+                                    <button
+                                        key={opt}
+                                        onClick={() => handleSelect(q.id, opt)}
+                                        disabled={isAnswered || instructorMode}
+                                        className={btnClass}
+                                    >
+                                        {opt}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                        {instructorMode && (
+                            <div className="mt-3 bg-purple-50 border border-purple-200 p-3 rounded text-sm text-purple-900">
+                                <div className="font-bold flex items-center gap-2 mb-1">
+                                    <Icon name="graduation-cap" className="w-4 h-4" /> 
+                                    Answer & Explanation
+                                </div>
+                                <p className="opacity-90">{q.explanation}</p>
+                            </div>
+                        )}
+                    </div>
+                );
+            })}
+        </div>
+    );
+};
+
+const App = () => {
+    const [activeModule, setActiveModule] = React.useState('m1');
+    const [answers, setAnswers] = React.useState({});
+    const [studentName, setStudentName] = React.useState("");
+    const [activeInputId, setActiveInputId] = React.useState(null);
+    const [instructorMode, setInstructorMode] = React.useState(false);
+    const [showAuthModal, setShowAuthModal] = React.useState(false);
+    const [showClearModal, setShowClearModal] = React.useState(false);
+    const [passwordInput, setPasswordInput] = React.useState("");
+
+    const updateAnswer = (id, val) => { setAnswers(prev => ({ ...prev, [id]: val })); };
+    const handleInputFocus = (id) => { setActiveInputId(id); };
+
+    const handleNumberClick = (val) => {
+        if (!activeInputId) return;
+        setAnswers(prev => {
+            const current = prev[activeInputId] ? prev[activeInputId].toString() : "";
+            const operatorRegex = /[\+\-\*\/\(]$/;
+            let newValue;
+            if (current === "" || operatorRegex.test(current.trim())) {
+                newValue = current + val;
+            } else {
+                newValue = val; 
+            }
+            return { ...prev, [activeInputId]: newValue };
+        });
+        setTimeout(() => {
+            const el = document.getElementById(activeInputId);
+            if (el) el.focus();
+        }, 50);
+    };
+
+    const handleAuth = () => {
+        if (passwordInput === "teacher") {
+            setInstructorMode(true);
+            setShowAuthModal(false);
+            setPasswordInput("");
+        } else alert("Invalid Password");
+    };
+
+    const autoFillAll = () => {
+        const filled = {};
+        Object.keys(ANSWER_KEY).forEach(key => { filled[key] = ANSWER_KEY[key].val; });
+        setAnswers(filled);
+    };
+
+    const performClear = () => {
+        setAnswers({});
+        setInstructorMode(false);
+        setShowClearModal(false);
+    };
+    
+    const renderModuleContent = () => {
+        const moduleType = MODULES.find(m => m.id === activeModule)?.type;
+
+        if (moduleType === 'concept') {
+            return (
+                <div className="h-full overflow-y-auto custom-scrollbar p-4 lg:pr-8">
+                    <div className="max-w-4xl mx-auto pb-20">
+                        <div className="flex items-center gap-2 mb-6 p-4 bg-indigo-50 border border-indigo-200 rounded-lg text-indigo-900">
+                            <Icon name="brain-circuit" className="w-6 h-6" />
+                            <div>
+                                <h2 className="font-bold text-lg">{MODULES.find(m => m.id === activeModule).title}</h2>
+                                <p className="text-sm opacity-80">Test your understanding of the core concepts.</p>
+                            </div>
+                        </div>
+                        <ConceptCheck 
+                            id={activeModule} 
+                            questions={CONCEPT_QUESTIONS[activeModule]} 
+                            instructorMode={instructorMode} 
+                            answers={answers}
+                            updateAnswer={updateAnswer}
+                        />
+                    </div>
+                </div>
+            );
+        }
+
+        const refs = MODULE_DATA[activeModule];
+        
+        return (
+            <div className="flex flex-col lg:flex-row gap-6 h-full">
+                <div className="flex-1 overflow-y-auto custom-scrollbar lg:pr-4">
+                    <h2 className="text-xl font-bold mb-4 text-blue-800 border-b pb-2 flex items-center gap-2 sticky top-0 bg-gray-50 pt-2 z-10">
+                        <Icon name="pen-tool" className="w-5 h-5" /> 
+                        {MODULES.find(m => m.id === activeModule)?.title}
+                    </h2>
+                    
+                    <div className="space-y-6 pb-20">
+                    {activeModule === 'm1' && (
+                        <div className="bg-white p-6 rounded-lg shadow border border-gray-200">
+                            <h3 className="text-lg font-bold text-gray-800 mb-4">Inventory Costing Comparison</h3>
+                            
+                            {/* FIFO Table */}
+                            <div className="mb-8">
+                                <h4 className="font-bold text-blue-800 mb-2">1. FIFO</h4>
+                                <table className="w-full text-sm border-collapse border border-gray-300">
+                                    <thead className="bg-gray-100">
+                                        <tr>
+                                            <th className="border border-gray-300 p-2 text-left w-1/3">Item</th>
+                                            <th className="border border-gray-300 p-2 text-center w-1/6">Units</th>
+                                            <th className="border border-gray-300 p-2 text-center w-1/6">Unit Cost</th>
+                                            <th className="border border-gray-300 p-2 text-center w-1/3">Amount</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td className="border border-gray-300 p-2 font-bold">Cost of goods sold (COGS)</td>
+                                            <td className="border border-gray-300 p-2 text-center">2,800</td>
+                                            <td className="border border-gray-300 p-2"></td>
+                                            <td className="border border-gray-300 p-2">{renderInput("m1_fifo_cogs", null, false, null, "mb-0")}</td>
+                                        </tr>
+                                        <tr>
+                                            <td className="border border-gray-300 p-2 pl-6 text-gray-600">Units sold</td>
+                                            <td className="border border-gray-300 p-2 text-center text-gray-600">1,000</td>
+                                            <td className="border border-gray-300 p-2 text-center text-gray-600">18.00</td>
+                                            <td className="border border-gray-300 p-2">{renderInput("m1_fifo_layer1", null, false, null, "mb-0")}</td>
+                                        </tr>
+                                        <tr>
+                                            <td className="border border-gray-300 p-2 pl-6 text-gray-600">Units sold</td>
+                                            <td className="border border-gray-300 p-2 text-center text-gray-600">1,800</td>
+                                            <td className="border border-gray-300 p-2 text-center text-gray-600">18.25</td>
+                                            <td className="border border-gray-300 p-2">{renderInput("m1_fifo_layer2", null, false, null, "mb-0")}</td>
+                                        </tr>
+                                        <tr>
+                                            <td className="border border-gray-300 p-2 font-bold">Inventory</td>
+                                            <td className="border border-gray-300 p-2 text-center">2,000</td>
+                                            <td className="border border-gray-300 p-2"></td>
+                                            <td className="border border-gray-300 p-2">{renderInput("m1_fifo_end", null, false, null, "mb-0")}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            {/* LIFO Table */}
+                            <div className="mb-8">
+                                <h4 className="font-bold text-blue-800 mb-2">2. LIFO</h4>
+                                <table className="w-full text-sm border-collapse border border-gray-300">
+                                    <thead className="bg-gray-100">
+                                        <tr>
+                                            <th className="border border-gray-300 p-2 text-left w-1/3">Item</th>
+                                            <th className="border border-gray-300 p-2 text-center w-1/6">Units</th>
+                                            <th className="border border-gray-300 p-2 text-center w-1/6">Unit Cost</th>
+                                            <th className="border border-gray-300 p-2 text-center w-1/3">Amount</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td className="border border-gray-300 p-2 font-bold">Cost of goods sold (COGS)</td>
+                                            <td className="border border-gray-300 p-2 text-center">2,800</td>
+                                            <td className="border border-gray-300 p-2"></td>
+                                            <td className="border border-gray-300 p-2">{renderInput("m1_lifo_cogs", null, false, null, "mb-0")}</td>
+                                        </tr>
+                                        <tr>
+                                            <td className="border border-gray-300 p-2 pl-6 text-gray-600">Units sold</td>
+                                            <td className="border border-gray-300 p-2 text-center text-gray-600">1,200</td>
+                                            <td className="border border-gray-300 p-2 text-center text-gray-600">19.00</td>
+                                            <td className="border border-gray-300 p-2">{renderInput("m1_lifo_layer1", null, false, null, "mb-0")}</td>
+                                        </tr>
+                                        <tr>
+                                            <td className="border border-gray-300 p-2 pl-6 text-gray-600">Units sold</td>
+                                            <td className="border border-gray-300 p-2 text-center text-gray-600">800</td>
+                                            <td className="border border-gray-300 p-2 text-center text-gray-600">18.50</td>
+                                            <td className="border border-gray-300 p-2">{renderInput("m1_lifo_layer2", null, false, null, "mb-0")}</td>
+                                        </tr>
+                                        <tr>
+                                            <td className="border border-gray-300 p-2 pl-6 text-gray-600">Units sold</td>
+                                            <td className="border border-gray-300 p-2 text-center text-gray-600">800</td>
+                                            <td className="border border-gray-300 p-2 text-center text-gray-600">18.25</td>
+                                            <td className="border border-gray-300 p-2">{renderInput("m1_lifo_layer3", null, false, null, "mb-0")}</td>
+                                        </tr>
+                                        <tr>
+                                            <td className="border border-gray-300 p-2 font-bold">Inventory</td>
+                                            <td className="border border-gray-300 p-2 text-center">2,000</td>
+                                            <td className="border border-gray-300 p-2"></td>
+                                            <td className="border border-gray-300 p-2">{renderInput("m1_lifo_end", null, false, null, "mb-0")}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            {/* Average Cost Table */}
+                            <div>
+                                <h4 className="font-bold text-blue-800 mb-2">3. Average Cost</h4>
+                                <table className="w-full text-sm border-collapse border border-gray-300">
+                                    <thead className="bg-gray-100">
+                                        <tr>
+                                            <th className="border border-gray-300 p-2 text-left w-1/3">Item</th>
+                                            <th className="border border-gray-300 p-2 text-center w-1/6">Units</th>
+                                            <th className="border border-gray-300 p-2 text-center w-1/6">Unit Cost</th>
+                                            <th className="border border-gray-300 p-2 text-center w-1/3">Amount</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td className="border border-gray-300 p-2 font-bold">Cost of goods sold (COGS)</td>
+                                            <td className="border border-gray-300 p-2 text-center">2,800</td>
+                                            <td className="border border-gray-300 p-2">{renderInput("m1_avg_unit", null, false, null, "mb-0")}</td>
+                                            <td className="border border-gray-300 p-2">{renderInput("m1_avg_cogs", null, false, null, "mb-0")}</td>
+                                        </tr>
+                                        <tr>
+                                            <td className="border border-gray-300 p-2 font-bold">Inventory</td>
+                                            <td className="border border-gray-300 p-2 text-center">2,000</td>
+                                            <td className="border border-gray-300 p-2"></td>
+                                            <td className="border border-gray-300 p-2">{renderInput("m1_avg_end", null, false, null, "mb-0")}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
+                    {activeModule === 'm2' && (
+                        <div className="bg-white p-6 rounded-lg shadow border border-gray-200 space-y-8">
+                            
+                            {/* 6-2.1 LCM */}
+                            <div>
+                                <h3 className="font-bold text-blue-800 border-b pb-2 mb-4">6-2.1 Lower of Cost or Market (LCM)</h3>
+                                <p className="text-sm text-gray-600 mb-4">
+                                    Calculate the value of inventory to be reported on the Balance Sheet.
+                                    <br/>Cost (from LIFO 6-1) vs Market Value ($30,000).
+                                </p>
+                                <div className="max-w-md">
+                                    {renderInput("m2_q1_inv", "Reported Inventory Value")}
+                                </div>
+                            </div>
+
+                            {/* 6-2.2 LIFO Liquidation */}
+                            <div>
+                                <h3 className="font-bold text-blue-800 border-b pb-2 mb-4">6-2.2 LIFO Liquidation Scenarios</h3>
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-sm border-collapse border border-gray-300">
+                                        <thead className="bg-gray-100">
+                                            <tr>
+                                                <th className="border border-gray-300 p-2">Metric</th>
+                                                <th className="border border-gray-300 p-2">Scenario 1 (Standard)</th>
+                                                <th className="border border-gray-300 p-2">Scenario 2 (Delayed Purch)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td className="border border-gray-300 p-2 font-medium">COGS</td>
+                                                <td className="border border-gray-300 p-2">{renderInput("m2_q2_s1_cogs", null, false, null, "mb-0")}</td>
+                                                <td className="border border-gray-300 p-2">{renderInput("m2_q2_s2_cogs", null, false, null, "mb-0")}</td>
+                                            </tr>
+                                            <tr>
+                                                <td className="border border-gray-300 p-2 font-medium">Ending Inventory</td>
+                                                <td className="border border-gray-300 p-2">{renderInput("m2_q2_s1_inv", null, false, null, "mb-0")}</td>
+                                                <td className="border border-gray-300 p-2">{renderInput("m2_q2_s2_inv", null, false, null, "mb-0")}</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div className="mt-4 max-w-md">
+                                    {renderInput("m2_q2_profit_diff", "Increase in Gross Profit (Scen 2 vs 1)")}
+                                </div>
+                            </div>
+
+                            {/* 6-2.3 LIFO Reserve */}
+                            <div>
+                                <h3 className="font-bold text-blue-800 border-b pb-2 mb-4">6-2.3 LIFO Reserve & Tax Effect</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div>
+                                        <h4 className="font-bold text-gray-700 mb-2">Inventory Balances</h4>
+                                        {renderInput("m2_q3_fifo_inv", "FIFO Inventory")}
+                                        {renderInput("m2_q3_lifo_inv", "LIFO Inventory")}
+                                    </div>
+                                    <div>
+                                        <h4 className="font-bold text-gray-700 mb-2">Calculations</h4>
+                                        {renderInput("m2_q3_reserve", "LIFO Reserve")}
+                                        {renderInput("m2_q3_tax", "Cumulative Tax Savings (21%)")}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    {activeModule === 'm3' && (
+                        <div className="bg-white p-6 rounded-lg shadow border border-gray-200">
+                            <div className="grid grid-cols-2 gap-8 mb-6">
+                                <div>
+                                    <h3 className="font-bold mb-2 text-gray-800 border-b pb-1">2022 Data</h3>
+                                    {renderInput("m3_gp_2022", "Gross Profit Margin", true)}
+                                    {renderInput("m3_dio_2022", "Days Inventory Outstanding")}
+                                    {renderInput("m3_dpo_2022", "Days Payable Outstanding")}
+                                    {renderInput("m3_ccc_2022", "Cash Conversion Cycle")}
+                                </div>
+                                <div>
+                                    <h3 className="font-bold mb-2 text-gray-800 border-b pb-1">2021 Data</h3>
+                                    {renderInput("m3_gp_2021", "Gross Profit Margin", true)}
+                                    {renderInput("m3_dio_2021", "Days Inventory Outstanding")}
+                                    {renderInput("m3_dpo_2021", "Days Payable Outstanding")}
+                                    {renderInput("m3_ccc_2021", "Cash Conversion Cycle")}
+                                </div>
+                            </div>
+                            <div className="border-t pt-4 mt-4">
+                                {renderInput("m3_ccc_impact", "Cash Impact ($m)")}
+                            </div>
+                        </div>
+                    )}
+                    {activeModule === 'm4' && (
+                        <div className="bg-white p-6 rounded-lg shadow border border-gray-200 space-y-6">
+                            <div>
+                                <h3 className="font-bold text-blue-800 border-b pb-2 mb-4">REVIEW 6-4 LO6-4: Depreciation</h3>
+                                <div className="bg-gray-50 p-4 rounded border border-gray-200 text-sm text-gray-700 space-y-2 mb-4">
+                                    <p><strong>Problem Statement:</strong> On January 2, assume that one of Home Depot’s subsidiary companies purchases equipment that fabricates a key product part. The equipment costs $95,000, and its estimated useful life is five years, after which it is expected to be sold for $10,000.</p>
+                                    <p><strong>Required:</strong></p>
+                                    <ul className="list-disc list-inside ml-2">
+                                        <li>Compute depreciation expense for each year of the equipment’s useful life using the straight-line method of depreciation.</li>
+                                        <li>Show how the HD subsidiary reports the equipment on its balance sheet at the end of the third year assuming straight-line depreciation.</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-6">
+                                {renderInput("m4_dep_exp", "Depreciation Exp (Annual)")}
+                                {renderInput("m4_bv_y3", "Book Value (End of Year 3)")}
+                            </div>
+                        </div>
+                    )}
+                    {activeModule === 'm5' && (
+                        <div className="bg-white p-6 rounded-lg shadow border border-gray-200 space-y-6">
+                             {/* Part 1: Impairment */}
+                             <div>
+                                 <h3 className="font-bold text-blue-800 border-b pb-2 mb-4">REVIEW 6-5 LO6-5 Part 1: Asset Impairment</h3>
+                                 <p className="text-sm text-gray-600 mb-4">
+                                     Refer to Home Depot data in Review 6-4. Assume straight-line depreciation. 
+                                     At the end of year 3, cash flows = $40,000 (undiscounted) and Fair Value = $36,000.
+                                     Is the equipment impaired? If so, calculate the loss.
+                                 </p>
+                                 <div className="grid grid-cols-2 gap-6">
+                                     {renderInput("m5_cv_y3", "Step 1: Carrying Value at End of Year 3")}
+                                     {renderInput("m5_imp_loss", "Step 2: Impairment Loss Amount")}
+                                 </div>
+                             </div>
+                        </div>
+                    )}
+                    {activeModule === 'm6' && (
+                         <div className="bg-white p-6 rounded-lg shadow border border-gray-200 space-y-8">
+                            <div>
+                                <h3 className="font-bold text-blue-800 border-b pb-2 mb-4">REVIEW 6-6 LO6-6: PP&E Analysis</h3>
+                                <div className="bg-gray-50 p-4 rounded border border-gray-200 text-sm text-gray-700 space-y-2 mb-4">
+                                    <p><strong>Required:</strong> Compute the following measures for 2022 and 2021. For simplicity, assume that the entire amortization expense relates to property, plant, and equipment assets.</p>
+                                    <ul className="list-disc list-inside ml-2">
+                                        <li>PP&E turnover.</li>
+                                        <li>Average useful life.</li>
+                                        <li>Percent used up.</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-gray-800 border-b pb-2 mb-4">1. PPE Turnover (2022)</h3>
+                                <div className="grid grid-cols-2 gap-6">
+                                    {renderInput("m6_avg_ppe_2022", "Average Net PPE")}
+                                    {renderInput("m6_turn_2022", "PPE Turnover Ratio")}
+                                </div>
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-gray-800 border-b pb-2 mb-4">2. Average Useful Life (2022)</h3>
+                                <div className="grid grid-cols-2 gap-6 mb-4">
+                                    {renderInput("m6_dep_base_2022", "Depreciable Base 2022")}
+                                    {renderInput("m6_dep_base_2021", "Depreciable Base 2021")}
+                                    {renderInput("m6_avg_dep_base_2022", "Average Depreciable Base")}
+                                </div>
+                                <div>{renderInput("m6_life_2022", "Average Useful Life (Years)")}</div>
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-gray-800 border-b pb-2 mb-4">3. Percent Used Up (2022)</h3>
+                                <div className="grid grid-cols-2 gap-6">
+                                    {renderInput("m6_used_2022", "Percent Used Up", true)}
+                                </div>
+                            </div>
+                         </div>
+                    )}
+                    {activeModule === 'm7' && (
+                         <div className="bg-white p-6 rounded-lg shadow border border-gray-200 space-y-6">
+                            <h3 className="font-bold text-blue-800 border-b pb-2 mb-4">REVIEW 6-7 LO6-7: Impairment Assessment</h3>
+                            <p className="text-sm text-gray-600 mb-4">
+                                <strong>Background:</strong> On Feb 14, 2022, AMD acquired Xilinx. Refer to the "Acquisition Details" in the Data Source for initial values and useful lives.
+                                <br/><br/>
+                                <strong>Task:</strong> 24 months post-acquisition, assess if an impairment charge is warranted based on the Fair Value vs Carrying Value table provided below.
+                                If Carrying Value > Fair Value, calculate the impairment.
+                            </p>
+                            
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-sm text-left border-collapse border border-slate-300">
+                                    <thead className="bg-slate-100">
+                                        <tr>
+                                            <th className="border border-slate-300 p-2 w-1/2">Asset Class</th>
+                                            <th className="border border-slate-300 p-2">Impairment Expense ($m)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td className="border border-slate-300 p-3">Developed technologies</td>
+                                            <td className="border border-slate-300 p-2">{renderInput("m7_imp_dev_tech", null)}</td>
+                                        </tr>
+                                        <tr>
+                                            <td className="border border-slate-300 p-3">Customer relationships</td>
+                                            <td className="border border-slate-300 p-2">{renderInput("m7_imp_cust_rel", null)}</td>
+                                        </tr>
+                                        <tr>
+                                            <td className="border border-slate-300 p-3">Product trademarks</td>
+                                            <td className="border border-slate-300 p-2">{renderInput("m7_imp_trademarks", null)}</td>
+                                        </tr>
+                                        <tr>
+                                            <td className="border border-slate-300 p-3">IPR&D (Indefinite)</td>
+                                            <td className="border border-slate-300 p-2">{renderInput("m7_imp_iprd", null)}</td>
+                                        </tr>
+                                        <tr className="bg-blue-50 font-bold">
+                                            <td className="border border-slate-300 p-3 text-right">Total Impairment Charge</td>
+                                            <td className="border border-slate-300 p-2">{renderInput("m7_imp_total", null)}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                         </div>
+                    )}
+                    </div>
+
+                    {/* Instructor Answer Key Table */}
+                    {instructorMode && (
+                        <div className="mt-12 border-t-2 border-dashed border-purple-300 pt-8 mb-20">
+                            <h3 className="text-lg font-bold text-purple-900 mb-4 flex items-center gap-2">
+                                <Icon name="key" className="w-5 h-5" /> Master Answer Key
+                            </h3>
+                            <div className="bg-white rounded-lg shadow border border-purple-200 overflow-hidden">
+                                <table className="w-full text-sm text-left">
+                                    <thead className="bg-purple-50 text-purple-900">
+                                        <tr>
+                                            <th className="p-3 border-b">Label</th>
+                                            <th className="p-3 border-b">Correct Value</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {Object.entries(ANSWER_KEY).map(([key, data]) => (
+                                            <tr key={key} className="border-b hover:bg-purple-50">
+                                                <td className="p-3 font-medium">{data.label}</td>
+                                                <td className="p-3 font-mono font-bold text-purple-700">
+                                                    {data.isPct ? (data.val * 100).toFixed(2) + "%" : data.val}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                <div className="lg:w-80 flex-shrink-0 flex flex-col">
+                    <div className="bg-slate-100 p-4 rounded-lg border border-slate-200 h-full overflow-y-auto custom-scrollbar sticky top-4">
+                        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                            <Icon name="database" className="w-4 h-4" /> Data Source
+                        </h3>
+                        {refs ? refs.map((ref, i) => (
+                            <ReferenceItem key={i} data={ref} onNumberClick={handleNumberClick} />
+                        )) : <div className="text-sm text-gray-500 italic">No reference data needed for this section.</div>}
+                        
+                        <div className="mt-4 p-3 bg-blue-50 text-blue-800 text-xs rounded border border-blue-100 flex gap-2">
+                            <Icon name="mouse-pointer-click" className="w-4 h-4 shrink-0" />
+                            <span>Click any number in the table to insert it into your selected answer field.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    const renderInput = (id, label, isPct = false, linkedValue = null, customClass = "mb-4") => (
+        <FieldWithHint 
+            key={id} id={id} label={label} isPct={isPct} 
+            answers={answers} updateAnswer={updateAnswer} 
+            correctValue={ANSWER_KEY[id]?.val} instructorMode={instructorMode}
+            onFocus={handleInputFocus} isFocused={activeInputId === id}
+            linkedValue={linkedValue ? answers[linkedValue] : null}
+            className={customClass}
+        />
+    );
+
+    return (
+        <div className="flex flex-col h-screen">
+            <header className="bg-slate-900 text-white p-4 flex justify-between items-center shadow-md sticky-header z-50">
+                <div className="flex items-center gap-3">
+                    <div className="p-2 bg-blue-600 rounded-lg"><Icon name="bar-chart-3" className="w-6 h-6 text-white" /></div>
+                    <div>
+                        <h1 className="text-xl font-bold tracking-tight">Financial Sim</h1>
+                    </div>
+                </div>
+                <div className="flex items-center gap-3">
+                    <input type="text" placeholder="Student Name" className="bg-slate-800 border-slate-700 px-3 py-1 rounded text-sm text-white" />
+                     <button 
+                        onClick={() => instructorMode ? setInstructorMode(false) : setShowAuthModal(true)}
+                        className={`flex items-center gap-2 px-3 py-2 rounded text-sm font-medium transition-colors border ${instructorMode ? 'bg-purple-600 border-purple-500 text-white' : 'bg-transparent border-slate-700 text-white'}`}
+                    >
+                        <Icon name={instructorMode ? "unlock" : "lock"} className="w-4 h-4" />
+                        {instructorMode ? "Instructor" : "Login"}
+                    </button>
+                </div>
+            </header>
+
+            {/* Sticky Instructor Toolbar */}
+            {instructorMode && (
+                <div className="bg-purple-700 text-white p-2 shadow-md flex items-center justify-between z-40 instructor-toolbar shrink-0">
+                    <div className="flex items-center gap-3 px-4">
+                        <span className="bg-white/20 p-1.5 rounded"><Icon name="graduation-cap" className="w-4 h-4"/></span>
+                        <span className="font-bold tracking-wide text-sm">INSTRUCTOR MODE</span>
+                    </div>
+                    <div className="flex gap-2 px-4">
+                        <button onClick={autoFillAll} className="flex items-center gap-2 px-3 py-1 bg-green-500 hover:bg-green-600 rounded text-sm font-bold transition">
+                            <Icon name="wand-2" className="w-4 h-4" /> Auto-Fill All
+                        </button>
+                        <button onClick={() => setShowClearModal(true)} className="flex items-center gap-2 px-3 py-1 bg-red-500 hover:bg-red-600 rounded text-sm font-bold transition">
+                            <Icon name="log-out" className="w-4 h-4" /> Clear & Exit
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            <div className="flex flex-1 overflow-hidden">
+                <nav className="w-64 bg-white border-r border-gray-200 overflow-y-auto custom-scrollbar flex-shrink-0 hidden md:block">
+                    <div className="p-4 border-b bg-gray-50 text-xs font-bold text-gray-500 uppercase">Progression</div>
+                    <div className="p-2 space-y-1">
+                        {MODULES.map(mod => (
+                            <button
+                                key={mod.id}
+                                onClick={() => setActiveModule(mod.id)}
+                                className={`w-full text-left px-3 py-3 rounded-md text-sm font-medium flex items-center gap-3 transition-all ${
+                                    activeModule === mod.id 
+                                    ? "bg-blue-50 text-blue-700 border border-blue-200 shadow-sm" 
+                                    : "text-gray-600 hover:bg-gray-100"
+                                }`}
+                            >
+                                <span className={`w-6 h-6 flex items-center justify-center rounded text-xs font-bold ${mod.type === 'concept' ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-500'}`}>
+                                    {mod.type === 'concept' ? '?' : mod.reviewId}
+                                </span>
+                                {mod.title}
+                            </button>
+                        ))}
+                    </div>
+                </nav>
+
+                <main className="flex-1 overflow-hidden relative bg-gray-50 p-6">
+                    <div className="md:hidden mb-4">
+                        <select 
+                            value={activeModule} 
+                            onChange={(e) => setActiveModule(e.target.value)}
+                            className="w-full p-2 border rounded bg-white"
+                        >
+                            {MODULES.map(mod => <option key={mod.id} value={mod.id}>{mod.title}</option>)}
+                        </select>
+                    </div>
+
+                    {renderModuleContent()}
+                </main>
+            </div>
+            
+            {/* Login Modal */}
+            <Modal isOpen={showAuthModal} title="Instructor Access" onClose={() => setShowAuthModal(false)}>
+                <div className="space-y-4">
+                    <p className="text-sm text-gray-600">Enter the instructor password to access answer keys and grading tools.</p>
+                    <input 
+                        type="password" 
+                        className="w-full border p-2 rounded outline-none focus:border-purple-500"
+                        placeholder="Password"
+                        value={passwordInput}
+                        onChange={(e) => setPasswordInput(e.target.value)}
+                    />
+                    <button 
+                        onClick={handleAuth}
+                        className="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 rounded font-medium"
+                    >
+                        Unlock Mode
+                    </button>
+                </div>
+            </Modal>
+
+            {/* Clear Confirmation Modal */}
+            <Modal isOpen={showClearModal} title="Clear All & Exit?" onClose={() => setShowClearModal(false)}>
+                <div className="space-y-4">
+                    <div className="flex items-center gap-3 text-red-600 mb-2">
+                        <Icon name="alert-triangle" className="w-6 h-6" />
+                        <h4 className="font-bold">Warning</h4>
+                    </div>
+                    <p className="text-sm text-gray-600">This will remove all student answers and lock Instructor Mode. This action cannot be undone.</p>
+                    <div className="flex justify-end gap-3 mt-4">
+                        <button onClick={() => setShowClearModal(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">Cancel</button>
+                        <button onClick={performClear} className="px-4 py-2 bg-red-600 text-white hover:bg-red-700 rounded font-medium">Confirm Clear</button>
+                    </div>
+                </div>
+            </Modal>
+        </div>
+    );
+};
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
+</script>
+</body>
+</html>

@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Corporate Debt & Valuation Analysis Suite</title>
+    
+    <!-- Dependencies -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Tailwind Config -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        slate: { 850: '#1e293b', 900: '#0f172a' },
+                        blue: { 950: '#172554' },
+                        emerald: { 450: '#10b981' },
+                        excel: { green: '#217346', header: '#e6f2ea' }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #1e293b; }
+        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+        
+        .input-correct {
+            border-color: #10b981 !important;
+            color: #065f46 !important;
+            background-color: #ecfdf5 !important;
+            font-weight: bold;
+        }
+        .input-default { border-color: #cbd5e1; }
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        
+        /* Calculator Button Styles */
+        .calc-btn {
+            background-color: #334155;
+            color: white;
+            font-weight: bold;
+            border-radius: 4px;
+            padding: 8px 0;
+            text-align: center;
+            font-size: 0.85rem;
+            transition: background-color 0.1s;
+        }
+        .calc-btn:hover { background-color: #475569; }
+        .calc-btn:active { transform: scale(0.98); }
+        .calc-btn.op { background-color: #0f172a; color: #60a5fa; }
+        .calc-btn.eq { background-color: #059669; }
+        .calc-btn.clear { background-color: #991b1b; }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fadeIn 0.3s ease-out; }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 antialiased h-screen flex flex-col overflow-hidden">
+
+    <div id="root" class="h-full flex flex-col"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo, useRef } = React;
+
+        // --- DATA & KEYS ---
+        const ANSWER_KEYS = {
+            A: {
+                "a_cv1": "12844", "a_cv2": "12857",
+                "a_fv1": "12400", "a_fv2": "9900",
+                "a_trend": "increase"
+            },
+            B: {
+                "b_step1": "5",
+                "b_n": "8", "b_pmt": "-5", "b_pv": "497.67", "b_fv": "-500",
+                "b_rate": "1.061", "b_intexp": "3.52"
+            },
+            Q: {
+                // Correct answer IDs for quiz
+                "q1": "a", "q2": "c", "q3": "a", "q4": "b", "q5": "c", "q6": "b"
+            }
+        };
+
+        const ALPHABET_DATA = {
+            metadata: { name: "Alphabet Inc.", year: "Debt Disclosures" },
+            tables: [
+                {
+                    title: "Debt Disclosure ($ Millions)",
+                    headers: ["Debt Item", "Maturity", "FY1", "FY2"],
+                    rows: [
+                        ["Notes issuances", "FY4-FY40", "13,000", "13,000"],
+                        ["Lease payments & other", "-", "2,086", "2,142"],
+                        ["Total Debt", "", "15,086", "15,142"],
+                        ["Unamortized discount", "-", "(156)", "(143)"],
+                        ["Less: Current portion", "-", "(113)", "(298)"],
+                        ["Total Long-Term Debt", "", "14,817", "14,701"]
+                    ]
+                },
+                {
+                    title: "Fair Value Note",
+                    headers: ["Metric", "FY1", "FY2"],
+                    rows: [
+                        ["Est. Fair Value", "$12.4B", "$9.9B"]
+                    ]
+                }
+            ]
+        };
+
+        const CARREFOUR_DATA = {
+            metadata: { name: "Carrefour SA", year: "Bond Valuation" },
+            tables: [
+                {
+                    title: "Bond Details",
+                    headers: ["Item", "Value"],
+                    rows: [
+                        ["Face Value", "€500 Million"],
+                        ["Coupon Rate", "1.0% (Annual)"],
+                        ["Issue Date", "May 1, FY1"],
+                        ["Maturity", "May 1, FY9 (8 Years)"],
+                        ["Proceeds", "€497.67 Million (Discount)"]
+                    ]
+                }
+            ]
+        };
+
+        // --- COMPONENTS ---
+
+        const Icon = ({ name, size = 16, className = "", color = "currentColor" }) => {
+            const iconRef = useRef(null);
+            useEffect(() => {
+                if (iconRef.current && window.lucide) {
+                    iconRef.current.innerHTML = '';
+                    const iconElement = document.createElement('i');
+                    iconElement.setAttribute('data-lucide', name);
+                    iconElement.style.width = `${size}px`;
+                    iconElement.style.height = `${size}px`;
+                    iconElement.style.color = color;
+                    if (className) className.split(' ').forEach(cls => iconElement.classList.add(cls));
+                    iconRef.current.appendChild(iconElement);
+                    window.lucide.createIcons({ root: iconRef.current, attrs: { width: size, height: size } });
+                }
+            }, [name, size, color, className]);
+            return <span ref={iconRef} className="inline-flex items-center justify-center" />;
+        };
+
+        const ConfirmationModal = ({ isOpen, title, message, onConfirm, onCancel }) => {
+            if (!isOpen) return null;
+            return (
+                <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center backdrop-blur-sm animate-fade-in">
+                    <div className="bg-white rounded-lg shadow-2xl max-w-sm w-full p-6 m-4 border-l-4 border-red-500">
+                        <div className="flex items-center gap-3 text-red-600 mb-4">
+                            <Icon name="alert-triangle" size={24} />
+                            <h3 className="text-lg font-bold">{title}</h3>
+                        </div>
+                        <p className="text-slate-600 mb-6">{message}</p>
+                        <div className="flex justify-end gap-3">
+                            <button onClick={onCancel} className="px-4 py-2 text-slate-600 font-medium hover:bg-slate-100 rounded-lg">Cancel</button>
+                            <button onClick={onConfirm} className="px-4 py-2 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700">Confirm & Exit</button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const StandardCalculator = () => {
+            const [display, setDisplay] = useState("0");
+            const [prevVal, setPrevVal] = useState(null);
+            const [op, setOp] = useState(null);
+            const [newNum, setNewNum] = useState(true);
+
+            const handleNum = (num) => {
+                if (newNum) { setDisplay(String(num)); setNewNum(false); } 
+                else { setDisplay(display === "0" ? String(num) : display + num); }
+            };
+
+            const handleOp = (operator) => {
+                setOp(operator);
+                setPrevVal(parseFloat(display));
+                setNewNum(true);
+            };
+
+            const handleEq = () => {
+                if (!op || prevVal === null) return;
+                const curr = parseFloat(display);
+                let res = 0;
+                switch(op) {
+                    case '+': res = prevVal + curr; break;
+                    case '-': res = prevVal - curr; break;
+                    case '×': res = prevVal * curr; break;
+                    case '÷': res = prevVal / curr; break;
+                }
+                setDisplay(String(parseFloat(res.toFixed(4))));
+                setOp(null); setPrevVal(null); setNewNum(true);
+            };
+
+            const handleClear = () => {
+                setDisplay("0"); setPrevVal(null); setOp(null); setNewNum(true);
+            };
+
+            return (
+                <div className="mx-4 mt-6 bg-slate-800 rounded-lg p-3 border border-slate-700 shadow-xl">
+                    <div className="bg-slate-900 border border-slate-600 rounded mb-3 px-2 py-2 text-right text-lg font-mono text-emerald-400 font-bold overflow-hidden h-10 flex items-center justify-end">
+                        {display}
+                    </div>
+                    <div className="grid grid-cols-4 gap-2">
+                        <button onClick={handleClear} className="calc-btn clear col-span-1 text-xs">C</button>
+                        <button onClick={() => handleOp('÷')} className="calc-btn op">÷</button>
+                        <button onClick={() => handleOp('×')} className="calc-btn op">×</button>
+                        <button onClick={() => handleOp('-')} className="calc-btn op">-</button>
+                        <button onClick={() => handleNum(7)} className="calc-btn">7</button>
+                        <button onClick={() => handleNum(8)} className="calc-btn">8</button>
+                        <button onClick={() => handleNum(9)} className="calc-btn">9</button>
+                        <button onClick={() => handleOp('+')} className="calc-btn op row-span-2 flex items-center justify-center">+</button>
+                        <button onClick={() => handleNum(4)} className="calc-btn">4</button>
+                        <button onClick={() => handleNum(5)} className="calc-btn">5</button>
+                        <button onClick={() => handleNum(6)} className="calc-btn">6</button>
+                        <button onClick={() => handleNum(1)} className="calc-btn">1</button>
+                        <button onClick={() => handleNum(2)} className="calc-btn">2</button>
+                        <button onClick={() => handleNum(3)} className="calc-btn">3</button>
+                        <button onClick={handleEq} className="calc-btn eq row-span-2 flex items-center justify-center">=</button>
+                        <button onClick={() => handleNum(0)} className="calc-btn col-span-2">0</button>
+                        <button onClick={() => handleNum('.')} className="calc-btn">.</button>
+                    </div>
+                </div>
+            );
+        };
+
+        const SmartInput = ({ id, value, onChange, correctValue, label, hint, instructorMode, activeInput, setActiveInput, tolerance = 0.5, className="" }) => {
+            const [localError, setLocalError] = useState(null);
+            
+            const evaluateMath = (expr) => {
+                if (!expr) return { valid: true, val: "" };
+                try {
+                    // Replace % with /100 for calculation
+                    const sanitized = expr.toString()
+                        .replace(/,/g, '')
+                        .replace(/(\d+(?:\.\d+)?)%/g, '($1/100)') // Convert "1.06%" to "(1.06/100)"
+                        .replace(/[^\d\.\+\-\*\/\(\)]/g, '');
+                    
+                    if (!/^[\d\.\+\-\*\/\(\)\s]+$/.test(sanitized)) return { valid: false, msg: "Invalid" };
+                    
+                    // eslint-disable-next-line no-eval
+                    const res = eval(sanitized);
+                    
+                    if (!isFinite(res) || isNaN(res)) return { valid: false, msg: "Error" };
+                    return { valid: true, val: res };
+                } catch (e) { return { valid: false, msg: "Error" }; }
+            };
+
+            const isCorrect = useMemo(() => {
+                if (!value || !correctValue) return false;
+                const { valid, val } = evaluateMath(value);
+                if (!valid) return false;
+                const target = parseFloat(correctValue.toString().replace(/,/g, ''));
+                return Math.abs(val - target) <= tolerance;
+            }, [value, correctValue]);
+
+            const handleBlur = (e) => {
+                const { valid, val } = evaluateMath(value);
+                if (!valid) { setLocalError("Invalid"); return; }
+                setLocalError(null);
+                if (valid && value !== "") {
+                     const numVal = Number(val);
+                     // Display decimals for precision
+                     const displayVal = Number.isInteger(numVal) ? numVal.toString() : numVal.toFixed(2);
+                     onChange(id, displayVal.toString()); 
+                }
+            };
+
+            const isActive = activeInput === id;
+
+            return (
+                <div className="w-full relative">
+                    {label && <label className="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">{label}</label>}
+                    <input 
+                        type="text" 
+                        id={id}
+                        value={value || ""}
+                        onChange={(e) => { setLocalError(null); onChange(id, e.target.value); }}
+                        onFocus={() => setActiveInput(id)}
+                        onBlur={handleBlur}
+                        onKeyDown={(e) => e.key === 'Enter' && e.target.blur()}
+                        className={`w-full p-2 text-right border rounded text-sm font-mono shadow-sm transition-all outline-none focus:ring-2 focus:ring-blue-500 ${
+                            isCorrect ? "input-correct" : (value && !isActive && !isCorrect) ? "bg-white border-slate-300" : "bg-white border-slate-300"
+                        } ${className}`}
+                        placeholder={hint ? "Calc..." : "-"}
+                    />
+                    <div className="absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none transform mt-0.5">
+                        {isCorrect ? <span className="text-emerald-600"><Icon name="check" size={14} /></span> : 
+                        localError ? <span className="text-red-500 font-bold text-xs">!</span> : null}
+                    </div>
+                    {/* Per-Input Key Display (Instructor Mode) */}
+                    {instructorMode && (
+                        <div className="mt-1 text-[10px] text-purple-700 bg-purple-50 px-2 py-1 rounded inline-block font-bold border border-purple-200 shadow-sm animate-fade-in w-full text-center">
+                            Key: {correctValue}
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // --- SPECIAL: TVM Helper for Module B ---
+        const solveRate = (nper, pmt, pv, fv) => {
+            const maxIter = 50;
+            let r = 0.1; // Initial guess
+            for (let i = 0; i < maxIter; i++) {
+                if (Math.abs(r) < 1e-8) r = 1e-8;
+                let t1 = Math.pow(1 + r, nper);
+                let f_r = pv + (pmt * (1 - 1/t1) / r) + (fv / t1);
+                let r_plus = r + 1e-5;
+                let t1_plus = Math.pow(1 + r_plus, nper);
+                let f_r_plus = pv + (pmt * (1 - 1/t1_plus) / r_plus) + (fv / t1_plus);
+                let df_r = (f_r_plus - f_r) / 1e-5;
+                let r_new = r - f_r / df_r;
+                if (Math.abs(r_new - r) < 1e-6) return r_new;
+                r = r_new;
+            }
+            return r;
+        };
+
+        const TVMTool = () => {
+            const [inputs, setInputs] = useState({ n: '', pmt: '', pv: '', fv: '' });
+            const [rate, setRate] = useState(null);
+
+            const calculate = () => {
+                const n = parseFloat(inputs.n);
+                const pmt = parseFloat(inputs.pmt);
+                const pv = parseFloat(inputs.pv);
+                const fv = parseFloat(inputs.fv);
+                if (!isNaN(n) && !isNaN(pmt) && !isNaN(pv) && !isNaN(fv)) {
+                    const r = solveRate(n, pmt, pv, fv);
+                    setRate((r * 100).toFixed(4));
+                }
+            };
+
+            return (
+                <div className="bg-slate-800 text-white rounded-xl p-4 shadow-lg mb-6">
+                    <div className="flex justify-between items-center mb-4">
+                        <h4 className="font-bold text-sm flex items-center gap-2"><Icon name="calculator" size={14}/> TVM Solver</h4>
+                        <span className="text-[10px] bg-slate-700 px-2 py-1 rounded text-emerald-400">Target: RATE</span>
+                    </div>
+                    <div className="grid grid-cols-4 gap-2 mb-4">
+                        {['n','pmt','pv','fv'].map(k => (
+                            <div key={k}>
+                                <label className="block text-[10px] uppercase text-slate-400 mb-1">{k}</label>
+                                <input className="w-full bg-slate-900 border border-slate-600 rounded p-1 text-xs text-right text-white focus:border-blue-500 outline-none" 
+                                    value={inputs[k]} onChange={(e)=>setInputs({...inputs, [k]:e.target.value})} />
+                            </div>
+                        ))}
+                    </div>
+                    <div className="flex justify-between items-center">
+                        <button onClick={calculate} className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-1 rounded text-xs font-bold transition">Calculate Rate</button>
+                        <div className="text-right">
+                            <span className="text-[10px] text-slate-400 mr-2">Rate per period:</span>
+                            <span className="font-mono text-lg font-bold text-emerald-400">{rate !== null ? rate + '%' : '---'}</span>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const ReferenceTable = ({ title, headers, rows, onValueClick }) => {
+            const [isOpen, setIsOpen] = useState(true);
+            return (
+                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mb-4">
+                    <button onClick={() => setIsOpen(!isOpen)} className="w-full flex items-center justify-between p-3 bg-slate-50 border-b border-slate-100 hover:bg-slate-100 transition">
+                        <h4 className="font-bold text-slate-700 text-sm flex items-center gap-2">
+                            <Icon name="table" size={16} /> {title}
+                        </h4>
+                        <Icon name={isOpen ? "chevron-up" : "chevron-down"} size={16} />
+                    </button>
+                    {isOpen && (
+                        <div className="overflow-x-auto max-h-64">
+                            <table className="w-full text-xs text-left">
+                                <thead className="bg-slate-50 text-slate-500 uppercase tracking-wider sticky top-0">
+                                    <tr>{headers.map((h, i) => <th key={i} className={`p-2 border-b font-medium ${i > 0 ? "text-right" : ""}`}>{h}</th>)}</tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100">
+                                    {rows.map((row, rI) => (
+                                        <tr key={rI} className="hover:bg-blue-50 transition-colors group">
+                                            <td className="p-2 font-medium text-slate-700">{row[0]}</td>
+                                            {row.slice(1).map((cell, cI) => (
+                                                <td key={cI} onClick={() => onValueClick(cell)} className="p-2 text-right font-mono text-slate-600 cursor-pointer hover:text-blue-700 hover:font-bold decoration-dotted" title="Insert">{cell}</td>
+                                            ))}
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // --- MODULES ---
+
+        const ModuleA = ({ teacherMode, isAutoFilled, handleInputChange, inputs, activeInput, setActiveInput }) => {
+            const [trend, setTrend] = useState("");
+            
+            useEffect(() => {
+                if(isAutoFilled) setTrend("increase");
+                else if(!isAutoFilled && teacherMode) setTrend("");
+            }, [isAutoFilled, teacherMode]);
+
+            return (
+                <div className="space-y-6 animate-fade-in">
+                    <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                        <h4 className="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2">
+                            <Icon name="file-text" className="text-blue-600"/> Analysis: Notes Carrying Value vs. Fair Value
+                        </h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-3">
+                                <h5 className="text-xs font-bold text-slate-500 uppercase">FY1 Calculations ($M)</h5>
+                                <div className="flex justify-between items-center text-sm">
+                                    <span>Net Carrying Value</span>
+                                    <div className="w-24"><SmartInput id="a_cv1" value={inputs.A.a_cv1} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEYS.A.a_cv1} instructorMode={teacherMode} hint="Face - Unamortized Discount" /></div>
+                                </div>
+                                <div className="flex justify-between items-center text-sm">
+                                    <span>Fair Value</span>
+                                    <div className="w-24"><SmartInput id="a_fv1" value={inputs.A.a_fv1} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEYS.A.a_fv1} instructorMode={teacherMode} hint="Given" /></div>
+                                </div>
+                            </div>
+                            <div className="space-y-3">
+                                <h5 className="text-xs font-bold text-slate-500 uppercase">FY2 Calculations ($M)</h5>
+                                <div className="flex justify-between items-center text-sm">
+                                    <span>Net Carrying Value</span>
+                                    <div className="w-24"><SmartInput id="a_cv2" value={inputs.A.a_cv2} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEYS.A.a_cv2} instructorMode={teacherMode} hint="Face - Unamortized Discount" /></div>
+                                </div>
+                                <div className="flex justify-between items-center text-sm">
+                                    <span>Fair Value</span>
+                                    <div className="w-24"><SmartInput id="a_fv2" value={inputs.A.a_fv2} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEYS.A.a_fv2} instructorMode={teacherMode} hint="Given" /></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="bg-blue-50 p-6 rounded-lg border border-blue-100 shadow-sm">
+                        <h3 className="font-bold text-blue-900 mb-3 text-sm flex items-center gap-2">
+                            <Icon name="trending-up" size={16} /> Market Interest Rate Analysis
+                        </h3>
+                        <p className="text-sm text-slate-700 mb-4">
+                            Fair Value dropped significantly from FY1 ($12.4B) to FY2 ($9.9B), while Carrying Value remained stable. What does this imply about interest rates?
+                        </p>
+                        <div className="flex gap-4">
+                            <label className={`flex items-center gap-2 p-3 bg-white border rounded cursor-pointer transition-all ${trend==='increase' ? 'border-emerald-500 bg-emerald-50 ring-1 ring-emerald-500' : 'border-slate-200 hover:border-blue-400'}`}>
+                                <input type="radio" name="trend" value="increase" checked={trend === 'increase'} onChange={()=>setTrend('increase')} className="accent-emerald-600" />
+                                <span className="text-sm font-medium text-slate-700">Interest Rates Increased</span>
+                            </label>
+                            <label className={`flex items-center gap-2 p-3 bg-white border rounded cursor-pointer transition-all ${trend==='decrease' ? 'border-red-500 bg-red-50' : 'border-slate-200 hover:border-blue-400'}`}>
+                                <input type="radio" name="trend" value="decrease" checked={trend === 'decrease'} onChange={()=>setTrend('decrease')} className="accent-blue-600" />
+                                <span className="text-sm font-medium text-slate-700">Interest Rates Decreased</span>
+                            </label>
+                        </div>
+                        {trend === 'increase' && (
+                            <div className="text-xs text-emerald-700 font-bold mt-3 flex items-center gap-1 animate-fade-in">
+                                <Icon name="check-circle" size={12}/> Correct! Bond prices fall when market interest rates rise.
+                            </div>
+                        )}
+                        {teacherMode && (
+                            <div className="mt-2 text-[10px] bg-purple-100 text-purple-800 p-1 rounded inline-block">Key: Interest Rates Increased</div>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        const ModuleB = ({ teacherMode, isAutoFilled, handleInputChange, inputs, activeInput, setActiveInput }) => {
+            return (
+                <div className="space-y-6 animate-fade-in">
+                    {/* Embedded TVM Tool */}
+                    <TVMTool />
+
+                    {/* Step 1 */}
+                    <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                        <h3 className="font-bold text-slate-700 mb-3 text-sm flex items-center gap-2">
+                            <span className="bg-blue-100 text-blue-700 w-6 h-6 rounded-full flex items-center justify-center text-xs">1</span>
+                            Determine Annual Interest Payments
+                        </h3>
+                        <div className="flex items-center gap-4 text-sm text-slate-600 bg-slate-50 p-4 rounded-lg border border-slate-100">
+                            <p>Face Value (€500M) × Coupon Rate (1%) = </p>
+                            <div className="w-24">
+                                <SmartInput id="b_step1" value={inputs.B.b_step1} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEYS.B.b_step1} instructorMode={teacherMode} placeholder="Amount" />
+                            </div>
+                            <span className="font-medium">€ Million</span>
+                        </div>
+                    </div>
+
+                    {/* Step 2 */}
+                    <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                        <h3 className="font-bold text-slate-700 mb-3 text-sm flex items-center gap-2">
+                            <span className="bg-blue-100 text-blue-700 w-6 h-6 rounded-full flex items-center justify-center text-xs">2</span>
+                            Identify Inputs for RATE Calculation
+                        </h3>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div>
+                                <label className="text-[10px] uppercase font-bold text-slate-400">NPER</label>
+                                <SmartInput id="b_n" value={inputs.B.b_n} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEYS.B.b_n} instructorMode={teacherMode} hint="Years" />
+                            </div>
+                            <div>
+                                <label className="text-[10px] uppercase font-bold text-slate-400">PMT</label>
+                                <SmartInput id="b_pmt" value={inputs.B.b_pmt} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEYS.B.b_pmt} instructorMode={teacherMode} hint="Cash Out" />
+                            </div>
+                            <div>
+                                <label className="text-[10px] uppercase font-bold text-slate-400">PV</label>
+                                <SmartInput id="b_pv" value={inputs.B.b_pv} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEYS.B.b_pv} instructorMode={teacherMode} hint="Inflow" tolerance={0.1} />
+                            </div>
+                            <div>
+                                <label className="text-[10px] uppercase font-bold text-slate-400">FV</label>
+                                <SmartInput id="b_fv" value={inputs.B.b_fv} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEYS.B.b_fv} instructorMode={teacherMode} hint="Face Out" />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Step 3 */}
+                    <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                        <h3 className="font-bold text-slate-700 mb-3 text-sm flex items-center gap-2">
+                            <span className="bg-blue-100 text-blue-700 w-6 h-6 rounded-full flex items-center justify-center text-xs">3</span>
+                            Calculate Effective Rate & Partial Year Interest
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label className="text-xs font-bold text-slate-500 mb-1 block">Effective Rate (%)</label>
+                                <SmartInput id="b_rate" value={inputs.B.b_rate} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEYS.B.b_rate} instructorMode={teacherMode} hint="From Solver" tolerance={0.01} />
+                            </div>
+                            <div>
+                                <label className="text-xs font-bold text-slate-500 mb-1 block">Interest Expense (May-Dec)</label>
+                                <div className="flex gap-2 items-center">
+                                    <SmartInput id="b_intexp" value={inputs.B.b_intexp} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEYS.B.b_intexp} instructorMode={teacherMode} hint="CV * Rate% * 8/12" tolerance={0.05} />
+                                    <span className="text-xs font-medium text-slate-500 whitespace-nowrap">€ Mil</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const QuizModule = ({ teacherMode, isAutoFilled, handleInputChange, inputs, activeInput, setActiveInput }) => {
+            const [answers, setAnswers] = useState({});
+            
+            useEffect(() => {
+                if (isAutoFilled) {
+                    setAnswers(ANSWER_KEYS.Q);
+                } else if (!isAutoFilled && teacherMode) {
+                    setAnswers({});
+                }
+            }, [isAutoFilled, teacherMode]);
+
+            const questions = [
+                { 
+                    id: 'q1', 
+                    text: "1. Generally, if the Fair Value of a company's fixed-rate debt falls significantly below its Carrying Value, what does this imply about the market interest rate environment since issuance?", 
+                    options: [
+                        {id:'a', text:"Market interest rates have increased.", correct:true}, 
+                        {id:'b', text:"Market interest rates have decreased."}, 
+                        {id:'c', text:"The company's credit rating has improved significantly."}
+                    ] 
+                },
+                { 
+                    id: 'q2', 
+                    text: "2. Carrefour's bond was issued at €497.67M with a face value of €500M. This is a:", 
+                    options: [
+                        {id:'a', text:"Premium Bond"}, 
+                        {id:'b', text:"Par Bond"}, 
+                        {id:'c', text:"Discount Bond", correct:true}
+                    ] 
+                },
+                { 
+                    id: 'q3', 
+                    text: "3. For a discount bond like Carrefour's, interest expense reported on the income statement is:", 
+                    options: [
+                        {id:'a', text:"Greater than cash interest paid", correct:true}, 
+                        {id:'b', text:"Less than cash interest paid"}, 
+                        {id:'c', text:"Equal to cash interest paid"}
+                    ] 
+                },
+                { 
+                    id: 'q4', 
+                    text: "4. What is the typical relationship between the Coupon Rate and the Effective Interest Rate (Yield at Issuance) for a Premium Bond?", 
+                    options: [
+                        {id:'a', text:"Coupon Rate < Effective Rate"}, 
+                        {id:'b', text:"Coupon Rate > Effective Rate", correct:true}, 
+                        {id:'c', text:"Coupon Rate = Effective Rate"}
+                    ] 
+                },
+                { 
+                    id: 'q5', 
+                    text: "5. When a bond is issued at a discount, how does the amortization of that discount affect the Carrying Value of the bond over time?", 
+                    options: [
+                        {id:'a', text:"Carrying Value decreases towards Face Value."}, 
+                        {id:'b', text:"Carrying Value remains constant."}, 
+                        {id:'c', text:"Carrying Value increases towards Face Value.", correct:true}
+                    ] 
+                },
+                { 
+                    id: 'q6', 
+                    text: "6. Which value represents the actual legal obligation to be repaid at maturity?", 
+                    options: [
+                        {id:'a', text:"Carrying Value"}, 
+                        {id:'b', text:"Face Value (Principal)", correct:true}, 
+                        {id:'c', text:"Fair Value"}
+                    ] 
+                }
+            ];
+
+            return (
+                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 animate-fade-in">
+                    <h2 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2"><Icon name="check-square" className="text-emerald-600"/> Concept Check: Debt Analysis</h2>
+                    <div className="space-y-6">
+                        {questions.map(q => (
+                            <div key={q.id} className="border-b border-slate-100 pb-4 last:border-0">
+                                <p className="text-sm font-medium text-slate-800 mb-3">{q.text}</p>
+                                <div className="space-y-2">
+                                    {q.options.map(opt => (
+                                        <button key={opt.id} onClick={() => setAnswers({...answers, [q.id]: opt.id})} 
+                                            className={`w-full text-left p-3 rounded border text-xs flex items-center gap-3 transition-all ${
+                                                answers[q.id]===opt.id 
+                                                    ? (opt.correct 
+                                                        ? "bg-emerald-50 border-emerald-500 text-emerald-800 ring-1 ring-emerald-500" 
+                                                        : "bg-red-50 border-red-500 text-red-800 ring-1 ring-red-500") 
+                                                    : "hover:bg-slate-50 border-slate-200 bg-white"
+                                            }`}>
+                                            <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
+                                                answers[q.id]===opt.id 
+                                                    ? (opt.correct ? "bg-emerald-600 border-emerald-600" : "bg-red-600 border-red-600") 
+                                                    : "border-slate-300"
+                                            }`}>
+                                                {answers[q.id]===opt.id && <div className="w-1.5 h-1.5 bg-white rounded-full"></div>}
+                                            </div>
+                                            <span>{opt.text}</span>
+                                            {answers[q.id]===opt.id && opt.correct && <Icon name="check" size={14} className="ml-auto text-emerald-600"/>}
+                                            {answers[q.id]===opt.id && !opt.correct && <Icon name="x" size={14} className="ml-auto text-red-600"/>}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        };
+
+        // --- MAIN APP ---
+
+        const App = () => {
+            const [activeTab, setActiveTab] = useState('A'); 
+            const [inputs, setInputs] = useState({ A: {}, B: {}, Q: {} }); // Added Q state
+            const [activeInput, setActiveInput] = useState(null);
+            
+            // Instructor State
+            const [instructorMode, setInstructorMode] = useState(false);
+            const [showLogin, setShowLogin] = useState(false);
+            const [password, setPassword] = useState("");
+            const [clearModalOpen, setClearModalOpen] = useState(false);
+            const [isAutoFilled, setIsAutoFilled] = useState(false);
+            const [showAnswerKey, setShowAnswerKey] = useState(false);
+            
+            const [studentName, setStudentName] = useState("");
+            const [showDownload, setShowDownload] = useState(false);
+
+            const activeData = activeTab === 'A' ? ALPHABET_DATA : CARREFOUR_DATA;
+            const activeKey = activeTab === 'A' ? ANSWER_KEYS.A : ANSWER_KEYS.B;
+
+            const handleInputChange = (id, val) => setInputs(prev => ({ ...prev, [activeTab]: { ...prev[activeTab], [id]: val } }));
+
+            const handleValueClick = (val) => {
+                if (!activeInput) return;
+                const cleanVal = val.replace(/,/g, '').replace(/[()]/g, (m) => m === '(' ? '-' : '');
+                setInputs(prev => {
+                    const cur = prev[activeTab][activeInput] || "";
+                    const isOperator = /[+\-*/(]$/.test(cur.trim());
+                    const newVal = (cur === "" || isOperator) ? cur + cleanVal : cleanVal;
+                    return { ...prev, [activeTab]: { ...prev[activeTab], [activeInput]: newVal } };
+                });
+                setTimeout(() => document.getElementById(activeInput)?.focus(), 50);
+            };
+
+            const unlockInstructor = () => {
+                if (password.toLowerCase() === "teacher") { setInstructorMode(true); setShowLogin(false); setPassword(""); } else { alert("Incorrect"); }
+            };
+
+            const toggleTeacherMode = () => {
+                if(instructorMode) setInstructorMode(false);
+                else setShowLogin(true);
+            };
+
+            const handleAutoFill = () => {
+                // If it's the quiz tab, set the special state for the quiz component
+                if (activeTab === 'Q') {
+                    setIsAutoFilled(true);
+                } else {
+                    setInputs(prev => ({ ...prev, [activeTab]: { ...activeKey } }));
+                    setIsAutoFilled(true);
+                }
+            };
+
+            const performClear = () => {
+                setInputs({ A: {}, B: {}, Q: {} });
+                setIsAutoFilled(false);
+                setInstructorMode(false);
+                setClearModalOpen(false);
+            };
+
+            const handleDownload = () => {
+                const text = `Bond Analysis - ${activeTab}\nStudent: ${studentName}\nAnswers:\n${JSON.stringify(inputs[activeTab] || {})}`;
+                const blob = new Blob([text], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url; a.download = `${studentName}_BondSim.txt`; a.click();
+                setShowDownload(false);
+            };
+
+            const handleClearConfirm = () => {
+                performClear();
+            };
+
+            return (
+                <div className="flex h-screen bg-slate-100 overflow-hidden font-sans">
+                    
+                    {/* LEFT SIDEBAR: REFERENCE */}
+                    <div className="w-1/3 min-w-[350px] bg-slate-50 border-r border-slate-200 overflow-y-auto custom-scrollbar flex flex-col relative z-0">
+                        <div className="sticky top-0 bg-white p-4 border-b border-slate-200 shadow-sm z-10">
+                            <div className="flex items-center gap-2 text-blue-800 font-bold text-lg mb-1">
+                                <Icon name="library" /> Reference Data
+                            </div>
+                            <p className="text-xs text-slate-500 font-bold uppercase tracking-wider">{activeData.metadata.name}</p>
+                            <p className="text-xs text-blue-600 mt-1 flex items-center gap-1">
+                                <Icon name="mouse-pointer-click" size={12} /> Click values to insert
+                            </p>
+                        </div>
+                        <div className="p-4 space-y-2">
+                            {activeData.tables.map((tbl, i) => (
+                                <ReferenceTable 
+                                    key={i}
+                                    title={tbl.title} 
+                                    headers={tbl.headers} 
+                                    rows={tbl.rows} 
+                                    onValueClick={handleValueClick} 
+                                />
+                            ))}
+                            {activeTab === 'Q' && (
+                                <div className="bg-white border border-slate-200 rounded-lg p-6 text-center text-slate-500 text-sm">
+                                    <Icon name="check-circle" size={32} className="mx-auto mb-2 text-emerald-500 opacity-50"/>
+                                    <p>Select an option on the right to answer.</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* MAIN CONTENT */}
+                    <div className="flex-1 flex flex-col h-screen overflow-hidden relative">
+                        
+                        {/* TOP NAV TABS */}
+                        <div className="bg-slate-800 text-white flex shrink-0">
+                            <button 
+                                onClick={() => { setActiveTab('A'); setIsAutoFilled(false); }}
+                                className={`flex-1 py-3 text-sm font-bold flex items-center justify-center gap-2 transition-colors ${activeTab === 'A' ? 'bg-blue-600 text-white' : 'hover:bg-slate-700 text-slate-400'}`}
+                            >
+                                <Icon name="file-text" size={16} /> Module A: Alphabet
+                            </button>
+                            <button 
+                                onClick={() => { setActiveTab('B'); setIsAutoFilled(false); }}
+                                className={`flex-1 py-3 text-sm font-bold flex items-center justify-center gap-2 transition-colors ${activeTab === 'B' ? 'bg-emerald-600 text-white' : 'hover:bg-slate-700 text-slate-400'}`}
+                            >
+                                <Icon name="euro" size={16} /> Module B: Carrefour
+                            </button>
+                            <button 
+                                onClick={() => { setActiveTab('Q'); setIsAutoFilled(false); }}
+                                className={`flex-1 py-3 text-sm font-bold flex items-center justify-center gap-2 transition-colors ${activeTab === 'Q' ? 'bg-purple-600 text-white' : 'hover:bg-slate-700 text-slate-400'}`}
+                            >
+                                <Icon name="help-circle" size={16} /> Quiz
+                            </button>
+                        </div>
+
+                        {/* INSTRUCTOR TOOLBAR (STICKY) */}
+                        {instructorMode && (
+                            <div className="bg-purple-700 text-white p-2 shadow-md flex items-center justify-between z-20 animate-fade-in shrink-0">
+                                <div className="flex items-center gap-3 px-4">
+                                    <span className="bg-white/20 p-1.5 rounded"><Icon name="graduation-cap" /></span>
+                                    <span className="font-bold tracking-wide">INSTRUCTOR MODE</span>
+                                </div>
+                                <div className="flex gap-2 px-4">
+                                    <button onClick={handleAutoFill} className="flex items-center gap-2 px-3 py-1 bg-green-500 hover:bg-green-600 rounded text-sm font-bold transition">
+                                        <Icon name="wand-2" size={14} /> Auto-Fill Tab
+                                    </button>
+                                    <button onClick={() => setClearModalOpen(true)} className="flex items-center gap-2 px-3 py-1 bg-red-500 hover:bg-red-600 rounded text-sm font-bold transition">
+                                        <Icon name="log-out" size={14} /> Clear & Exit
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* HEADER */}
+                        <header className="bg-white border-b border-slate-200 p-6 flex justify-between items-center shrink-0">
+                            <div>
+                                <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+                                    <Icon name="file-spreadsheet" className="text-blue-600" /> {activeData.metadata.name}
+                                </h1>
+                                <p className="text-slate-500 text-sm mt-1">{activeData.metadata.year} Simulation</p>
+                            </div>
+                            <div className="flex gap-3">
+                                <button onClick={() => setShowDownload(true)} className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold shadow-sm transition">
+                                    <Icon name="save" size={18} /> Save Work
+                                </button>
+                                {!instructorMode && (
+                                    <button onClick={() => setShowLogin(true)} className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-medium transition border border-slate-300">
+                                        <Icon name="lock" size={16} /> Instructor
+                                    </button>
+                                )}
+                            </div>
+                        </header>
+
+                        {/* SCROLLABLE FORM AREA */}
+                        <main className="flex-1 overflow-y-auto custom-scrollbar bg-slate-50/50 p-8 pb-20">
+                            <div className="max-w-4xl mx-auto space-y-8">
+                                {/* DYNAMIC CONTENT BASED ON TAB */}
+                                <div className={activeTab === 'Q' ? "col-span-2" : "space-y-6 col-span-2 lg:col-span-1"}>
+                                    {activeTab === 'A' && (
+                                        <ModuleA teacherMode={instructorMode} isAutoFilled={isAutoFilled} handleInputChange={handleInputChange} inputs={inputs} activeInput={activeInput} setActiveInput={setActiveInput} />
+                                    )}
+                                    {activeTab === 'B' && (
+                                        <ModuleB teacherMode={instructorMode} isAutoFilled={isAutoFilled} handleInputChange={handleInputChange} inputs={inputs} activeInput={activeInput} setActiveInput={setActiveInput} />
+                                    )}
+                                    {activeTab === 'Q' && (
+                                        <QuizModule teacherMode={instructorMode} isAutoFilled={isAutoFilled} handleInputChange={handleInputChange} inputs={inputs} activeInput={activeInput} setActiveInput={setActiveInput} />
+                                    )}
+                                </div>
+                            </div>
+                        </main>
+                    </div>
+
+                    {/* MODALS */}
+                    
+                    {/* Login Modal */}
+                    {showLogin && (
+                        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center animate-fade-in">
+                            <div className="bg-white p-6 rounded-xl shadow-2xl w-80 transform transition-all">
+                                <h3 className="font-bold text-lg mb-4 text-slate-800 flex items-center gap-2">
+                                    <Icon name="lock" size={20} className="text-blue-600" /> Instructor Access
+                                </h3>
+                                <input 
+                                    type="password" 
+                                    className="w-full border p-3 rounded-lg mb-4 outline-none focus:border-blue-500" 
+                                    placeholder="Enter password"
+                                    value={password} 
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    onKeyDown={(e) => e.key === 'Enter' && unlockInstructor()}
+                                    autoFocus
+                                />
+                                <div className="flex justify-end gap-2">
+                                    <button onClick={() => setShowLogin(false)} className="px-4 py-2 text-slate-500 hover:bg-slate-100 rounded-lg text-sm font-medium">Cancel</button>
+                                    <button onClick={unlockInstructor} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-bold">Unlock</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Download Modal */}
+                    {showDownload && (
+                        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center animate-fade-in">
+                            <div className="bg-white p-8 rounded-xl shadow-2xl w-96">
+                                <div className="text-center mb-6">
+                                    <div className="bg-blue-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 text-blue-600">
+                                        <Icon name="download-cloud" size={24} />
+                                    </div>
+                                    <h3 className="text-xl font-bold text-slate-800">Submit Assignment</h3>
+                                    <p className="text-slate-500 text-sm mt-1">Enter your name to generate your submission file.</p>
+                                </div>
+                                <input 
+                                    type="text" 
+                                    value={studentName} 
+                                    onChange={(e) => setStudentName(e.target.value)} 
+                                    placeholder="Your Full Name" 
+                                    className="w-full p-3 border border-slate-300 rounded-lg mb-4 text-center focus:border-blue-500 outline-none font-bold text-slate-700"
+                                    autoFocus 
+                                />
+                                <div className="flex flex-col gap-2">
+                                    <button 
+                                        onClick={() => studentName.trim() ? handleDownload() : alert("Name required")} 
+                                        className="w-full py-3 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition flex items-center justify-center gap-2"
+                                    >
+                                        Download Submission
+                                    </button>
+                                    <button onClick={() => setShowDownload(false)} className="w-full py-2 text-slate-500 hover:bg-slate-50 rounded-lg text-sm">Cancel</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Clear Confirmation Modal */}
+                    <ConfirmationModal 
+                        isOpen={clearModalOpen}
+                        title="Clear All & Exit?"
+                        message="This will remove all student answers and lock Instructor Mode. This action cannot be undone."
+                        onConfirm={handleClearConfirm}
+                        onCancel={() => setClearModalOpen(false)}
+                    />
+
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

@@ -1,0 +1,1770 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financial Statement Analysis Simulation - Illinois Tool Works</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+        .input-correct { @apply bg-green-50 border-green-500 text-green-700; }
+        .input-incorrect { @apply bg-white border-gray-300; }
+        /* Calculator Glassmorphism */
+        .calc-glass {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+        }
+        /* Custom Scrollbar */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        select {
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 0.5rem center;
+            background-size: 1em;
+        }
+        .clickable-cell {
+            cursor: pointer;
+            transition: background-color 0.15s ease;
+        }
+        .clickable-cell:hover {
+            background-color: #dbeafe; /* bg-blue-100 */
+            color: #1e40af; /* text-blue-800 */
+            font-weight: 600;
+        }
+        .active-input-ring {
+            box-shadow: 0 0 0 2px #3b82f6; /* ring-blue-500 */
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 h-screen overflow-hidden">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo, useRef } = React;
+
+        // --- ICONS (Lucide Style SVGs) ---
+        const Icons = {
+            Calculator: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" x2="16" y1="6" y2="6"/><line x1="16" x2="16" y1="14" y2="14"/><line x1="16" x2="16" y1="18" y2="18"/><line x1="12" x2="12" y1="14" y2="14"/><line x1="12" x2="12" y1="18" y2="18"/><line x1="8" x2="8" y1="14" y2="14"/><line x1="8" x2="8" y1="18" y2="18"/></svg>,
+            BookOpen: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>,
+            PieChart: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>,
+            FileText: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>,
+            BarChart: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>,
+            Unlock: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>,
+            Lock: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>,
+            Check: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
+            HelpCircle: () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>,
+            X: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
+            ChevronRight: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>,
+            ChevronDown: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>,
+            Database: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>,
+            ExternalLink: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>,
+            Link: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>,
+            Download: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        };
+
+        // --- GLOBAL UTILS ---
+        const parseMoney = (str) => {
+            if (!str) return 0;
+            const clean = str.toString().replace(/,/g, '');
+            if (clean.includes('(')) {
+                return -parseFloat(clean.replace(/[()]/g, ''));
+            }
+            return parseFloat(clean);
+        };
+        const formatMoney = (num) => num.toLocaleString();
+
+        const evaluateMathExpression = (expression) => {
+            try {
+                const cleanExpr = String(expression).replace(/,/g, '');
+                if (!/^[\d\.\+\-\*\/\(\)\s]+$/.test(cleanExpr)) {
+                    return expression;
+                }
+                // eslint-disable-next-line no-eval
+                const result = eval(cleanExpr);
+                if (!isFinite(result) || isNaN(result)) return expression;
+                
+                if (Number.isInteger(result)) {
+                    return result.toString();
+                } else {
+                    return result.toFixed(1).toString();
+                }
+            } catch (e) {
+                return expression;
+            }
+        };
+
+        // --- GLOBAL DATA: ITW 2022 ---
+        
+        const ASSET_ITEMS_2022 = [
+            { id: "cash", label: "Cash and equivalents", value: "708", correctType: "current" },
+            { id: "ar", label: "Trade receivables", value: "3,171", correctType: "current" },
+            { id: "inv", label: "Inventories", value: "2,054", correctType: "current" },
+            { id: "pre", label: "Prepaid expenses and other current assets", value: "329", correctType: "current" },
+            { id: "hfs", label: "Assets held for sale", value: "8", correctType: "current" },
+            { id: "ppe", label: "Net plant and equipment", value: "1,848", correctType: "non-current" },
+            { id: "good", label: "Goodwill", value: "4,864", correctType: "non-current" },
+            { id: "int", label: "Intangible assets", value: "768", correctType: "non-current" },
+            { id: "dta", label: "Deferred income taxes (assets)", value: "494", correctType: "non-current" },
+            { id: "other", label: "Other assets", value: "1,178", correctType: "non-current" },
+        ];
+
+        const LIAB_EQ_ITEMS_2022 = [
+            { id: "st_debt", label: "Short-term debt", value: "1,590", correctType: "current" },
+            { id: "ap", label: "Accounts payable", value: "594", correctType: "current" },
+            { id: "lease_cur", label: "Current portion of operating lease liabilities", value: "55", correctType: "current" },
+            { id: "accrued", label: "Accrued expenses", value: "1,673", correctType: "current" },
+            { id: "div_pay", label: "Cash dividends payable", value: "400", correctType: "current" },
+            { id: "tax_pay", label: "Income taxes payable", value: "147", correctType: "current" },
+            { id: "hfs_liab", label: "Liabilities held for sale", value: "1", correctType: "current" },
+            
+            { id: "lt_debt", label: "Long-term debt", value: "6,173", correctType: "non-current" },
+            { id: "dtl", label: "Deferred income taxes (liabilities)", value: "484", correctType: "non-current" },
+            { id: "tax_nc", label: "Noncurrent income taxes payable", value: "273", correctType: "non-current" },
+            { id: "lease_lt", label: "Long-term portion of operating lease liabilities", value: "131", correctType: "non-current" },
+            { id: "other_liab", label: "Other liabilities", value: "812", correctType: "non-current" },
+
+            { id: "common", label: "Common stock", value: "6", correctType: "equity" },
+            { id: "apic", label: "Additional paid-in capital", value: "1,501", correctType: "equity" },
+            { id: "re", label: "Retained earnings", value: "25,799", correctType: "equity" },
+            { id: "treasury", label: "Common stock held in treasury", value: "(22,377)", correctType: "equity" },
+            { id: "aoci", label: "Accumulated other comprehensive income (loss)", value: "(1,841)", correctType: "equity" },
+            { id: "nci", label: "Noncontrolling interest", value: "1", correctType: "equity" },
+        ];
+
+        const CASE_DATA = {
+            itw_bs: {
+                title: "ITW Balance Sheet (Dec 31, 2022)",
+                unit: "$ Millions",
+                headers: ["Item", "2022", "2021"],
+                rows: [
+                    ["Current Assets", "", ""],
+                    ["Cash and equivalents", "708", "1,527"],
+                    ["Trade receivables", "3,171", "2,840"],
+                    ["Inventories", "2,054", "1,694"],
+                    ["Prepaid expenses and other current assets", "329", "313"],
+                    ["Assets held for sale", "8", "0"],
+                    ["Total current assets", "6,270", "6,374"],
+                    ["", "", ""],
+                    ["Net plant and equipment", "1,848", "1,809"],
+                    ["Goodwill", "4,864", "4,965"],
+                    ["Intangible assets", "768", "972"],
+                    ["Deferred income taxes (assets)", "494", "552"],
+                    ["Other assets", "1,178", "1,405"],
+                    ["Total Assets", "15,422", "16,077"],
+                    ["", "", ""],
+                    ["Current Liabilities", "", ""],
+                    ["Short-term debt", "1,590", "778"],
+                    ["Accounts payable", "594", "585"],
+                    ["Current portion of operating lease liabilities", "55", "61"],
+                    ["Accrued expenses", "1,673", "1,587"],
+                    ["Cash dividends payable", "400", "382"],
+                    ["Income taxes payable", "147", "77"],
+                    ["Liabilities held for sale", "1", "0"],
+                    ["Total current liabilities", "4,460", "3,470"],
+                    ["", "", ""],
+                    ["Noncurrent Liabilities", "", ""],
+                    ["Long-term debt", "6,173", "6,909"],
+                    ["Deferred income taxes (liabilities)", "484", "654"],
+                    ["Noncurrent income taxes payable", "273", "365"],
+                    ["Long-term portion of operating lease liabilities", "131", "133"],
+                    ["Other liabilities", "812", "920"],
+                    ["Total noncurrent liabilities", "7,873", "8,981"],
+                    ["Total liabilities", "12,333", "12,451"],
+                    ["", "", ""],
+                    ["Stockholders' Equity", "", ""],
+                    ["Common stock (par value $0.01)", "6", "6"],
+                    ["Additional paid-in capital", "1,501", "1,432"],
+                    ["Retained earnings", "25,799", "24,325"],
+                    ["Common stock held in treasury", "(22,377)", "(20,636)"],
+                    ["Accumulated other comprehensive income (loss)", "(1,841)", "(1,502)"],
+                    ["Equity attributable to ITW stockholders", "3,088", "3,625"],
+                    ["Noncontrolling interest", "1", "1"],
+                    ["Total stockholders' equity", "3,089", "3,626"],
+                    ["Total liabilities and stockholders' equity", "15,422", "16,077"],
+                ]
+            },
+            itw_is: {
+                title: "ITW Income Statement (2022)",
+                unit: "$ Millions",
+                headers: ["Item", "2022"],
+                rows: [
+                    ["Operating Revenue", "15,932"],
+                    ["Cost of revenue", "9,429"],
+                    ["Gross profit", "6,503"],
+                    ["Selling, general and administrative expenses", "2,538"],
+                    ["Amortization of intangible assets", "134"],
+                    ["Operating income", "3,831"],
+                    ["Interest expense", "203"],
+                    ["Other income (expense)", "(192)"],
+                    ["Income before income taxes", "3,842"],
+                    ["Income taxes", "808"],
+                    ["Net income", "3,034"]
+                ]
+            },
+            itw_scf: {
+                title: "ITW Cash Flow (2022)",
+                unit: "$ Millions",
+                headers: ["Item", "2022", "2021"],
+                rows: [
+                    ["Operating Activities", "", ""],
+                    ["Net income", "3,034", "2,694"],
+                    ["Depreciation", "276", "277"],
+                    ["Amortization and impairment", "134", "133"],
+                    ["Change in deferred income taxes", "-150", "-148"],
+                    ["Changes in assets/liabilities", "-948", "997"],
+                    ["Net cash provided by operating activities", "2,348", "2,557"],
+                    ["", "", ""],
+                    ["Investing Activities", "", ""],
+                    ["Additions to plant and equipment", "-412", "-296"],
+                    ["Acquisition of businesses", "-2", "-731"],
+                    ["Proceeds from sale of operations/assets", "293", "8"],
+                    ["Other", "11", "35"],
+                    ["Net cash used for investing activities", "-110", "-984"],
+                    ["", "", ""],
+                    ["Financing Activities", "", ""],
+                    ["Cash dividends paid", "-1,542", "-1,463"],
+                    ["Repurchases of common stock", "-1,750", "-1,000"],
+                    ["Issuance of common stock", "29", "50"],
+                    ["Net debt activity", "276", "-141"],
+                    ["Other", "-13", "-10"],
+                    ["Net cash used for financing activities", "-3,000", "-2,564"],
+                    ["", "", ""],
+                    ["Effect of exchange rate changes", "-57", "-46"],
+                    ["Increase (decrease) in cash", "-819", "-1,037"],
+                    ["Cash at beginning of year", "1,527", "2,564"],
+                    ["Cash at end of year", "708", "1,527"]
+                ]
+            }
+        };
+
+        const ANSWER_KEY = {
+            // Intro Module
+            "intro_fiscal_end": "December 31",
+            "intro_auditor": "Deloitte",
+            "intro_opinion": "Unqualified",
+
+            // Module 1: Balance Sheet - ITW
+            "m1_bs_itw_stl_22": "4,460", "m1_bs_itw_stl_21": "3,470",
+            "m1_bs_itw_ltl_22": "7,873", "m1_bs_itw_ltl_21": "8,981",
+            "m1_bs_itw_tl_22": "12,333", "m1_bs_itw_tl_21": "12,451",
+            "m1_bs_itw_cc_22": "1,507", "m1_bs_itw_cc_21": "1,438", // Common + APIC
+            "m1_bs_itw_re_22": "25,799", "m1_bs_itw_re_21": "24,325",
+            "m1_bs_itw_ts_22": "-22,377", "m1_bs_itw_ts_21": "-20,636",
+            "m1_bs_itw_oe_22": "-1,841", "m1_bs_itw_oe_21": "-1,502",
+            "m1_bs_itw_tse_22": "3,089", "m1_bs_itw_tse_21": "3,626",
+            "m1_bs_itw_te_22": "3,089", "m1_bs_itw_te_21": "3,626",
+            "m1_bs_itw_tle_22": "15,422", "m1_bs_itw_tle_21": "16,077",
+
+            // Module 1: Income Statement (Basic)
+            "m1_is_itw_rev_22": "15,932",
+            "m1_is_itw_cos_22": "9,429",
+            "m1_is_itw_gp_22": "6,503",
+            "m1_is_itw_sga_22": "2,538",
+            "m1_is_itw_opinc_22": "3,831",
+            "m1_is_itw_ni_22": "3,034",
+
+            // Module 1: Equity
+            "m1_eq_ni_re": "3,034",
+            "m1_eq_div_re": "-1,560", 
+            "m1_eq_rep_ts": "-1,750",
+            "m1_eq_sbc_exp": "63",
+            "m1_eq_iss_cc": "15",
+            
+            // Module 1: Cash Flow
+            "m1_cf_itw_op_22": "2,348",
+            "m1_cf_itw_inv_22": "-110",
+            "m1_cf_itw_fin_22": "-3,000",
+            "m1_cf_itw_fx_22": "-57",
+            "m1_cf_itw_net_22": "-819",
+            "m1_cf_itw_beg_22": "1,527",
+            "m1_cf_itw_end_22": "708",
+
+            // Module 2: Articulation
+            "m2_art_cash_op": "2,348",
+            "m2_art_cash_inv": "-110",
+            "m2_art_cash_fin": "-3,057", // Includes FX
+            "m2_art_cc_iss": "69", // 1507 - 1438
+            "m2_art_re_ni": "3,034",
+            "m2_art_re_div": "-1,560",
+            "m2_art_ts_rep": "-1,741", // Net change
+            "m2_art_aoci_chg": "-339",
+
+            // Module 3: Balance Sheet Common Size
+            "m3_cs_bs_sta_val": "6,270", "m3_cs_bs_sta_pct": "40.7",
+            "m3_cs_bs_lta_val": "9,152", "m3_cs_bs_lta_pct": "59.3",
+            "m3_cs_bs_ta_val": "15,422", "m3_cs_bs_ta_pct": "100.0",
+            "m3_cs_bs_stl_val": "4,460", "m3_cs_bs_stl_pct": "28.9",
+            "m3_cs_bs_ltl_val": "7,873", "m3_cs_bs_ltl_pct": "51.1",
+            "m3_cs_bs_te_val": "3,089", "m3_cs_bs_te_pct": "20.0",
+
+            // Module 3: Income Statement Common Size
+            "m3_cs_is_sales_22": "100.0",
+            "m3_cs_is_cos_22": "59.2",
+            "m3_cs_is_gp_22": "40.8",
+            "m3_cs_is_sga_22": "15.9",
+            "m3_cs_is_opinc_22": "24.1",
+            "m3_cs_is_ni_22": "19.0",
+
+            // Module 3 Analysis Questions
+            "m3_itw_sta_p_22": "40.7",
+            "m3_itw_lta_p_22": "59.3",
+
+            // Module 4: Market Cap (305M shares * $220.30)
+            "m4_itw_mkt_cap": "67191500" 
+        };
+        
+        const isRows = [
+            { id: 'sales', label: 'Operating Revenue' },
+            { id: 'cos', label: 'Cost of revenue' },
+            { type: 'total', id: 'gp', label: 'Gross profit' },
+            { id: 'sga', label: 'SG&A expenses' },
+            { id: 'opinc', type: 'total', label: 'Operating income' },
+            { id: 'ni', type: 'total', label: 'Net Income' },
+        ];
+
+
+        // --- REUSABLE COMPONENTS ---
+
+        const SmartInput = ({ id, value, onChange, correctValue, teacherMode, placeholder = "", onFocus, isFocused }) => {
+            const isCorrect = useMemo(() => {
+                if (!value || !correctValue) return false;
+                const cleanVal = String(value).toLowerCase().replace(/,/g, '').replace(/%/g, '').replace('$', '').trim();
+                const cleanCorrect = String(correctValue).toLowerCase().replace(/,/g, '').trim();
+                
+                const numVal = parseFloat(cleanVal);
+                const numCorrect = parseFloat(cleanCorrect);
+                
+                if (!isNaN(numVal) && !isNaN(numCorrect)) {
+                    // Larger tolerance for large numbers
+                    return Math.abs(numVal - numCorrect) < 2; 
+                }
+                
+                return cleanVal === cleanCorrect;
+            }, [value, correctValue]);
+
+            const handleKeyDown = (e) => {
+                if (e.key === 'Enter' || e.key === 'Tab') {
+                    const newVal = evaluateMathExpression(value);
+                    if (newVal !== value) {
+                        onChange(id, newVal);
+                    }
+                }
+            };
+
+            const handleBlur = () => {
+                const newVal = evaluateMathExpression(value);
+                if (newVal !== value) {
+                    onChange(id, newVal);
+                }
+            };
+
+            return (
+                <div className="relative w-full">
+                    <input
+                        id={id}
+                        type="text"
+                        value={value}
+                        onChange={(e) => onChange(id, e.target.value)}
+                        onFocus={() => onFocus && onFocus(id)}
+                        onKeyDown={handleKeyDown}
+                        onBlur={handleBlur}
+                        className={`w-full px-2 py-1 text-sm text-right border rounded transition-colors focus:outline-none ${isFocused ? 'active-input-ring z-10' : ''} ${
+                            value && isCorrect ? 'input-correct' : value ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                        }`}
+                        placeholder={placeholder}
+                    />
+                    {value && isCorrect && (
+                        <div className="absolute left-2 top-1/2 -translate-y-1/2 text-green-600 pointer-events-none">
+                            <Icons.Check />
+                        </div>
+                    )}
+                    {teacherMode && !isCorrect && (
+                        <div className="absolute -top-6 right-0 bg-yellow-100 text-yellow-800 text-xs px-1 rounded shadow z-10">
+                            {correctValue}
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const Calculator = ({ onClose }) => {
+            const [display, setDisplay] = useState("0");
+            const [equation, setEquation] = useState("");
+
+            const handlePress = (val) => {
+                if (val === 'C') {
+                    setDisplay("0");
+                    setEquation("");
+                } else if (val === '=') {
+                    try {
+                        // eslint-disable-next-line no-eval
+                        const res = eval(equation + display); 
+                        setDisplay(String(res));
+                        setEquation("");
+                    } catch {
+                        setDisplay("Error");
+                    }
+                } else if (['+', '-', '*', '/'].includes(val)) {
+                    setEquation(equation + display + val);
+                    setDisplay("0");
+                } else {
+                    setDisplay(display === "0" ? val : display + val);
+                }
+            };
+
+            const btnClass = "h-12 bg-white rounded shadow text-slate-700 font-medium hover:bg-blue-50 active:bg-blue-100 transition";
+            const opClass = "h-12 bg-blue-100 rounded shadow text-blue-800 font-bold hover:bg-blue-200 transition";
+
+            return (
+                <div className="fixed bottom-4 right-4 w-72 p-4 rounded-xl border border-gray-200 z-50 calc-glass">
+                    <div className="flex justify-between items-center mb-2">
+                        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Calculator</span>
+                        <button onClick={onClose} className="text-slate-400 hover:text-red-500"><Icons.X /></button>
+                    </div>
+                    <div className="bg-slate-800 text-green-400 font-mono text-2xl p-3 rounded mb-3 text-right overflow-hidden">
+                        {display}
+                    </div>
+                    <div className="grid grid-cols-4 gap-2">
+                        {['7','8','9','/','4','5','6','*','1','2','3','-','0','.','=','+'].map(key => (
+                            <button 
+                                key={key} 
+                                onClick={() => handlePress(key)}
+                                className={['/','*','-','+','='].includes(key) ? opClass : btnClass}
+                            >
+                                {key}
+                            </button>
+                        ))}
+                        <button onClick={() => handlePress('C')} className="col-span-4 h-10 bg-red-100 text-red-600 rounded font-bold hover:bg-red-200">Clear</button>
+                    </div>
+                </div>
+            );
+        };
+
+        const QuestionBox = ({ title, children, hint, solution, teacherMode }) => {
+            const [showHint, setShowHint] = useState(false);
+
+            return (
+                <div className="bg-white border border-slate-200 rounded-lg p-6 mb-6 shadow-sm">
+                    <div className="flex items-start justify-between mb-4">
+                        <h3 className="text-lg font-semibold text-slate-800">{title}</h3>
+                        <button 
+                            onClick={() => setShowHint(!showHint)} 
+                            className="text-blue-500 hover:text-blue-700 flex items-center text-sm"
+                        >
+                            <Icons.HelpCircle /> <span className="ml-1">{showHint ? 'Hide Hint' : 'Show Hint'}</span>
+                        </button>
+                    </div>
+                    <div className="text-slate-600 mb-4 space-y-2">{children}</div>
+                    
+                    {showHint && (
+                        <div className="bg-blue-50 p-4 rounded text-sm text-blue-800 mb-4 border-l-4 border-blue-400">
+                            <strong>Hint:</strong> {hint}
+                        </div>
+                    )}
+
+                    {teacherMode && (
+                        <div className="bg-yellow-50 p-4 rounded text-sm text-yellow-800 border-l-4 border-yellow-400 mt-4">
+                            <strong>Instructor Solution / Insight:</strong>
+                            <div className="mt-1 whitespace-pre-wrap">{solution}</div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const DataAccordion = ({ dataKey, onValueClick }) => {
+            const [isOpen, setIsOpen] = useState(false);
+            const data = CASE_DATA[dataKey];
+            if (!data) return null;
+
+            return (
+                <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm">
+                    <button 
+                        onClick={() => setIsOpen(!isOpen)}
+                        className="w-full flex items-center justify-between p-3 bg-slate-50 hover:bg-slate-100 transition text-sm font-semibold text-slate-700"
+                    >
+                        <span>{data.title}</span>
+                        <div className={`transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}>
+                            <Icons.ChevronDown />
+                        </div>
+                    </button>
+                    {isOpen && (
+                        <div className="p-0 overflow-x-auto">
+                             <table className="w-full text-xs text-left border-t border-slate-200">
+                                <thead className="bg-slate-50 text-slate-500">
+                                    <tr>
+                                        {data.headers.map((h, i) => (
+                                            <th key={i} className={`p-2 font-medium border-b border-slate-200 ${i>0 ? 'text-right' : ''}`}>{h}</th>
+                                        ))}
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100">
+                                    {data.rows.map((row, i) => (
+                                        <tr key={i} className="hover:bg-blue-50/50">
+                                            <td className="p-2 font-medium text-slate-700">{row[0]}</td>
+                                            {row.slice(1).map((cell, j) => (
+                                                <td key={j} 
+                                                    onClick={() => onValueClick && onValueClick(cell)}
+                                                    className="p-2 text-right text-slate-600 font-mono whitespace-nowrap cursor-pointer hover:bg-blue-100 hover:text-blue-800 transition-colors"
+                                                >
+                                                    {cell}
+                                                </td>
+                                            ))}
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                            <div className="p-2 bg-slate-50 text-[10px] text-slate-400 text-center border-t border-slate-200">
+                                Values in {data.unit}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const AssetClassifier = ({ inputs, handleInputChange, teacherMode }) => {
+            const calcSTA = ASSET_ITEMS_2022.reduce((acc, item) => {
+                return inputs[`class_${item.id}`] === 'current' ? acc + parseMoney(item.value) : acc;
+            }, 0);
+
+            const calcLTA = ASSET_ITEMS_2022.reduce((acc, item) => {
+                return inputs[`class_${item.id}`] === 'non-current' ? acc + parseMoney(item.value) : acc;
+            }, 0);
+            
+            const CORRECT_STA = 6270; 
+            const CORRECT_LTA = 9152;
+
+            return (
+                <div className="bg-white rounded-lg shadow-sm border border-slate-200 mb-8 overflow-hidden">
+                    <div className="bg-blue-50 p-4 border-b border-blue-100">
+                        <h3 className="font-bold text-blue-900">Asset Classification Challenge (2022)</h3>
+                        <p className="text-sm text-blue-700 mt-1">
+                            Classify each line item below. The totals will update automatically.
+                        </p>
+                    </div>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                            <thead className="bg-slate-50 text-slate-500 font-medium border-b border-slate-200">
+                                <tr>
+                                    <th className="p-3 text-left w-1/2">Balance Sheet Item (Assets)</th>
+                                    <th className="p-3 text-right w-1/4">Amount ($)</th>
+                                    <th className="p-3 text-left w-1/4 pl-6">Classification</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                                {ASSET_ITEMS_2022.map((item) => {
+                                    const currentVal = inputs[`class_${item.id}`] || "";
+                                    const isCorrect = currentVal === item.correctType;
+                                    
+                                    return (
+                                        <tr key={item.id} className="hover:bg-slate-50 transition group">
+                                            <td className="p-3 pl-4 font-medium text-slate-700">{item.label}</td>
+                                            <td className="p-3 text-right font-mono text-slate-600">{item.value}</td>
+                                            <td className="p-3 pl-6">
+                                                <div className="relative">
+                                                    <select
+                                                        value={currentVal}
+                                                        onChange={(e) => handleInputChange(`class_${item.id}`, e.target.value)}
+                                                        className={`w-full p-2 pr-8 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 cursor-pointer appearance-none ${
+                                                            currentVal && isCorrect ? 'bg-green-50 border-green-500 text-green-700' :
+                                                            currentVal ? 'bg-red-50 border-red-300 text-red-700' : 'bg-white border-gray-300'
+                                                        }`}
+                                                    >
+                                                        <option value="" disabled>Select Type...</option>
+                                                        <option value="current">Current Asset</option>
+                                                        <option value="non-current">Long-Term Asset</option>
+                                                    </select>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                                
+                                <tr className="bg-slate-50 border-t-2 border-slate-200 font-bold">
+                                    <td className="p-3 text-right text-slate-900">Total Current Assets</td>
+                                    <td className="p-3 text-right font-mono text-lg">
+                                        <span className={Math.abs(calcSTA - CORRECT_STA) < 2 ? "text-green-600" : "text-slate-800"}>
+                                            {formatMoney(calcSTA)}
+                                        </span>
+                                    </td>
+                                    <td className="p-3"></td>
+                                </tr>
+                                <tr className="bg-slate-50 border-b-2 border-slate-200 font-bold">
+                                    <td className="p-3 text-right text-slate-900">Total Long-Term Assets</td>
+                                    <td className="p-3 text-right font-mono text-lg">
+                                        <span className={Math.abs(calcLTA - CORRECT_LTA) < 2 ? "text-green-600" : "text-slate-800"}>
+                                            {formatMoney(calcLTA)}
+                                        </span>
+                                    </td>
+                                    <td className="p-3"></td>
+                                </tr>
+                                <tr className="bg-slate-100 border-t border-slate-300 font-extrabold text-blue-900">
+                                    <td className="p-3 text-right">Total Assets</td>
+                                    <td className="p-3 text-right font-mono text-lg">
+                                        {formatMoney(calcSTA + calcLTA)}
+                                    </td>
+                                    <td className="p-3"></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            );
+        };
+
+        const LiabilityEquityClassifier = ({ inputs, handleInputChange, teacherMode }) => {
+            const calcSTL = LIAB_EQ_ITEMS_2022.reduce((acc, item) => {
+                return inputs[`class_${item.id}`] === 'current' ? acc + parseMoney(item.value) : acc;
+            }, 0);
+
+            const calcLTL = LIAB_EQ_ITEMS_2022.reduce((acc, item) => {
+                return inputs[`class_${item.id}`] === 'non-current' ? acc + parseMoney(item.value) : acc;
+            }, 0);
+
+            const calcTE = LIAB_EQ_ITEMS_2022.reduce((acc, item) => {
+                return inputs[`class_${item.id}`] === 'equity' ? acc + parseMoney(item.value) : acc;
+            }, 0);
+
+            const calcTotalLiab = calcSTL + calcLTL;
+            const calcTotalLiabEq = calcTotalLiab + calcTE;
+            
+            const CORRECT_STL = 4460;
+            const CORRECT_LTL = 7873;
+            const CORRECT_TE = 3089;
+
+            return (
+                <div className="bg-white rounded-lg shadow-sm border border-slate-200 mb-8 overflow-hidden">
+                    <div className="bg-indigo-50 p-4 border-b border-indigo-100">
+                        <h3 className="font-bold text-indigo-900">Liabilities & Equity Classification (2022)</h3>
+                        <p className="text-sm text-indigo-700 mt-1">
+                            Classify each item as <strong>Current Liability</strong>, <strong>Long-Term Liability</strong>, or <strong>Equity</strong>.
+                        </p>
+                    </div>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                            <thead className="bg-slate-50 text-slate-500 font-medium border-b border-slate-200">
+                                <tr>
+                                    <th className="p-3 text-left w-1/2">Balance Sheet Item</th>
+                                    <th className="p-3 text-right w-1/4">Amount ($)</th>
+                                    <th className="p-3 text-left w-1/4 pl-6">Classification</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                                {LIAB_EQ_ITEMS_2022.map((item) => {
+                                    const currentVal = inputs[`class_${item.id}`] || "";
+                                    const isCorrect = currentVal === item.correctType;
+                                    
+                                    return (
+                                        <tr key={item.id} className="hover:bg-slate-50 transition group">
+                                            <td className="p-3 pl-4 font-medium text-slate-700">{item.label}</td>
+                                            <td className="p-3 text-right font-mono text-slate-600">{item.value}</td>
+                                            <td className="p-3 pl-6">
+                                                <div className="relative">
+                                                    <select
+                                                        value={currentVal}
+                                                        onChange={(e) => handleInputChange(`class_${item.id}`, e.target.value)}
+                                                        className={`w-full p-2 pr-8 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 cursor-pointer appearance-none ${
+                                                            currentVal && isCorrect ? 'bg-green-50 border-green-500 text-green-700' :
+                                                            currentVal ? 'bg-red-50 border-red-300 text-red-700' : 'bg-white border-gray-300'
+                                                        }`}
+                                                    >
+                                                        <option value="" disabled>Select Type...</option>
+                                                        <option value="current">Current Liability</option>
+                                                        <option value="non-current">Long-Term Liability</option>
+                                                        <option value="equity">Shareholders' Equity</option>
+                                                    </select>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                                
+                                <tr className="bg-slate-50 border-t-2 border-slate-200 font-bold">
+                                    <td className="p-3 text-right text-slate-900">Total Current Liabilities</td>
+                                    <td className="p-3 text-right font-mono text-lg">
+                                        <span className={Math.abs(calcSTL - CORRECT_STL) < 2 ? "text-green-600" : "text-slate-800"}>
+                                            {formatMoney(calcSTL)}
+                                        </span>
+                                    </td>
+                                    <td className="p-3"></td>
+                                </tr>
+                                <tr className="bg-slate-50 border-slate-200 font-bold">
+                                    <td className="p-3 text-right text-slate-900">Total Long-Term Liabilities</td>
+                                    <td className="p-3 text-right font-mono text-lg">
+                                        <span className={Math.abs(calcLTL - CORRECT_LTL) < 2 ? "text-green-600" : "text-slate-800"}>
+                                            {formatMoney(calcLTL)}
+                                        </span>
+                                    </td>
+                                    <td className="p-3"></td>
+                                </tr>
+                                <tr className="bg-slate-50 border-t border-slate-200 font-bold">
+                                    <td className="p-3 text-right text-slate-900">Total Equity</td>
+                                    <td className="p-3 text-right font-mono text-lg">
+                                        <span className={Math.abs(calcTE - CORRECT_TE) < 2 ? "text-green-600" : "text-slate-800"}>
+                                            {formatMoney(calcTE)}
+                                        </span>
+                                    </td>
+                                    <td className="p-3"></td>
+                                </tr>
+                                <tr className="bg-slate-100 border-t border-slate-300 font-extrabold text-blue-900">
+                                    <td className="p-3 text-right">Total Liabilities & Equity</td>
+                                    <td className="p-3 text-right font-mono text-lg">
+                                        {formatMoney(calcTotalLiabEq)}
+                                    </td>
+                                    <td className="p-3"></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            );
+        };
+
+        const RenderTable = ({ headers, rows, companyPrefix, inputs, handleInputChange, teacherMode, onValueClick }) => (
+            <div className="overflow-x-auto border border-slate-200 rounded-lg shadow-sm mb-8">
+                <table className="w-full text-sm text-left">
+                    <thead className="bg-slate-50 text-slate-500 font-medium border-b border-slate-200">
+                        <tr>
+                            <th className="p-3 w-1/3">Item</th>
+                            {headers.map((h, i) => <th key={i} className="p-3 text-right w-1/4">{h}</th>)}
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 bg-white">
+                        {rows.map((row, idx) => {
+                            // Logic for Reference Table
+                             return (
+                                <tr key={idx} className={row.type === 'total' ? "bg-slate-50 font-bold text-slate-900 border-t-2 border-slate-200" : "hover:bg-slate-50 transition"}>
+                                    <td className="p-2 font-sans">{row.label}</td>
+                                    <td 
+                                        className={`p-2 text-right text-slate-600 font-mono ${onValueClick ? 'clickable-cell' : ''}`}
+                                        onClick={() => onValueClick && onValueClick(row.val22)}
+                                    >
+                                        {row.val22}
+                                    </td>
+                                    <td 
+                                        className={`p-2 text-right text-slate-600 font-mono ${onValueClick ? 'clickable-cell' : ''}`}
+                                        onClick={() => onValueClick && onValueClick(row.val21)}
+                                    >
+                                        {row.val21}
+                                    </td>
+                                </tr>
+                            )
+                        })}
+                    </tbody>
+                </table>
+            </div>
+        );
+
+        const ModuleIntro = ({ inputs, handleInputChange, teacherMode, onFocus, activeInputId }) => (
+            <div className="max-w-4xl mx-auto pb-20 animate-fade-in">
+                <div className="mb-6">
+                    <h2 className="text-2xl font-bold text-slate-800">Before Financial Statements: 10-K Research</h2>
+                    <p className="text-slate-500 mb-4">Research the <a href="https://www.sec.gov/ix?doc=/Archives/edgar/data/0000049826/000004982623000008/itw-20221231.htm" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Illinois Tool Works 2022 10-K</a> to answer the following questions. Note: Figures in the simulation are in $ Millions.</p>
+                </div>
+
+                <div className="space-y-6">
+                    <div className="bg-white p-6 rounded-lg shadow-sm border border-slate-200">
+                        <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
+                            <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">1.</span>
+                            Fiscal Year End
+                        </h3>
+                        <div className="flex items-center gap-4">
+                            <span className="text-sm text-slate-600">When does the fiscal year end?</span>
+                            <div className="w-48">
+                                <SmartInput 
+                                    id="intro_fiscal_end" 
+                                    value={inputs['intro_fiscal_end'] || ''} 
+                                    correctValue={ANSWER_KEY['intro_fiscal_end']} 
+                                    onChange={handleInputChange} 
+                                    teacherMode={teacherMode} 
+                                    placeholder="Month Day"
+                                    onFocus={onFocus} isFocused={activeInputId === "intro_fiscal_end"}
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="bg-white p-6 rounded-lg shadow-sm border border-slate-200">
+                            <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
+                                <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">2.</span>
+                                Auditor
+                            </h3>
+                            <div>
+                                <label className="block text-sm text-slate-600 mb-1">Who is the independent auditor?</label>
+                                <SmartInput 
+                                    id="intro_auditor" 
+                                    value={inputs['intro_auditor'] || ''} 
+                                    correctValue={ANSWER_KEY['intro_auditor']} 
+                                    onChange={handleInputChange} 
+                                    teacherMode={teacherMode}
+                                    onFocus={onFocus} isFocused={activeInputId === "intro_auditor"}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="bg-white p-6 rounded-lg shadow-sm border border-slate-200">
+                            <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
+                                <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">3.</span>
+                                Audit Opinion
+                            </h3>
+                            <div>
+                                <label className="block text-sm text-slate-600 mb-1">What is the audit opinion?</label>
+                                <SmartInput 
+                                    id="intro_opinion" 
+                                    value={inputs['intro_opinion'] || ''} 
+                                    correctValue={ANSWER_KEY['intro_opinion']} 
+                                    onChange={handleInputChange} 
+                                    teacherMode={teacherMode}
+                                    placeholder="e.g. Unqualified"
+                                    onFocus={onFocus} isFocused={activeInputId === "intro_opinion"}
+                                />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+
+        const Module1 = ({ inputs, handleInputChange, teacherMode, onFocus, activeInputId }) => {
+            const [subTab, setSubTab] = useState('bs');
+
+            return (
+                <div className="max-w-4xl mx-auto pb-20">
+                    <div className="mb-6">
+                        <h2 className="text-2xl font-bold text-slate-800">Module 1: Financial Statements Analysis</h2>
+                        <p className="text-slate-500">Analyze the financial statements for Illinois Tool Works (ITW).</p>
+                    </div>
+
+                    {/* Sub-tabs for Statements */}
+                    <div className="flex border-b border-slate-200 mb-6">
+                        {['bs', 'eq', 'scf'].map(tab => (
+                            <button
+                                key={tab}
+                                onClick={() => setSubTab(tab)}
+                                className={`px-6 py-3 font-medium text-sm transition-colors border-b-2 ${
+                                    subTab === tab ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700'
+                                }`}
+                            >
+                                {tab === 'bs' && 'Balance Sheet'}
+                                {tab === 'eq' && 'Statement of Equity'}
+                                {tab === 'scf' && 'Cash Flows'}
+                            </button>
+                        ))}
+                    </div>
+
+                    {subTab === 'bs' && (
+                        <div className="animate-fade-in max-w-4xl mx-auto">
+                            <div>
+                                <h3 className="font-bold text-lg text-slate-700 mb-4 flex items-center gap-2"><div className="w-2 h-6 bg-orange-400 rounded"></div> Illinois Tool Works ($ Millions)</h3>
+                                
+                                <AssetClassifier inputs={inputs} handleInputChange={handleInputChange} teacherMode={teacherMode} />
+                                <LiabilityEquityClassifier inputs={inputs} handleInputChange={handleInputChange} teacherMode={teacherMode} />
+                            </div>
+                        </div>
+                    )}
+
+                    {subTab === 'eq' && (
+                            <div className="space-y-8 animate-fade-in max-w-5xl mx-auto">
+                            <div className="bg-blue-50 p-4 rounded border border-blue-100">
+                                <p className="text-blue-800 text-sm"><strong>Instruction:</strong> Complete the 2022 Statement of Equity. Note: ITW had significant treasury stock repurchases this year.</p>
+                            </div>
+                            
+                            <div className="bg-white p-6 rounded shadow border border-slate-200 overflow-x-auto">
+                                <h4 className="font-bold mb-4 text-slate-700 text-center">ITW Statement of Equity (2022)</h4>
+                                <table className="w-full text-sm">
+                                    <thead className="bg-slate-50 text-slate-500 font-medium">
+                                        <tr>
+                                            <th className="p-3 text-left">Item</th>
+                                            <th className="p-3 text-right">Contributed Capital</th>
+                                            <th className="p-3 text-right">Retained Earnings</th>
+                                            <th className="p-3 text-right">Treasury Stock</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-100">
+                                            <tr>
+                                            <td className="p-3 font-medium">Beginning Balance (2021)</td>
+                                            <td className="p-3 text-right font-mono text-slate-600">1,438</td>
+                                            <td className="p-3 text-right font-mono text-slate-600">24,325</td>
+                                            <td className="p-3 text-right font-mono text-slate-600">(20,636)</td>
+                                        </tr>
+                                        <tr>
+                                            <td className="p-3">Net income</td>
+                                            <td className="p-3 text-right bg-slate-50/50"></td>
+                                            <td className="p-3 text-right"><SmartInput id="m1_eq_ni_re" value={inputs['m1_eq_ni_re'] || ''} onChange={handleInputChange} correctValue={ANSWER_KEY['m1_eq_ni_re']} teacherMode={teacherMode} onFocus={onFocus} isFocused={activeInputId === "m1_eq_ni_re"} /></td>
+                                            <td className="p-3 text-right bg-slate-50/50"></td>
+                                        </tr>
+                                        <tr>
+                                            <td className="p-3">Dividends declared</td>
+                                            <td className="p-3 text-right bg-slate-50/50"></td>
+                                            <td className="p-3 text-right"><SmartInput id="m1_eq_div_re" value={inputs['m1_eq_div_re'] || ''} onChange={handleInputChange} correctValue={ANSWER_KEY['m1_eq_div_re']} teacherMode={teacherMode} onFocus={onFocus} isFocused={activeInputId === "m1_eq_div_re"} /></td>
+                                            <td className="p-3 text-right bg-slate-50/50"></td>
+                                        </tr>
+                                        <tr>
+                                            <td className="p-3">Stock repurchases</td>
+                                            <td className="p-3 text-right bg-slate-50/50"></td>
+                                            <td className="p-3 text-right bg-slate-50/50"></td>
+                                            <td className="p-3 text-right"><SmartInput id="m1_eq_rep_ts" value={inputs['m1_eq_rep_ts'] || ''} onChange={handleInputChange} correctValue={ANSWER_KEY['m1_eq_rep_ts']} teacherMode={teacherMode} onFocus={onFocus} isFocused={activeInputId === "m1_eq_rep_ts"} /></td>
+                                        </tr>
+                                        <tr>
+                                            <td className="p-3">Stock-based compensation exp</td>
+                                            <td className="p-3 text-right"><SmartInput id="m1_eq_sbc_exp" value={inputs['m1_eq_sbc_exp'] || ''} onChange={handleInputChange} correctValue={ANSWER_KEY['m1_eq_sbc_exp']} teacherMode={teacherMode} onFocus={onFocus} isFocused={activeInputId === "m1_eq_sbc_exp"} /></td>
+                                            <td className="p-3 text-right bg-slate-50/50"></td>
+                                            <td className="p-3 text-right bg-slate-50/50"></td>
+                                        </tr>
+                                        <tr>
+                                            <td className="p-3">Stock issuances</td>
+                                            <td className="p-3 text-right"><SmartInput id="m1_eq_iss_cc" value={inputs['m1_eq_iss_cc'] || ''} onChange={handleInputChange} correctValue={ANSWER_KEY['m1_eq_iss_cc']} teacherMode={teacherMode} onFocus={onFocus} isFocused={activeInputId === "m1_eq_iss_cc"} /></td>
+                                            <td className="p-3 text-right bg-slate-50/50"></td>
+                                            <td className="p-3 text-right bg-slate-50/50"></td>
+                                        </tr>
+                                        <tr className="font-bold bg-slate-50 border-t-2 border-slate-200">
+                                            <td className="p-3">Ending Balance (2022)</td>
+                                            <td className="p-3 text-right"><span className="text-slate-600 font-mono">1,507</span></td>
+                                            <td className="p-3 text-right"><span className="text-slate-600 font-mono">25,799</span></td>
+                                            <td className="p-3 text-right"><span className="text-slate-600 font-mono">(22,377)</span></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
+                    {subTab === 'scf' && (
+                            <div className="space-y-6 animate-fade-in max-w-3xl mx-auto">
+                            <div className="flex justify-between items-center">
+                                <h3 className="font-bold text-lg text-slate-700">Statement of Cash Flows (ITW)</h3>
+                            </div>
+                            
+                            <div className="bg-white p-6 rounded shadow border border-slate-200 overflow-x-auto">
+                                <h4 className="font-bold mb-4 text-slate-700 border-b pb-2">ITW Statement of Cash Flows (2022)</h4>
+                                <table className="w-full text-sm">
+                                    <thead className="bg-slate-50 text-slate-500 font-medium">
+                                        <tr>
+                                            <th className="p-2 text-left">Item</th>
+                                            <th className="p-2 text-right">2022</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-100">
+                                        <tr>
+                                            <td className="py-2 pl-2">Cash from operating activities</td>
+                                            <td className="py-2"><SmartInput id="m1_cf_itw_op_22" value={inputs['m1_cf_itw_op_22'] || ''} correctValue={ANSWER_KEY['m1_cf_itw_op_22']} onChange={handleInputChange} teacherMode={teacherMode} onFocus={onFocus} isFocused={activeInputId === "m1_cf_itw_op_22"} /></td>
+                                        </tr>
+                                        <tr>
+                                            <td className="py-2 pl-2">Cash from (for) investing activities</td>
+                                            <td className="py-2"><SmartInput id="m1_cf_itw_inv_22" value={inputs['m1_cf_itw_inv_22'] || ''} correctValue={ANSWER_KEY['m1_cf_itw_inv_22']} onChange={handleInputChange} teacherMode={teacherMode} onFocus={onFocus} isFocused={activeInputId === "m1_cf_itw_inv_22"} /></td>
+                                        </tr>
+                                        <tr>
+                                            <td className="py-2 pl-2">Cash from (for) financing activities</td>
+                                            <td className="py-2"><SmartInput id="m1_cf_itw_fin_22" value={inputs['m1_cf_itw_fin_22'] || ''} correctValue={ANSWER_KEY['m1_cf_itw_fin_22']} onChange={handleInputChange} teacherMode={teacherMode} onFocus={onFocus} isFocused={activeInputId === "m1_cf_itw_fin_22"} /></td>
+                                        </tr>
+                                            <tr>
+                                            <td className="py-2 pl-2">Effect of exchange rates on cash</td>
+                                            <td className="py-2"><SmartInput id="m1_cf_itw_fx_22" value={inputs['m1_cf_itw_fx_22'] || ''} correctValue={ANSWER_KEY['m1_cf_itw_fx_22']} onChange={handleInputChange} teacherMode={teacherMode} onFocus={onFocus} isFocused={activeInputId === "m1_cf_itw_fx_22"} /></td>
+                                        </tr>
+                                        <tr className="border-t-2 border-slate-300 font-bold text-slate-800">
+                                            <td className="py-3 pl-2">Net increase (decrease) in cash</td>
+                                            <td className="py-3"><SmartInput id="m1_cf_itw_net_22" value={inputs['m1_cf_itw_net_22'] || ''} correctValue={ANSWER_KEY['m1_cf_itw_net_22']} onChange={handleInputChange} teacherMode={teacherMode} onFocus={onFocus} isFocused={activeInputId === "m1_cf_itw_net_22"} /></td>
+                                        </tr>
+                                        <tr>
+                                            <td className="py-2 pl-2">Cash at beginning of year</td>
+                                            <td className="py-2"><SmartInput id="m1_cf_itw_beg_22" value={inputs['m1_cf_itw_beg_22'] || ''} correctValue={ANSWER_KEY['m1_cf_itw_beg_22']} onChange={handleInputChange} teacherMode={teacherMode} onFocus={onFocus} isFocused={activeInputId === "m1_cf_itw_beg_22"} /></td>
+                                        </tr>
+                                        <tr>
+                                            <td className="py-2 pl-2">Cash at end of year</td>
+                                            <td className="py-2"><SmartInput id="m1_cf_itw_end_22" value={inputs['m1_cf_itw_end_22'] || ''} correctValue={ANSWER_KEY['m1_cf_itw_end_22']} onChange={handleInputChange} teacherMode={teacherMode} onFocus={onFocus} isFocused={activeInputId === "m1_cf_itw_end_22"} /></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const ModuleArticulation = ({ inputs, handleInputChange, teacherMode, onFocus, activeInputId }) => {
+             const checkBalance = (calc, actual) => {
+                if (!calc || !actual) return null;
+                const c = parseFloat(String(calc).replace(/,/g, ''));
+                const a = parseFloat(String(actual).replace(/,/g, ''));
+                return Math.abs(c - a) < 2; 
+            };
+
+            const cashEnd = 1527 + parseFloat(inputs['m2_art_cash_op']?.replace(/,/g, '') || 0) +
+                            parseFloat(inputs['m2_art_cash_inv']?.replace(/,/g, '') || 0) +
+                            parseFloat(inputs['m2_art_cash_fin']?.replace(/,/g, '') || 0);
+            const cashValid = checkBalance(cashEnd, 708);
+
+            const reEnd = 24325 + parseFloat(inputs['m2_art_re_ni']?.replace(/,/g, '') || 0) +
+                            parseFloat(inputs['m2_art_re_div']?.replace(/,/g, '') || 0);
+            const reValid = checkBalance(reEnd, 25799);
+
+            const ccEnd = 1438 + parseFloat(inputs['m2_art_cc_iss']?.replace(/,/g, '') || 0);
+            const ccValid = checkBalance(ccEnd, 1507);
+
+            const tsEnd = -20636 + parseFloat(inputs['m2_art_ts_rep']?.replace(/,/g, '') || 0);
+            const tsValid = checkBalance(tsEnd, -22377);
+
+            return (
+                <div className="max-w-6xl mx-auto pb-20 animate-fade-in">
+                    <div className="mb-6">
+                        <h2 className="text-2xl font-bold text-slate-800">Module 2: Financial Statement Articulation</h2>
+                        <p className="text-slate-500 mb-2">Reconcile the flows between the 2021 Balance Sheet and 2022 Balance Sheet using the provided data.</p>
+                    </div>
+
+                    {/* Excel-Style Grid Layout */}
+                    <div className="grid grid-cols-12 gap-4 text-sm bg-white p-6 rounded shadow border border-slate-200">
+                        
+                        {/* Headers */}
+                        <div className="col-span-3 font-bold text-slate-600 border-b pb-2">Balance Sheet (2021)</div>
+                        <div className="col-span-6 font-bold text-slate-600 border-b pb-2 text-center">Flows (2022)</div>
+                        <div className="col-span-3 font-bold text-slate-600 border-b pb-2 text-right">Balance Sheet (2022)</div>
+
+                        {/* CASH ROW */}
+                        <div className="col-span-3 flex justify-between items-center bg-slate-50 p-2 rounded">
+                            <span>Cash</span>
+                            <span className="font-mono">1,527</span>
+                        </div>
+                        <div className="col-span-6 space-y-2 p-2 border-l border-r border-slate-100">
+                            <div className="flex justify-between items-center">
+                                <span className="text-xs text-slate-500">+ Operating Cash Flows</span>
+                                <div className="w-28"><SmartInput id="m2_art_cash_op" value={inputs['m2_art_cash_op'] || ''} onChange={handleInputChange} correctValue={ANSWER_KEY['m2_art_cash_op']} teacherMode={teacherMode} onFocus={onFocus} isFocused={activeInputId === "m2_art_cash_op"} /></div>
+                            </div>
+                            <div className="flex justify-between items-center">
+                                <span className="text-xs text-slate-500">+ Investing Cash Flows</span>
+                                <div className="w-28"><SmartInput id="m2_art_cash_inv" value={inputs['m2_art_cash_inv'] || ''} onChange={handleInputChange} correctValue={ANSWER_KEY['m2_art_cash_inv']} teacherMode={teacherMode} onFocus={onFocus} isFocused={activeInputId === "m2_art_cash_inv"} /></div>
+                            </div>
+                            <div className="flex justify-between items-center">
+                                <span className="text-xs text-slate-500">+ Financing (inc. FX)</span>
+                                <div className="w-28"><SmartInput id="m2_art_cash_fin" value={inputs['m2_art_cash_fin'] || ''} onChange={handleInputChange} correctValue={ANSWER_KEY['m2_art_cash_fin']} teacherMode={teacherMode} onFocus={onFocus} isFocused={activeInputId === "m2_art_cash_fin"} /></div>
+                            </div>
+                        </div>
+                        <div className="col-span-3 flex flex-col justify-center items-end bg-slate-50 p-2 rounded relative">
+                            <span>Cash</span>
+                            <span className="font-mono font-bold text-lg">708</span>
+                            {cashValid !== null && (
+                                <div className={`absolute top-2 left-2 text-[10px] px-1 rounded ${cashValid ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                    {cashValid ? '✓' : '✗'}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* SEPARATOR */}
+                        <div className="col-span-12 border-t border-slate-200 my-2"></div>
+
+                        {/* EQUITY: Contributed Capital */}
+                        <div className="col-span-3 flex justify-between items-center bg-slate-50 p-2 rounded">
+                            <span>Contributed Capital</span>
+                            <span className="font-mono">1,438</span>
+                        </div>
+                        <div className="col-span-6 flex justify-between items-center p-2 border-l border-r border-slate-100">
+                            <span className="text-xs text-slate-500">+ Stock Issuance & SBC</span>
+                            <div className="w-28"><SmartInput id="m2_art_cc_iss" value={inputs['m2_art_cc_iss'] || ''} onChange={handleInputChange} correctValue={ANSWER_KEY['m2_art_cc_iss']} teacherMode={teacherMode} onFocus={onFocus} isFocused={activeInputId === "m2_art_cc_iss"} /></div>
+                        </div>
+                        <div className="col-span-3 flex flex-col justify-center items-end bg-slate-50 p-2 rounded relative">
+                            <span>Contributed Capital</span>
+                            <span className="font-mono font-bold">1,507</span>
+                            {ccValid !== null && <div className={`absolute top-1 left-1 text-[10px] ${ccValid?'text-green-500':'text-red-500'}`}>{ccValid?'✓':'✗'}</div>}
+                        </div>
+
+                        {/* INCOME CALCULATION BLOCK */}
+                        <div className="col-span-12 p-3 bg-blue-50 rounded border border-blue-100 my-2 flex justify-center items-center gap-4 text-sm text-blue-900">
+                            <strong>Income Calculation:</strong>
+                            <span>Revenue (15,932)</span>
+                            <span>-</span>
+                            <span>Expenses & Tax (12,898)</span>
+                            <span>=</span>
+                            <span className="font-bold">Net Income (3,034)</span>
+                        </div>
+
+                        {/* EQUITY: Retained Earnings */}
+                        <div className="col-span-3 flex justify-between items-center bg-slate-50 p-2 rounded">
+                            <span>Retained Earnings</span>
+                            <span className="font-mono">24,325</span>
+                        </div>
+                        <div className="col-span-6 space-y-2 p-2 border-l border-r border-slate-100">
+                            <div className="flex justify-between items-center">
+                                <span className="text-xs text-slate-500">+ Net Income</span>
+                                <div className="w-28"><SmartInput id="m2_art_re_ni" value={inputs['m2_art_re_ni'] || ''} onChange={handleInputChange} correctValue={ANSWER_KEY['m2_art_re_ni']} teacherMode={teacherMode} onFocus={onFocus} isFocused={activeInputId === "m2_art_re_ni"} /></div>
+                            </div>
+                            <div className="flex justify-between items-center">
+                                <span className="text-xs text-slate-500">- Dividends Declared</span>
+                                <div className="w-28"><SmartInput id="m2_art_re_div" value={inputs['m2_art_re_div'] || ''} onChange={handleInputChange} correctValue={ANSWER_KEY['m2_art_re_div']} teacherMode={teacherMode} onFocus={onFocus} isFocused={activeInputId === "m2_art_re_div"} /></div>
+                            </div>
+                        </div>
+                        <div className="col-span-3 flex flex-col justify-center items-end bg-slate-50 p-2 rounded relative">
+                            <span>Retained Earnings</span>
+                            <span className="font-mono font-bold">25,799</span>
+                            {reValid !== null && <div className={`absolute top-1 left-1 text-[10px] ${reValid?'text-green-500':'text-red-500'}`}>{reValid?'✓':'✗'}</div>}
+                        </div>
+
+                        {/* EQUITY: Treasury Stock */}
+                        <div className="col-span-3 flex justify-between items-center bg-slate-50 p-2 rounded">
+                            <span>Treasury Stock</span>
+                            <span className="font-mono">(20,636)</span>
+                        </div>
+                        <div className="col-span-6 flex justify-between items-center p-2 border-l border-r border-slate-100">
+                            <span className="text-xs text-slate-500">+ Repurchases/Re-issuance</span>
+                            <div className="w-28"><SmartInput id="m2_art_ts_rep" value={inputs['m2_art_ts_rep'] || ''} onChange={handleInputChange} correctValue={ANSWER_KEY['m2_art_ts_rep']} teacherMode={teacherMode} onFocus={onFocus} isFocused={activeInputId === "m2_art_ts_rep"} /></div>
+                        </div>
+                        <div className="col-span-3 flex flex-col justify-center items-end bg-slate-50 p-2 rounded relative">
+                            <span>Treasury Stock</span>
+                            <span className="font-mono font-bold">(22,377)</span>
+                            {tsValid !== null && <div className={`absolute top-1 left-1 text-[10px] ${tsValid?'text-green-500':'text-red-500'}`}>{tsValid?'✓':'✗'}</div>}
+                        </div>
+
+                    </div>
+                </div>
+            );
+        };
+
+        const Module3 = ({ inputs, handleInputChange, teacherMode, onFocus, activeInputId, onValueClick }) => {
+            const referenceRows = isRows.map(row => {
+                let val22 = "...", val21 = "...";
+                if (row.id === 'sales') { val22 = "15,932"; val21 = "14,455"; }
+                if (row.id === 'cos') { val22 = "9,429"; val21 = "8,489"; }
+                if (row.id === 'gp') { val22 = "6,503"; val21 = "5,966"; }
+                if (row.id === 'sga') { val22 = "2,538"; val21 = "2,333"; }
+                if (row.id === 'opinc') { val22 = "3,831"; val21 = "3,500"; }
+                if (row.id === 'ni') { val22 = "3,034"; val21 = "2,694"; }
+                return { ...row, val22, val21 };
+            });
+
+            return (
+                <div className="max-w-5xl mx-auto pb-20 animate-fade-in">
+                    <div className="mb-6">
+                        <h2 className="text-2xl font-bold text-slate-800">Module 3: Common-Size & Advanced Analysis</h2>
+                        <p className="text-slate-500">Perform vertical analysis.</p>
+                    </div>
+
+                    {/* Common-Size Balance Sheet Section */}
+                    <div className="bg-white p-6 rounded shadow border border-slate-200 mb-8">
+                        <h3 className="font-bold text-lg text-slate-700 mb-4 flex items-center gap-2">
+                            <Icons.BarChart /> Simplified Balance Sheet Analysis (2022)
+                        </h3>
+                        <p className="text-xs text-slate-500 mb-4">First, calculate the simplified totals for 2022. Then, express each item as a percentage of Total Assets (15,422).</p>
+                        
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm">
+                                <thead className="bg-slate-50 text-slate-500 border-b">
+                                    <tr>
+                                        <th className="p-2 text-left w-1/3">Item</th>
+                                        <th className="p-2 text-right w-1/4 bg-blue-50/50">Amount ($) - 2022</th>
+                                        <th className="p-2 text-right w-1/4 text-blue-600">% of Assets</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100">
+                                    <tr>
+                                        <td className="p-2 font-medium">Short-term assets</td>
+                                        <td className="p-2"><SmartInput id="m3_cs_bs_sta_val" value={inputs['m3_cs_bs_sta_val'] || ''} onChange={handleInputChange} correctValue={ANSWER_KEY['m3_cs_bs_sta_val']} teacherMode={teacherMode} placeholder="$" onFocus={onFocus} isFocused={activeInputId === 'm3_cs_bs_sta_val'} /></td>
+                                        <td className="p-2"><SmartInput id="m3_cs_bs_sta_pct" value={inputs['m3_cs_bs_sta_pct'] || ''} onChange={handleInputChange} correctValue={ANSWER_KEY['m3_cs_bs_sta_pct']} teacherMode={teacherMode} placeholder="%" onFocus={onFocus} isFocused={activeInputId === 'm3_cs_bs_sta_pct'} /></td>
+                                    </tr>
+                                    <tr>
+                                        <td className="p-2 font-medium">Long-term assets</td>
+                                        <td className="p-2"><SmartInput id="m3_cs_bs_lta_val" value={inputs['m3_cs_bs_lta_val'] || ''} onChange={handleInputChange} correctValue={ANSWER_KEY['m3_cs_bs_lta_val']} teacherMode={teacherMode} placeholder="$" onFocus={onFocus} isFocused={activeInputId === 'm3_cs_bs_lta_val'} /></td>
+                                        <td className="p-2"><SmartInput id="m3_cs_bs_lta_pct" value={inputs['m3_cs_bs_lta_pct'] || ''} onChange={handleInputChange} correctValue={ANSWER_KEY['m3_cs_bs_lta_pct']} teacherMode={teacherMode} placeholder="%" onFocus={onFocus} isFocused={activeInputId === 'm3_cs_bs_lta_pct'} /></td>
+                                    </tr>
+                                    <tr className="bg-slate-50 font-bold">
+                                        <td className="p-2">Total Assets</td>
+                                        <td className="p-2"><SmartInput id="m3_cs_bs_ta_val" value={inputs['m3_cs_bs_ta_val'] || ''} onChange={handleInputChange} correctValue={ANSWER_KEY['m3_cs_bs_ta_val']} teacherMode={teacherMode} placeholder="$" onFocus={onFocus} isFocused={activeInputId === 'm3_cs_bs_ta_val'} /></td>
+                                        <td className="p-2"><SmartInput id="m3_cs_bs_ta_pct" value={inputs['m3_cs_bs_ta_pct'] || ''} onChange={handleInputChange} correctValue={ANSWER_KEY['m3_cs_bs_ta_pct']} teacherMode={teacherMode} placeholder="100.0" onFocus={onFocus} isFocused={activeInputId === 'm3_cs_bs_ta_pct'} /></td>
+                                    </tr>
+                                    <tr><td colSpan="3" className="h-4"></td></tr>
+                                    <tr>
+                                        <td className="p-2 font-medium">Short-term liabilities</td>
+                                        <td className="p-2"><SmartInput id="m3_cs_bs_stl_val" value={inputs['m3_cs_bs_stl_val'] || ''} onChange={handleInputChange} correctValue={ANSWER_KEY['m3_cs_bs_stl_val']} teacherMode={teacherMode} placeholder="$" onFocus={onFocus} isFocused={activeInputId === 'm3_cs_bs_stl_val'} /></td>
+                                        <td className="p-2"><SmartInput id="m3_cs_bs_stl_pct" value={inputs['m3_cs_bs_stl_pct'] || ''} onChange={handleInputChange} correctValue={ANSWER_KEY['m3_cs_bs_stl_pct']} teacherMode={teacherMode} placeholder="%" onFocus={onFocus} isFocused={activeInputId === 'm3_cs_bs_stl_pct'} /></td>
+                                    </tr>
+                                    <tr>
+                                        <td className="p-2 font-medium">Long-term liabilities</td>
+                                        <td className="p-2"><SmartInput id="m3_cs_bs_ltl_val" value={inputs['m3_cs_bs_ltl_val'] || ''} onChange={handleInputChange} correctValue={ANSWER_KEY['m3_cs_bs_ltl_val']} teacherMode={teacherMode} placeholder="$" onFocus={onFocus} isFocused={activeInputId === 'm3_cs_bs_ltl_val'} /></td>
+                                        <td className="p-2"><SmartInput id="m3_cs_bs_ltl_pct" value={inputs['m3_cs_bs_ltl_pct'] || ''} onChange={handleInputChange} correctValue={ANSWER_KEY['m3_cs_bs_ltl_pct']} teacherMode={teacherMode} placeholder="%" onFocus={onFocus} isFocused={activeInputId === 'm3_cs_bs_ltl_pct'} /></td>
+                                    </tr>
+                                    <tr>
+                                        <td className="p-2 font-medium">Total Equity</td>
+                                        <td className="p-2"><SmartInput id="m3_cs_bs_te_val" value={inputs['m3_cs_bs_te_val'] || ''} onChange={handleInputChange} correctValue={ANSWER_KEY['m3_cs_bs_te_val']} teacherMode={teacherMode} placeholder="$" onFocus={onFocus} isFocused={activeInputId === 'm3_cs_bs_te_val'} /></td>
+                                        <td className="p-2"><SmartInput id="m3_cs_bs_te_pct" value={inputs['m3_cs_bs_te_pct'] || ''} onChange={handleInputChange} correctValue={ANSWER_KEY['m3_cs_bs_te_pct']} teacherMode={teacherMode} placeholder="%" onFocus={onFocus} isFocused={activeInputId === 'm3_cs_bs_te_pct'} /></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    {/* Balance Sheet Analysis Questions */}
+                    <div className="space-y-6 mb-12">
+                        <h3 className="font-bold text-slate-700 border-b pb-2 flex items-center gap-2">
+                            <Icons.PieChart /> Balance Sheet Analysis
+                        </h3>
+
+                        <QuestionBox 
+                            title="2.a. What are the company’s largest assets?"
+                            hint="Identify the specific asset line items with the highest dollar values or percentages in 2022."
+                            solution="Goodwill was the largest asset at 31.5% of total assets. Trade receivables were the second-largest asset at 20.6% of total assets."
+                            teacherMode={teacherMode}
+                        >
+                            <textarea 
+                                className="w-full p-3 border border-slate-300 rounded text-sm h-32" 
+                                placeholder="Your answer..."
+                                id="m3_q_largest_assets"
+                                onChange={(e) => handleInputChange("m3_q_largest_assets", e.target.value)}
+                                value={inputs["m3_q_largest_assets"] || ""}
+                            ></textarea>
+                        </QuestionBox>
+
+                        <QuestionBox 
+                            title="2.b. What are the company’s largest liabilities?"
+                            hint="Look at the liability sections. Which single line item represents the largest obligation?"
+                            solution="Long-term debt is 40% of total assets."
+                            teacherMode={teacherMode}
+                        >
+                            <textarea 
+                                className="w-full p-3 border border-slate-300 rounded text-sm h-32" 
+                                placeholder="Your answer..."
+                                id="m3_q_largest_liabs"
+                                onChange={(e) => handleInputChange("m3_q_largest_liabs", e.target.value)}
+                                value={inputs["m3_q_largest_liabs"] || ""}
+                            ></textarea>
+                        </QuestionBox>
+
+                        <QuestionBox 
+                            title="2.c. What proportion of total assets is financed by owners?"
+                            hint="Owner financing corresponds to Total Equity. Look at the 'Total Equity' % of Assets you calculated."
+                            solution="20% of total assets is financed by owners, based on common-size total equity."
+                            teacherMode={teacherMode}
+                        >
+                            <textarea 
+                                className="w-full p-3 border border-slate-300 rounded text-sm h-32" 
+                                placeholder="Your answer..."
+                                id="m3_q_financed_owners"
+                                onChange={(e) => handleInputChange("m3_q_financed_owners", e.target.value)}
+                                value={inputs["m3_q_financed_owners"] || ""}
+                            ></textarea>
+                        </QuestionBox>
+
+                         <QuestionBox 
+                            title="2.d. What proportion of total assets is financed by nonowners?"
+                            hint="Nonowner financing corresponds to Total Liabilities. You can derive this by subtracting Equity % from 100% or summing current and long-term liabilities."
+                            solution="80% of total assets is financed by nonowners, based on common-size total liabilities. Because the balance sheet does not directly report total liabilities, the current portion (28.9%) and the long-term portion (51.1%) of liabilities are combined to arrive at 80%."
+                            teacherMode={teacherMode}
+                        >
+                            <textarea 
+                                className="w-full p-3 border border-slate-300 rounded text-sm h-32" 
+                                placeholder="Your answer..."
+                                id="m3_q_financed_nonowners"
+                                onChange={(e) => handleInputChange("m3_q_financed_nonowners", e.target.value)}
+                                value={inputs["m3_q_financed_nonowners"] || ""}
+                            ></textarea>
+                        </QuestionBox>
+                    </div>
+
+                    {/* Simplified Income Statement (Reference) - CLICKABLE */}
+                    <div className="bg-white p-6 rounded shadow border border-slate-200 mb-8 ring-4 ring-indigo-50">
+                        <h3 className="font-bold text-lg text-indigo-800 mb-2 flex items-center gap-2">
+                            <Icons.BookOpen /> Simplified Income Statement (Reference)
+                        </h3>
+                         <p className="text-xs text-indigo-500 mb-4 font-semibold">
+                            💡 TIP: Click any number in this table to insert it into your active input field above or below!
+                        </p>
+                        <RenderTable 
+                            headers={['2022 ($)', '2021 ($)']} 
+                            rows={referenceRows} 
+                            // No companyPrefix = Reference Mode
+                            onValueClick={onValueClick}
+                        />
+                    </div>
+
+                    {/* Common-Size Income Statement (Input) */}
+                    <div className="bg-white p-6 rounded shadow border border-slate-200 mb-8">
+                        <h3 className="font-bold text-lg text-slate-700 mb-4 flex items-center gap-2">
+                            <Icons.BarChart /> Common-Size Income Statement (Calculate %)
+                        </h3>
+                        <p className="text-xs text-slate-500 mb-4">Calculate each item as a percentage of Net Sales.</p>
+                        
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm text-left">
+                                <thead className="bg-slate-50 text-slate-500 border-b">
+                                    <tr>
+                                        <th className="p-2 w-1/3">Item</th>
+                                        <th className="p-2 text-center w-1/4 text-blue-600">2022 (%)</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100">
+                                    {isRows.map((row, idx) => (
+                                        <tr key={idx} className={row.type === 'total' ? "bg-blue-50/30 font-bold" : ""}>
+                                            <td className="p-2">{row.label}</td>
+                                            <td className="p-2 text-center">
+                                                <SmartInput 
+                                                    id={`m3_cs_is_${row.id}_22`} 
+                                                    value={inputs[`m3_cs_is_${row.id}_22`] || ''} 
+                                                    onChange={handleInputChange} 
+                                                    correctValue={row.id === 'sales' ? "100.0" : ANSWER_KEY[`m3_cs_is_${row.id}_22`]} 
+                                                    teacherMode={teacherMode} 
+                                                    placeholder="%" 
+                                                    onFocus={onFocus}
+                                                    isFocused={activeInputId === `m3_cs_is_${row.id}_22`}
+                                                />
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    {/* Income Statement Analysis Questions */}
+                    <div className="space-y-6 mb-12">
+                        <h3 className="font-bold text-slate-700 border-b pb-2 flex items-center gap-2">
+                            <Icons.PieChart /> Income Statement Analysis
+                        </h3>
+
+                        <QuestionBox 
+                            title="3.a. What are the major expenses?"
+                            hint="Look for the expense categories with the highest percentages of revenue in your Common-Size Income Statement."
+                            solution="The major expenses are: Cost of Goods Sold (59.2% of revenue in 2022), SG&A (16.2% of revenue in 2022)."
+                            teacherMode={teacherMode}
+                        >
+                            <textarea 
+                                className="w-full p-3 border border-slate-300 rounded text-sm h-32" 
+                                placeholder="Your answer..."
+                                id="m3_q_major_exp"
+                                onChange={(e) => handleInputChange("m3_q_major_exp", e.target.value)}
+                                value={inputs["m3_q_major_exp"] || ""}
+                            ></textarea>
+                        </QuestionBox>
+
+                        <QuestionBox 
+                            title="3.b. Are there any unusual or discontinued items? Are they large in magnitude?"
+                            hint="Look for line items that seem one-off, such as 'Discontinued Operations' or large 'Impairment' charges."
+                            solution="There are no unusual or discontinued items on the income statement for 2020–2022."
+                            teacherMode={teacherMode}
+                        >
+                            <textarea 
+                                className="w-full p-3 border border-slate-300 rounded text-sm h-32" 
+                                placeholder="Your answer..."
+                                id="m3_q_unusual"
+                                onChange={(e) => handleInputChange("m3_q_unusual", e.target.value)}
+                                value={inputs["m3_q_unusual"] || ""}
+                            ></textarea>
+                        </QuestionBox>
+
+                         <QuestionBox 
+                            title="3.c. Was the company more or less profitable compared with the prior year?"
+                            hint="Compare the Net Income percentage (Profit Margin) of 2022 to 2021. Did it increase, decrease, or stay roughly the same?"
+                            solution="The company was equally profitable in 2022 and 2021. Net income was 19.0% of revenue in 2022 and 18.6% of revenue in 2021."
+                            teacherMode={teacherMode}
+                        >
+                            <textarea 
+                                className="w-full p-3 border border-slate-300 rounded text-sm h-32" 
+                                placeholder="Your answer..."
+                                id="m3_q_prof_comp"
+                                onChange={(e) => handleInputChange("m3_q_prof_comp", e.target.value)}
+                                value={inputs["m3_q_prof_comp"] || ""}
+                            ></textarea>
+                        </QuestionBox>
+                    </div>
+
+                </div>
+            );
+        };
+
+        const Module4 = ({ inputs, handleInputChange, teacherMode, onFocus, activeInputId }) => (
+            <div className="max-w-4xl mx-auto pb-20 animate-fade-in">
+                <div className="mb-6">
+                    <h2 className="text-2xl font-bold text-slate-800">Module 4: Cash Flow & Valuation</h2>
+                    <p className="text-slate-500">Evaluate cash flow patterns and market value.</p>
+                </div>
+
+                <div className="space-y-6 mb-12">
+                    <h3 className="font-bold text-slate-700 border-b pb-2 flex items-center gap-2">
+                        <Icons.BarChart /> Cash Flow Analysis (Signs & Implications)
+                    </h3>
+                    
+                    <QuestionBox 
+                        title="4.a. Analyze the Operating Cash Flow (CFO)"
+                        hint="Look at the 'Net cash provided by operating activities' in the Cash Flow statement. Is it positive or negative? What does that imply about the core business?"
+                        solution="CFO is positive ($2,348M). This indicates the core business is generating healthy cash to fund operations."
+                        teacherMode={teacherMode}
+                    >
+                        <textarea 
+                            className="w-full p-3 border border-slate-300 rounded text-sm h-32" 
+                            placeholder="Is CFO positive or negative? What does this mean?"
+                            id="m4_q_cfo_sign"
+                            onChange={(e) => handleInputChange("m4_q_cfo_sign", e.target.value)}
+                            value={inputs["m4_q_cfo_sign"] || ""}
+                            onFocus={() => onFocus("m4_q_cfo_sign")}
+                        ></textarea>
+                    </QuestionBox>
+
+                    <QuestionBox 
+                        title="4.b. Analyze the Investing Cash Flow (CFI)"
+                        hint="Look at 'Net cash used for investing activities'. Is it positive or negative? Is the company growing assets or selling them?"
+                        solution="CFI is negative (-$110M), primarily due to additions to plant and equipment (-$412M). This is typical for a healthy company investing in its future."
+                        teacherMode={teacherMode}
+                    >
+                         <textarea 
+                            className="w-full p-3 border border-slate-300 rounded text-sm h-32" 
+                            placeholder="Is CFI positive or negative? What does this mean?"
+                            id="m4_q_cfi_sign"
+                            onChange={(e) => handleInputChange("m4_q_cfi_sign", e.target.value)}
+                            value={inputs["m4_q_cfi_sign"] || ""}
+                            onFocus={() => onFocus("m4_q_cfi_sign")}
+                        ></textarea>
+                    </QuestionBox>
+
+                    <QuestionBox 
+                        title="4.c. Analyze the Financing Cash Flow (CFF)"
+                        hint="Look at 'Net cash used for financing activities'. Is the company raising capital (positive) or returning capital/paying debt (negative)?"
+                        solution="CFF is significantly negative (-$3,000M). The company is returning capital to shareholders through dividends (-$1,542M) and stock repurchases (-$1,750M)."
+                        teacherMode={teacherMode}
+                    >
+                         <textarea 
+                            className="w-full p-3 border border-slate-300 rounded text-sm h-32" 
+                            placeholder="Is CFF positive or negative? What does this mean?"
+                            id="m4_q_cff_sign"
+                            onChange={(e) => handleInputChange("m4_q_cff_sign", e.target.value)}
+                            value={inputs["m4_q_cff_sign"] || ""}
+                            onFocus={() => onFocus("m4_q_cff_sign")}
+                        ></textarea>
+                    </QuestionBox>
+                </div>
+
+                <QuestionBox 
+                    title="5. Market Capitalization"
+                    hint="Formula: Shares Outstanding × Year-End Share Price."
+                    solution="Market Cap = 305,000,000 × $220.30 = $67,191,500,000 (~$67.2 Billion)."
+                    teacherMode={teacherMode}
+                >
+                    <div className="space-y-4">
+                        <p className="text-sm text-slate-600">Calculate the market capitalization using the data below:</p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                            <div className="bg-slate-50 p-3 rounded">
+                                <span className="block font-semibold">Common Shares Outstanding:</span>
+                                <span>305,000,000</span>
+                            </div>
+                            <div className="bg-slate-50 p-3 rounded">
+                                <span className="block font-semibold">Year-End Share Price (2022):</span>
+                                <span>$220.30</span>
+                            </div>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Calculated Market Cap ($):</label>
+                            <SmartInput 
+                                id="m4_itw_mkt_cap" 
+                                value={inputs['m4_itw_mkt_cap'] || ''} 
+                                correctValue={ANSWER_KEY['m4_itw_mkt_cap']} 
+                                onChange={handleInputChange} 
+                                teacherMode={teacherMode} 
+                                placeholder="e.g. 67,191,500"
+                                onFocus={onFocus} isFocused={activeInputId === "m4_itw_mkt_cap"}
+                            />
+                        </div>
+                    </div>
+                </QuestionBox>
+            </div>
+        );
+
+        // --- MAIN APP COMPONENT ---
+
+        const App = () => {
+            const [activeModule, setActiveModule] = useState('intro'); // Default to Intro
+            const [inputs, setInputs] = useState({});
+            const [showCalc, setShowCalc] = useState(false);
+            const [showDataPanel, setShowDataPanel] = useState(false);
+            const [teacherMode, setTeacherMode] = useState(false);
+            const [showLogin, setShowLogin] = useState(false);
+            const [password, setPassword] = useState("");
+            const [studentName, setStudentName] = useState("");
+            const [showNamePrompt, setShowNamePrompt] = useState(false);
+            const [activeInputId, setActiveInputId] = useState(null);
+
+            const handleInputChange = (id, val) => {
+                setInputs(prev => ({ ...prev, [id]: val }));
+            };
+            
+            const handleInputFocus = (id) => {
+                setActiveInputId(id);
+            };
+
+            const handleGlobalValueClick = (val) => {
+                if (activeInputId && val) {
+                    const currentVal = inputs[activeInputId] || "";
+                    const cleanVal = val.toString().replace(/,/g, '');
+                    // Append value to existing input
+                    setInputs(prev => ({ ...prev, [activeInputId]: currentVal + cleanVal }));
+                    
+                    // Keep focus on the input
+                    setTimeout(() => {
+                        const el = document.getElementById(activeInputId);
+                        if(el) {
+                            el.focus();
+                        }
+                    }, 0);
+                }
+            };
+
+            const toggleTeacher = () => {
+                if (teacherMode) {
+                    setTeacherMode(false);
+                } else {
+                    setShowLogin(true);
+                }
+            };
+
+            const attemptLogin = () => {
+                if (password.toLowerCase() === 'teacher') {
+                    setTeacherMode(true);
+                    setShowLogin(false);
+                    setPassword("");
+                } else {
+                    alert("Incorrect Password");
+                }
+            };
+
+            const autoFill = () => {
+                if (Object.keys(inputs).length > 5) {
+                    setInputs({});
+                } else {
+                    const autoClass = {};
+                    ASSET_ITEMS_2022.forEach(item => { autoClass[`class_${item.id}`] = item.correctType; });
+                    LIAB_EQ_ITEMS_2022.forEach(item => { autoClass[`class_${item.id}`] = item.correctType; });
+                    setInputs({...ANSWER_KEY, ...autoClass});
+                }
+            };
+
+            const generateDownloadFile = (nameToUse) => {
+                const lines = [];
+                lines.push("STUDENT ANSWERS - ILLINOIS TOOL WORKS CASE");
+                lines.push(`Student Name: ${nameToUse || "Not Provided"}`);
+                lines.push("======================================\n");
+                
+                Object.keys(inputs).forEach(key => {
+                    if (key.startsWith('class_')) return; 
+                    lines.push(`${key}: ${inputs[key]}`);
+                });
+                
+                const blob = new Blob([lines.join('\n')], { type: "text/plain" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = "FinSim_ITW_Answers.txt";
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            };
+
+            const handleDownloadClick = () => {
+                if (!studentName || !studentName.trim()) {
+                    setShowNamePrompt(true);
+                } else {
+                    generateDownloadFile(studentName);
+                }
+            };
+
+            return (
+                <div className="flex h-screen bg-slate-50">
+                    {/* SIDEBAR */}
+                    <div className="w-64 bg-slate-900 text-white flex flex-col shadow-2xl z-20 shrink-0">
+                        <div className="p-6 border-b border-slate-800">
+                            <h1 className="text-xl font-bold tracking-tight text-blue-400">FinSim<span className="text-white">Pro</span></h1>
+                            <p className="text-xs text-slate-400 mt-1">Case: Illinois Tool Works</p>
+                        </div>
+                        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+                            <button onClick={() => { setActiveModule('intro'); setShowDataPanel(false); }} className={`w-full flex items-center p-3 rounded-lg transition-all duration-200 ${activeModule === 'intro' ? 'bg-blue-600 shadow-lg shadow-blue-900/50' : 'hover:bg-slate-800 text-slate-300'}`}>
+                                <Icons.FileText /> <span className="ml-3 font-medium">10-K Research</span>
+                            </button>
+                            <button onClick={() => { setActiveModule('module1'); setShowDataPanel(false); }} className={`w-full flex items-center p-3 rounded-lg transition-all duration-200 ${activeModule === 'module1' ? 'bg-blue-600 shadow-lg shadow-blue-900/50' : 'hover:bg-slate-800 text-slate-300'}`}>
+                                <Icons.BookOpen /> <span className="ml-3 font-medium">Statements</span>
+                            </button>
+                            <button onClick={() => { setActiveModule('module2'); setShowDataPanel(false); }} className={`w-full flex items-center p-3 rounded-lg transition-all duration-200 ${activeModule === 'module2' ? 'bg-blue-600 shadow-lg shadow-blue-900/50' : 'hover:bg-slate-800 text-slate-300'}`}>
+                                <Icons.Link /> <span className="ml-3 font-medium">Articulation</span>
+                            </button>
+                            <button onClick={() => { setActiveModule('module3'); setShowDataPanel(false); }} className={`w-full flex items-center p-3 rounded-lg transition-all duration-200 ${activeModule === 'module3' ? 'bg-blue-600 shadow-lg shadow-blue-900/50' : 'hover:bg-slate-800 text-slate-300'}`}>
+                                <Icons.BarChart /> <span className="ml-3 font-medium">Common-Size</span>
+                            </button>
+                            <button onClick={() => { setActiveModule('module4'); setShowDataPanel(false); }} className={`w-full flex items-center p-3 rounded-lg transition-all duration-200 ${activeModule === 'module4' ? 'bg-blue-600 shadow-lg shadow-blue-900/50' : 'hover:bg-slate-800 text-slate-300'}`}>
+                                <Icons.PieChart /> <span className="ml-3 font-medium">Ratios & Cash</span>
+                            </button>
+                            
+                            <div className="pt-4 border-t border-slate-800 mt-4">
+                                <button onClick={() => setShowDataPanel(!showDataPanel)} className={`w-full flex items-center p-3 rounded-lg transition-all duration-200 ${showDataPanel ? 'bg-indigo-600 text-white shadow-lg' : 'hover:bg-slate-800 text-indigo-300'}`}>
+                                    <Icons.Database /> <span className="ml-3 font-medium">Reference Data</span>
+                                    <div className="ml-auto opacity-50"><Icons.ChevronRight /></div>
+                                </button>
+                            </div>
+                        </nav>
+                        
+                        {/* Footer Actions */}
+                        <div className="p-4 border-t border-slate-800 space-y-3">
+                            <input 
+                                type="text" 
+                                value={studentName}
+                                onChange={(e) => setStudentName(e.target.value)}
+                                placeholder="Enter Your Name"
+                                className="w-full p-2 rounded bg-slate-800 border border-slate-700 text-white text-sm placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            />
+                            <button onClick={handleDownloadClick} className="w-full flex items-center justify-center p-2 rounded bg-green-600 hover:bg-green-500 text-white text-sm transition font-bold shadow">
+                                <Icons.Download /> <span className="ml-2">Download Answers</span>
+                            </button>
+                            <button onClick={() => setShowCalc(!showCalc)} className="w-full flex items-center justify-center p-2 rounded bg-slate-800 hover:bg-slate-700 text-sm transition">
+                                <Icons.Calculator /> <span className="ml-2">Calculator</span>
+                            </button>
+                            <button onClick={toggleTeacher} className={`w-full flex items-center justify-center p-2 rounded text-sm transition ${teacherMode ? 'bg-yellow-600 hover:bg-yellow-500 text-white' : 'bg-transparent text-slate-500 hover:text-slate-300'}`}>
+                                {teacherMode ? <Icons.Unlock /> : <Icons.Lock />} <span className="ml-2">{teacherMode ? 'Teacher Mode' : 'Instructor'}</span>
+                            </button>
+                            {teacherMode && (
+                                <button onClick={autoFill} className="w-full text-center text-xs text-yellow-500 hover:text-yellow-400 underline">
+                                    {Object.keys(inputs).length > 5 ? 'Clear All' : 'Auto-Fill Answers'}
+                                </button>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* REFERENCE DATA PANEL (Slide-out) */}
+                    {showDataPanel && (
+                        <div className="w-96 bg-slate-50 border-r border-slate-200 shadow-xl overflow-y-auto z-10 custom-scrollbar flex flex-col animate-fade-in transition-all">
+                             <div className="p-4 bg-white border-b border-slate-200 sticky top-0 z-10 flex justify-between items-center">
+                                <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                                    <Icons.Database /> Case Exhibits
+                                </h3>
+                                <button onClick={() => setShowDataPanel(false)} className="text-slate-400 hover:text-red-500">
+                                    <Icons.X />
+                                </button>
+                            </div>
+                            <div className="p-4 space-y-4">
+                                <div className="space-y-1">
+                                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Illinois Tool Works</h4>
+                                    <DataAccordion dataKey="itw_bs" onValueClick={handleGlobalValueClick} />
+                                    <DataAccordion dataKey="itw_is" onValueClick={handleGlobalValueClick} />
+                                    <DataAccordion dataKey="itw_scf" onValueClick={handleGlobalValueClick} />
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* MAIN CONTENT AREA */}
+                    <div className="flex-1 overflow-y-auto bg-slate-50">
+                        {/* Top Bar */}
+                        <header className="bg-white border-b border-slate-200 h-16 flex items-center justify-between px-8 sticky top-0 z-10 shadow-sm">
+                            <div className="flex items-center text-slate-500 text-sm">
+                                <span className="font-semibold text-slate-800">Case Study</span>
+                                <Icons.ChevronRight />
+                                <span>
+                                    {activeModule === 'intro' ? '10-K Research' : 
+                                     activeModule === 'module1' ? 'Financial Statements' : 
+                                     activeModule === 'module2' ? 'Articulation' :
+                                     activeModule === 'module3' ? 'Common-Size' : 'Cash Flow & Val'}
+                                </span>
+                            </div>
+                            <div className="text-xs text-slate-400">
+                                {Object.keys(inputs).length} fields filled
+                            </div>
+                        </header>
+
+                        <main className="p-8">
+                            {activeModule === 'intro' && <ModuleIntro inputs={inputs} handleInputChange={handleInputChange} teacherMode={teacherMode} onFocus={handleInputFocus} activeInputId={activeInputId} />}
+                            {activeModule === 'module1' && <Module1 inputs={inputs} handleInputChange={handleInputChange} teacherMode={teacherMode} onFocus={handleInputFocus} activeInputId={activeInputId} />}
+                            {activeModule === 'module2' && <ModuleArticulation inputs={inputs} handleInputChange={handleInputChange} teacherMode={teacherMode} onFocus={handleInputFocus} activeInputId={activeInputId} />}
+                            {activeModule === 'module3' && <Module3 inputs={inputs} handleInputChange={handleInputChange} teacherMode={teacherMode} onFocus={handleInputFocus} activeInputId={activeInputId} onValueClick={handleGlobalValueClick} />}
+                            {activeModule === 'module4' && <Module4 inputs={inputs} handleInputChange={handleInputChange} teacherMode={teacherMode} onFocus={handleInputFocus} activeInputId={activeInputId} />}
+                        </main>
+                    </div>
+
+                    {/* OVERLAYS */}
+                    {showCalc && <Calculator onClose={() => setShowCalc(false)} />}
+                    
+                    {/* Teacher Login Modal */}
+                    {showLogin && (
+                        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+                            <div className="bg-white p-6 rounded-xl shadow-2xl w-80">
+                                <h3 className="text-lg font-bold mb-4 text-slate-800">Instructor Access</h3>
+                                <input 
+                                    type="password" 
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    placeholder="Enter password"
+                                    className="w-full border border-slate-300 rounded p-2 mb-4 focus:ring-2 focus:ring-blue-500 outline-none"
+                                    onKeyDown={(e) => e.key === 'Enter' && attemptLogin()}
+                                />
+                                <div className="flex justify-end gap-2">
+                                    <button onClick={() => setShowLogin(false)} className="px-3 py-1 text-sm text-slate-500 hover:bg-slate-100 rounded">Cancel</button>
+                                    <button onClick={attemptLogin} className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700">Login</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Student Name Prompt Modal */}
+                    {showNamePrompt && (
+                        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in">
+                            <div className="bg-white p-8 rounded-xl shadow-2xl w-96 transform transition-all scale-100">
+                                <div className="mb-4 text-center">
+                                    <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 mb-4">
+                                        <Icons.FileText />
+                                    </div>
+                                    <h3 className="text-xl font-bold text-slate-800">Enter Your Name</h3>
+                                    <p className="text-sm text-slate-500 mt-2">Please enter your name to identify your work on the downloaded answer sheet.</p>
+                                </div>
+                                <input 
+                                    type="text" 
+                                    value={studentName}
+                                    onChange={(e) => setStudentName(e.target.value)}
+                                    placeholder="Your Full Name"
+                                    className="w-full p-3 border border-slate-300 rounded-lg mb-6 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-center font-medium"
+                                    autoFocus
+                                />
+                                <div className="flex flex-col gap-3">
+                                    <button 
+                                        onClick={() => {
+                                            if (studentName.trim()) {
+                                                generateDownloadFile(studentName);
+                                                setShowNamePrompt(false);
+                                            } else {
+                                                alert("Please enter a name.");
+                                            }
+                                        }} 
+                                        className="w-full py-3 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition shadow-lg hover:shadow-xl"
+                                    >
+                                        Save & Download
+                                    </button>
+                                    <button 
+                                        onClick={() => setShowNamePrompt(false)} 
+                                        className="w-full py-2 text-slate-500 hover:text-slate-700 text-sm font-medium hover:bg-slate-50 rounded-lg transition"
+                                    >
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

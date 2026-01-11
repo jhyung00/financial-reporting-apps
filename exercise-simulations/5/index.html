@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Receivables Simulation: E5.49 & P5.53</title>
+    
+    <!-- Dependencies -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        /* Input Styles */
+        .input-base { transition: all 0.2s; outline: none; }
+        .input-correct { background-color: #f0fdf4; border-color: #22c55e; color: #15803d; font-weight: 600; }
+        .input-incorrect { background-color: #fef2f2; border-color: #ef4444; }
+        .input-neutral { background-color: #fff; border-color: #cbd5e1; }
+        .input-neutral:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
+
+        /* Animations */
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fadeIn 0.3s ease-out; }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 h-screen overflow-hidden">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo, useRef } = React;
+
+        // --- DATA: WEISS COMPANY (E5.49) ---
+        const WEISS_DATA = {
+            metadata: { name: "Weiss Company", year: "Years 1-3" },
+            tables: [
+                {
+                    title: "Credit Sales Activity",
+                    headers: ["Year", "Credit Sales", "Collections", "Written Off"],
+                    rows: [
+                        ["Year 1", "733,000", "716,000", "5,300"],
+                        ["Year 2", "857,000", "842,000", "5,800"],
+                        ["Year 3", "945,000", "928,000", "6,500"]
+                    ]
+                },
+                {
+                    title: "Policy Information",
+                    headers: ["Policy", "Rate"],
+                    rows: [
+                        ["Bad Debt Estimation", "1% of Credit Sales"],
+                        ["Prior Allowance", "Zero at start of Year 1"]
+                    ]
+                }
+            ]
+        };
+
+        const WEISS_ANSWER_KEY = {
+            // Req (a)
+            "w_bd_exp_y1": "7330", "w_bd_exp_y2": "8570", "w_bd_exp_y3": "9450",
+            // Req (b) - Gross AR
+            "w_gross_y1": "11700", "w_gross_y2": "20900", "w_gross_y3": "31400",
+            // Req (b) - Allowance
+            "w_allow_y1": "2030", "w_allow_y2": "4800", "w_allow_y3": "7750",
+            // Req (b) - Net AR
+            "w_net_y1": "9670", "w_net_y2": "16100", "w_net_y3": "23650",
+            // Req (c)
+            "w_concl": "The 1% bad debt rate appears to be too high."
+        };
+
+        const WEISS_QUESTIONS = [
+            {
+                id: "wq1", title: "Requirement (a): Bad Debt Expense", desc: "Calculate expense recognized each year (1% of sales).",
+                sections: [
+                    { subtitle: "Bad Debt Expense", fields: [
+                        { id: "w_bd_exp_y1", label: "Year 1 Expense", type: "currency", hint: "Sales Y1 * 1%" },
+                        { id: "w_bd_exp_y2", label: "Year 2 Expense", type: "currency", hint: "Sales Y2 * 1%" },
+                        { id: "w_bd_exp_y3", label: "Year 3 Expense", type: "currency", hint: "Sales Y3 * 1%" }
+                    ]}
+                ]
+            },
+            {
+                id: "wq2", title: "Requirement (b): Balance Sheet Accounts", desc: "Compute ending balances. (Beg + Additions - Deductions)",
+                sections: [
+                    { subtitle: "Accounts Receivable, Gross", fields: [
+                        { id: "w_gross_y1", label: "Year 1 Gross", type: "currency", hint: "Sales - Coll - WriteOff" },
+                        { id: "w_gross_y2", label: "Year 2 Gross", type: "currency", hint: "Beg + Sales - Coll - WO" },
+                        { id: "w_gross_y3", label: "Year 3 Gross", type: "currency", hint: "Beg + Sales - Coll - WO" }
+                    ]},
+                    { subtitle: "Allowance for Uncollectible Accts", fields: [
+                        { id: "w_allow_y1", label: "Year 1 Allowance", type: "currency", hint: "Exp - WriteOff" },
+                        { id: "w_allow_y2", label: "Year 2 Allowance", type: "currency", hint: "Beg + Exp - WriteOff" },
+                        { id: "w_allow_y3", label: "Year 3 Allowance", type: "currency", hint: "Beg + Exp - WriteOff" }
+                    ]},
+                    { subtitle: "Accounts Receivable, Net", fields: [
+                        { id: "w_net_y1", label: "Year 1 Net", type: "currency", hint: "Gross - Allowance" },
+                        { id: "w_net_y2", label: "Year 2 Net", type: "currency", hint: "Gross - Allowance" },
+                        { id: "w_net_y3", label: "Year 3 Net", type: "currency", hint: "Gross - Allowance" }
+                    ]}
+                ]
+            },
+            {
+                id: "wq3", title: "Requirement (c): Evaluation", desc: "Analyze the trend.",
+                sections: [
+                    { subtitle: "Conclusion", fields: [{ id: "w_concl", label: "Is the rate appropriate?", type: "text", fullWidth: true }] }
+                ]
+            }
+        ];
+
+        // --- DATA: LOLLAR INC (P5.53) ---
+        const LOLLAR_DATA = {
+            metadata: { name: "Lollar Inc.", year: "FY1 - FY3" },
+            tables: [
+                {
+                    title: "Financial Data ($ millions)",
+                    headers: ["Item", "FY3", "FY2", "FY1"],
+                    rows: [
+                        ["Accounts receivable, net", "280", "288", "252"],
+                        ["Allowance for uncollectible accts", "70", "32", "28"],
+                        ["Sales, net", "2,500", "2,300", "2,000"]
+                    ]
+                }
+            ]
+        };
+
+        const LOLLAR_ANSWER_KEY = {
+            // Req (a)
+            "l_gross_fy3": "350", "l_gross_fy2": "320", "l_gross_fy1": "280",
+            // Req (b)
+            "l_allow_pct_fy3": "20", "l_allow_pct_fy2": "10", "l_allow_pct_fy1": "10",
+            "l_obs": "The allowance as a percentage of AR (gross) increased in FY3. It appears the firm believes more accounts are uncollectible.",
+            // Req (c)
+            "l_dso_fy3": "41", "l_dso_fy2": "43",
+            "l_concl": "Collections improved during FY3 compared to FY2.",
+            // Req (d)
+            "l_restated_net": "315",
+            "l_restated_dso": "44",
+            "l_effect": "The increased allowance improved the DSO."
+        };
+
+        const LOLLAR_QUESTIONS = [
+            {
+                id: "lq1", title: "Req (a): Compute AR Gross", desc: "AR (gross) = AR (net) + Allowance",
+                sections: [
+                    { subtitle: "Accounts Receivable, Gross", fields: [
+                        { id: "l_gross_fy3", label: "FY3 Gross", type: "currency", hint: "Net + Allowance" },
+                        { id: "l_gross_fy2", label: "FY2 Gross", type: "currency", hint: "Net + Allowance" },
+                        { id: "l_gross_fy1", label: "FY1 Gross", type: "currency", hint: "Net + Allowance" }
+                    ]}
+                ]
+            },
+            {
+                id: "lq2", title: "Req (b): Allowance %", desc: "Allowance % = Allowance / AR Gross",
+                sections: [
+                    { subtitle: "Allowance % Calculation", fields: [
+                        { id: "l_allow_pct_fy3", label: "FY3 %", type: "percent", hint: "Allow / Gross" },
+                        { id: "l_allow_pct_fy2", label: "FY2 %", type: "percent", hint: "Allow / Gross" },
+                        { id: "l_allow_pct_fy1", label: "FY1 %", type: "percent", hint: "Allow / Gross" }
+                    ]},
+                    { subtitle: "Observation", fields: [{ id: "l_obs", label: "Trend Analysis", type: "text", fullWidth: true }] }
+                ]
+            },
+            {
+                id: "lq3", title: "Req (c): Days Sales Outstanding (DSO)", desc: "Use Average Net AR. Round to nearest day.",
+                sections: [
+                    { subtitle: "DSO Calculation", fields: [
+                        { id: "l_dso_fy3", label: "FY3 DSO", type: "decimal", hint: "(Avg Net AR / Sales) * 365" },
+                        { id: "l_dso_fy2", label: "FY2 DSO", type: "decimal", hint: "(Avg Net AR / Sales) * 365" }
+                    ]},
+                    { subtitle: "Conclusion", fields: [{ id: "l_concl", label: "Collection Performance", type: "text", fullWidth: true }] }
+                ]
+            },
+            {
+                id: "lq4", title: "Req (d): Restate FY3", desc: "Assume FY3 allowance % equals FY2 allowance % (10%). Recalculate Net AR and DSO.",
+                sections: [
+                    { subtitle: "Recalculation", fields: [
+                        { id: "l_restated_net", label: "Restated Net AR", type: "currency", hint: "Gross - (10% * Gross)" },
+                        { id: "l_restated_dso", label: "Restated DSO", type: "decimal", hint: "(Avg Restated Net / Sales) * 365" }
+                    ]},
+                    { subtitle: "Effect Analysis", fields: [{ id: "l_effect", label: "Effect of increased allowance", type: "text", fullWidth: true }] }
+                ]
+            }
+        ];
+
+        // --- COMPONENTS ---
+
+        const Icon = ({ name, size = 16, className = "" }) => {
+            const ref = useRef(null);
+            useEffect(() => {
+                if (window.lucide && ref.current) {
+                    ref.current.innerHTML = '';
+                    const i = document.createElement('i');
+                    i.setAttribute('data-lucide', name);
+                    ref.current.appendChild(i);
+                    window.lucide.createIcons({
+                        root: ref.current,
+                        nameAttr: 'data-lucide',
+                        attrs: { width: size, height: size, "stroke-width": 2 }
+                    });
+                }
+            }, [name, size]);
+            return <span ref={ref} className={`inline-flex items-center justify-center ${className}`} style={{ width: size, height: size }}></span>;
+        };
+
+        const ConfirmationModal = ({ isOpen, title, message, onConfirm, onCancel }) => {
+            if (!isOpen) return null;
+            return (
+                <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center backdrop-blur-sm animate-fade-in">
+                    <div className="bg-white rounded-lg shadow-2xl max-w-sm w-full p-6 m-4">
+                        <div className="flex items-center gap-3 text-red-600 mb-4">
+                            <Icon name="alert-triangle" size={24} />
+                            <h3 className="text-lg font-bold">{title}</h3>
+                        </div>
+                        <p className="text-slate-600 mb-6">{message}</p>
+                        <div className="flex justify-end gap-3">
+                            <button onClick={onCancel} className="px-4 py-2 text-slate-600 font-medium hover:bg-slate-100 rounded-lg">Cancel</button>
+                            <button onClick={onConfirm} className="px-4 py-2 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700">Confirm</button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const SmartInput = ({ id, value, onChange, correctValue, label, type, hint, instructorMode, activeInput, setActiveInput }) => {
+            const [localError, setLocalError] = useState(null);
+            
+            const evaluateMath = (expr) => {
+                if (!expr) return { valid: true, val: "" };
+                try {
+                    const sanitized = expr.toString().replace(/,/g, '').replace(/%/g, '/100');
+                    if (!/^[\d\.\+\-\*\/\(\)\s]+$/.test(sanitized)) return { valid: false, msg: "Invalid characters" };
+                    const res = eval(sanitized);
+                    if (!isFinite(res) || isNaN(res)) return { valid: false, msg: "Math Error" };
+                    return { valid: true, val: res };
+                } catch (e) {
+                    return { valid: false, msg: "Syntax Error" };
+                }
+            };
+
+            const isCorrect = useMemo(() => {
+                if (!value || !correctValue) return false;
+                if (type === 'text') {
+                    const cleanVal = value.toString().trim().toLowerCase().replace(/[.,]$/, ""); 
+                    const cleanKey = correctValue.toString().trim().toLowerCase().replace(/[.,]$/, "");
+                    return cleanVal === cleanKey || cleanVal.includes(cleanKey) || cleanKey.includes(cleanVal);
+                }
+                const { valid, val } = evaluateMath(value);
+                if (!valid) return false;
+                
+                const target = parseFloat(correctValue.replace(/,/g, ''));
+                let inputNum = parseFloat(val);
+                // Slightly looser tolerance for integers vs percentages
+                const tolerance = type === 'percent' ? 0.1 : Math.max(Math.abs(target * 0.02), 0.5); 
+
+                if (type === 'percent') {
+                    if (Math.abs(inputNum - target) <= tolerance) return true;
+                    if (Math.abs((inputNum * 100) - target) <= tolerance) return true;
+                    return false;
+                } else {
+                    return Math.abs(inputNum - target) <= tolerance;
+                }
+            }, [value, correctValue, type]);
+
+            const handleBlur = (e) => {
+                if (type === 'text') return;
+                const { valid, val } = evaluateMath(value);
+                if (!valid) { setLocalError("Invalid Math"); return; }
+                setLocalError(null);
+                if (valid && value !== "") {
+                     const numVal = Number(val);
+                     let displayVal = numVal;
+                     if (type === 'percent') {
+                        if (Math.abs(numVal) < 1 && parseFloat(correctValue) > 1) { displayVal = (numVal * 100).toFixed(2); } 
+                        else { displayVal = numVal.toFixed(2); }
+                     } else {
+                        // Integer for non-decimals
+                        displayVal = Number.isInteger(numVal) ? numVal.toString() : numVal.toFixed(2);
+                     }
+                     onChange(id, displayVal.toString()); 
+                }
+            };
+
+            const isActive = activeInput === id;
+
+            return (
+                <div className="mb-4 w-full">
+                    <label className="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">{label}</label>
+                    <div className="flex gap-2 items-start">
+                        <div className="relative flex-grow">
+                            {type === 'text' && correctValue.length > 50 ? (
+                                <textarea 
+                                    id={id}
+                                    value={value || ""}
+                                    onChange={(e) => { setLocalError(null); onChange(id, e.target.value); }}
+                                    onFocus={() => setActiveInput(id)}
+                                    className={`w-full p-3 border rounded-lg font-sans text-sm shadow-sm transition-all h-24 ${
+                                        isCorrect ? "input-correct" : (value && !isActive && !isCorrect) ? "input-incorrect" : "input-neutral"
+                                    }`}
+                                    placeholder="Enter interpretation..."
+                                />
+                            ) : (
+                                <input 
+                                    type="text" 
+                                    id={id}
+                                    value={value || ""}
+                                    onChange={(e) => { setLocalError(null); onChange(id, e.target.value); }}
+                                    onFocus={() => setActiveInput(id)}
+                                    onBlur={handleBlur}
+                                    onKeyDown={(e) => e.key === 'Enter' && e.target.blur()}
+                                    className={`w-full p-3 pr-10 border rounded-lg font-mono text-sm shadow-sm transition-all ${
+                                        isCorrect ? "input-correct" : (value && !isActive && !isCorrect) ? "input-incorrect" : "input-neutral"
+                                    }`}
+                                    placeholder={type === 'text' ? "Type answer..." : "Calculate..."}
+                                />
+                            )}
+                            <div className="absolute right-3 top-3 text-slate-400 pointer-events-none">
+                                {isCorrect ? <span className="text-green-600"><Icon name="check-circle" size={18} /></span> : 
+                                localError ? <span className="text-red-500 font-bold">!</span> :
+                                type !== 'text' && <Icon name="calculator" size={16} />}
+                            </div>
+                        </div>
+                        {hint && (
+                            <div className="w-1/3 shrink-0 bg-blue-50 border border-blue-100 rounded p-2 flex flex-col justify-center min-h-[46px]">
+                                <span className="text-[10px] text-blue-500 font-bold uppercase tracking-wider block mb-0.5">Formula</span>
+                                <span className="text-xs text-blue-800 font-medium leading-tight">{hint}</span>
+                            </div>
+                        )}
+                    </div>
+                    {localError && <p className="text-xs text-red-500 mt-1">{localError}</p>}
+                    {instructorMode && (
+                        <div className="mt-1 bg-purple-100 border border-purple-200 text-purple-800 text-xs p-1 rounded font-mono animate-fade-in flex items-start gap-2">
+                            <span className="mt-0.5"><Icon name="key" size={12} /></span> 
+                            <span className="break-words w-full">Key: {correctValue}</span>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const ReferenceTable = ({ title, headers, rows, onValueClick }) => {
+            const [isOpen, setIsOpen] = useState(false);
+            return (
+                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mb-4">
+                    <button onClick={() => setIsOpen(!isOpen)} className="w-full flex items-center justify-between p-3 bg-slate-50 border-b border-slate-100 hover:bg-slate-100 transition">
+                        <h4 className="font-bold text-slate-700 text-sm flex items-center gap-2">
+                            <Icon name="table" size={16} /> {title}
+                        </h4>
+                        <Icon name={isOpen ? "chevron-up" : "chevron-down"} size={16} />
+                    </button>
+                    {isOpen && (
+                        <div className="overflow-x-auto max-h-64">
+                            <table className="w-full text-xs text-left">
+                                <thead className="bg-slate-50 text-slate-500 uppercase tracking-wider sticky top-0">
+                                    <tr>{headers.map((h, i) => <th key={i} className={`p-2 border-b font-medium ${i > 0 ? "text-right" : ""}`}>{h}</th>)}</tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100">
+                                    {rows.map((row, rI) => (
+                                        <tr key={rI} className="hover:bg-blue-50 transition-colors group">
+                                            <td className="p-2 font-medium text-slate-700">{row[0]}</td>
+                                            {row.slice(1).map((cell, cI) => (
+                                                <td key={cI} onClick={() => onValueClick(cell)} className="p-2 text-right font-mono text-slate-600 cursor-pointer hover:text-blue-700 hover:font-bold decoration-dotted" title="Insert">{cell}</td>
+                                            ))}
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const App = () => {
+            const [activeTab, setActiveTab] = useState('weiss'); // 'weiss' or 'lollar'
+            const [inputs, setInputs] = useState({});
+            const [activeInput, setActiveInput] = useState(null);
+            
+            // Instructor State
+            const [instructorMode, setInstructorMode] = useState(false);
+            const [showLogin, setShowLogin] = useState(false);
+            const [password, setPassword] = useState("");
+            const [clearModalOpen, setClearModalOpen] = useState(false);
+            
+            // Hash Tool
+            const [hashInput, setHashInput] = useState("");
+            const [verifiedResult, setVerifiedResult] = useState(null);
+            const [studentName, setStudentName] = useState("");
+            const [showDownload, setShowDownload] = useState(false);
+
+            const activeData = activeTab === 'weiss' ? WEISS_DATA : LOLLAR_DATA;
+            const activeQuestions = activeTab === 'weiss' ? WEISS_QUESTIONS : LOLLAR_QUESTIONS;
+            const activeKey = activeTab === 'weiss' ? WEISS_ANSWER_KEY : LOLLAR_ANSWER_KEY;
+
+            const handleInputChange = (id, val) => setInputs(prev => ({ ...prev, [id]: val }));
+
+            const handleValueClick = (val) => {
+                if (!activeInput) return;
+                const cleanVal = val.replace(/,/g, '').replace(/[()]/g, (m) => m === '(' ? '-' : '');
+                setInputs(prev => {
+                    const cur = prev[activeInput] || "";
+                    const isOperator = /[+\-*/(]$/.test(cur.trim());
+                    const newVal = (cur === "" || isOperator) ? cur + cleanVal : cleanVal;
+                    return { ...prev, [activeInput]: newVal };
+                });
+                setTimeout(() => document.getElementById(activeInput)?.focus(), 50);
+            };
+
+            const unlockInstructor = () => {
+                if (password.toLowerCase() === "teacher") {
+                    setInstructorMode(true);
+                    setShowLogin(false);
+                    setPassword("");
+                } else {
+                    alert("Incorrect Password");
+                }
+            };
+
+            const handleAutoFill = () => {
+                setInputs(prev => ({ ...prev, ...activeKey }));
+            };
+
+            const handleClearConfirm = () => {
+                setInputs({});
+                setClearModalOpen(false);
+                setInstructorMode(false); 
+            };
+
+            const verifyHash = () => {
+                try {
+                    const decoded = atob(hashInput);
+                    const data = JSON.parse(decoded);
+                    setVerifiedResult(data);
+                } catch (e) {
+                    setVerifiedResult({ error: "Invalid Hash" });
+                }
+            };
+
+            const handleDownload = () => {
+                const timestamp = new Date().toLocaleString();
+                let correctCount = 0;
+                let totalCount = 0;
+                
+                Object.keys(activeKey).forEach(key => {
+                    totalCount++;
+                    const userVal = (inputs[key] || "").toString().trim().toLowerCase();
+                    const keyVal = (activeKey[key] || "").toString().trim().toLowerCase();
+                    let isCorrect = false;
+                    
+                    if(!isNaN(parseFloat(keyVal)) && !isNaN(parseFloat(userVal.replace(/,/g,'')))) {
+                         const u = parseFloat(userVal.replace(/,/g,''));
+                         const k = parseFloat(keyVal);
+                         if (Math.abs(u-k) < Math.max(k*0.02, 0.5)) isCorrect = true;
+                    } else {
+                        if (userVal === keyVal || userVal.includes(keyVal)) isCorrect = true;
+                    }
+                    if (isCorrect) correctCount++;
+                });
+                
+                const verificationHash = btoa(JSON.stringify({ name: studentName, score: `${correctCount}/${totalCount}`, date: new Date().toISOString(), module: activeTab }));
+
+                const content = `
+FINANCIAL SIMULATION REPORT: ${activeTab.toUpperCase()}
+-------------------------------------
+Student: ${studentName}
+Date: ${timestamp}
+Score: ${correctCount} / ${totalCount}
+Verification Hash: ${verificationHash}
+
+ANSWERS SUBMITTED (${activeTab}):
+-------------------------------------
+${Object.keys(activeKey).map(k => `${k}: ${inputs[k] || "[Empty]"}`).join('\n')}
+                `.trim();
+
+                const blob = new Blob([content], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${studentName.replace(/\s+/g, '_')}_${activeTab}_Submission.txt`;
+                a.click();
+                setShowDownload(false);
+            };
+
+            return (
+                <div className="flex h-screen bg-slate-100 overflow-hidden font-sans">
+                    
+                    {/* LEFT SIDEBAR: REFERENCE */}
+                    <div className="w-1/3 min-w-[350px] bg-slate-50 border-r border-slate-200 overflow-y-auto custom-scrollbar flex flex-col relative z-0">
+                        <div className="sticky top-0 bg-white p-4 border-b border-slate-200 shadow-sm z-10">
+                            <div className="flex items-center gap-2 text-blue-800 font-bold text-lg mb-1">
+                                <Icon name="library" /> Reference Data
+                            </div>
+                            <p className="text-xs text-slate-500 font-bold uppercase tracking-wider">{activeData.metadata.name}</p>
+                            <p className="text-xs text-blue-600 mt-1 flex items-center gap-1">
+                                <Icon name="mouse-pointer-click" size={12} /> Click values to insert
+                            </p>
+                        </div>
+                        <div className="p-4 space-y-2">
+                            {activeData.tables.map((tbl, i) => (
+                                <ReferenceTable 
+                                    key={i}
+                                    title={tbl.title} 
+                                    headers={tbl.headers} 
+                                    rows={tbl.rows} 
+                                    onValueClick={handleValueClick} 
+                                />
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* MAIN CONTENT */}
+                    <div className="flex-1 flex flex-col h-screen overflow-hidden relative">
+                        
+                        {/* TOP NAV TABS */}
+                        <div className="bg-slate-800 text-white flex shrink-0">
+                            <button 
+                                onClick={() => setActiveTab('weiss')}
+                                className={`flex-1 py-3 text-sm font-bold flex items-center justify-center gap-2 transition-colors ${activeTab === 'weiss' ? 'bg-blue-600 text-white' : 'hover:bg-slate-700 text-slate-400'}`}
+                            >
+                                <Icon name="calculator" size={16} /> Weiss Company (E5.49)
+                            </button>
+                            <button 
+                                onClick={() => setActiveTab('lollar')}
+                                className={`flex-1 py-3 text-sm font-bold flex items-center justify-center gap-2 transition-colors ${activeTab === 'lollar' ? 'bg-blue-600 text-white' : 'hover:bg-slate-700 text-slate-400'}`}
+                            >
+                                <Icon name="bar-chart-big" size={16} /> Lollar Inc. (P5.53)
+                            </button>
+                        </div>
+
+                        {/* INSTRUCTOR TOOLBAR (STICKY) */}
+                        {instructorMode && (
+                            <div className="bg-purple-700 text-white p-2 shadow-md flex items-center justify-between z-20 animate-fade-in shrink-0">
+                                <div className="flex items-center gap-3 px-4">
+                                    <span className="bg-white/20 p-1.5 rounded"><Icon name="graduation-cap" /></span>
+                                    <span className="font-bold tracking-wide">INSTRUCTOR MODE</span>
+                                </div>
+                                <div className="flex gap-2 px-4">
+                                    <button onClick={handleAutoFill} className="flex items-center gap-2 px-3 py-1 bg-green-500 hover:bg-green-600 rounded text-sm font-bold transition">
+                                        <Icon name="wand-2" size={14} /> Auto-Fill Tab
+                                    </button>
+                                    <button onClick={() => setClearModalOpen(true)} className="flex items-center gap-2 px-3 py-1 bg-red-500 hover:bg-red-600 rounded text-sm font-bold transition">
+                                        <Icon name="log-out" size={14} /> Clear & Exit
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* HEADER */}
+                        <header className="bg-white border-b border-slate-200 p-6 flex justify-between items-center shrink-0">
+                            <div>
+                                <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+                                    <Icon name="file-spreadsheet" className="text-blue-600" /> {activeData.metadata.name}
+                                </h1>
+                                <p className="text-slate-500 text-sm mt-1">Estimating Uncollectible Accounts & Receivables Analysis</p>
+                            </div>
+                            <div className="flex gap-3">
+                                <button onClick={() => setShowDownload(true)} className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold shadow-sm transition">
+                                    <Icon name="save" size={18} /> Save Work
+                                </button>
+                                {!instructorMode && (
+                                    <button onClick={() => setShowLogin(true)} className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-medium transition border border-slate-300">
+                                        <Icon name="lock" size={16} /> Instructor
+                                    </button>
+                                )}
+                            </div>
+                        </header>
+
+                        {/* SCROLLABLE FORM AREA */}
+                        <main className="flex-1 overflow-y-auto custom-scrollbar bg-slate-50/50 p-8 pb-20">
+                            <div className="max-w-4xl mx-auto space-y-8">
+                                {activeQuestions.map((q) => (
+                                    <div key={q.id} className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 animate-fade-in">
+                                        <h2 className="text-lg font-bold text-slate-800 mb-2 border-b pb-2 flex items-center gap-2">
+                                            <span className="bg-blue-100 text-blue-700 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold">{q.id.replace(/^(wq|lq)/,'')}</span>
+                                            {q.title}
+                                        </h2>
+                                        <p className="text-sm text-slate-500 mb-6 italic">{q.desc}</p>
+                                        
+                                        {q.sections && q.sections.map((sec, idx) => (
+                                            <div key={idx} className="mb-6 last:mb-0 bg-slate-50 p-4 rounded-lg border border-slate-100">
+                                                <h3 className="font-bold text-slate-700 mb-4 text-sm uppercase">{sec.subtitle}</h3>
+                                                <div className={`grid gap-4 ${sec.fields.some(f => f.fullWidth) ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'}`}>
+                                                    {sec.fields.map(f => (
+                                                        <SmartInput 
+                                                            key={f.id}
+                                                            id={f.id}
+                                                            label={f.label}
+                                                            type={f.type}
+                                                            hint={f.hint}
+                                                            value={inputs[f.id]}
+                                                            onChange={handleInputChange}
+                                                            correctValue={activeKey[f.id]}
+                                                            instructorMode={instructorMode}
+                                                            activeInput={activeInput}
+                                                            setActiveInput={setActiveInput}
+                                                        />
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ))}
+
+                                {/* Instructor Only: Hash Verification Tool */}
+                                {instructorMode && (
+                                    <div className="bg-slate-800 rounded-xl shadow-lg border border-slate-700 p-6 text-slate-200 mt-12">
+                                        <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                                            <Icon name="shield-check" className="text-green-400" /> Verification Tool
+                                        </h3>
+                                        <div className="flex gap-4 items-start">
+                                            <div className="flex-1">
+                                                <label className="text-xs font-bold text-slate-400 mb-1 block">PASTE STUDENT HASH</label>
+                                                <textarea 
+                                                    className="w-full bg-slate-900 border-slate-700 rounded p-2 text-xs font-mono text-green-400 focus:ring-1 focus:ring-green-500 outline-none"
+                                                    rows="3"
+                                                    placeholder="Paste base64 hash string here..."
+                                                    value={hashInput}
+                                                    onChange={(e) => setHashInput(e.target.value)}
+                                                ></textarea>
+                                            </div>
+                                            <button 
+                                                onClick={verifyHash}
+                                                className="mt-6 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded font-bold text-sm"
+                                            >
+                                                Verify
+                                            </button>
+                                        </div>
+                                        {verifiedResult && (
+                                            <div className="mt-4 p-4 bg-slate-900 rounded border border-slate-700">
+                                                {verifiedResult.error ? (
+                                                    <p className="text-red-400 font-bold flex items-center gap-2"><Icon name="x-circle" /> {verifiedResult.error}</p>
+                                                ) : (
+                                                    <div className="grid grid-cols-2 gap-4 text-sm">
+                                                        <div><span className="text-slate-500">Student:</span> <span className="text-white font-bold">{verifiedResult.name}</span></div>
+                                                        <div><span className="text-slate-500">Score:</span> <span className="text-green-400 font-bold">{verifiedResult.score}</span></div>
+                                                        <div><span className="text-slate-500">Date:</span> <span className="text-slate-300">{new Date(verifiedResult.date).toLocaleString()}</span></div>
+                                                        <div><span className="text-slate-500">Module:</span> <span className="text-blue-400 font-bold uppercase">{verifiedResult.module}</span></div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        </main>
+                    </div>
+
+                    {/* MODALS */}
+                    
+                    {/* Login Modal */}
+                    {showLogin && (
+                        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center animate-fade-in">
+                            <div className="bg-white p-6 rounded-xl shadow-2xl w-80 transform transition-all">
+                                <h3 className="font-bold text-lg mb-4 text-slate-800 flex items-center gap-2">
+                                    <Icon name="lock" size={20} className="text-blue-600" /> Instructor Access
+                                </h3>
+                                <input 
+                                    type="password" 
+                                    className="w-full border p-3 rounded-lg mb-4 outline-none focus:border-blue-500" 
+                                    placeholder="Enter password"
+                                    value={password} 
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    onKeyDown={(e) => e.key === 'Enter' && unlockInstructor()}
+                                    autoFocus
+                                />
+                                <div className="flex justify-end gap-2">
+                                    <button onClick={() => setShowLogin(false)} className="px-4 py-2 text-slate-500 hover:bg-slate-100 rounded-lg text-sm font-medium">Cancel</button>
+                                    <button onClick={unlockInstructor} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-bold">Unlock</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Download Modal */}
+                    {showDownload && (
+                        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center animate-fade-in">
+                            <div className="bg-white p-8 rounded-xl shadow-2xl w-96">
+                                <div className="text-center mb-6">
+                                    <div className="bg-blue-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 text-blue-600">
+                                        <Icon name="download-cloud" size={24} />
+                                    </div>
+                                    <h3 className="text-xl font-bold text-slate-800">Submit Assignment</h3>
+                                    <p className="text-slate-500 text-sm mt-1">Enter your name to generate your submission file.</p>
+                                </div>
+                                <input 
+                                    type="text" 
+                                    value={studentName} 
+                                    onChange={(e) => setStudentName(e.target.value)} 
+                                    placeholder="Your Full Name" 
+                                    className="w-full p-3 border border-slate-300 rounded-lg mb-4 text-center focus:border-blue-500 outline-none font-bold text-slate-700"
+                                    autoFocus 
+                                />
+                                <div className="flex flex-col gap-2">
+                                    <button 
+                                        onClick={() => studentName.trim() ? handleDownload() : alert("Name required")} 
+                                        className="w-full py-3 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition flex items-center justify-center gap-2"
+                                    >
+                                        Download Submission
+                                    </button>
+                                    <button onClick={() => setShowDownload(false)} className="w-full py-2 text-slate-500 hover:bg-slate-50 rounded-lg text-sm">Cancel</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Clear Confirmation Modal */}
+                    <ConfirmationModal 
+                        isOpen={clearModalOpen}
+                        title="Clear All & Exit?"
+                        message="This will remove all student answers and lock Instructor Mode. This action cannot be undone."
+                        onConfirm={handleClearConfirm}
+                        onCancel={() => setClearModalOpen(false)}
+                    />
+
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DuPont Disaggregation - Illinois Tool Works</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+        .input-correct { @apply bg-green-50 border-green-500 text-green-700; }
+        .input-incorrect { @apply bg-white border-gray-300; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        .clickable-cell {
+            cursor: pointer;
+            transition: all 0.1s ease;
+            user-select: none;
+        }
+        .clickable-cell:hover {
+            background-color: #dbeafe;
+            color: #1e40af;
+            font-weight: 700;
+            box-shadow: inset 0 0 0 1px #3b82f6;
+        }
+        .clickable-cell:active { background-color: #93c5fd; }
+        
+        .active-input-ring {
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.4);
+            border-color: #3b82f6;
+        }
+
+        .toggle-btn { transition: all 0.2s; }
+        .toggle-op { background-color: #dcfce7; color: #166534; border-color: #86efac; }
+        .toggle-nonop { background-color: #f3f4f6; color: #4b5563; border-color: #d1d5db; }
+        
+        /* Modal Animation */
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .animate-fade-in { animation: fadeIn 0.2s ease-out; }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 h-screen overflow-hidden">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo, useRef } = React;
+
+        // --- ICONS ---
+        const Icons = {
+            Database: () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>,
+            Check: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
+            ChevronDown: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>,
+            HelpCircle: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>,
+            Info: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>,
+            Lock: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>,
+            Unlock: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>,
+            Download: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        };
+
+        // --- DATA ---
+        
+        // 2022 & 2021 Data for Classification
+        const CLASSIFICATION_ITEMS = [
+            { id: "cash", label: "Cash and equivalents", val22: 708, val21: 1527, type: "asset", correct: "non-op" },
+            { id: "ar", label: "Trade receivables", val22: 3171, val21: 2840, type: "asset", correct: "op" },
+            { id: "inv", label: "Inventories", val22: 2054, val21: 1694, type: "asset", correct: "op" },
+            { id: "pre", label: "Prepaid expenses & other", val22: 329, val21: 313, type: "asset", correct: "op" },
+            { id: "hfs", label: "Assets held for sale", val22: 8, val21: 0, type: "asset", correct: "non-op" },
+            { id: "ppe", label: "Net plant and equipment", val22: 1848, val21: 1809, type: "asset", correct: "op" },
+            { id: "good", label: "Goodwill", val22: 4864, val21: 4965, type: "asset", correct: "op" },
+            { id: "int", label: "Intangible assets", val22: 768, val21: 972, type: "asset", correct: "op" },
+            { id: "other_a", label: "Other assets", val22: 1672, val21: 1957, type: "asset", correct: "op" },
+            
+            { id: "st_debt", label: "Short-term debt", val22: 1590, val21: 778, type: "liab", correct: "non-op" },
+            { id: "ap", label: "Accounts payable", val22: 594, val21: 585, type: "liab", correct: "op" },
+            { id: "acc", label: "Accrued expenses", val22: 1673, val21: 1587, type: "liab", correct: "op" },
+            { id: "lease_st", label: "Lease liabs (Current)", val22: 55, val21: 61, type: "liab", correct: "non-op" },
+            { id: "div", label: "Cash dividends payable", val22: 400, val21: 382, type: "liab", correct: "non-op" },
+            { id: "tax_st", label: "Income taxes payable", val22: 147, val21: 77, type: "liab", correct: "op" },
+            { id: "hfs_l", label: "Liabilities held for sale", val22: 1, val21: 0, type: "liab", correct: "non-op" },
+            { id: "lt_debt", label: "Long-term debt", val22: 6173, val21: 6909, type: "liab", correct: "non-op" },
+            { id: "def_tax", label: "Deferred income taxes", val22: 484, val21: 654, type: "liab", correct: "op" },
+            { id: "tax_lt", label: "Noncurrent income taxes", val22: 273, val21: 365, type: "liab", correct: "op" },
+            { id: "lease_lt", label: "Lease liabs (Long-term)", val22: 131, val21: 133, type: "liab", correct: "non-op" },
+            { id: "other_l", label: "Other liabilities", val22: 812, val21: 920, type: "liab", correct: "op" },
+        ];
+
+        const CASE_DATA = {
+            bs: {
+                title: "Consolidated Balance Sheet",
+                headers: ["Item", "2022", "2021", "2020"],
+                rows: [
+                    ["Total Current Assets", "6,270", "6,374", "6,500"],
+                    ["Net Plant & Equipment", "1,848", "1,809", "1,750"],
+                    ["Goodwill & Intangibles", "5,632", "5,937", "6,100"],
+                    ["Other Assets", "1,672", "1,957", "1,267"],
+                    ["Total Assets", "15,422", "16,077", "15,617"],
+                    ["Total Current Liabilities", "4,460", "3,470", "3,100"],
+                    ["Total Noncurrent Liabilities", "7,873", "8,981", "9,335"],
+                    ["Total Liabilities", "12,333", "12,451", "12,435"],
+                    ["Total Stockholders' Equity", "3,089", "3,626", "3,182"],
+                ]
+            },
+            is: {
+                title: "Consolidated Income Statement",
+                headers: ["Item", "2022", "2021", "2020"],
+                rows: [
+                    ["Operating Revenue", "15,932", "14,455", "12,574"],
+                    ["Cost of Revenue", "9,429", "8,489", "7,400"],
+                    ["Gross Profit", "6,503", "5,966", "5,174"],
+                    ["Operating Expenses (SG&A+)", "2,672", "2,466", "2,350"],
+                    ["Operating Income", "3,831", "3,500", "2,824"],
+                    ["Interest Expense", "203", "222", "230"],
+                    ["Other Income (Expense)", "(192)", "150", "120"],
+                    ["Income Before Tax", "3,842", "3,428", "2,714"],
+                    ["Income Taxes", "808", "734", "605"],
+                    ["Net Income", "3,034", "2,694", "2,109"]
+                ]
+            },
+            supp: {
+                title: "Supplemental Info",
+                headers: ["Item", "2022", "2021"],
+                rows: [
+                    ["Tax Rate", "22%", "22%"],
+                    ["Non-Operating Items (Pre-tax)", "(52)", "151"],
+                    ["Tax Shield on Non-Op Items", "(11)", "33"],
+                    ["Average Equity (2022)", "3,358", "-"],
+                    ["Average Equity (2021)", "3,404", "-"]
+                ]
+            }
+        };
+
+        const ANSWER_KEY = {
+            "roe_2022": "90.39", "roe_2021": "79.17",
+            "roa_2022": "19.26", "roa_2021": "17.00",
+            "fl_2022": "4.69",   "fl_2021": "4.65",
+            "ncir_2022": "1.0003", "ncir_2021": "1.0003",
+            "pm_2022": "19.04",  "pm_2021": "18.64",
+            "at_2022": "1.01",   "at_2021": "0.91",
+            
+            // 4a
+            "avg_noa_2022": "10543", "avg_noa_2021": "9826", // Calculated from correct classification
+            "avg_nno_2022": "7185", "avg_nno_2021": "6422",
+
+            // 4b
+            "nne_calc": "-41",
+            "nopat_m1": "2993",
+            "nopat_m2": "2993",
+            
+            // 5
+            "rnoa_2022": "28.39", "rnoa_2021": "28.62",
+            "nnep_2022": "-0.57", "nnep_2021": "1.84",
+            "spread_2022": "28.96", "spread_2021": "26.78",
+            "flev_2022": "2.140", "flev_2021": "1.886",
+            "nopm_2022": "18.79", "nopm_2021": "19.45",
+            "noat_2022": "1.5112", "noat_2021": "1.4712"
+        };
+
+        const HINT_DATA = {
+            roe: { title: "Return on Equity", def: "Net Income / Average Stockholders' Equity" },
+            dupont: { title: "DuPont Disaggregation", def: "ROE = ROA × FL × NCIR" },
+            roa: { title: "Return on Assets", def: "Net Income / Average Total Assets" },
+            fl: { title: "Financial Leverage", def: "Avg Total Assets / Avg Stockholders' Equity" },
+            ncir: { title: "NCIR", def: "Net Income / Net Income Attributable to Parent" },
+            roa_decomp: { title: "ROA Decomposition", def: "Profit Margin × Asset Turnover" },
+            op_v_nonop: { title: "Operating vs Nonoperating ROE", def: "ROE = [RNOA + (Spread × FLEV)] × NCIR" },
+            rnoa: { title: "RNOA", def: "NOPAT / Average Net Operating Assets (NOA)" },
+            nnep: { title: "NNEP", def: "Net Nonoperating Expense / Average NNO" },
+            flev_op: { title: "Operating FLEV", def: "Average NNO / Average Total Equity" },
+            spread: { title: "Spread", def: "RNOA - NNEP" },
+            rnoa_decomp: { title: "RNOA Decomposition", def: "NOPM × NOAT" }
+        };
+
+        // --- COMPONENTS ---
+
+        const HintBox = ({ id }) => {
+            const [isOpen, setIsOpen] = useState(false);
+            const data = HINT_DATA[id];
+            if(!data) return null;
+            return (
+                <div className="mt-1 text-xs">
+                    <button onClick={() => setIsOpen(!isOpen)} className="flex items-center gap-1 text-blue-600 hover:text-blue-800 font-medium">
+                        <Icons.Info /> {isOpen ? "Hide Hint" : "Show Hint"}
+                    </button>
+                    {isOpen && (
+                        <div className="mt-1 p-2 bg-blue-50 border border-blue-200 rounded text-slate-700 animate-fade-in">
+                            <p className="font-bold text-blue-900">{data.title}</p>
+                            <p>{data.def}</p>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const SmartInput = ({ id, value, onChange, correctValue, placeholder, activeInput, setActiveInput, teacherMode, isPercentage, readOnly }) => {
+            const isActive = activeInput === id;
+            
+            const validate = (val) => {
+                if(!val || !correctValue) return { isCorrect: false };
+                try {
+                    const cleanExpr = val.toString().replace(/,/g, '').replace(/[^\d\.\+\-\*\/\(\)]/g, '');
+                    // eslint-disable-next-line no-eval
+                    const calculated = eval(cleanExpr);
+                    if(!isFinite(calculated)) return { isCorrect: false };
+                    
+                    const correctNum = parseFloat(correctValue.toString().replace(/,/g, ''));
+                    const tol = 0.15;
+                    
+                    if(Math.abs(calculated - correctNum) < tol) return { isCorrect: true, formatted: isPercentage ? correctNum.toFixed(2) : correctNum.toFixed(0) };
+                    if(isPercentage && Math.abs((calculated * 100) - correctNum) < tol) return { isCorrect: true, formatted: correctNum.toFixed(2) };
+                    
+                    return { isCorrect: false };
+                } catch { return { isCorrect: false }; }
+            };
+
+            const { isCorrect, formatted } = validate(value);
+
+            const handleBlur = () => { if(isCorrect && formatted && formatted !== value) onChange(id, formatted); };
+            const handleKeyDown = (e) => { if(e.key === 'Enter') { handleBlur(); e.target.blur(); } };
+
+            return (
+                <div className="relative w-full">
+                    <input
+                        id={id}
+                        type="text"
+                        value={readOnly ? correctValue : (value || '')}
+                        onChange={readOnly ? undefined : (e) => onChange(id, e.target.value)}
+                        onFocus={readOnly ? undefined : () => setActiveInput(id)}
+                        onBlur={readOnly ? undefined : handleBlur}
+                        onKeyDown={readOnly ? undefined : handleKeyDown}
+                        readOnly={readOnly}
+                        className={`w-full p-2 text-right border rounded text-sm font-mono transition-all outline-none ${
+                            readOnly ? 'bg-gray-100 text-gray-600 border-gray-300' :
+                            isActive ? 'active-input-ring z-10 border-blue-500' : 'border-gray-300'
+                        } ${!readOnly && isCorrect ? 'bg-green-50 text-green-800 border-green-400 font-bold' : ''}`}
+                        placeholder={placeholder}
+                    />
+                    {!readOnly && isCorrect && <div className="absolute left-2 top-2 text-green-600 pointer-events-none"><Icons.Check /></div>}
+                    {teacherMode && !isCorrect && !readOnly && <div className="absolute -top-5 right-0 text-[10px] bg-yellow-100 text-yellow-800 px-1 rounded shadow z-20 whitespace-nowrap">Correct: {correctValue}</div>}
+                </div>
+            );
+        };
+
+        const ReferenceTable = ({ title, data, onValueClick }) => {
+            const [isOpen, setIsOpen] = useState(true);
+            return (
+                <div className="bg-white border border-slate-200 rounded-lg shadow-sm mb-4 overflow-hidden">
+                    <button onClick={() => setIsOpen(!isOpen)} className="w-full flex items-center justify-between p-3 bg-slate-50 hover:bg-slate-100 transition text-sm font-bold text-slate-700">
+                        <span className="flex items-center gap-2"><Icons.Database /> {title}</span>
+                        <div className={`transition-transform ${isOpen ? 'rotate-180' : ''}`}><Icons.ChevronDown /></div>
+                    </button>
+                    {isOpen && (
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-xs text-left">
+                                <thead className="bg-slate-100 text-slate-500">
+                                    <tr>{data.headers.map((h, i) => <th key={i} className={`p-2 border-b ${i>0?'text-right':''}`}>{h}</th>)}</tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100">
+                                    {data.rows.map((row, i) => (
+                                        <tr key={i} className="hover:bg-blue-50/30">
+                                            <td className="p-2 font-medium text-slate-700">{row[0]}</td>
+                                            {row.slice(1).map((cell, j) => (
+                                                <td key={j} onMouseDown={(e) => { e.preventDefault(); onValueClick(cell); }} className="p-2 text-right font-mono text-slate-600 clickable-cell" title="Click to insert">{cell}</td>
+                                            ))}
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const ClassificationTable = ({ items, selections, onToggle, inputs, handleInputChange, activeInput, setActiveInput, teacherMode }) => {
+            const totals = useMemo(() => {
+                let res = { opA22: 0, opA21: 0, noA22: 0, noA21: 0, opL22: 0, opL21: 0, noL22: 0, noL21: 0 };
+                items.forEach(item => {
+                    const type = selections[item.id] || "op";
+                    if(item.type === 'asset') {
+                        if(type === 'op') { res.opA22 += item.val22; res.opA21 += item.val21; }
+                        else { res.noA22 += item.val22; res.noA21 += item.val21; }
+                    } else {
+                        if(type === 'op') { res.opL22 += item.val22; res.opL21 += item.val21; }
+                        else { res.noL22 += item.val22; res.noL21 += item.val21; }
+                    }
+                });
+                return res;
+            }, [items, selections]);
+
+            const noa22 = totals.opA22 - totals.opL22;
+            const noa21 = totals.opA21 - totals.opL21;
+            const nno22 = totals.noL22 - totals.noA22;
+            const nno21 = totals.noL21 - totals.noA21;
+
+            return (
+                <div className="bg-white rounded border border-slate-200 overflow-hidden mb-6">
+                    <div className="bg-slate-50 p-3 border-b text-sm font-bold text-slate-700 flex justify-between">
+                        <span>Classification (2022 & 2021)</span>
+                        <span className="text-xs font-normal text-slate-500">Toggle sets classification for both years</span>
+                    </div>
+                    <div className="grid grid-cols-12 gap-0 text-xs">
+                        <div className="col-span-4 p-2 font-bold text-slate-500 border-b">Item</div>
+                        <div className="col-span-2 p-2 font-bold text-slate-500 border-b text-right">2022</div>
+                        <div className="col-span-2 p-2 font-bold text-slate-500 border-b text-right">2021</div>
+                        <div className="col-span-4 p-2 font-bold text-slate-500 border-b text-center">Type</div>
+                        
+                        {items.map(item => {
+                            const isOp = (selections[item.id] || 'op') === 'op';
+                            return (
+                                <React.Fragment key={item.id}>
+                                    <div className="col-span-4 p-2 border-b flex items-center">{item.label}</div>
+                                    <div className="col-span-2 p-2 border-b text-right font-mono">{item.val22.toLocaleString()}</div>
+                                    <div className="col-span-2 p-2 border-b text-right font-mono text-slate-500">{item.val21.toLocaleString()}</div>
+                                    <div className="col-span-4 p-1 border-b flex justify-center">
+                                        <button onClick={() => onToggle(item.id)} className={`px-3 py-1 rounded-full text-[10px] font-bold border toggle-btn ${isOp ? 'toggle-op' : 'toggle-nonop'}`}>
+                                            {isOp ? 'Operating' : 'Non-Operating'}
+                                        </button>
+                                        {teacherMode && item.correct !== (selections[item.id] || 'op') && <span className="text-red-500 ml-1">●</span>}
+                                    </div>
+                                </React.Fragment>
+                            );
+                        })}
+                    </div>
+                    <div className="p-4 bg-slate-50 border-t">
+                        <div className="grid grid-cols-3 gap-4 text-sm mb-4">
+                            <div className="font-bold text-slate-500 text-right">Metric</div>
+                            <div className="font-bold text-slate-700 text-right">2022 Total</div>
+                            <div className="font-bold text-slate-700 text-right">2021 Total</div>
+                            
+                            <div className="text-right text-blue-800">Net Operating Assets (NOA)</div>
+                            <div className="text-right font-mono font-bold text-blue-900 bg-blue-50 rounded px-2">{noa22.toLocaleString()}</div>
+                            <div className="text-right font-mono font-bold text-blue-900 bg-blue-50 rounded px-2">{noa21.toLocaleString()}</div>
+
+                            <div className="text-right text-slate-700">Net Nonoperating Obs (NNO)</div>
+                            <div className="text-right font-mono font-bold text-slate-900 bg-gray-100 rounded px-2">{nno22.toLocaleString()}</div>
+                            <div className="text-right font-mono font-bold text-slate-900 bg-gray-100 rounded px-2">{nno21.toLocaleString()}</div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-6 border-t pt-4">
+                            <div>
+                                <label className="text-xs font-bold text-slate-600 block mb-1">Calculate Average NOA</label>
+                                <SmartInput id="avg_noa_2022" value={inputs.avg_noa_2022} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEY.avg_noa_2022} teacherMode={teacherMode} placeholder="(NOA22+NOA21)/2" />
+                            </div>
+                            <div>
+                                <label className="text-xs font-bold text-slate-600 block mb-1">Calculate Average NNO</label>
+                                <SmartInput id="avg_nno_2022" value={inputs.avg_nno_2022} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEY.avg_nno_2022} teacherMode={teacherMode} placeholder="(NNO22+NNO21)/2" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const App = () => {
+            const [inputs, setInputs] = useState({});
+            const [selections, setSelections] = useState({});
+            const [activeInput, setActiveInput] = useState(null);
+            const [teacherMode, setTeacherMode] = useState(false);
+            const [showLogin, setShowLogin] = useState(false);
+            const [showNamePrompt, setShowNamePrompt] = useState(false);
+            const [studentName, setStudentName] = useState("");
+            const [password, setPassword] = useState("");
+
+            useEffect(() => {
+                const initialSelections = {};
+                CLASSIFICATION_ITEMS.forEach(i => initialSelections[i.id] = 'op');
+                setSelections(initialSelections);
+            }, []);
+
+            const handleInputChange = (id, val) => setInputs(prev => ({ ...prev, [id]: val }));
+            const handleToggle = (id) => setSelections(prev => ({ ...prev, [id]: prev[id] === 'op' ? 'non-op' : 'op' }));
+
+            const handleValueClick = (val) => {
+                if (!activeInput) return;
+                let cleanVal = val.replace(/,/g, '');
+                if (cleanVal.includes('(')) cleanVal = '-' + cleanVal.replace(/[()]/g, '');
+                setInputs(prev => {
+                    const currentVal = prev[activeInput] || "";
+                    const operators = ['+', '-', '*', '/', '('];
+                    const lastChar = currentVal.trim().slice(-1);
+                    return (currentVal === "" || operators.includes(lastChar)) 
+                        ? { ...prev, [activeInput]: currentVal + cleanVal }
+                        : { ...prev, [activeInput]: cleanVal };
+                });
+                setTimeout(() => document.getElementById(activeInput)?.focus(), 0);
+            };
+
+            const generateDownload = () => {
+                const text = `DuPont Analysis - ITW\nStudent: ${studentName}\n\nAnswers:\n${JSON.stringify(inputs, null, 2)}`;
+                const blob = new Blob([text], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url; a.download = `${studentName.replace(/\s+/g,'_')}_ITW_Analysis.txt`;
+                a.click();
+                setShowNamePrompt(false);
+            };
+
+            const toggleTeacher = () => teacherMode ? setTeacherMode(false) : setShowLogin(true);
+            const checkPassword = () => { if(password.toLowerCase() === 'teacher') { setTeacherMode(true); setShowLogin(false); setPassword(''); } else alert("Incorrect Code"); };
+            const autoFill = () => {
+                if(teacherMode) {
+                    setInputs(ANSWER_KEY);
+                    const correctSels = {};
+                    CLASSIFICATION_ITEMS.forEach(i => correctSels[i.id] = i.correct);
+                    setSelections(correctSels);
+                }
+            };
+
+            return (
+                <div className="flex h-screen overflow-hidden bg-slate-100">
+                    <div className="w-1/3 bg-white border-r border-slate-200 overflow-y-auto custom-scrollbar flex flex-col z-10 shadow-lg">
+                        <div className="p-4 bg-slate-900 text-white sticky top-0 z-20 shadow">
+                            <h2 className="font-bold text-lg flex items-center gap-2"><span className="text-blue-400">ITW</span> Reference Data</h2>
+                            <p className="text-xs text-slate-400 mt-1">Click numbers to calculate. Values in $ Millions.</p>
+                        </div>
+                        <div className="p-4 space-y-2">
+                            <ReferenceTable title="Balance Sheet" data={CASE_DATA.bs} onValueClick={handleValueClick} />
+                            <ReferenceTable title="Income Statement" data={CASE_DATA.is} onValueClick={handleValueClick} />
+                            <ReferenceTable title="Supplemental Info" data={CASE_DATA.supp} onValueClick={handleValueClick} />
+                        </div>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto custom-scrollbar bg-slate-50">
+                        <div className="p-8 max-w-4xl mx-auto">
+                            <div className="flex justify-between items-center mb-8 sticky top-0 bg-slate-50 py-4 z-10 border-b">
+                                <div>
+                                    <h1 className="text-2xl font-bold text-slate-800">DuPont Disaggregation</h1>
+                                    <p className="text-slate-500">Illinois Tool Works (ITW) - 2022 Analysis</p>
+                                </div>
+                                <div className="flex gap-2">
+                                    <button onClick={() => setShowNamePrompt(true)} className="px-4 py-2 bg-blue-600 text-white rounded text-sm font-bold flex items-center gap-2"><Icons.Download /> Save & Download</button>
+                                    {teacherMode && <button onClick={autoFill} className="px-3 py-1 bg-green-100 text-green-700 rounded text-sm font-bold">Auto-Fill</button>}
+                                    <button onClick={toggleTeacher} className="px-3 py-1 bg-white border rounded text-sm text-slate-600">{teacherMode ? 'Teacher On' : 'Instructor'}</button>
+                                </div>
+                            </div>
+
+                            {/* 2. ROE */}
+                            <div className="bg-white rounded shadow-sm border p-6 mb-6">
+                                <div className="flex justify-between"><h3 className="font-bold text-lg text-slate-800">2. Return on Equity (ROE)</h3><HintBox id="roe"/></div>
+                                <div className="grid grid-cols-3 gap-4 mt-2">
+                                    <div></div><div className="text-center font-bold text-slate-500 text-sm">2022</div><div className="text-center font-bold text-slate-500 text-sm">2021</div>
+                                    <div className="font-medium text-sm">ROE (%)</div>
+                                    <SmartInput id="roe_2022" value={inputs.roe_2022} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEY.roe_2022} teacherMode={teacherMode} placeholder="%" isPercentage={true} />
+                                    <SmartInput id="roe_2021" value={inputs.roe_2021} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEY.roe_2021} teacherMode={teacherMode} placeholder="%" isPercentage={true} />
+                                </div>
+                            </div>
+
+                            {/* 3. DuPont */}
+                            <div className="bg-white rounded shadow-sm border p-6 mb-6">
+                                <div className="flex justify-between"><h3 className="font-bold text-lg text-slate-800">3. DuPont Disaggregation</h3><HintBox id="dupont"/></div>
+                                <div className="grid grid-cols-3 gap-4 mt-2">
+                                    <div className="font-medium text-sm">ROA (%)</div>
+                                    <SmartInput id="roa_2022" value={inputs.roa_2022} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEY.roa_2022} teacherMode={teacherMode} placeholder="%" isPercentage={true} />
+                                    <SmartInput id="roa_2021" value={inputs.roa_2021} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEY.roa_2021} teacherMode={teacherMode} placeholder="%" isPercentage={true} />
+                                    <div className="font-medium text-sm">Fin. Leverage</div>
+                                    <SmartInput id="fl_2022" value={inputs.fl_2022} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEY.fl_2022} teacherMode={teacherMode} placeholder="x" />
+                                    <SmartInput id="fl_2021" value={inputs.fl_2021} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEY.fl_2021} teacherMode={teacherMode} placeholder="x" />
+                                    <div className="font-medium text-sm">NCIR</div>
+                                    <SmartInput id="ncir_2022" value={inputs.ncir_2022} correctValue={ANSWER_KEY.ncir_2022} readOnly={true} teacherMode={teacherMode} />
+                                    <SmartInput id="ncir_2021" value={inputs.ncir_2021} correctValue={ANSWER_KEY.ncir_2021} readOnly={true} teacherMode={teacherMode} />
+                                </div>
+                            </div>
+
+                            {/* 4. ROA Decomp */}
+                            <div className="bg-white rounded shadow-sm border p-6 mb-6">
+                                <div className="flex justify-between"><h3 className="font-bold text-lg text-slate-800">4. ROA Decomposition</h3><HintBox id="roa_decomp"/></div>
+                                <div className="grid grid-cols-3 gap-4 mt-2">
+                                    <div className="font-medium text-sm">Profit Margin (%)</div>
+                                    <SmartInput id="pm_2022" value={inputs.pm_2022} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEY.pm_2022} teacherMode={teacherMode} placeholder="%" isPercentage={true} />
+                                    <SmartInput id="pm_2021" value={inputs.pm_2021} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEY.pm_2021} teacherMode={teacherMode} placeholder="%" isPercentage={true} />
+                                    <div className="font-medium text-sm">Asset Turnover</div>
+                                    <SmartInput id="at_2022" value={inputs.at_2022} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEY.at_2022} teacherMode={teacherMode} placeholder="x" />
+                                    <SmartInput id="at_2021" value={inputs.at_2021} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEY.at_2021} teacherMode={teacherMode} placeholder="x" />
+                                </div>
+                            </div>
+
+                            {/* 4a. Classify */}
+                            <div className="bg-white rounded shadow-sm border p-6 mb-6">
+                                <h3 className="font-bold text-lg text-slate-800 mb-2">4a. Classify & Calculate NOA/NNO</h3>
+                                <p className="text-sm text-slate-500 mb-4">Classify items. This updates totals for both 2022 and 2021. Use totals to calc Averages.</p>
+                                <ClassificationTable items={CLASSIFICATION_ITEMS} selections={selections} onToggle={handleToggle} inputs={inputs} handleInputChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} teacherMode={teacherMode} />
+                            </div>
+
+                            {/* 4b. NOPAT */}
+                            <div className="bg-white rounded shadow-sm border p-6 mb-6">
+                                <h3 className="font-bold text-lg text-slate-800 mb-4">4b. NNE & NOPAT Derivation (2022)</h3>
+                                <div className="space-y-6">
+                                    <div className="bg-slate-50 p-4 rounded border">
+                                        <h4 className="font-bold text-sm text-slate-700 mb-2">Method 1: Net Income Approach</h4>
+                                        <div className="grid grid-cols-2 gap-4 mb-2">
+                                            <div className="text-sm">Step 1: NNE (NonOp Items + Tax Shield)</div>
+                                            <SmartInput id="nne_calc" value={inputs.nne_calc} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEY.nne_calc} teacherMode={teacherMode} placeholder="$" />
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="text-sm">Step 2: NOPAT (Net Income + NNE)</div>
+                                            <SmartInput id="nopat_m1" value={inputs.nopat_m1} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEY.nopat_m1} teacherMode={teacherMode} placeholder="$" />
+                                        </div>
+                                    </div>
+                                    <div className="bg-slate-50 p-4 rounded border">
+                                        <h4 className="font-bold text-sm text-slate-700 mb-2">Method 2: Operating Income Approach</h4>
+                                        <div className="text-xs text-slate-500 mb-2 font-mono">Formula: Operating Income - Tax Provision + Tax Shield on NonOp Items</div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="text-sm">NOPAT Calculation</div>
+                                            <SmartInput id="nopat_m2" value={inputs.nopat_m2} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEY.nopat_m2} teacherMode={teacherMode} placeholder="$" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* 5. Operating ROE */}
+                            <div className="bg-white rounded shadow-sm border p-6 mb-6">
+                                <div className="flex justify-between"><h3 className="font-bold text-lg text-slate-800">5. Operating vs Nonoperating ROE</h3><HintBox id="op_v_nonop"/></div>
+                                <div className="grid grid-cols-3 gap-4 mt-4">
+                                    <div className="font-medium text-sm group relative cursor-help">
+                                        RNOA (%)
+                                        <span className="hidden group-hover:block absolute bottom-full mb-1 bg-gray-800 text-white text-xs p-1 rounded whitespace-nowrap">NOPAT / Average NOA</span>
+                                    </div>
+                                    <SmartInput id="rnoa_2022" value={inputs.rnoa_2022} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEY.rnoa_2022} teacherMode={teacherMode} placeholder="%" isPercentage={true} />
+                                    <SmartInput id="rnoa_2021" value={inputs.rnoa_2021} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEY.rnoa_2021} teacherMode={teacherMode} placeholder="%" isPercentage={true} />
+                                    
+                                    <div className="font-medium text-sm group relative cursor-help">
+                                        NNEP (%)
+                                        <span className="hidden group-hover:block absolute bottom-full mb-1 bg-gray-800 text-white text-xs p-1 rounded whitespace-nowrap">NNE / Avg NNO</span>
+                                    </div>
+                                    <SmartInput id="nnep_2022" value={inputs.nnep_2022} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEY.nnep_2022} teacherMode={teacherMode} placeholder="%" isPercentage={true} />
+                                    <SmartInput id="nnep_2021" value={inputs.nnep_2021} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEY.nnep_2021} teacherMode={teacherMode} placeholder="%" isPercentage={true} />
+
+                                    <div className="font-medium text-sm group relative cursor-help">
+                                        Spread (%)
+                                        <span className="hidden group-hover:block absolute bottom-full mb-1 bg-gray-800 text-white text-xs p-1 rounded whitespace-nowrap">RNOA - NNEP</span>
+                                    </div>
+                                    <SmartInput id="spread_2022" value={inputs.spread_2022} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEY.spread_2022} teacherMode={teacherMode} placeholder="%" isPercentage={true} />
+                                    <SmartInput id="spread_2021" value={inputs.spread_2021} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEY.spread_2021} teacherMode={teacherMode} placeholder="%" isPercentage={true} />
+
+                                    <div className="font-medium text-sm group relative cursor-help">
+                                        FLEV
+                                        <span className="hidden group-hover:block absolute bottom-full mb-1 bg-gray-800 text-white text-xs p-1 rounded whitespace-nowrap">Avg NNO / Avg Equity</span>
+                                    </div>
+                                    <SmartInput id="flev_2022" value={inputs.flev_2022} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEY.flev_2022} teacherMode={teacherMode} placeholder="x" />
+                                    <SmartInput id="flev_2021" value={inputs.flev_2021} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEY.flev_2021} teacherMode={teacherMode} placeholder="x" />
+                                    
+                                    <div className="font-medium text-sm">NCIR</div>
+                                    <SmartInput id="ncir_2022" value={inputs.ncir_2022} correctValue={ANSWER_KEY.ncir_2022} readOnly={true} teacherMode={teacherMode} />
+                                    <SmartInput id="ncir_2021" value={inputs.ncir_2021} correctValue={ANSWER_KEY.ncir_2021} readOnly={true} teacherMode={teacherMode} />
+                                </div>
+                            </div>
+
+                            {/* 6. RNOA Decomp */}
+                            <div className="bg-white rounded shadow-sm border p-6 mb-6">
+                                <div className="flex justify-between"><h3 className="font-bold text-lg text-slate-800">6. RNOA Decomposition</h3><HintBox id="rnoa_decomp"/></div>
+                                <div className="grid grid-cols-3 gap-4 mt-4">
+                                    <div className="font-medium text-sm group relative cursor-help">
+                                        NOPM (%)
+                                        <span className="hidden group-hover:block absolute bottom-full mb-1 bg-gray-800 text-white text-xs p-1 rounded whitespace-nowrap">NOPAT / Revenue</span>
+                                    </div>
+                                    <SmartInput id="nopm_2022" value={inputs.nopm_2022} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEY.nopm_2022} teacherMode={teacherMode} placeholder="%" isPercentage={true} />
+                                    <SmartInput id="nopm_2021" value={inputs.nopm_2021} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEY.nopm_2021} teacherMode={teacherMode} placeholder="%" isPercentage={true} />
+                                    
+                                    <div className="font-medium text-sm group relative cursor-help">
+                                        NOAT
+                                        <span className="hidden group-hover:block absolute bottom-full mb-1 bg-gray-800 text-white text-xs p-1 rounded whitespace-nowrap">Revenue / Average NOA</span>
+                                    </div>
+                                    <SmartInput id="noat_2022" value={inputs.noat_2022} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEY.noat_2022} teacherMode={teacherMode} placeholder="x" />
+                                    <SmartInput id="noat_2021" value={inputs.noat_2021} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEY.noat_2021} teacherMode={teacherMode} placeholder="x" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {showNamePrompt && (
+                        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 animate-fade-in backdrop-blur-sm">
+                            <div className="bg-white p-8 rounded-xl shadow-2xl w-96">
+                                <h3 className="text-xl font-bold text-slate-800 mb-4 text-center">Save Your Work</h3>
+                                <input type="text" value={studentName} onChange={(e) => setStudentName(e.target.value)} placeholder="Your Full Name" className="w-full p-3 border border-slate-300 rounded-lg mb-4 text-center" autoFocus />
+                                <div className="flex flex-col gap-2">
+                                    <button onClick={() => studentName.trim() ? generateDownload() : alert("Name required")} className="w-full py-3 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700">Download Answers</button>
+                                    <button onClick={() => setShowNamePrompt(false)} className="w-full py-2 text-slate-500 hover:bg-slate-50 rounded-lg">Cancel</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {showLogin && (
+                        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 backdrop-blur-sm">
+                            <div className="bg-white p-6 rounded-lg shadow-xl w-80">
+                                <h3 className="font-bold text-lg mb-4">Instructor Code</h3>
+                                <input type="password" className="w-full border p-2 rounded mb-4" value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && checkPassword()} />
+                                <div className="flex justify-end gap-2">
+                                    <button onClick={() => setShowLogin(false)} className="px-3 py-1 text-slate-500">Cancel</button>
+                                    <button onClick={checkPassword} className="px-3 py-1 bg-blue-600 text-white rounded">Access</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

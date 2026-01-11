@@ -1,0 +1,1570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Long-Term Asset Analysis Simulation</title>
+    
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+        
+        /* Custom scrollbar for data panel */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f1f1; 
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1; 
+            border-radius: 3px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; 
+        }
+
+        /* Input highlight animation */
+        @keyframes pulse-ring {
+            0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); }
+            70% { box-shadow: 0 0 0 4px rgba(59, 130, 246, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+        }
+        .input-active {
+            border-color: #3b82f6 !important;
+            animation: pulse-ring 2s infinite;
+        }
+    </style>
+</head>
+<body>
+
+<div id="root"></div>
+
+<script type="text/babel">
+
+    // --- 1. THE DATASET (Source of Truth) ---
+    // Notes marked 'hidden: true' will not appear in the left Data Panel
+    const DATA_SETS = {
+        ITW: {
+            name: "Illinois Tool Works (ITW)",
+            currency: "$ Millions",
+            sec_link: "https://www.sec.gov/ix?doc=/Archives/edgar/data/0000049826/000004982623000008/itw-20221231.htm",
+            CASE_DATA: {
+                bs: {
+                    title: "Balance Sheet",
+                    headers: ["Item", "2022", "2021"],
+                    rows: [
+                        ["Total Current Assets", "6,270", "6,374"],
+                        ["Net Plant & Equipment", "1,848", "1,809"],
+                        ["Goodwill", "4,864", "4,965"],
+                        ["Intangible Assets", "768", "972"],
+                        ["Deferred Income Taxes", "494", "552"],
+                        ["Other Assets", "1,178", "1,405"],
+                        ["Total Assets", "15,422", "16,077"],
+                        ["Total Current Liabilities", "4,460", "3,470"],
+                        ["Long-Term Debt", "6,173", "6,909"],
+                        ["Total Noncurrent Liabilities", "7,873", "8,981"],
+                        ["Total Stockholders' Equity", "3,089", "3,626"]
+                    ]
+                },
+                common_size: {
+                    title: "Asset Significance (Common Size)",
+                    headers: ["Year", "Intangibles %", "Goodwill %"],
+                    rows: [
+                        ["2022", "5.0%", "29.8%"],
+                        ["2021", "6.0%", "39.6%"],
+                        ["2020", "5.0%", "39.6%"],
+                        ["2019", "5.6%", "30.8%"]
+                    ]
+                },
+                note_9: {
+                    title: "Note 9: MTS Acquisition (Dec 1, 2021)",
+                    hidden: true, 
+                    headers: ["Item", "Allocation"],
+                    rows: [
+                        ["Goodwill Recorded", "430"],
+                        ["Intangible Assets Recorded", "259"]
+                    ]
+                },
+                note_intangibles: {
+                    title: "Intangibles Net Carrying Value (2022)",
+                    hidden: true,
+                    headers: ["Type", "Net Value"],
+                    rows: [
+                        ["Customer lists", "267"],
+                        ["Trademarks", "172"],
+                        ["Patents", "50"],
+                        ["Other", "32"],
+                        ["Indefinite lived", "247"]
+                    ]
+                },
+                is: {
+                    title: "Income Statement",
+                    headers: ["Item", "2022", "2021"],
+                    rows: [
+                        ["Operating Revenue", "15,932", "14,455"],
+                        ["Cost of Revenue", "9,429", "8,489"],
+                        ["Gross Profit", "6,503", "5,966"],
+                        ["Operating Income", "3,790", "3,477"],
+                        ["Interest Expense", "203", "202"],
+                        ["Net Income", "3,034", "2,694"]
+                    ]
+                },
+                cf: {
+                    title: "Cash Flow & Supplemental",
+                    headers: ["Item", "2022", "2021"],
+                    rows: [
+                        ["Depreciation", "276", "277"],
+                        ["Amortization", "134", "133"],
+                        ["Capital Expenditures", "-412", "-296"]
+                    ]
+                },
+                ppe_detail: {
+                    title: "PPE Details (Notes)",
+                    headers: ["Item", "2022", "2021"],
+                    rows: [
+                        ["Land & Improvements", "247", "243"],
+                        ["Buildings & Improvements", "1,414", "1,462"],
+                        ["Machinery & Equipment", "3,891", "3,898"],
+                        ["Construction in Progress", "124", "94"],
+                        ["Total Gross PPE", "5,676", "5,697"],
+                        ["Accumulated Depreciation", "(3,904)", "(3,891)"]
+                    ]
+                }
+            }
+        },
+        PH: {
+            name: "Parker Hannifin (PH)",
+            currency: "$ Thousands",
+            sec_link: "https://www.sec.gov/ix?doc=/Archives/edgar/data/0000076334/000007633420000099/ph630202010-k.htm",
+            CASE_DATA: {
+                bs: {
+                    title: "Consolidated Balance Sheet",
+                    headers: ["Item", "2022", "2021", "2020", "2019"],
+                    rows: [
+                        ["Cash & cash equivalents", "535,799", "733,117", "685,514", "3,219,767"],
+                        ["Marketable securities", "27,862", "39,116", "70,805", "150,931"],
+                        ["Trade A/R, net", "2,341,504", "2,183,594", "1,854,398", "2,131,054"],
+                        ["Non-trade & notes rec.", "543,757", "326,315", "244,870", "310,708"],
+                        ["Inventories", "2,214,553", "2,090,642", "1,964,195", "1,833,469"],
+                        ["Prepaid expenses & other", "6,383,169", "243,966", "214,986", "182,494"],
+                        ["Total Current Assets", "12,046,644", "5,616,750", "5,034,768", "7,828,423"],
+                        ["PPE, gross", "5,897,955", "6,040,220", "5,810,681", "5,186,730"],
+                        ["Accumulated depreciation", "(3,775,197)", "(3,773,744)", "(3,517,946)", "(3,418,443)"],
+                        ["PPE, net", "2,122,758", "2,266,476", "2,292,735", "1,768,287"],
+                        ["Deferred income taxes", "110,585", "104,251", "126,839", "150,462"],
+                        ["Investments & other assets", "788,057", "774,239", "764,563", "747,773"],
+                        ["Intangible assets, net", "3,135,817", "3,519,797", "3,798,913", "1,783,277"],
+                        ["Goodwill", "7,740,082", "8,059,687", "7,869,935", "5,453,805"],
+                        ["Total Assets", "25,943,943", "20,341,200", "19,887,753", "17,732,027"]
+                    ]
+                },
+                common_size: {
+                    title: "Common-Size (Vertical Analysis)",
+                    headers: ["Item", "2022", "2021", "2020", "2019"],
+                    rows: [
+                        ["Total current assets", "46.4%", "27.6%", "25.3%", "44.1%"],
+                        ["PPE, gross", "22.7%", "29.7%", "29.2%", "29.3%"],
+                        ["PPE, net", "8.2%", "11.1%", "11.5%", "10.0%"],
+                        ["Intangible assets, net", "12.1%", "17.3%", "19.1%", "10.1%"],
+                        ["Goodwill", "29.8%", "39.6%", "39.6%", "30.8%"],
+                        ["Total assets", "100%", "100%", "100%", "100%"]
+                    ]
+                },
+                note_3: {
+                    title: "Note 3: Acquisitions (2020 Allocation)",
+                    hidden: true,
+                    headers: ["Item", "Lord", "Exotic"],
+                    rows: [
+                        ["Cash acquired", "74,013", "8,179"],
+                        ["Accounts receivable", "153,765", "81,336"],
+                        ["Inventories", "248,600", "114,661"],
+                        ["Plant and equipment", "409,163", "178,393"],
+                        ["Intangible assets", "1,446,660", "874,470"],
+                        ["Goodwill", "1,966,865", "503,725"],
+                        ["Total assets acquired", "4,365,417", "1,765,390"],
+                        ["Net assets acquired", "3,455,443", "1,705,566"]
+                    ]
+                },
+                note_8: {
+                    title: "Note 8: Intangibles Details (2020)",
+                    hidden: true,
+                    headers: ["Item", "Gross '20", "Acc Amort '20"],
+                    rows: [
+                        ["Patents and technology", "991,596", "162,528"],
+                        ["Trademarks", "748,326", "285,197"],
+                        ["Customer lists and other", "3,791,505", "1,284,789"],
+                        ["Total", "5,531,427", "1,732,514"]
+                    ]
+                },
+                cf_2020: {
+                    title: "Cash Flows (2020 Focus)",
+                    headers: ["Item", "2020", "2019"],
+                    rows: [
+                        ["Net Income", "1,206,703", "1,512,931"],
+                        ["Depreciation", "252,899", "225,675"],
+                        ["Amortization", "284,632", "210,514"],
+                        ["Net Cash from Ops", "2,070,949", "1,730,140"]
+                    ]
+                },
+                ppe_detail: {
+                     title: "PPE Details (Notes)",
+                     headers: ["Item", "2022", "2021"],
+                     rows: [
+                         ["Land & Improvements", "364,577", "362,096"],
+                         ["Buildings & Equipment", "1,783,805", "1,848,141"],
+                         ["Machinery & Equipment", "3,588,106", "3,653,566"],
+                         ["Construction in Progress", "161,467", "176,417"],
+                         ["Total Gross PPE", "5,897,955", "6,040,220"],
+                         ["Accumulated Depreciation", "(3,775,197)", "(3,773,744)"]
+                     ]
+                },
+                is_stub: {
+                    title: "Income Statement (Summary)",
+                    headers: ["Item", "2022", "2021"],
+                    rows: [
+                        ["Net Sales", "15,861,608", "14,347,640"],
+                        ["Net Income", "1,315,605", "1,746,100"]
+                    ]
+                }
+            }
+        }
+    };
+
+    // --- 2. UTILITY FUNCTIONS ---
+
+    const parseFinNumber = (str) => {
+        if (!str) return 0;
+        let clean = str.toString().replace(/,/g, '');
+        if (clean.includes('(') && clean.includes(')')) {
+            clean = '-' + clean.replace(/[()]/g, '');
+        }
+        return parseFloat(clean) || 0;
+    };
+
+    const safeEvaluate = (expr) => {
+        try {
+            const sanitized = expr.replace(/[^0-9+\-*/(). ]/g, '');
+            // eslint-disable-next-line no-new-func
+            return new Function('return ' + sanitized)();
+        } catch (e) {
+            return null;
+        }
+    };
+
+    const formatNumber = (num) => {
+        return new Intl.NumberFormat('en-US', {
+            minimumFractionDigits: 1,
+            maximumFractionDigits: 1
+        }).format(num);
+    };
+
+    // Global Quiz Questions
+    const QUIZ_QUESTIONS = [
+        {
+            q: "What types of assets does depreciation primarily apply to?",
+            options: [
+                "Intangible assets like patents and trademarks",
+                "Tangible assets like buildings, trucks, and equipment",
+                "Financial assets like stocks and bonds",
+                "Current assets like cash and inventory"
+            ],
+            correct: 1,
+            feedback: "Correct. Depreciation applies to tangible (physical) assets that wear out over time."
+        },
+        {
+            q: "Why are depreciation and amortization expenses recorded over multiple periods rather than all at once?",
+            options: [
+                "To minimize taxes in the current year",
+                "To follow the Matching Principle, matching expenses with the revenue they generate",
+                "Because cash is paid in installments",
+                "To increase the value of the asset on the balance sheet"
+            ],
+            correct: 1,
+            feedback: "Correct. The Matching Principle dictates expenses should be matched with the benefits/revenue they help generate."
+        },
+        {
+            q: "If an intangible asset supports general business functions (like HR software), where is its amortization typically recorded?",
+            options: [
+                "Cost of Goods Sold (COGS)",
+                "Operating Expenses (Opex)",
+                "Interest Expense",
+                "Other Comprehensive Income"
+            ],
+            correct: 1,
+            feedback: "Correct. Assets supporting general functions are classified under Operating Expenses (Opex)."
+        },
+        {
+            q: "What is the typical accounting treatment for a permanent loss in value of an indefinite-lived intangible asset like Goodwill?",
+            options: [
+                "Accelerated Depreciation",
+                "Amortization over 5 years",
+                "Impairment Charge (One-time)",
+                "Revaluation to higher fair value"
+            ],
+            correct: 2,
+            feedback: "Correct. Indefinite-lived assets are tested for impairment and written down via a one-time charge if value is lost."
+        },
+        {
+            q: "How are Depreciation and Amortization treated on the Statement of Cash Flows?",
+            options: [
+                "Subtracted from Investing Activities",
+                "Added back to Net Income in Operating Activities",
+                "Subtracted from Financing Activities",
+                "They do not appear on the Cash Flow Statement"
+            ],
+            correct: 1,
+            feedback: "Correct. They are non-cash expenses, so they are added back to Net Income to calculate cash flow from operations."
+        },
+        {
+            q: "What does a high level of depreciation relative to revenue often signal about a company?",
+            options: [
+                "It is a service-based company",
+                "It has high capital intensity and future replacement costs",
+                "It has very new assets",
+                "It is about to go bankrupt"
+            ],
+            correct: 1,
+            feedback: "Correct. High depreciation suggests heavy investment in physical assets (capital intensity) and future maintenance needs."
+        },
+        {
+            q: "A sudden, sharp spike in Amortization expense is most likely an indicator of what?",
+            options: [
+                "Buying new furniture",
+                "Significant M&A (Merger & Acquisition) activity",
+                "Paying off debt",
+                "Hiring more employees"
+            ],
+            correct: 1,
+            feedback: "Correct. M&A activity brings new intangible assets (customer lists, patents) onto the books, increasing amortization."
+        },
+        {
+            q: "Why do analysts often use EBITDA to assess a company's performance?",
+            options: [
+                "It includes all taxes and interest",
+                "It represents the exact cash balance",
+                "It excludes non-cash expenses and financing decisions to show core profitability",
+                "It is required by GAAP"
+            ],
+            correct: 2,
+            feedback: "Correct. EBITDA removes the effects of financing, accounting decisions (depreciation), and taxes to show core operational performance."
+        }
+    ];
+
+    // --- 3. COMPONENTS ---
+
+    // Password Modal for Instructor
+    const PasswordModal = ({ isOpen, onClose, onSuccess }) => {
+        const [password, setPassword] = React.useState("");
+        const [error, setError] = React.useState("");
+
+        if (!isOpen) return null;
+
+        const handleSubmit = () => {
+            if (password === "teacher") {
+                onSuccess();
+                onClose();
+                setPassword("");
+                setError("");
+            } else {
+                setError("Incorrect password");
+            }
+        };
+
+        return (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div className="bg-white rounded-lg p-6 w-80 shadow-xl">
+                    <h2 className="text-lg font-bold mb-4 text-gray-800">Instructor Access</h2>
+                    <p className="text-sm text-gray-600 mb-3">Enter password to enable instructor mode.</p>
+                    <input 
+                        type="password"
+                        value={password}
+                        onChange={(e) => { setPassword(e.target.value); setError(""); }}
+                        placeholder="Password"
+                        className="w-full border p-2 rounded mb-2 focus:ring-2 focus:ring-purple-500 outline-none"
+                        onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
+                    />
+                    {error && <p className="text-xs text-red-500 mb-3">{error}</p>}
+                    <div className="flex justify-end gap-2 mt-2">
+                        <button 
+                            onClick={() => { onClose(); setPassword(""); setError(""); }}
+                            className="px-3 py-1.5 text-gray-600 hover:bg-gray-100 rounded text-sm"
+                        >
+                            Cancel
+                        </button>
+                        <button 
+                            onClick={handleSubmit}
+                            className="px-3 py-1.5 bg-purple-600 text-white rounded hover:bg-purple-700 text-sm font-medium"
+                        >
+                            Enter
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    // Modal Component for Submission
+    const SubmissionModal = ({ isOpen, onClose, onDownload }) => {
+        const [name, setName] = React.useState("");
+
+        if (!isOpen) return null;
+
+        return (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div className="bg-white rounded-lg p-6 w-96 shadow-xl">
+                    <h2 className="text-xl font-bold mb-4">Submit Work</h2>
+                    <p className="text-sm text-gray-600 mb-4">Enter your name to generate your submission file.</p>
+                    <input 
+                        type="text"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        placeholder="Student Name"
+                        className="w-full border p-2 rounded mb-4 focus:ring-2 focus:ring-blue-500 outline-none"
+                    />
+                    <div className="flex justify-end gap-2">
+                        <button 
+                            onClick={onClose}
+                            className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded"
+                        >
+                            Cancel
+                        </button>
+                        <button 
+                            onClick={() => onDownload(name)}
+                            disabled={!name.trim()}
+                            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                        >
+                            Download Answer File
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    // Quiz Component (Stateless)
+    const Quiz = ({ answers, onSelect, showResults, setShowResults, setAnswers }) => {
+        return (
+            <div className="p-6 max-w-3xl mx-auto">
+                <h2 className="text-2xl font-bold text-gray-800 mb-6">Knowledge Check: Depreciation & Amortization</h2>
+                <div className="space-y-8">
+                    {QUIZ_QUESTIONS.map((q, i) => (
+                        <div key={i} className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                            <p className="font-semibold text-gray-900 mb-4">{i + 1}. {q.q}</p>
+                            <div className="space-y-2">
+                                {q.options.map((opt, oIdx) => (
+                                    <button
+                                        key={oIdx}
+                                        onClick={() => onSelect(i, oIdx)}
+                                        className={`w-full text-left px-4 py-3 rounded-md border transition-all ${
+                                            answers[i] === oIdx 
+                                                ? 'border-blue-500 bg-blue-50 text-blue-800 ring-1 ring-blue-500' 
+                                                : 'border-gray-200 hover:bg-gray-50'
+                                        } ${showResults && q.correct === oIdx ? 'bg-green-100 border-green-500 ring-1 ring-green-500' : ''}
+                                        ${showResults && answers[i] === oIdx && answers[i] !== q.correct ? 'bg-red-100 border-red-500 ring-1 ring-red-500' : ''}`}
+                                        disabled={showResults}
+                                    >
+                                        <div className="flex items-center">
+                                            <div className={`w-4 h-4 rounded-full border mr-3 flex items-center justify-center ${
+                                                answers[i] === oIdx ? 'border-blue-500' : 'border-gray-400'
+                                            }`}>
+                                                {answers[i] === oIdx && <div className="w-2 h-2 rounded-full bg-blue-500"></div>}
+                                            </div>
+                                            {opt}
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+                            {showResults && (
+                                <div className={`mt-4 text-sm p-3 rounded ${
+                                    answers[i] === q.correct ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'
+                                }`}>
+                                    <strong>{answers[i] === q.correct ? 'Correct!' : 'Incorrect.'}</strong> {q.feedback}
+                                </div>
+                            )}
+                        </div>
+                    ))}
+                </div>
+                <div className="mt-8 mb-12 flex justify-center">
+                    {!showResults ? (
+                        <button 
+                            onClick={() => setShowResults(true)}
+                            disabled={Object.keys(answers).length < QUIZ_QUESTIONS.length}
+                            className={`px-6 py-3 rounded-lg font-bold text-white shadow-lg transition-all ${
+                                Object.keys(answers).length < QUIZ_QUESTIONS.length 
+                                ? 'bg-gray-400 cursor-not-allowed' 
+                                : 'bg-blue-600 hover:bg-blue-700 hover:scale-105'
+                            }`}
+                        >
+                            Submit Answers
+                        </button>
+                    ) : (
+                        <button 
+                            onClick={() => { setShowResults(false); setAnswers({}); }}
+                            className="px-6 py-3 rounded-lg font-bold text-gray-700 bg-gray-200 hover:bg-gray-300"
+                        >
+                            Reset Quiz
+                        </button>
+                    )}
+                </div>
+            </div>
+        );
+    };
+
+    const SmartInput = ({ id, value, onChange, onFocus, isActive, expectedValue, placeholder }) => {
+        const [localValue, setLocalValue] = React.useState(value);
+        const [status, setStatus] = React.useState('neutral');
+
+        React.useEffect(() => {
+            setLocalValue(value);
+            validate(value);
+        }, [value, expectedValue]);
+
+        const validate = (val) => {
+            if (!val || expectedValue === null) {
+                setStatus('neutral');
+                return;
+            }
+            const numVal = parseFloat(val);
+            if (isNaN(numVal)) {
+                setStatus('neutral'); 
+                return;
+            }
+
+            const tolerance = Math.abs(expectedValue * 0.05); // 5% tolerance
+            if (Math.abs(numVal - expectedValue) <= tolerance) {
+                setStatus('correct');
+            } else {
+                setStatus('incorrect');
+            }
+        };
+
+        const handleChange = (e) => {
+            setLocalValue(e.target.value);
+        };
+
+        const handleBlur = () => {
+            const result = safeEvaluate(localValue);
+            if (result !== null && !isNaN(result)) {
+                const rounded = parseFloat(result.toFixed(2));
+                setLocalValue(rounded.toString());
+                onChange(id, rounded.toString());
+                validate(rounded);
+            } else {
+                onChange(id, localValue);
+            }
+        };
+
+        const handleKeyDown = (e) => {
+            if (e.key === 'Enter') {
+                e.target.blur();
+            }
+        };
+
+        let borderColor = 'border-gray-300';
+        let bgColor = 'bg-white';
+        if (isActive) borderColor = 'border-blue-500 ring-2 ring-blue-200';
+        else if (status === 'correct') { borderColor = 'border-green-500'; bgColor = 'bg-green-50'; }
+        else if (status === 'incorrect') { borderColor = 'border-red-500'; bgColor = 'bg-red-50'; }
+
+        return (
+            <div className="relative w-full">
+                <input
+                    type="text"
+                    value={localValue}
+                    onChange={handleChange}
+                    onFocus={() => onFocus(id)}
+                    onBlur={handleBlur}
+                    onKeyDown={handleKeyDown}
+                    className={`w-full px-3 py-2 border rounded text-sm transition-all duration-200 focus:outline-none ${borderColor} ${bgColor}`}
+                    placeholder={placeholder}
+                />
+                {status === 'correct' && (
+                    <div className="absolute right-2 top-2 text-green-500">
+                        <i data-lucide="check-circle" className="w-4 h-4"></i>
+                    </div>
+                )}
+                {status === 'incorrect' && (
+                    <div className="absolute right-2 top-2 text-red-500">
+                        <i data-lucide="alert-circle" className="w-4 h-4"></i>
+                    </div>
+                )}
+            </div>
+        );
+    };
+
+    const DataPanel = ({ companyKey, onCellClick }) => {
+        const data = DATA_SETS[companyKey];
+        
+        const handleCellClick = (e, val) => {
+            e.preventDefault();
+            const cleanVal = val.replace(/,/g, '');
+            onCellClick(cleanVal);
+        };
+
+        const renderTable = (sectionKey, sectionData) => (
+            <div key={sectionKey} className="mb-8 bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
+                    <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">{sectionData.title}</h3>
+                </div>
+                <div className="overflow-x-auto">
+                    <table className="w-full text-sm text-left">
+                        <thead className="bg-gray-50 text-gray-500 font-medium">
+                            <tr>
+                                {sectionData.headers.map((h, i) => (
+                                    <th key={i} className={`px-4 py-2 ${i > 0 ? 'text-right' : ''}`}>{h}</th>
+                                ))}
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                            {sectionData.rows.map((row, idx) => (
+                                <tr key={idx} className="hover:bg-blue-50 transition-colors group">
+                                    <td className="px-4 py-2 font-medium text-gray-700">{row[0]}</td>
+                                    {row.slice(1).map((cell, cIdx) => (
+                                        <td 
+                                            key={cIdx} 
+                                            className="px-4 py-2 text-right font-mono text-blue-600 cursor-pointer hover:bg-blue-100 active:bg-blue-200 select-none"
+                                            onMouseDown={(e) => handleCellClick(e, cell)}
+                                            title="Click to add to calculation"
+                                        >
+                                            {cell}
+                                        </td>
+                                    ))}
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        );
+
+        // Filter out hidden sections (Notes) for the left panel
+        const visibleSections = Object.keys(data.CASE_DATA).filter(key => !data.CASE_DATA[key].hidden);
+
+        return (
+            <div className="h-full overflow-y-auto custom-scrollbar p-4 bg-gray-50 border-r border-gray-200">
+                <div className="flex justify-between items-center mb-6 sticky top-0 bg-gray-50 z-10 py-2 border-b">
+                    <div>
+                        <h2 className="text-xl font-bold text-gray-900">{data.name}</h2>
+                        <span className="text-xs text-gray-500 font-mono bg-gray-200 px-2 py-1 rounded">Currency: {data.currency}</span>
+                    </div>
+                </div>
+                {visibleSections.map(key => renderTable(key, data.CASE_DATA[key]))}
+                <div className="h-20"></div>
+            </div>
+        );
+    };
+
+    // Component to render specific hidden data tables as "Solutions"
+    const SolutionDataViewer = ({ companyKey, noteKeys }) => {
+        const data = DATA_SETS[companyKey];
+        if (!data) return null;
+
+        return (
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-4 animate-fade-in">
+                <h4 className="text-sm font-bold text-gray-700 mb-3 border-b pb-2">Reference Data (from SEC Filings)</h4>
+                <div className="grid grid-cols-1 gap-6">
+                {noteKeys.map(key => {
+                    const section = data.CASE_DATA[key];
+                    if (!section) return null;
+                    return (
+                        <div key={key}>
+                            <h5 className="text-xs font-semibold text-gray-600 uppercase mb-2">{section.title}</h5>
+                            <table className="w-full text-xs text-left">
+                                <thead className="bg-gray-100 text-gray-500">
+                                    <tr>
+                                        {section.headers.map((h, i) => (
+                                            <th key={i} className={`px-2 py-1 ${i > 0 ? 'text-right' : ''}`}>{h}</th>
+                                        ))}
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-200">
+                                    {section.rows.map((row, idx) => (
+                                        <tr key={idx}>
+                                            <td className="px-2 py-1 font-medium text-gray-700">{row[0]}</td>
+                                            {row.slice(1).map((cell, cIdx) => (
+                                                <td key={cIdx} className="px-2 py-1 text-right font-mono text-gray-600">{cell}</td>
+                                            ))}
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    );
+                })}
+                </div>
+            </div>
+        );
+    };
+
+    const App = () => {
+        const [activeCompany, setActiveCompany] = React.useState('ITW');
+        const [activeTab, setActiveTab] = React.useState('simulation'); // 'simulation' | 'quiz'
+        const [activeInputId, setActiveInputId] = React.useState(null);
+        const [inputValues, setInputValues] = React.useState({ ITW: {}, PH: {} });
+        const [showFormula, setShowFormula] = React.useState({ s1: false, s2: false, s3: false });
+        const [showSolution, setShowSolution] = React.useState(false); // For Deep Dive
+        const [isInstructor, setIsInstructor] = React.useState(false); // Instructor mode toggle
+        const [showSubmissionModal, setShowSubmissionModal] = React.useState(false);
+        const [showPasswordModal, setShowPasswordModal] = React.useState(false);
+        
+        // Lifted Quiz State
+        const [quizAnswers, setQuizAnswers] = React.useState({});
+        const [quizShowResults, setQuizShowResults] = React.useState(false);
+
+        React.useEffect(() => {
+            if (window.lucide) window.lucide.createIcons();
+            setShowSolution(false); // Reset solution view on company switch
+        }, [activeCompany, isInstructor]);
+
+        // Helper to get raw data
+        const getData = (company, section, rowName, colIndex) => {
+            if (!DATA_SETS[company].CASE_DATA[section]) return 0;
+            const rows = DATA_SETS[company].CASE_DATA[section].rows;
+            const row = rows.find(r => r[0].toLowerCase().includes(rowName.toLowerCase()));
+            if (!row) return 0;
+            return parseFinNumber(row[colIndex]);
+        };
+
+        const getExpectations = (company) => {
+            // Standard Analysis (ITW & PH)
+            const rev22 = getData(company, 'is', 'Revenue', 1) || getData(company, 'is_stub', 'Net Sales', 1) || getData(company, 'is', 'Net Sales', 1);
+            
+            const netPPE22 = getData(company, 'bs', 'PPE, net', 1) || getData(company, 'bs', 'Plant & Equip', 1) || getData(company, 'bs', 'Net Plant', 1);
+            const netPPE21 = getData(company, 'bs', 'PPE, net', 2) || getData(company, 'bs', 'Plant & Equip', 2) || getData(company, 'bs', 'Net Plant', 2);
+            
+            const grossPPE22 = getData(company, 'ppe_detail', 'Total Gross', 1);
+            const grossPPE21 = getData(company, 'ppe_detail', 'Total Gross', 2);
+            
+            const depExp = company === 'ITW' ? getData(company, 'cf', 'Depreciation', 1) : getData(company, 'cf_2020', 'Depreciation', 1); 
+            
+            const accumDep22 = Math.abs(getData(company, 'ppe_detail', 'Accumulated', 1));
+            
+            const totalAssets = getData(company, 'bs', 'Total Assets', 1);
+            const intangibles = getData(company, 'bs', 'Intangible', 1);
+            const goodwill = getData(company, 'bs', 'Goodwill', 1);
+
+            // Calculations
+            const avgNetPPE = (netPPE22 + netPPE21) / 2;
+            const ppeTurnover = avgNetPPE ? (rev22 / avgNetPPE) : 0;
+            
+            const avgGrossPPE = (grossPPE22 + grossPPE21) / 2;
+            const depExpValid = depExp || 0; 
+            const avgUsefulLife = depExpValid ? (avgGrossPPE / depExpValid) : 0;
+            const percentUsed = grossPPE22 ? (accumDep22 / grossPPE22) * 100 : 0;
+            
+            const intPct = totalAssets ? (intangibles / totalAssets) * 100 : 0;
+            const gwPct = totalAssets ? (goodwill / totalAssets) * 100 : 0;
+
+            // --- DEEP DIVE LOGIC ---
+            let deepDiveData = {};
+
+            if (company === 'PH') {
+                // PH SPECIAL (2020)
+                const lordInt = getData('PH', 'note_3', 'Intangible assets', 1);
+                const exoticInt = getData('PH', 'note_3', 'Intangible assets', 2);
+                const totalIntAcq = lordInt + exoticInt;
+
+                const lordGW = getData('PH', 'note_3', 'Goodwill', 1);
+                const exoticGW = getData('PH', 'note_3', 'Goodwill', 2);
+                const totalGWAcq = lordGW + exoticGW;
+
+                const patGross = getData('PH', 'note_8', 'Patents', 1);
+                const patAcc = getData('PH', 'note_8', 'Patents', 2);
+                const patNet = patGross - patAcc;
+                
+                const tmGross = getData('PH', 'note_8', 'Trademarks', 1);
+                const tmAcc = getData('PH', 'note_8', 'Trademarks', 2);
+                const tmNet = tmGross - tmAcc;
+                
+                const listGross = getData('PH', 'note_8', 'Customer', 1);
+                const listAcc = getData('PH', 'note_8', 'Customer', 2);
+                const listNet = listGross - listAcc;
+
+                const amort2020 = getData('PH', 'cf_2020', 'Amortization', 1);
+
+                deepDiveData = { totalIntAcq, totalGWAcq, patNet, tmNet, listNet, amort2020, impairmentStatus: "No, no charges recorded." };
+
+            } else if (company === 'ITW') {
+                // ITW SPECIAL (2021/2022)
+                const mtsGw = getData('ITW', 'note_9', 'Goodwill', 1);
+                const mtsInt = getData('ITW', 'note_9', 'Intangible Assets', 1);
+
+                const ncvCust = getData('ITW', 'note_intangibles', 'Customer', 1);
+                const ncvTrade = getData('ITW', 'note_intangibles', 'Trademarks', 1);
+                const ncvPat = getData('ITW', 'note_intangibles', 'Patents', 1);
+                const ncvOther = getData('ITW', 'note_intangibles', 'Other', 1);
+                const ncvIndef = getData('ITW', 'note_intangibles', 'Indefinite', 1);
+
+                const itwAmort = getData('ITW', 'cf', 'Amortization', 1);
+
+                deepDiveData = { mtsGw, mtsInt, ncvCust, ncvTrade, ncvPat, ncvOther, ncvIndef, itwAmort, impairmentStatus: "No" };
+            }
+
+            return {
+                avgNetPPE,
+                ppeTurnover,
+                avgGrossPPE,
+                avgUsefulLife,
+                percentUsed,
+                intPct,
+                gwPct,
+                ...deepDiveData
+            };
+        };
+
+        const expectations = getExpectations(activeCompany);
+
+        // --- HANDLERS ---
+        const handleValueClick = (val) => {
+            if (!activeInputId) return;
+            const currentVal = inputValues[activeCompany][activeInputId] || "";
+            const lastChar = currentVal.toString().slice(-1);
+            let nextVal = val;
+            if (/[0-9]/.test(lastChar)) {
+                nextVal = "+" + val;
+            }
+            const newVal = currentVal + nextVal;
+            setInputValues(prev => ({
+                ...prev,
+                [activeCompany]: {
+                    ...prev[activeCompany],
+                    [activeInputId]: newVal
+                }
+            }));
+        };
+
+        const handleInputChange = (id, val) => {
+            setInputValues(prev => ({
+                ...prev,
+                [activeCompany]: {
+                    ...prev[activeCompany],
+                    [id]: val
+                }
+            }));
+        };
+
+        const handleFocus = (id) => setActiveInputId(id);
+
+        const toggleFormula = (section) => {
+            setShowFormula(prev => ({...prev, [section]: !prev[section]}));
+        };
+
+        const toggleSolution = () => setShowSolution(!showSolution);
+
+        // --- INSTRUCTOR FUNCTIONS ---
+        const handleAutoFill = () => {
+            const expITW = getExpectations('ITW');
+            const expPH = getExpectations('PH');
+
+            const formatForInput = (obj) => {
+                const newObj = {};
+                for (const key in obj) {
+                    if (obj[key] !== undefined && obj[key] !== null) {
+                        newObj[key] = obj[key].toString();
+                    }
+                }
+                return newObj;
+            };
+
+            setInputValues({
+                ITW: formatForInput(expITW),
+                PH: formatForInput(expPH)
+            });
+            setShowSolution(true); 
+        };
+
+        const handleClear = () => {
+            setInputValues({ ITW: {}, PH: {} });
+            setShowSolution(false);
+        };
+
+        // --- QUIZ FUNCTIONS (Instructor) ---
+        const handleQuizAutoFill = () => {
+            const correct = {};
+            QUIZ_QUESTIONS.forEach((q, i) => correct[i] = q.correct);
+            setQuizAnswers(correct);
+            setQuizShowResults(true);
+        };
+
+        const handleQuizClear = () => {
+            setQuizAnswers({});
+            setQuizShowResults(false);
+        };
+
+        const handleDownloadSubmission = (studentName) => {
+            const date = new Date().toLocaleDateString();
+            
+            let content = `Long-Term Asset Analysis Submission\n`;
+            content += `-----------------------------------\n`;
+            content += `Student Name: ${studentName}\n`;
+            content += `Date: ${date}\n`;
+            content += `-----------------------------------\n\n`;
+
+            ['ITW', 'PH'].forEach(company => {
+                content += `COMPANY ANALYSIS: ${company}\n`;
+                const vals = inputValues[company];
+                if (Object.keys(vals).length === 0) {
+                    content += `(No data entered)\n\n`;
+                    return;
+                }
+                
+                content += `\nSection 1: Efficiency\n`;
+                content += `- Avg Net PPE: ${vals.avgNetPPE || "N/A"}\n`;
+                content += `- PPE Turnover: ${vals.ppeTurnover || "N/A"}\n`;
+                
+                content += `\nSection 2: Aging\n`;
+                content += `- Avg Gross PPE: ${vals.avgGrossPPE || "N/A"}\n`;
+                content += `- Avg Useful Life: ${vals.avgUsefulLife || "N/A"}\n`;
+                content += `- % Used Up: ${vals.percentUsed || "N/A"}\n`;
+
+                content += `\nSection 3: Intangibles\n`;
+                content += `- Intangibles %: ${vals.intPct || "N/A"}\n`;
+                content += `- Goodwill %: ${vals.gwPct || "N/A"}\n`;
+
+                content += `\nSection 4: Deep Dive\n`;
+                if (company === 'PH') {
+                    content += `- Total Intangibles Acquired: ${vals.totalIntAcq || "N/A"}\n`;
+                    content += `- Total Goodwill Created: ${vals.totalGWAcq || "N/A"}\n`;
+                    content += `- Patents Net: ${vals.patNet || "N/A"}\n`;
+                    content += `- Trademarks Net: ${vals.tmNet || "N/A"}\n`;
+                    content += `- Customer Lists Net: ${vals.listNet || "N/A"}\n`;
+                    content += `- Amortization 2020: ${vals.amort2020 || "N/A"}\n`;
+                    content += `- Impairment Recorded: ${vals.impairmentStatus || "N/A"}\n`;
+                } else {
+                    content += `- MTS Goodwill: ${vals.mtsGw || "N/A"}\n`;
+                    content += `- MTS Intangibles: ${vals.mtsInt || "N/A"}\n`;
+                    content += `- Customer Lists Net: ${vals.ncvCust || "N/A"}\n`;
+                    content += `- Trademarks Net: ${vals.ncvTrade || "N/A"}\n`;
+                    content += `- Patents Net: ${vals.ncvPat || "N/A"}\n`;
+                    content += `- Indefinite Lived: ${vals.ncvIndef || "N/A"}\n`;
+                    content += `- Amortization 2022: ${vals.itwAmort || "N/A"}\n`;
+                    content += `- Impairment Recorded: ${vals.impairmentStatus || "N/A"}\n`;
+                }
+                content += `\n-----------------------------------\n\n`;
+            });
+
+            // Add Quiz Results to Download
+            content += `KNOWLEDGE QUIZ RESULTS\n`;
+            const answeredCount = Object.keys(quizAnswers).length;
+            const correctCount = QUIZ_QUESTIONS.filter((q, i) => quizAnswers[i] === q.correct).length;
+            content += `Score: ${correctCount} / ${QUIZ_QUESTIONS.length}\n`;
+            
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${studentName.replace(/\s+/g, '_')}_Asset_Analysis.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            setShowSubmissionModal(false);
+        };
+
+        const SectionHeader = ({ title, sectionKey, hideFormula = false }) => (
+            <div className="flex justify-between items-center mb-4 pb-2 border-b border-gray-200">
+                <h3 className="font-bold text-gray-800 text-lg">{title}</h3>
+                {!hideFormula && (
+                    <button 
+                        onClick={() => toggleFormula(sectionKey)}
+                        className="text-xs font-medium text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                    >
+                        <i data-lucide={showFormula[sectionKey] ? "eye-off" : "eye"} className="w-3 h-3"></i>
+                        {showFormula[sectionKey] ? "Hide Formulas" : "Show Formulas"}
+                    </button>
+                )}
+            </div>
+        );
+
+        const FormulaBox = ({ show, children }) => {
+            if (!show) return null;
+            return (
+                <div className="mb-4 bg-yellow-50 p-3 rounded-md border border-yellow-200 text-xs text-yellow-800 font-mono">
+                    {children}
+                </div>
+            );
+        };
+
+        return (
+            <div className="flex h-screen w-full overflow-hidden relative">
+                <SubmissionModal 
+                    isOpen={showSubmissionModal} 
+                    onClose={() => setShowSubmissionModal(false)}
+                    onDownload={handleDownloadSubmission}
+                />
+                
+                <PasswordModal
+                    isOpen={showPasswordModal}
+                    onClose={() => setShowPasswordModal(false)}
+                    onSuccess={() => setIsInstructor(true)}
+                />
+
+                {/* LEFT: Data Panel */}
+                <div className="w-5/12 h-full bg-gray-50 border-r border-gray-300">
+                    <DataPanel companyKey={activeCompany} onCellClick={handleValueClick} />
+                </div>
+
+                {/* RIGHT: Workspace */}
+                <div className="w-7/12 h-full bg-white flex flex-col">
+                    {/* Header */}
+                    <div className="bg-white border-b border-gray-200 p-4 shadow-sm z-10">
+                        <div className="flex justify-between items-center mb-3">
+                            <div>
+                                <h1 className="text-xl font-bold text-gray-900">Long-Term Asset Analysis</h1>
+                                <p className="text-sm text-gray-500">PPE & Intangibles Simulation</p>
+                            </div>
+                            
+                            <div className="flex items-center gap-2">
+                                <button 
+                                    onClick={() => {
+                                        if (isInstructor) setIsInstructor(false);
+                                        else setShowPasswordModal(true);
+                                    }}
+                                    className={`p-2 rounded-full transition-colors ${isInstructor ? 'bg-purple-100 text-purple-700' : 'text-gray-300 hover:text-gray-500'}`}
+                                    title={isInstructor ? "Exit Instructor Mode" : "Enter Instructor Mode"}
+                                >
+                                    <i data-lucide={isInstructor ? "unlock" : "lock"} className="w-4 h-4"></i>
+                                </button>
+                                <div className="flex bg-gray-100 p-1 rounded-lg">
+                                    <button 
+                                        onClick={() => setActiveCompany('ITW')}
+                                        className={`px-4 py-2 rounded-md text-sm font-semibold transition-all ${activeCompany === 'ITW' ? 'bg-white shadow text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+                                    >
+                                        ITW
+                                    </button>
+                                    <button 
+                                        onClick={() => setActiveCompany('PH')}
+                                        className={`px-4 py-2 rounded-md text-sm font-semibold transition-all ${activeCompany === 'PH' ? 'bg-white shadow text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+                                    >
+                                        Parker Hannifin
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* TAB NAVIGATION & TOOLS */}
+                        <div className="flex justify-between items-end border-b border-gray-100 pb-1">
+                            <div className="flex space-x-4">
+                                <button
+                                    onClick={() => setActiveTab('simulation')}
+                                    className={`pb-2 px-1 text-sm font-medium transition-colors border-b-2 ${
+                                        activeTab === 'simulation' 
+                                        ? 'border-blue-600 text-blue-600' 
+                                        : 'border-transparent text-gray-500 hover:text-gray-700'
+                                    }`}
+                                >
+                                    Simulation
+                                </button>
+                                <button
+                                    onClick={() => setActiveTab('quiz')}
+                                    className={`pb-2 px-1 text-sm font-medium transition-colors border-b-2 ${
+                                        activeTab === 'quiz' 
+                                        ? 'border-blue-600 text-blue-600' 
+                                        : 'border-transparent text-gray-500 hover:text-gray-700'
+                                    }`}
+                                >
+                                    Knowledge Quiz
+                                </button>
+                            </div>
+                            
+                            {/* Action Buttons */}
+                            <div className="flex gap-2 pb-1">
+                                {isInstructor && (
+                                    <>
+                                        {activeTab === 'simulation' ? (
+                                            <>
+                                                <button 
+                                                    onClick={handleAutoFill}
+                                                    className="text-xs bg-purple-50 text-purple-700 px-3 py-1 rounded border border-purple-200 hover:bg-purple-100 flex items-center gap-1 shadow-sm"
+                                                >
+                                                    <i data-lucide="wand-2" className="w-3 h-3"></i> Auto-Fill Key
+                                                </button>
+                                                <button 
+                                                    onClick={handleClear}
+                                                    className="text-xs bg-red-50 text-red-700 px-3 py-1 rounded border border-red-200 hover:bg-red-100 flex items-center gap-1 shadow-sm"
+                                                >
+                                                    <i data-lucide="trash-2" className="w-3 h-3"></i> Clear
+                                                </button>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <button 
+                                                    onClick={handleQuizAutoFill}
+                                                    className="text-xs bg-purple-50 text-purple-700 px-3 py-1 rounded border border-purple-200 hover:bg-purple-100 flex items-center gap-1 shadow-sm"
+                                                >
+                                                    <i data-lucide="wand-2" className="w-3 h-3"></i> Auto-Fill Quiz
+                                                </button>
+                                                <button 
+                                                    onClick={handleQuizClear}
+                                                    className="text-xs bg-red-50 text-red-700 px-3 py-1 rounded border border-red-200 hover:bg-red-100 flex items-center gap-1 shadow-sm"
+                                                >
+                                                    <i data-lucide="trash-2" className="w-3 h-3"></i> Clear Quiz
+                                                </button>
+                                            </>
+                                        )}
+                                    </>
+                                )}
+                                {activeTab === 'simulation' && (
+                                    <button 
+                                        onClick={() => setShowSubmissionModal(true)}
+                                        className="text-xs bg-blue-50 text-blue-700 px-3 py-1 rounded border border-blue-200 hover:bg-blue-100 flex items-center gap-1 shadow-sm"
+                                    >
+                                        <i data-lucide="download" className="w-3 h-3"></i> Submit Work
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Scrollable Content */}
+                    <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+                        
+                        {activeTab === 'quiz' ? (
+                            <Quiz 
+                                answers={quizAnswers}
+                                onSelect={(q, o) => setQuizAnswers(prev => ({...prev, [q]: o}))}
+                                showResults={quizShowResults}
+                                setShowResults={setQuizShowResults}
+                                setAnswers={setQuizAnswers}
+                            />
+                        ) : (
+                            <>
+                                {/* Section 1 */}
+                                <div className="mb-10">
+                                    <SectionHeader title="1. PPE Productivity & Efficiency" sectionKey="s1" />
+                                    <FormulaBox show={showFormula.s1}>
+                                        Avg Net PPE = (Net PPE 2022 + Net PPE 2021) / 2 <br/>
+                                        PPE Turnover = Revenue / Avg Net PPE
+                                    </FormulaBox>
+                                    <div className="grid grid-cols-2 gap-6 mb-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Average Net PPE</label>
+                                            <SmartInput 
+                                                id="avgNetPPE"
+                                                value={inputValues[activeCompany].avgNetPPE || ""}
+                                                onChange={handleInputChange}
+                                                onFocus={handleFocus}
+                                                isActive={activeInputId === "avgNetPPE"}
+                                                expectedValue={expectations.avgNetPPE}
+                                                placeholder="(Year 2 + Year 1) / 2"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">PPE Turnover</label>
+                                            <SmartInput 
+                                                id="ppeTurnover"
+                                                value={inputValues[activeCompany].ppeTurnover || ""}
+                                                onChange={handleInputChange}
+                                                onFocus={handleFocus}
+                                                isActive={activeInputId === "ppeTurnover"}
+                                                expectedValue={expectations.ppeTurnover}
+                                                placeholder="Revenue / Avg Net PPE"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Section 2 */}
+                                <div className="mb-10">
+                                    <SectionHeader title="2. Asset Aging & Replacement" sectionKey="s2" />
+                                    <FormulaBox show={showFormula.s2}>
+                                        Avg Gross PPE = (Gross PPE 2022 + Gross PPE 2021) / 2 <br/>
+                                        Avg Useful Life = Avg Gross PPE / Depreciation Expense <br/>
+                                        Percent Used Up = Acc. Depreciation / Total Gross PPE
+                                    </FormulaBox>
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Avg Gross PPE</label>
+                                            <SmartInput 
+                                                id="avgGrossPPE"
+                                                value={inputValues[activeCompany].avgGrossPPE || ""}
+                                                onChange={handleInputChange}
+                                                onFocus={handleFocus}
+                                                isActive={activeInputId === "avgGrossPPE"}
+                                                expectedValue={expectations.avgGrossPPE}
+                                                placeholder="(Gross 22 + Gross 21)/2"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Est. Avg Useful Life</label>
+                                            <SmartInput 
+                                                id="avgUsefulLife"
+                                                value={inputValues[activeCompany].avgUsefulLife || ""}
+                                                onChange={handleInputChange}
+                                                onFocus={handleFocus}
+                                                isActive={activeInputId === "avgUsefulLife"}
+                                                expectedValue={expectations.avgUsefulLife}
+                                                placeholder="Avg Gross / Depr. Exp"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">% Used Up (2022)</label>
+                                            <SmartInput 
+                                                id="percentUsed"
+                                                value={inputValues[activeCompany].percentUsed || ""}
+                                                onChange={handleInputChange}
+                                                onFocus={handleFocus}
+                                                isActive={activeInputId === "percentUsed"}
+                                                expectedValue={expectations.percentUsed}
+                                                placeholder="(Acc Dep / Gross) * 100"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Section 3 */}
+                                <div className="mb-10">
+                                    <SectionHeader title="3. Intangibles & Goodwill" sectionKey="s3" />
+                                    <FormulaBox show={showFormula.s3}>
+                                        Intangibles % = (Intangibles / Total Assets) * 100 <br/>
+                                        Goodwill % = (Goodwill / Total Assets) * 100
+                                    </FormulaBox>
+                                    <div className="grid grid-cols-2 gap-6 mb-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Intangibles % of Assets</label>
+                                            <SmartInput 
+                                                id="intPct"
+                                                value={inputValues[activeCompany].intPct || ""}
+                                                onChange={handleInputChange}
+                                                onFocus={handleFocus}
+                                                isActive={activeInputId === "intPct"}
+                                                expectedValue={expectations.intPct}
+                                                placeholder="(Intangibles / Assets) * 100"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Goodwill % of Assets</label>
+                                            <SmartInput 
+                                                id="gwPct"
+                                                value={inputValues[activeCompany].gwPct || ""}
+                                                onChange={handleInputChange}
+                                                onFocus={handleFocus}
+                                                isActive={activeInputId === "gwPct"}
+                                                expectedValue={expectations.gwPct}
+                                                placeholder="(Goodwill / Assets) * 100"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Section 4: ITW SPECIAL */}
+                                {activeCompany === 'ITW' && (
+                                    <div className="mb-10 border-t-2 border-blue-100 pt-6">
+                                        <div className="bg-blue-50 p-4 rounded-lg border border-blue-200 mb-6">
+                                            <div className="flex justify-between items-start">
+                                                <div className="flex items-start gap-3">
+                                                    <div className="bg-blue-100 p-2 rounded-full text-blue-600">
+                                                        <i data-lucide="microscope" className="w-5 h-5"></i>
+                                                    </div>
+                                                    <div>
+                                                        <h3 className="font-bold text-blue-900 text-lg">Section 4: Deep Dive - M&A & Intangibles</h3>
+                                                        <p className="text-sm text-blue-700">Analyze the MTS Acquisition (Note 9) and 2022 Intangibles.</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex flex-col gap-2">
+                                                    <a 
+                                                        href="https://www.sec.gov/ix?doc=/Archives/edgar/data/0000049826/000004982623000008/itw-20221231.htm" 
+                                                        target="_blank" rel="noreferrer"
+                                                        className="text-xs bg-white text-blue-600 px-3 py-1 rounded border border-blue-200 hover:bg-blue-50 flex items-center gap-1 shadow-sm"
+                                                    >
+                                                        Open 2022 10-K <i data-lucide="external-link" className="w-3 h-3"></i>
+                                                    </a>
+                                                    <button 
+                                                        onClick={toggleSolution}
+                                                        className={`text-xs px-3 py-1 rounded border flex items-center gap-1 shadow-sm ${showSolution ? 'bg-green-100 text-green-800 border-green-300' : 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100'}`}
+                                                    >
+                                                        {showSolution ? "Hide Note Data" : "Reveal Note Data"} <i data-lucide={showSolution ? "eye-off" : "eye"} className="w-3 h-3"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {showSolution && (
+                                            <SolutionDataViewer companyKey="ITW" noteKeys={['note_9', 'note_intangibles']} />
+                                        )}
+
+                                        <SectionHeader title="Part A: MTS Acquisition (Note 9 - Dec 2021)" sectionKey="s4" hideFormula={true} />
+                                        <div className="grid grid-cols-2 gap-6 mb-6">
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">Goodwill Recorded</label>
+                                                <SmartInput 
+                                                    id="mtsGw"
+                                                    value={inputValues[activeCompany].mtsGw || ""}
+                                                    onChange={handleInputChange}
+                                                    onFocus={handleFocus}
+                                                    isActive={activeInputId === "mtsGw"}
+                                                    expectedValue={expectations.mtsGw}
+                                                    placeholder="Find in Note 9"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">Intangibles Recorded</label>
+                                                <SmartInput 
+                                                    id="mtsInt"
+                                                    value={inputValues[activeCompany].mtsInt || ""}
+                                                    onChange={handleInputChange}
+                                                    onFocus={handleFocus}
+                                                    isActive={activeInputId === "mtsInt"}
+                                                    expectedValue={expectations.mtsInt}
+                                                    placeholder="Find in Note 9"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <SectionHeader title="Part B: Net Carrying Values 2022" sectionKey="s4" hideFormula={true} />
+                                        <div className="text-xs text-gray-500 mb-2 italic">Formula: Net Carrying Value = Gross Value - Accumulated Amortization (Usually reported directly in notes)</div>
+                                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">Customer Lists</label>
+                                                <SmartInput 
+                                                    id="ncvCust"
+                                                    value={inputValues[activeCompany].ncvCust || ""}
+                                                    onChange={handleInputChange}
+                                                    onFocus={handleFocus}
+                                                    isActive={activeInputId === "ncvCust"}
+                                                    expectedValue={expectations.ncvCust}
+                                                    placeholder="Net Value"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">Trademarks</label>
+                                                <SmartInput 
+                                                    id="ncvTrade"
+                                                    value={inputValues[activeCompany].ncvTrade || ""}
+                                                    onChange={handleInputChange}
+                                                    onFocus={handleFocus}
+                                                    isActive={activeInputId === "ncvTrade"}
+                                                    expectedValue={expectations.ncvTrade}
+                                                    placeholder="Net Value"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">Patents</label>
+                                                <SmartInput 
+                                                    id="ncvPat"
+                                                    value={inputValues[activeCompany].ncvPat || ""}
+                                                    onChange={handleInputChange}
+                                                    onFocus={handleFocus}
+                                                    isActive={activeInputId === "ncvPat"}
+                                                    expectedValue={expectations.ncvPat}
+                                                    placeholder="Net Value"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">Indefinite Lived</label>
+                                                <SmartInput 
+                                                    id="ncvIndef"
+                                                    value={inputValues[activeCompany].ncvIndef || ""}
+                                                    onChange={handleInputChange}
+                                                    onFocus={handleFocus}
+                                                    isActive={activeInputId === "ncvIndef"}
+                                                    expectedValue={expectations.ncvIndef}
+                                                    placeholder="Net Value"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <SectionHeader title="Part C: Amortization & Impairment" sectionKey="s4" hideFormula={true} />
+                                        <div className="grid grid-cols-2 gap-6 mb-4">
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">2022 Amortization Expense</label>
+                                                <SmartInput 
+                                                    id="itwAmort"
+                                                    value={inputValues[activeCompany].itwAmort || ""}
+                                                    onChange={handleInputChange}
+                                                    onFocus={handleFocus}
+                                                    isActive={activeInputId === "itwAmort"}
+                                                    expectedValue={expectations.itwAmort}
+                                                    placeholder="Find in Cash Flows"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">Did ITW record Impairment?</label>
+                                                <select 
+                                                    value={inputValues[activeCompany].impairmentStatus || ""}
+                                                    onChange={(e) => handleInputChange('impairmentStatus', e.target.value)}
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-200"
+                                                >
+                                                    <option value="">Select...</option>
+                                                    <option value="Yes">Yes</option>
+                                                    <option value="No">No</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Section 4: PH SPECIAL */}
+                                {activeCompany === 'PH' && (
+                                    <div className="mb-10 border-t-2 border-blue-100 pt-6">
+                                        <div className="bg-blue-50 p-4 rounded-lg border border-blue-200 mb-6">
+                                            <div className="flex justify-between items-start">
+                                                <div className="flex items-start gap-3">
+                                                    <div className="bg-blue-100 p-2 rounded-full text-blue-600">
+                                                        <i data-lucide="microscope" className="w-5 h-5"></i>
+                                                    </div>
+                                                    <div>
+                                                        <h3 className="font-bold text-blue-900 text-lg">Section 4: Deep Dive - 2020 M&A & Intangibles</h3>
+                                                        <p className="text-sm text-blue-700">Analyze the impact of the "Lord" and "Exotic" acquisitions.</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex flex-col gap-2">
+                                                    <a 
+                                                        href="https://www.sec.gov/ix?doc=/Archives/edgar/data/0000076334/000007633420000099/ph630202010-k.htm" 
+                                                        target="_blank" rel="noreferrer"
+                                                        className="text-xs bg-white text-blue-600 px-3 py-1 rounded border border-blue-200 hover:bg-blue-50 flex items-center gap-1 shadow-sm"
+                                                    >
+                                                        Open 2020 10-K <i data-lucide="external-link" className="w-3 h-3"></i>
+                                                    </a>
+                                                    <button 
+                                                        onClick={toggleSolution}
+                                                        className={`text-xs px-3 py-1 rounded border flex items-center gap-1 shadow-sm ${showSolution ? 'bg-green-100 text-green-800 border-green-300' : 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100'}`}
+                                                    >
+                                                        {showSolution ? "Hide Note Data" : "Reveal Note Data"} <i data-lucide={showSolution ? "eye-off" : "eye"} className="w-3 h-3"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            
+                                            <div className="mt-4 p-3 bg-white rounded border border-blue-100">
+                                                <label className="block text-sm font-bold text-gray-700 mb-2">Analysis Check: Observe the sharp jump in Goodwill % in 2020 (39.6%) vs 2019 (30.8%). What does this suggest?</label>
+                                                <select className="w-full px-3 py-2 border border-gray-300 rounded text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-200">
+                                                    <option>Select your analysis...</option>
+                                                    <option>Significant acquisitions occurred (Inorganic Growth)</option>
+                                                    <option>Organic growth of internal assets</option>
+                                                    <option>Accounting error in 2019</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        {showSolution && (
+                                            <SolutionDataViewer companyKey="PH" noteKeys={['note_3', 'note_8']} />
+                                        )}
+
+                                        <SectionHeader title="Part A: Acquisition Impact (Note 3)" sectionKey="s4" hideFormula={true} />
+                                        <div className="grid grid-cols-2 gap-6 mb-6">
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">Total Intangibles Acquired (2020)</label>
+                                                <SmartInput 
+                                                    id="totalIntAcq"
+                                                    value={inputValues[activeCompany].totalIntAcq || ""}
+                                                    onChange={handleInputChange}
+                                                    onFocus={handleFocus}
+                                                    isActive={activeInputId === "totalIntAcq"}
+                                                    expectedValue={expectations.totalIntAcq}
+                                                    placeholder="Find in Note 3"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">Total Goodwill Created (2020)</label>
+                                                <SmartInput 
+                                                    id="totalGWAcq"
+                                                    value={inputValues[activeCompany].totalGWAcq || ""}
+                                                    onChange={handleInputChange}
+                                                    onFocus={handleFocus}
+                                                    isActive={activeInputId === "totalGWAcq"}
+                                                    expectedValue={expectations.totalGWAcq}
+                                                    placeholder="Find in Note 3"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <SectionHeader title="Part B: Net Carrying Values 2020 (Note 8)" sectionKey="s4" hideFormula={true} />
+                                        <div className="text-xs text-gray-500 mb-2 italic">Formula: Net Carrying Value = Gross Value - Accumulated Amortization</div>
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">Patents & Tech Net Value</label>
+                                                <SmartInput 
+                                                    id="patNet"
+                                                    value={inputValues[activeCompany].patNet || ""}
+                                                    onChange={handleInputChange}
+                                                    onFocus={handleFocus}
+                                                    isActive={activeInputId === "patNet"}
+                                                    expectedValue={expectations.patNet}
+                                                    placeholder="Gross - Accum. Amort"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">Trademarks Net Value</label>
+                                                <SmartInput 
+                                                    id="tmNet"
+                                                    value={inputValues[activeCompany].tmNet || ""}
+                                                    onChange={handleInputChange}
+                                                    onFocus={handleFocus}
+                                                    isActive={activeInputId === "tmNet"}
+                                                    expectedValue={expectations.tmNet}
+                                                    placeholder="Gross - Accum. Amort"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">Customer Lists Net Value</label>
+                                                <SmartInput 
+                                                    id="listNet"
+                                                    value={inputValues[activeCompany].listNet || ""}
+                                                    onChange={handleInputChange}
+                                                    onFocus={handleFocus}
+                                                    isActive={activeInputId === "listNet"}
+                                                    expectedValue={expectations.listNet}
+                                                    placeholder="Gross - Accum. Amort"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <SectionHeader title="Part C: Amortization & Impairment" sectionKey="s4" hideFormula={true} />
+                                        <div className="grid grid-cols-2 gap-6 mb-4">
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">2020 Amortization Expense</label>
+                                                <SmartInput 
+                                                    id="amort2020"
+                                                    value={inputValues[activeCompany].amort2020 || ""}
+                                                    onChange={handleInputChange}
+                                                    onFocus={handleFocus}
+                                                    isActive={activeInputId === "amort2020"}
+                                                    expectedValue={expectations.amort2020}
+                                                    placeholder="Hint: Check Cash Flows"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">Did PH record Impairment?</label>
+                                                <select 
+                                                    value={inputValues[activeCompany].impairmentStatus || ""}
+                                                    onChange={(e) => handleInputChange('impairmentStatus', e.target.value)}
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-200"
+                                                >
+                                                    <option value="">Select...</option>
+                                                    <option value="Yes, significant charges.">Yes, significant charges.</option>
+                                                    <option value="No, no charges recorded.">No, no charges recorded.</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </>
+                        )}
+
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+</script>
+
+</body>
+</html>

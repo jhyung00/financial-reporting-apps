@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>McDonald's Equity & Share-Based Compensation Sim</title>
+    
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Fonts -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        
+        /* Custom Scrollbar for Analyst Feel */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        .tab-btn {
+            white-space: nowrap;
+        }
+
+        /* Animation for auto-fill */
+        @keyframes highlight {
+            0% { background-color: #dcfce7; }
+            100% { background-color: #f0fdf4; }
+        }
+        .auto-filled {
+            animation: highlight 1s ease-out;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 h-screen overflow-hidden">
+
+    <div id="root" class="h-full"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // --- Icons ---
+        const IconChart = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>;
+        const IconDownload = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>;
+        const IconKey = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>;
+        const IconExternal = () => <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>;
+        const IconHint = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>;
+        const IconCheck = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>;
+
+        // --- Data & Correct Answers ---
+        const CORRECT_ANSWERS = {
+            // Review 8-2
+            "8-2-a-text": "Zero. The number of issued shares remained constant at 1,660.6 million for both 2023 and 2024. The change in equity comes from APIC and Treasury activities.",
+            "8-2-b-cash": "112 (0.4 * 280)",
+            "8-2-b-noncash": "0",
+            "8-2-b-liab": "0",
+            "8-2-b-cc": "112",
+            "8-2-b-ec": "0",
+            "8-2-c-cash": "-1988 (7.5 * 265)",
+            "8-2-c-noncash": "0",
+            "8-2-c-liab": "0",
+            "8-2-c-cc": "-1988 (Treasury)",
+            "8-2-c-ec": "0",
+            "8-2-d-cash": "600 (2 * 300)",
+            "8-2-d-noncash": "0",
+            "8-2-d-liab": "0",
+            "8-2-d-cc": "600 (300 Cost + 300 Gain)",
+            "8-2-d-ec": "0",
+
+            // Review 8-3
+            "8-3-a-text": "It reduced net income by $172 million (before tax). Expense is recognized on the income statement.",
+            "8-3-b-text": "It is a non-cash expense, so it is added back to Net Income in the Cash Flow from Operations section. No immediate cash outflow occurs.",
+            "8-3-c-calc": "17.95 (1.2 * 59.82 / 4)",
+
+            // Review 8-4 (EPS & Dividends)
+            // Updated Shares: Basic 718.3, Diluted 721.9
+            "8-4-a-calc": "11.45 (8223 / 718.3)",
+            "8-4-b-calc": "11.39 (8223 / 721.9)",
+            "8-4-d-calc": "59.8 (Div 4920 / NI 8223)", // Div = 6.85 * 718.3 approx 4920
+            "8-4-e-calc": "2.31 (6.85 / 296.50)",
+
+            // Review 8-5 (OCI & Currency)
+            "8-5-a-text": "The US Dollar Strengthened. A negative currency translation adjustment (loss of $196M) indicates that foreign assets translated into fewer US Dollars.",
+            "8-5-b-text": "No. An unrealized GAIN in OCI for cash flow hedges ($125M) indicates that the fair value of the derivatives INCREASED during the period.",
+            "8-5-a-calc": "-96 (-196 + 125 - 25)",
+            "8-5-b-calc": "8127 (8223 - 96)",
+            "8-5-c-calc": "-2552 (-2456 - 96)",
+
+            // Concepts (Multiple Choice)
+            "concepts-q1": "C", // Options vs Restricted
+            "concepts-q2": "B", // Incentives
+            "concepts-q3": "B"  // Vesting
+        };
+
+        const HINTS = {
+            "expense": "Search the 10-K notes for a table titled 'Share-based compensation expense'. Look for the 2024 total.",
+            "fairvalue": "Look for the 'Weighted-average assumptions' table in the Share-based Compensation note.",
+            "vesting": "Read the text under the 'STOCK OPTIONS' header in the notes. Look for '...equal installments...'",
+            "eps": "Use Corrected Net Income: $8,223 million. Check 10-K for weighted shares.",
+            "dividends": "Annual Dividend: $6.85/share. Stock Price (Dec 31, 2024): ~$296.50.",
+            "oci": "Total the items: Currency (196) + Hedges 125 + Pension (25).",
+            "deriv": "Look at 'Cash flow hedges'. A gain (positive number) means the instrument's value likely increased."
+        };
+
+        const MCQ_DATA = [
+            {
+                id: "concepts-q1",
+                question: "Stock options grant the holder the right to purchase shares at a preset price, whereas restricted stock represents actual shares. What is a key difference regarding their value?",
+                options: [
+                    { key: "A", text: "Restricted stock always expires worthless if the price drops." },
+                    { key: "B", text: "Stock options always have value regardless of the stock price." },
+                    { key: "C", text: "Options can expire worthless if price falls below exercise price; restricted stock usually retains value unless price is $0." },
+                    { key: "D", text: "Restricted stock requires the employee to pay a strike price to acquire the shares." }
+                ]
+            },
+            {
+                id: "concepts-q2",
+                question: "How are stock options and restricted stock similar in terms of their impact on employee behavior?",
+                options: [
+                    { key: "A", text: "Both guarantee a fixed cash bonus regardless of performance." },
+                    { key: "B", text: "Both provide an incentive for employees to increase the share price." },
+                    { key: "C", text: "Both allow employees to sell shares immediately upon grant." },
+                    { key: "D", text: "Both are treated as liabilities rather than equity." }
+                ]
+            },
+            {
+                id: "concepts-q3",
+                question: "What is the primary purpose of a vesting period in share-based compensation plans?",
+                options: [
+                    { key: "A", text: "To allow the company to sell the stock to the public first." },
+                    { key: "B", text: "To retain the employee, aligning incentives with shareholders as they must stay to 'earn' the stock." },
+                    { key: "C", text: "To decrease the tax burden on the company immediately." },
+                    { key: "D", text: "To prevent the stock price from rising too quickly." }
+                ]
+            }
+        ];
+
+        // --- Helper for 2% Tolerance ---
+        const checkTolerance = (userVal, correctValStr) => {
+            if (!userVal) return null;
+            // Parse correct value from string like "11.36 (8223 / 723.6)" -> 11.36
+            const cleanCorrect = parseFloat(correctValStr.split(' ')[0]);
+            const cleanUser = parseFloat(userVal);
+            
+            if (isNaN(cleanCorrect) || isNaN(cleanUser)) return null;
+            
+            if (cleanCorrect === 0) return Math.abs(cleanUser) < 0.01; // Special case for 0
+
+            const diff = Math.abs((cleanUser - cleanCorrect) / cleanCorrect);
+            return diff <= 0.02; // 2% tolerance
+        };
+
+        // --- Components ---
+
+        const Header = () => (
+            <header className="bg-slate-900 text-white p-4 shadow-lg flex justify-between items-center z-10 relative">
+                <div className="flex items-center space-x-3">
+                    <div className="bg-teal-500 p-2 rounded-lg">
+                        <IconChart />
+                    </div>
+                    <div>
+                        <h1 className="text-xl font-bold tracking-tight">Financial Simulation</h1>
+                        <p className="text-xs text-slate-400">Stockholders' Equity & Compensation • McDonald's Case</p>
+                    </div>
+                </div>
+                <a 
+                    href="https://www.sec.gov/ix?doc=/Archives/edgar/data/0000063908/000006390825000012/mcd-20241231.htm" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex items-center text-sm text-teal-400 hover:text-teal-300 transition-colors bg-slate-800 px-3 py-1.5 rounded-full border border-slate-700"
+                >
+                    <span className="mr-2">View McDonald's 2024 10-K</span>
+                    <IconExternal />
+                </a>
+            </header>
+        );
+
+        const HintBox = ({ text }) => (
+            <div className="group relative inline-block ml-2 cursor-help">
+                <span className="text-teal-600"><IconHint /></span>
+                <div className="invisible group-hover:visible absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 bg-slate-800 text-white text-xs p-3 rounded shadow-xl pointer-events-none">
+                    <div className="font-bold mb-1 text-teal-400">Research Hint:</div>
+                    {text}
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800"></div>
+                </div>
+            </div>
+        );
+
+        const FinEffectRow = ({ label, idPrefix, answers, handleChange, instructorMode, correctAnswers, validationMode }) => {
+            const fields = [
+                { key: 'cash', placeholder: 'Cash' },
+                { key: 'noncash', placeholder: 'Non-Cash' },
+                { key: 'liab', placeholder: 'Liabil.' },
+                { key: 'cc', placeholder: 'Contrib. Cap' },
+                { key: 'ec', placeholder: 'Earned Cap' },
+            ];
+
+            return (
+                <div className="mb-4 p-4 bg-white border border-slate-200 rounded-lg shadow-sm">
+                    <div className="mb-2 font-semibold text-slate-700">{label}</div>
+                    <div className="grid grid-cols-6 gap-2 items-center text-sm">
+                        <div className="col-span-1 text-right font-medium text-slate-500 pr-2">Effect ($M):</div>
+                        {fields.map(field => {
+                            const fieldId = `${idPrefix}-${field.key}`;
+                            const displayValue = instructorMode 
+                                ? (correctAnswers[fieldId] !== undefined ? correctAnswers[fieldId] : '')
+                                : (answers[fieldId] || '');
+                            
+                            let borderClass = 'border-slate-300';
+                            if (validationMode && !instructorMode) {
+                                const isCorrect = checkTolerance(answers[fieldId], correctAnswers[fieldId]);
+                                if (isCorrect === true) borderClass = 'border-green-500 bg-green-50 text-green-900';
+                                if (isCorrect === false) borderClass = 'border-red-500 bg-red-50 text-red-900';
+                            }
+
+                            return (
+                                <div key={fieldId} className="relative">
+                                    <input 
+                                        type="text" 
+                                        placeholder={field.placeholder}
+                                        value={displayValue}
+                                        onChange={(e) => handleChange(fieldId, e.target.value)}
+                                        className={`w-full p-2 border rounded focus:outline-none transition-all duration-500 ${borderClass}
+                                            ${instructorMode ? 'bg-green-100 border-green-400 text-green-900 font-bold' : ''}
+                                            ${!instructorMode && !validationMode ? 'focus:ring-2 focus:ring-teal-500' : ''}
+                                        `}
+                                        disabled={instructorMode}
+                                    />
+                                    <span className="absolute -top-3 left-1 bg-white px-1 text-[10px] text-slate-400 uppercase tracking-wider">{field.placeholder}</span>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            );
+        };
+
+        const App = () => {
+            const [activeTab, setActiveTab] = useState('equity');
+            const [answers, setAnswers] = useState({});
+            const [instructorMode, setInstructorMode] = useState(false);
+            const [showAuth, setShowAuth] = useState(false);
+            const [password, setPassword] = useState('');
+            const [validationMode, setValidationMode] = useState(false);
+
+            const handleInputChange = (id, value) => {
+                setAnswers(prev => ({ ...prev, [id]: value }));
+                if (validationMode) setValidationMode(false); // Reset validation on edit
+            };
+
+            // Instant unlock check
+            useEffect(() => {
+                if (password.toLowerCase() === 'teacher') {
+                    setInstructorMode(true);
+                    setShowAuth(false);
+                    setPassword('');
+                    setValidationMode(false);
+                }
+            }, [password]);
+
+            const getInputProps = (id) => {
+                let borderClass = 'border-slate-300';
+                if (validationMode && !instructorMode && CORRECT_ANSWERS[id]) {
+                    // Check if numeric question
+                    const isCorrect = checkTolerance(answers[id], CORRECT_ANSWERS[id]);
+                    if (isCorrect === true) borderClass = 'border-green-500 bg-green-50 text-green-900';
+                    if (isCorrect === false) borderClass = 'border-red-500 bg-red-50 text-red-900';
+                }
+
+                return {
+                    value: instructorMode 
+                        ? (CORRECT_ANSWERS[id] !== undefined ? CORRECT_ANSWERS[id] : '')
+                        : (answers[id] || ''),
+                    disabled: instructorMode,
+                    className: `w-full p-2 border rounded transition-all duration-500 ${borderClass} ${
+                        instructorMode 
+                        ? 'bg-green-100 border-green-400 text-green-900 font-bold' 
+                        : (!validationMode ? 'bg-white focus:ring-2 focus:ring-teal-500' : '')
+                    }`
+                };
+            };
+
+            const downloadReport = () => {
+                const reportContent = `
+STUDENT REPORT - McDonald's Equity Simulation
+Date: ${new Date().toLocaleString()}
+
+--- EQUITY ---
+a) Stock Issued: ${answers["8-2-a-text"] || "[No Answer]"}
+b) Issue 400k: Cash: ${answers["8-2-b-cash"] || 0} | CC: ${answers["8-2-b-cc"] || 0}
+c) Repurchase: Cash: ${answers["8-2-c-cash"] || 0} | CC: ${answers["8-2-c-cc"] || 0}
+d) Treasury Sell: Cash: ${answers["8-2-d-cash"] || 0} | CC: ${answers["8-2-d-cc"] || 0}
+
+--- COMPENSATION ---
+a) Net Income: ${answers["8-3-a-text"] || "[No Answer]"}
+b) Cash Flow: ${answers["8-3-b-text"] || "[No Answer]"}
+c) Expense: ${answers["8-3-c-calc"] || "[No Answer]"}
+
+--- EPS & DIVIDENDS ---
+a) Basic EPS: ${answers["8-4-a-calc"] || "0.00"}
+b) Diluted EPS: ${answers["8-4-b-calc"] || "0.00"}
+c) Payout: ${answers["8-4-d-calc"] || "0.00"}%
+d) Yield: ${answers["8-4-e-calc"] || "0.00"}%
+
+--- OCI ---
+a) Currency: ${answers["8-5-a-text"] || "[No Answer]"}
+b) Derivatives: ${answers["8-5-b-text"] || "[No Answer]"}
+c) Total OCI: ${answers["8-5-a-calc"] || "0"}
+d) Ending AOCI: ${answers["8-5-c-calc"] || "0"}
+
+--- CONCEPTUAL MULTIPLE CHOICE QUESTIONS ---
+Q1: ${answers["concepts-q1"] || "-"}
+Q2: ${answers["concepts-q2"] || "-"}
+Q3: ${answers["concepts-q3"] || "-"}
+                `;
+
+                const blob = new Blob([reportContent], { type: "text/plain" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = "McDonalds_Sim_Report.txt";
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            };
+
+            // --- Render Views ---
+
+            const renderEquity = () => (
+                <div className="space-y-6 animate-fadeIn">
+                    <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                        <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center">
+                            <span className="bg-blue-100 text-blue-600 p-1 rounded mr-2 text-xs">DATA</span>
+                            Consolidated Balance Sheet (Equity Section)
+                        </h2>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm text-left text-slate-600">
+                                <thead className="text-xs text-slate-500 uppercase bg-slate-50 border-b">
+                                    <tr>
+                                        <th className="px-4 py-3">Account (in Millions)</th>
+                                        <th className="px-4 py-3 text-right">Dec 31, 2024</th>
+                                        <th className="px-4 py-3 text-right">Dec 31, 2023</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr className="border-b hover:bg-slate-50">
+                                        <td className="px-4 py-3 font-medium">Common stock, $0.01 par</td>
+                                        <td className="px-4 py-3 text-right">$17.0</td>
+                                        <td className="px-4 py-3 text-right">$17.0</td>
+                                    </tr>
+                                    <tr className="border-b hover:bg-slate-50">
+                                        <td className="px-4 py-3">Additional paid-in capital</td>
+                                        <td className="px-4 py-3 text-right">9,281</td>
+                                        <td className="px-4 py-3 text-right">8,893</td>
+                                    </tr>
+                                    <tr className="border-b hover:bg-slate-50">
+                                        <td className="px-4 py-3">Retained earnings</td>
+                                        <td className="px-4 py-3 text-right">66,834</td>
+                                        <td className="px-4 py-3 text-right">63,480</td>
+                                    </tr>
+                                    <tr className="border-b hover:bg-slate-50">
+                                        <td className="px-4 py-3 text-red-500">Treasury stock, at cost</td>
+                                        <td className="px-4 py-3 text-right text-red-500">(77,375)</td>
+                                        <td className="px-4 py-3 text-right text-red-500">(74,640)</td>
+                                    </tr>
+                                    <tr className="bg-slate-100 font-bold text-slate-900">
+                                        <td className="px-4 py-3">Total Equity</td>
+                                        <td className="px-4 py-3 text-right">$(3,797)</td>
+                                        <td className="px-4 py-3 text-right">$(4,707)</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div className="space-y-4">
+                        <div className="p-4 bg-slate-50 rounded-lg border border-slate-200">
+                            <label className="block text-sm font-semibold text-slate-700 mb-2">
+                                a. How much additional common stock did McDonald's issue during 2024? Explain.
+                            </label>
+                            <textarea {...getInputProps("8-2-a-text")} rows="3" onChange={(e) => handleInputChange("8-2-a-text", e.target.value)}></textarea>
+                        </div>
+                        <FinEffectRow label="b. Issued 400,000 shares @ $280/share" idPrefix="8-2-b" answers={answers} handleChange={handleInputChange} instructorMode={instructorMode} correctAnswers={CORRECT_ANSWERS} validationMode={validationMode} />
+                        <FinEffectRow label="c. Repurchased 7.5 million shares @ $265/share" idPrefix="8-2-c" answers={answers} handleChange={handleInputChange} instructorMode={instructorMode} correctAnswers={CORRECT_ANSWERS} validationMode={validationMode} />
+                        <FinEffectRow label="d. Sold 2 million treasury shares @ $300/share (Cost: $150)" idPrefix="8-2-d" answers={answers} handleChange={handleInputChange} instructorMode={instructorMode} correctAnswers={CORRECT_ANSWERS} validationMode={validationMode} />
+                    </div>
+                </div>
+            );
+
+            const renderCompensation = () => (
+                <div className="space-y-6 animate-fadeIn">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                            <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center">
+                                <span className="bg-purple-100 text-purple-600 p-1 rounded mr-2 text-xs">DATA</span>
+                                Stock Option Activity
+                            </h2>
+                            <table className="w-full text-sm text-left text-slate-600">
+                                <tbody>
+                                    <tr className="border-b"><td className="py-2">Outstanding Dec 31, 2023</td><td className="text-right font-mono">10.5 M</td></tr>
+                                    <tr className="border-b bg-green-50"><td className="py-2 pl-2">Granted</td><td className="text-right font-mono text-green-700">1.2 M</td></tr>
+                                    <tr className="border-b"><td className="py-2">Exercised</td><td className="text-right font-mono">(1.9) M</td></tr>
+                                    <tr className="border-b"><td className="py-2">Forfeited</td><td className="text-right font-mono">(0.3) M</td></tr>
+                                    <tr className="font-bold bg-slate-100"><td className="py-2 pl-2">Outstanding Dec 31, 2024</td><td className="text-right font-mono">9.5 M</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div className="bg-teal-50 p-6 rounded-xl border border-teal-100">
+                            <h3 className="font-bold text-teal-800 mb-2">Research Required</h3>
+                            <ul className="text-sm space-y-2 text-teal-800">
+                                <li className="flex items-center"><IconHint/> <span className="ml-2">Total stock-based comp expense (2024)</span></li>
+                                <li className="flex items-center"><IconHint/> <span className="ml-2">Fair value per option granted (2024)</span></li>
+                                <li className="flex items-center"><IconHint/> <span className="ml-2">Vesting period (Years)</span></li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div className="space-y-4">
+                        <div className="p-4 bg-white rounded-lg border border-slate-200 shadow-sm">
+                            <label className="flex items-center text-sm font-semibold text-slate-700 mb-2">a. How did the expense affect Net Income? <HintBox text={HINTS.expense} /></label>
+                            <textarea {...getInputProps("8-3-a-text")} rows="2" onChange={(e) => handleInputChange("8-3-a-text", e.target.value)}></textarea>
+                        </div>
+                        <div className="p-4 bg-white rounded-lg border border-slate-200 shadow-sm">
+                            <label className="block text-sm font-semibold text-slate-700 mb-2">b. How did it affect Cash from Operations?</label>
+                            <textarea {...getInputProps("8-3-b-text")} rows="2" onChange={(e) => handleInputChange("8-3-b-text", e.target.value)}></textarea>
+                        </div>
+                        <div className="p-4 bg-white rounded-lg border border-slate-200 shadow-sm">
+                            <div className="flex justify-between items-start mb-2"><label className="block text-sm font-semibold text-slate-700 leading-relaxed">c. Compensation Expense ($M) for 2024 (Options)</label><div className="flex space-x-2"><HintBox text={HINTS.fairvalue} /><HintBox text={HINTS.vesting} /></div></div>
+                            <input type="text" placeholder="0.00" {...getInputProps("8-3-c-calc")} onChange={(e) => handleInputChange("8-3-c-calc", e.target.value)} />
+                        </div>
+                    </div>
+                </div>
+            );
+
+            const renderEPS = () => (
+                <div className="space-y-6 animate-fadeIn">
+                    <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                        <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center"><span className="bg-indigo-100 text-indigo-600 p-1 rounded mr-2 text-xs">DATA</span>Income & Shares (2024)</h2>
+                        <table className="w-full text-sm text-left text-slate-600">
+                            <tbody>
+                                <tr className="border-b"><td className="py-2 font-medium">Net Income</td><td className="text-right font-bold">$8,223 M</td></tr>
+                                <tr className="border-b"><td className="py-2">Basic shares</td><td className="text-right">718.3 M</td></tr>
+                                <tr className="border-b"><td className="py-2">Diluted shares</td><td className="text-right">721.9 M</td></tr>
+                                <tr className="bg-slate-50"><td className="py-2 pl-2 text-xs text-slate-500">2024 Annual Dividend</td><td className="text-right text-xs text-slate-500">$6.85 / Share</td></tr>
+                                <tr className="bg-slate-50"><td className="py-2 pl-2 text-xs text-slate-500">Closing Price (Dec 31)</td><td className="text-right text-xs text-slate-500">$296.50</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="p-4 bg-white rounded-lg border border-slate-200 shadow-sm">
+                            <label className="block text-sm font-semibold text-slate-700 mb-2">a. Basic EPS ($)</label>
+                            <input type="text" placeholder="0.00" {...getInputProps("8-4-a-calc")} onChange={(e) => handleInputChange("8-4-a-calc", e.target.value)} />
+                        </div>
+                        <div className="p-4 bg-white rounded-lg border border-slate-200 shadow-sm">
+                            <label className="block text-sm font-semibold text-slate-700 mb-2">b. Diluted EPS ($)</label>
+                            <input type="text" placeholder="0.00" {...getInputProps("8-4-b-calc")} onChange={(e) => handleInputChange("8-4-b-calc", e.target.value)} />
+                        </div>
+                        <div className="p-4 bg-white rounded-lg border border-slate-200 shadow-sm">
+                            <label className="block text-sm font-semibold text-slate-700 mb-2">c. Dividend Payout (%)</label>
+                            <input type="text" placeholder="0.00" {...getInputProps("8-4-d-calc")} onChange={(e) => handleInputChange("8-4-d-calc", e.target.value)} />
+                        </div>
+                         <div className="p-4 bg-white rounded-lg border border-slate-200 shadow-sm">
+                            <label className="block text-sm font-semibold text-slate-700 mb-2">d. Dividend Yield (%)</label>
+                            <input type="text" placeholder="0.00" {...getInputProps("8-4-e-calc")} onChange={(e) => handleInputChange("8-4-e-calc", e.target.value)} />
+                        </div>
+                    </div>
+                </div>
+            );
+
+            const renderOCI = () => (
+                <div className="space-y-6 animate-fadeIn">
+                    <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                        <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center"><span className="bg-orange-100 text-orange-600 p-1 rounded mr-2 text-xs">DATA</span>Comprehensive Income (2024)</h2>
+                        <table className="w-full text-sm text-left text-slate-600">
+                            <tbody>
+                                <tr className="border-b"><td className="py-2 font-medium">Net Income</td><td className="text-right font-bold">$8,223</td></tr>
+                                <tr className="border-b"><td className="py-1 pl-4">Foreign currency</td><td className="text-right text-red-500">(196)</td></tr>
+                                <tr className="border-b"><td className="py-1 pl-4">Cash flow hedges</td><td className="text-right text-green-600">125</td></tr>
+                                <tr className="border-b"><td className="py-1 pl-4">Defined benefit</td><td className="text-right text-red-500">(25)</td></tr>
+                                <tr className="bg-slate-100 font-medium"><td className="py-2">Accumulated OCI (Dec 31, 2023)</td><td className="text-right text-red-600">(2,456)</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div className="space-y-4">
+                        <div className="p-4 bg-white rounded-lg border border-slate-200 shadow-sm">
+                            <label className="block text-sm font-semibold text-slate-700 mb-2">a. Did $US strengthen or weaken? Explain.</label>
+                            <textarea {...getInputProps("8-5-a-text")} rows="2" onChange={(e) => handleInputChange("8-5-a-text", e.target.value)} />
+                        </div>
+                        <div className="p-4 bg-white rounded-lg border border-slate-200 shadow-sm">
+                            <label className="block text-sm font-semibold text-slate-700 mb-2">b. Did derivative values increase or decrease? Explain.</label>
+                            <textarea {...getInputProps("8-5-b-text")} rows="2" onChange={(e) => handleInputChange("8-5-b-text", e.target.value)} />
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="p-4 bg-white rounded-lg border border-slate-200 shadow-sm">
+                                <label className="block text-sm font-semibold text-slate-700 mb-2">c. Total Other comprehensive income for 2024</label>
+                                <input type="text" placeholder="0" {...getInputProps("8-5-a-calc")} onChange={(e) => handleInputChange("8-5-a-calc", e.target.value)} />
+                            </div>
+                            <div className="p-4 bg-white rounded-lg border border-slate-200 shadow-sm">
+                                <label className="block text-sm font-semibold text-slate-700 mb-2">d. Accumulated other comprehensive income at Dec 31, 2024</label>
+                                <input type="text" placeholder="0" {...getInputProps("8-5-c-calc")} onChange={(e) => handleInputChange("8-5-c-calc", e.target.value)} />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+
+            const renderConcepts = () => (
+                <div className="space-y-6 animate-fadeIn">
+                    <div className="bg-teal-50 border border-teal-200 p-4 rounded-lg mb-4 text-teal-800 text-sm">
+                        <p><strong>Conceptual Review:</strong> Select the best answer for each question based on share-based compensation principles.</p>
+                    </div>
+                    {MCQ_DATA.map((q, idx) => (
+                        <div key={q.id} className="p-6 bg-white rounded-xl shadow-sm border border-slate-200">
+                            <h3 className="font-bold text-slate-800 mb-4">{idx + 1}. {q.question}</h3>
+                            <div className="space-y-2">
+                                {q.options.map(opt => {
+                                    const isSelected = answers[q.id] === opt.key;
+                                    const isCorrect = instructorMode && CORRECT_ANSWERS[q.id] === opt.key;
+                                    
+                                    let btnClass = "w-full text-left p-3 rounded border text-sm transition-all ";
+                                    if (isCorrect) {
+                                        btnClass += "bg-green-100 border-green-500 text-green-800 font-bold";
+                                    } else if (isSelected) {
+                                        btnClass += "bg-slate-800 text-white border-slate-800";
+                                    } else {
+                                        btnClass += "bg-white border-slate-200 hover:bg-slate-50 text-slate-600";
+                                    }
+
+                                    return (
+                                        <button 
+                                            key={opt.key}
+                                            onClick={() => !instructorMode && handleInputChange(q.id, opt.key)}
+                                            className={btnClass}
+                                            disabled={instructorMode}
+                                        >
+                                            <span className="font-bold mr-2">{opt.key}.</span> {opt.text}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            );
+
+            return (
+                <div className="flex flex-col h-full">
+                    <Header />
+                    <main className="flex-1 overflow-y-auto bg-slate-50 p-4 md:p-8">
+                        <div className="max-w-4xl mx-auto">
+                            {/* Tabs */}
+                            <div className="overflow-x-auto pb-2 mb-4">
+                                <div className="flex space-x-1 bg-slate-200 p-1 rounded-lg w-max min-w-full md:min-w-0 md:w-fit">
+                                    {['equity', 'comp', 'eps', 'oci', 'concepts'].map(tab => (
+                                        <button 
+                                            key={tab}
+                                            onClick={() => setActiveTab(tab)} 
+                                            className={`tab-btn px-4 py-2 text-sm font-medium rounded-md transition-all ${activeTab === tab ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                                        >
+                                            {tab === 'equity' && 'Equity'}
+                                            {tab === 'comp' && 'Compensation'}
+                                            {tab === 'eps' && 'EPS & Dividends'}
+                                            {tab === 'oci' && 'OCI'}
+                                            {tab === 'concepts' && 'Conceptual Multiple Choice Questions'}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {activeTab === 'equity' && renderEquity()}
+                            {activeTab === 'comp' && renderCompensation()}
+                            {activeTab === 'eps' && renderEPS()}
+                            {activeTab === 'oci' && renderOCI()}
+                            {activeTab === 'concepts' && renderConcepts()}
+                        </div>
+                    </main>
+
+                    <footer className="bg-white border-t border-slate-200 p-4 shadow-up z-10 relative">
+                        <div className="max-w-4xl mx-auto flex justify-between items-center">
+                            <div className="flex space-x-2">
+                                <button onClick={downloadReport} disabled={Object.keys(answers).length === 0 && !instructorMode} className={`flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-colors ${(Object.keys(answers).length > 0 || instructorMode) ? 'bg-teal-600 text-white hover:bg-teal-700 shadow-md' : 'bg-slate-100 text-slate-400 cursor-not-allowed'}`}><span className="mr-2"><IconDownload /></span>Download Report</button>
+                                <button onClick={() => setValidationMode(!validationMode)} className={`flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-colors ${validationMode ? 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-md' : 'bg-slate-200 text-slate-600 hover:bg-slate-300'}`}><span className="mr-2"><IconCheck /></span>Check Work</button>
+                            </div>
+                            
+                            <div className="relative group">
+                                <button onClick={() => setShowAuth(!showAuth)} className={`flex items-center space-x-2 p-2 rounded-full transition-colors ${instructorMode ? 'text-green-500 bg-green-50' : 'text-slate-400 hover:bg-slate-100'}`}>
+                                    <IconKey />
+                                    <span className="text-xs font-bold uppercase tracking-wider">{instructorMode ? 'Unlocked' : 'Instructor'}</span>
+                                </button>
+                                {showAuth && (
+                                    <div className="absolute bottom-full right-0 mb-2 w-56 bg-white p-3 rounded-lg shadow-xl border border-slate-200 z-50 animate-slideUp">
+                                        <div className="text-xs font-bold text-slate-500 mb-2">Instructor Access</div>
+                                        <input 
+                                            type="password" 
+                                            placeholder="Enter Password" 
+                                            className="w-full text-sm p-2 border border-slate-300 rounded mb-2 focus:ring-2 focus:ring-teal-500 outline-none" 
+                                            value={password} 
+                                            onChange={(e) => setPassword(e.target.value)} 
+                                            autoFocus 
+                                        />
+                                        <div className="text-[10px] text-slate-400">Unlocks automatically upon correct password.</div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </footer>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

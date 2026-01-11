@@ -1,0 +1,1451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced ROE: Operating vs. Nonoperating</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Playfair+Display:wght@700&family=Fira+Code:wght@400&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-color: #f0f4f8;
+            --text-color: #2d3748;
+            --primary: #2b6cb0; /* Pfizer-ish Blue */
+            --secondary: #2c5282;
+            --accent: #ed8936; /* Orange */
+            --success: #48bb78;
+            --error: #f56565;
+            --dark-box: #1a202c;
+            --white: #ffffff;
+            --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #e2e8f0;
+            color: var(--text-color);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        /* --- Layout --- */
+        #app-container {
+            width: 100%;
+            max-width: 1300px;
+            height: 95vh;
+            background-color: var(--bg-color);
+            position: relative;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            border-radius: 16px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .slide {
+            display: none;
+            flex: 1;
+            padding: 3rem;
+            overflow-y: auto;
+            flex-direction: column;
+            animation: fadeIn 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .slide.active { display: flex; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* --- Typography & Utils --- */
+        h1, h2 { font-family: 'Playfair Display', serif; color: var(--secondary); margin-bottom: 1.5rem; line-height: 1.2; }
+        h1 { font-size: 3rem; }
+        h2 { font-size: 2.2rem; border-bottom: 4px solid var(--accent); display: inline-block; padding-bottom: 0.5rem; }
+        p, li { font-size: 1.1rem; line-height: 1.6; margin-bottom: 1rem; color: #4a5568; }
+        
+        .text-center { text-align: center; }
+        .flex-center { display: flex; justify-content: center; align-items: center; height: 100%; }
+        .mt-4 { margin-top: 2rem; }
+        .text-white { color: white !important; }
+        .text-accent { color: var(--accent); }
+        .font-weight-bold { font-weight: bold; }
+        
+        /* --- Grid Systems --- */
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: start; }
+        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
+
+        /* --- Cards & Boxes --- */
+        .card {
+            background: var(--white);
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            transition: transform 0.2s;
+            height: 100%;
+        }
+        
+        .card-dark {
+            background: var(--dark-box);
+            color: var(--white);
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+        }
+        .card-dark h3, .card-dark p, .card-dark li { color: var(--white); }
+
+        .card-highlight { border-left: 6px solid var(--accent); background: white; padding: 2rem; border-radius: 12px; box-shadow: var(--shadow); height: 100%; }
+        
+        /* --- Interactive Elements --- */
+        .btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .btn:hover { background: var(--secondary); transform: translateY(-2px); }
+        .btn:disabled { background: #cbd5e0; cursor: not-allowed; transform: none; }
+        
+        .btn-tab {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            border: 1px solid rgba(255,255,255,0.3);
+            background: transparent;
+            color: rgba(255,255,255,0.7);
+            margin: 0 5px;
+        }
+        .btn-tab.active {
+            background: white;
+            color: var(--dark-box);
+            border-color: white;
+            font-weight: bold;
+        }
+
+        /* --- Balance Sheet Table --- */
+        .bs-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+        }
+        .bs-column h3 { text-align: center; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        .bs-item {
+            padding: 10px 15px;
+            margin: 5px 0;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            justify-content: space-between;
+        }
+        .bs-item:hover { background: #f7fafc; }
+        .bs-item.selected { background: #ebf8ff; border-color: var(--primary); box-shadow: 0 0 0 2px var(--primary); }
+        .bs-item.correct { background: #c6f6d5; border-color: var(--success); }
+        .bs-item.wrong { background: #fed7d7; border-color: var(--error); }
+        
+        /* Tables */
+        .is-table, .def-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.9rem;
+        }
+        .is-table td { padding: 8px; border-bottom: 1px solid #eee; }
+        .is-table tr:last-child td { border-bottom: none; }
+        .is-total { font-weight: bold; background: #f7fafc; }
+        
+        .def-table th { background: var(--primary); color: white; padding: 10px; text-align: left; }
+        .def-table td { padding: 10px; border-bottom: 1px solid #eee; }
+
+        /* --- Flip Cards --- */
+        .flip-container { perspective: 1000px; height: 320px; cursor: pointer; }
+        .flip-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+            box-shadow: var(--shadow);
+            border-radius: 12px;
+        }
+        .flip-container.flipped .flip-inner { transform: rotateY(180deg); }
+        .flip-front, .flip-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            border-radius: 12px;
+        }
+        .flip-front { background: var(--primary); color: white; }
+        .flip-back { background: var(--white); color: var(--text-color); transform: rotateY(180deg); border: 2px solid var(--primary); }
+        .flip-front h3, .flip-front p, .flip-front i { color: white; }
+
+        /* --- Math Equation Box --- */
+        .eq-box {
+            background: #edf2f7;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Fira Code', monospace;
+            margin: 10px 0;
+            border-left: 4px solid var(--secondary);
+        }
+        
+        /* --- Strategy Chart --- */
+        .strategy-chart {
+            position: relative; height: 400px; 
+            border-left: 3px solid #4a5568; 
+            border-bottom: 3px solid #4a5568; 
+            margin: 20px;
+            background: linear-gradient(45deg, #f7fafc 25%, transparent 25%, transparent 75%, #f7fafc 75%, #f7fafc), linear-gradient(45deg, #f7fafc 25%, transparent 25%, transparent 75%, #f7fafc 75%, #f7fafc);
+            background-size: 20px 20px;
+            background-position: 0 0, 10px 10px;
+        }
+        .strategy-circle {
+            width: 130px; height: 130px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            flex-direction: column; color: white; font-weight: bold;
+            position: absolute; box-shadow: var(--shadow);
+            text-align: center; font-size: 0.9rem;
+            z-index: 5;
+        }
+        .curve-line {
+            position: absolute;
+            width: 100%; height: 100%;
+            border: 2px dashed #cbd5e0;
+            border-radius: 0 0 0 100%;
+            border-top: none; border-right: none;
+            top: 0; left: 0;
+            pointer-events: none;
+        }
+
+        /* --- Navigation --- */
+        #nav-bar {
+            background: var(--white);
+            border-top: 1px solid #e2e8f0;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10;
+        }
+        .progress-bar { flex: 1; height: 6px; background: #e2e8f0; margin: 0 20px; border-radius: 3px; }
+        #progress-fill { height: 100%; background: var(--accent); width: 0%; border-radius: 3px; transition: width 0.3s; }
+
+        /* --- Calculator Row (Clickable) --- */
+        .calc-row-btn {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            background: #f8f9fa;
+            border: 1px solid #ddd;
+            margin-bottom: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .calc-row-btn:hover { background: #e3f2fd; border-color: var(--accent-blue); }
+        .calc-row-btn:active { transform: scale(0.98); }
+
+        /* Step Reveal */
+        .step-hidden { display: none; }
+        .step-visible { display: block; animation: fadeIn 0.5s; }
+        
+        .bullet-point { opacity: 0; transition: opacity 0.5s ease-in; list-style-position: inside; margin-bottom: 15px; padding: 10px; border-bottom: 1px solid #333; }
+        .bullet-visible { opacity: 1; }
+
+        /* Lever Visualization */
+        .lever-container { position: relative; height: 150px; margin-top: 30px; }
+        .lever-beam { width: 80%; height: 8px; background: #333; position: absolute; top: 100px; left: 10%; transform-origin: 30% 50%; transition: transform 1s; }
+        .lever-fulcrum { width: 0; height: 0; border-left: 20px solid transparent; border-right: 20px solid transparent; border-bottom: 40px solid var(--accent-blue); position: absolute; top: 108px; left: 30%; transform: translateX(-50%); }
+        .lever-weight { width: 60px; height: 60px; background: #e74c3c; position: absolute; bottom: 8px; right: 0; display:flex; align-items:center; justify-content:center; color:white; font-weight:bold; }
+        .lever-effort { width: 70px; height: 70px; background: #2ecc71; position: absolute; bottom: 8px; left: -10px; display:flex; align-items:center; justify-content:center; color:white; font-weight:bold; border-radius:50%; box-shadow: 0 4px 6px rgba(0,0,0,0.2); z-index: 2; font-size: 0.9rem;}
+
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+
+    <!-- Slide 1: Hook -->
+    <div class="slide active">
+        <div class="flex-center" style="flex-direction: column;">
+            <div class="card-dark" style="padding: 4rem; border-radius: 20px; max-width: 800px; text-align: center;">
+                <i class="fas fa-chart-pie fa-4x mb-4" style="color: var(--accent);"></i>
+                <h1 style="color: white; margin-bottom: 1rem;">Advanced ROE Analysis</h1>
+                <p style="font-size: 1.4rem;">Return on Equity is the "Ultimate Measure" of shareholder value.</p>
+                <p style="opacity: 0.8;">But traditional ROE conflates two very different things: <strong>Operations</strong> and <strong>Financing</strong>.</p>
+                <button class="btn mt-4" style="background: var(--accent); color: white;" onclick="nextSlide()">Start Disaggregation</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ... (Slides 2-15 kept as is from previous iteration) ... -->
+    
+    <!-- Slide 2: The Problem -->
+    <div class="slide">
+        <h2>The Core Problem: Conflation</h2>
+        <div class="grid-2">
+            <div>
+                <p>ROE combines two fundamentally different activities:</p>
+                <div class="card card-highlight">
+                    <h3 style="color: var(--primary);">1. Operating Activities</h3>
+                    <p>Creating and selling goods (The Engine).</p>
+                </div>
+                <div class="card card-highlight mt-4">
+                    <h3 style="color: var(--accent);">2. Nonoperating Activities</h3>
+                    <p>Financing and Investing decisions (The Fuel/Debt).</p>
+                </div>
+            </div>
+            <div class="card-dark text-center">
+                <h3 class="text-white">Traditional Equation</h3>
+                <p style="font-size: 1.5rem; margin: 2rem 0; font-family:'Fira Code'">ROE = Net Income / Average Equity</p>
+                <p class="text-white">This formula hides whether returns come from excellence or risky debt.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 3: The Solution (NOA & NOPAT) -->
+    <div class="slide">
+        <h2>The Solution: Reformulation</h2>
+        <p>To isolate true performance, we reformulate the financial statements into two buckets.</p>
+        <div class="grid-2">
+            <div class="flip-container" onclick="this.classList.toggle('flipped')">
+                <div class="flip-inner">
+                    <div class="flip-front">
+                        <i class="fas fa-balance-scale fa-3x mb-4"></i>
+                        <h3>Balance Sheet Reformulation</h3>
+                        <p>(Click)</p>
+                    </div>
+                    <div class="flip-back">
+                        <h3>Net Operating Assets (NOA)</h3>
+                        <p>We separate Operating Assets from Operating Liabilities to find the true capital invested in the core business.</p>
+                        <p><strong>NOA = Op Assets - Op Liabilities</strong></p>
+                    </div>
+                </div>
+            </div>
+            <div class="flip-container" onclick="this.classList.toggle('flipped')">
+                <div class="flip-inner">
+                    <div class="flip-front">
+                        <i class="fas fa-file-invoice-dollar fa-3x mb-4"></i>
+                        <h3>Income Statement Reformulation</h3>
+                        <p>(Click)</p>
+                    </div>
+                    <div class="flip-back">
+                        <h3>Net Operating Profit After Tax (NOPAT)</h3>
+                        <p>We isolate operating profit and adjust taxes to reflect only operations, removing the "tax shield" from debt.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 4: Interactive Sorting (NOA) -->
+    <div class="slide">
+        <h2>Activity: Identify Operating Items</h2>
+        <p>Click the items below that are <strong>Operating</strong> (Assets or Liabilities). Leave Nonoperating items (Debt/Cash) unselected.</p>
+        
+        <div class="bs-container">
+            <div class="bs-column">
+                <h3>Assets</h3>
+                <div class="bs-item" onclick="toggleBS(this, 'op')"><span>Accounts Receivable</span> <span>$100</span></div>
+                <div class="bs-item" onclick="toggleBS(this, 'non')"><span>Cash & Short-term Inv</span> <span>$500</span></div>
+                <div class="bs-item" onclick="toggleBS(this, 'op')"><span>Inventory</span> <span>$200</span></div>
+                <div class="bs-item" onclick="toggleBS(this, 'op')"><span>PPE (Factories)</span> <span>$800</span></div>
+                <div class="bs-item" onclick="toggleBS(this, 'op')"><span>Goodwill</span> <span>$150</span></div>
+            </div>
+            <div class="bs-column">
+                <h3>Liabilities & Equity</h3>
+                <div class="bs-item" onclick="toggleBS(this, 'op')"><span>Accounts Payable</span> <span>$80</span></div>
+                <div class="bs-item" onclick="toggleBS(this, 'non')"><span>Short-term Debt</span> <span>$50</span></div>
+                <div class="bs-item" onclick="toggleBS(this, 'non')"><span>Long-term Debt</span> <span>$400</span></div>
+                <div class="bs-item" onclick="toggleBS(this, 'op')"><span>Unearned Revenue</span> <span>$20</span></div>
+                <div class="bs-item" onclick="toggleBS(this, 'non')"><span>Equity</span> <span>$1200</span></div>
+            </div>
+        </div>
+        <button class="btn mt-4" onclick="checkBS()">Check Classification</button>
+        <p id="bs-feedback" class="text-center mt-2 font-weight-bold"></p>
+    </div>
+
+    <!-- Slide 5: Concept: Reformulating NOA -->
+    <div class="slide">
+        <h2>First, Reformulate the Balance Sheet</h2>
+        <p>Net Operating Assets (NOA) represents the capital invested in a company's core operations.</p>
+        
+        <div class="card card-highlight text-center" style="padding: 3rem;">
+            <h3>Net Operating Assets = Operating Assets - Operating Liabilities</h3>
+        </div>
+        
+        <div class="mt-4">
+            <p><strong>Crucial Distinction:</strong></p>
+            <ul>
+                <li>We treat interest-bearing debt (a financing choice) differently from accounts payable (an operational liability).</li>
+                <li>Cash is generally considered nonoperating unless explicitly stated as needed for operations.</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Slide 6: Pfizer NOA Result -->
+    <div class="slide">
+        <h2>Case Study: Pfizer's NOA (2022)</h2>
+        <p>Using the classification logic from the previous slides, here is Pfizer's true capital base.</p>
+        <div class="grid-2">
+            <div class="card">
+                <h3>The Data ($M)</h3>
+                <table style="width:100%; border-collapse:collapse; margin-top:10px;">
+                    <tr style="border-bottom:1px solid #eee;"><td>Total Operating Assets</td><td class="text-right"><strong>$170,437</strong></td></tr>
+                    <tr style="border-bottom:1px solid #eee;"><td>(Less) Operating Liabilities</td><td class="text-right"><strong>($59,939)</strong></td></tr>
+                    <tr style="background:#edf2f7; font-weight:bold;"><td>Net Operating Assets (NOA)</td><td class="text-right" style="color:var(--primary);">$110,498</td></tr>
+                </table>
+                <p class="mt-4" style="font-size:0.9rem; color:#718096;">*Debt and Excess Cash are excluded.</p>
+            </div>
+            <div class="card-dark text-center">
+                <i class="fas fa-calculator fa-3x mb-4 text-white"></i>
+                <h3 class="text-white">The Calculation</h3>
+                <p class="text-white" style="font-size: 1.2rem; margin-top: 2rem;">NOA = OA - OL</p>
+                <div style="border-top: 2px solid white; width: 80%; margin: 20px auto;"></div>
+                <p class="text-white" style="font-size: 1.5rem;">$110,498 = $170,437 - $59,939</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 7: NOPAT Theory 1 (Visualized) -->
+    <div class="slide">
+        <h2>Concept: Net Operating Profit After Tax & The Tax Shield</h2>
+        <div class="grid-2">
+            <div>
+                <h3>Why Adjustment is Needed?</h3>
+                <p>Net Income is "contaminated" by Nonoperating items (like Interest). Interest lowers your tax bill (a financing benefit).</p>
+                <div class="card-highlight mt-4">
+                    <p><strong>Goal:</strong> Measure profit as if the company had <strong>Zero Debt</strong>.</p>
+                    <p>If we remove Debt, we lose the interest deduction. Taxable Income goes UP &uarr;. Taxes Paid goes UP &uarr;</p>
+                </div>
+            </div>
+            <div class="card-dark text-center" style="position: relative;">
+                <div style="margin-bottom: 20px;">
+                    <button class="btn-tab active" onclick="switchScenario('debt', this)" id="btn-debt">Scenario A: Debt (Expense)</button>
+                    <button class="btn-tab" onclick="switchScenario('cash', this)" id="btn-cash">Scenario B: Cash (Income)</button>
+                </div>
+
+                <!-- Scenario A: Debt -->
+                <div id="scene-debt" style="height: 350px; position:relative;">
+                     <h4 class="text-white mb-2">Scenario: Interest Expense (Debt)</h4>
+                     <div style="display: flex; justify-content: center; align-items: flex-end; height: 200px; gap: 40px;">
+                        <!-- With Debt -->
+                        <div style="width: 100px; display:flex; flex-direction:column; justify-content:flex-end; height:100%;">
+                            <div class="text-white mb-2 font-weight-bold" style="font-size:0.8rem;">With Debt</div>
+                            <div style="height: 100px; background: #2b6cb0; border-radius: 4px; position:relative; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.8rem;">
+                                 Tax Paid
+                            </div>
+                        </div>
+                        <i class="fas fa-arrow-right text-white" style="margin-bottom: 50px;"></i>
+                        <!-- Without Debt -->
+                        <div style="width: 100px; display:flex; flex-direction:column; justify-content:flex-end; height:100%;">
+                            <div class="text-white mb-2 font-weight-bold" style="font-size:0.8rem;">Without Debt</div>
+                            <div id="viz-shield-debt" style="height: 0px; background: #ed8936; transition: height 1s; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.7rem; overflow: hidden; width:100%;">Shield</div>
+                            <div style="height: 100px; background: #2b6cb0; border-radius: 0 0 4px 4px; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.8rem; width:100%;">
+                                Tax Paid
+                            </div>
+                        </div>
+                     </div>
+                     <div class="text-white mt-2" style="font-size: 0.9rem;">
+                        Result: <strong>Tax on Operating Income (NOPBT)</strong>
+                     </div>
+                     <button class="btn mt-4" style="background:white; color:var(--dark-box); padding: 8px 16px; font-size: 0.9rem;" id="sim-btn-debt" onclick="animateShield('debt')">Add Back Shield</button>
+                </div>
+
+                <!-- Scenario B: Cash (Revised) -->
+                <div id="scene-cash" style="height: 350px; position:relative; display:none;">
+                     <h4 class="text-white mb-2">Scenario: Interest Income (Cash)</h4>
+                     <div style="display: flex; justify-content: center; align-items: flex-end; height: 200px; gap: 40px;">
+                        <!-- With Cash -->
+                        <div style="width: 100px; display:flex; flex-direction:column; justify-content:flex-end; height:100%;">
+                            <div class="text-white mb-2 font-weight-bold" style="font-size:0.8rem;">With Cash</div>
+                            <!-- Represents TOTAL TAX: Op Tax + Tax on Int -->
+                            <div style="height: 140px; background: #2b6cb0; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.8rem; width:100%;">
+                                 Total Tax
+                            </div>
+                        </div>
+                        <i class="fas fa-arrow-right text-white" style="margin-bottom: 50px;"></i>
+                        <!-- Without Cash (Operating Only) -->
+                        <div style="width: 100px; display:flex; flex-direction:column; justify-content:flex-end; height:100%;">
+                            <div class="text-white mb-2 font-weight-bold" style="font-size:0.8rem;">Without Cash</div>
+                            <!-- Top Part: Tax on Int (Animates away/shrinks) -->
+                             <div id="viz-shield-cash-top" style="height: 40px; background: #ed8936; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.7rem; width:100%; transition: height 1s; overflow:hidden;">Tax on Int</div>
+                            <!-- Bottom Part: Op Tax -->
+                            <div style="height: 100px; background: #2b6cb0; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.8rem; width:100%;">
+                                 Op Tax
+                            </div>
+                        </div>
+                     </div>
+                     <div class="text-white mt-2" style="font-size: 0.9rem;">
+                        Result: <strong>Tax on Operating Income (NOPBT)</strong>
+                     </div>
+                     <button class="btn mt-4" style="background:white; color:var(--dark-box); padding: 8px 16px; font-size: 0.9rem;" id="sim-btn-cash" onclick="animateShield('cash')">Remove Investment Tax</button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+    
+    <!-- Slide 8: Tax Shield Scenarios (Interactive) -->
+    <div class="slide">
+        <h2>Scenario: Which direction to adjust?</h2>
+        <p>Click to see how we adjust Reported Taxes to get Operating Taxes.</p>
+        <div class="grid-2">
+            <div class="flip-container" onclick="this.classList.toggle('flipped')">
+                <div class="flip-inner">
+                    <div class="flip-front" style="background: var(--error);">
+                        <h3 style="color:white;">Case A: High Debt</h3>
+                        <p class="text-white" style="margin-top:10px; font-weight:bold;">(Net Non-Operating Expense)</p>
+                        <p class="text-white">Pays Interest -> Lowers Taxable Income</p>
+                        <p class="text-white">(Click)</p>
+                    </div>
+                    <div class="flip-back">
+                        <h3>Add Back Shield</h3>
+                        <p>You paid LESS tax because of debt.</p>
+                        <p>Without the debt, you would pay more tax. The shield has disappeared, so we add it back.</p>
+                        <p><strong>Op Tax = Reported Tax + Shield</strong></p>
+                    </div>
+                </div>
+            </div>
+            <div class="flip-container" onclick="this.classList.toggle('flipped')">
+                <div class="flip-inner">
+                    <div class="flip-front" style="background: var(--success);">
+                        <h3 style="color:white;">Case B: High Cash</h3>
+                        <p class="text-white" style="margin-top:10px; font-weight:bold;">(Net Non-Operating Income)</p>
+                        <p class="text-white">Earns Interest -> Increases Taxable Income</p>
+                        <p class="text-white">(Click)</p>
+                    </div>
+                    <div class="flip-back">
+                        <h3>Subtract Shield</h3>
+                        <p>You paid MORE tax because of investment income.</p>
+                        <p>Without the cash, you pay less tax.</p>
+                        <p><strong>Op Tax = Reported Tax - Extra Tax</strong></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 9: Method 1 (Top-Down) -->
+    <div class="slide">
+        <h2>Calculation Method 1: Top-Down</h2>
+        <p>Start from Sales and work down to find <strong>Net Operating Profit Before Tax (NOPBT)</strong>.</p>
+        <div class="grid-2">
+            <div class="card" style="border: 2px solid var(--secondary);">
+                <h3>Income Statement Format</h3>
+                <table style="width:100%; border-collapse:collapse; margin-top:10px;">
+                    <tr><td>Revenue</td><td class="text-right">$$$</td></tr>
+                    <tr><td>(-) COGS</td><td class="text-right">($)</td></tr>
+                    <tr><td>(-) SG&A</td><td class="text-right">($)</td></tr>
+                    <tr style="border-bottom:1px solid #eee;"><td>(-) R&D / Depr</td><td class="text-right">($)</td></tr>
+                    <tr style="background:#e3f2fd; font-weight:bold;"><td>= NOPBT (EBIT)</td><td class="text-right" style="color:var(--primary);">$$$</td></tr>
+                </table>
+                <p class="mt-4" style="color:#718096; font-size:0.9rem;">(Do NOT subtract interest here)</p>
+            </div>
+            <div class="card-dark text-center flex-center">
+                <div>
+                    <h3 class="text-white">Then... Adjust for Tax</h3>
+                    <p class="text-white mt-4">Net Operating Profit After Tax = NOPBT - Tax on Operating Income</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 10: Method 2 (Bottom-Up) -->
+    <div class="slide">
+        <h2>Calculation Method 2: Bottom-Up</h2>
+        <p>Alternatively, start from Net Income.</p>
+        <div class="card-dark text-center" style="padding: 3rem;">
+            <h3 class="text-white">The Formula</h3>
+            <p class="text-white mt-4" style="font-size: 1.2rem;">Net Income + Net Non-Op Expense (After Tax)</p>
+            <div class="eq-box mt-4" style="color: #2d3748; background: white;">
+                Formula: Net Income + (Net NonOp Exp * (1 - Tax Rate))
+            </div>
+            <p class="text-white mt-2">This adds back the interest "net of tax" to return to the operating profit.</p>
+        </div>
+    </div>
+
+    <!-- Slide 11: Scenario 1 (Positive Debt) -->
+    <div class="slide">
+        <h2>Scenario 1: Standard Company (Positive Debt)</h2>
+        <div class="eq-box">Net Operating Profit After Tax = NOPBT - (Reported Tax + Tax Shield)</div>
+        <p>Most companies pay interest. Let's see how NOPAT works for "Company X".</p>
+        <div class="grid-2">
+            <div class="card">
+                <h3>Company X Data</h3>
+                <ul>
+                    <li>NOPBT: <strong>$1,000</strong></li>
+                    <li>Interest Expense: <strong>$100</strong></li>
+                    <li>Tax Rate: 20%</li>
+                    <li>Net Income: <strong>$720</strong></li>
+                    <li>Reported Tax: <strong>$180</strong> <small>(on $900 pretax)</small></li>
+                </ul>
+            </div>
+            <div class="card-highlight">
+                <h3>Calculation</h3>
+                <p>1. Tax Shield = $100 * 20% = <strong>$20</strong></p>
+                <p>2. Tax on Operating Income = $180 (Reported) + $20 (Shield) = <strong>$200</strong></p>
+                <p>3. NOPAT (Top-Down) = $1,000 - $200 = <strong>$800</strong></p>
+                <hr>
+                <p class="text-success"><strong>Logic Check:</strong> If Comp X had 0 debt, it would pay $200 tax on $1,000 profit.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 12: Standard Company (Bottom-Up Check) -->
+    <div class="slide">
+        <h2>Scenario 1: Bottom-Up Check</h2>
+        <p>Does the Bottom-Up method give the same result?</p>
+        <div class="grid-2">
+             <div class="card">
+                <h3>Company X Data</h3>
+                <ul>
+                    <li>NOPBT: <strong>$1,000</strong></li>
+                    <li>Interest Expense: <strong>$100</strong></li>
+                    <li>Tax Rate: 20%</li>
+                    <li>Net Income: <strong>$720</strong></li>
+                    <li>Reported Tax: <strong>$180</strong></li>
+                </ul>
+            </div>
+            <div class="card-dark text-center">
+                <h3 class="text-white">Bottom-Up Formula</h3>
+                <p class="text-white" style="font-size:1.2rem;">Net Income + [Interest * (1 - Tax Rate)]</p>
+                <div class="mt-4 text-white" style="font-size:1.5rem;">
+                    $720 + [$100 * (1 - 0.20)]<br>
+                    $720 + [$100 * 0.80]<br>
+                    $720 + $80 = <strong>$800</strong>
+                </div>
+                <p class="text-success mt-4">Match Confirmed!</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 13: Scenario 2 (Negative Shield) -->
+    <div class="slide">
+        <h2>Scenario 2: "Cash Rich" Company (Negative Shield)</h2>
+        <div class="eq-box">Net Operating Profit After Tax = NOPBT - (Reported Tax - Tax on Inv Income)</div>
+        <p>What if a company has more Interest Income than Expense? (e.g. Apple/Pfizer)</p>
+        <div class="grid-2">
+            <div class="card">
+                <h3>Company Y Data</h3>
+                <ul>
+                    <li>NOPBT: <strong>$1,000</strong></li>
+                    <li>Interest <em>Income</em>: <strong>$100</strong></li>
+                    <li>Tax Rate: 20%</li>
+                    <li>Net Income: <strong>$880</strong></li>
+                    <li>Reported Tax: <strong>$220</strong> <small>(on $1100 pretax)</small></li>
+                </ul>
+            </div>
+            <div class="card-highlight" style="border-left-color: var(--error);">
+                <h3>Top-Down Calculation</h3>
+                <p>1. Shield = ($100 Income) * 20% = <strong>($20)</strong> <small>Negative Shield</small></p>
+                <p>2. Tax on Ops = $220 (Reported) + ($20) = <strong>$200</strong></p>
+                <p>3. NOPAT (Top-Down) = $1,000 - $200 = <strong>$800</strong></p>
+                <hr>
+                <p><strong>Note:</strong> We subtract the extra tax paid on investment income to find the core operating tax.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 13.5: Scenario 2 Bottom-Up -->
+    <div class="slide">
+        <h2>Scenario 2: Bottom-Up Check</h2>
+        <p>Does it match for the Cash Rich company too?</p>
+         <div class="grid-2">
+             <div class="card">
+                <h3>Company Y Data</h3>
+                <ul>
+                    <li>NOPBT: <strong>$1,000</strong></li>
+                    <li>Interest <em>Income</em>: <strong>$100</strong></li>
+                    <li>Tax Rate: 20%</li>
+                    <li>Net Income: <strong>$880</strong></li>
+                    <li>Reported Tax: <strong>$220</strong></li>
+                </ul>
+            </div>
+            <div class="card-dark text-center">
+                <h3 class="text-white">Bottom-Up Formula</h3>
+                <p class="text-white">Net Income + [Net NonOp Exp * (1 - Tax Rate)]</p>
+                <p class="text-white mt-2"><em>Remember: Net NonOp Exp is Negative (-$100) because it's Income.</em></p>
+                <div class="mt-4 text-white" style="font-size:1.5rem;">
+                    $880 + [($100) * (1 - 0.20)]<br>
+                    $880 + [($100) * 0.80]<br>
+                    $880 - $80 = <strong>$800</strong>
+                </div>
+                <p class="text-success mt-4">Match Confirmed!</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 14: Case Study Pfizer (Detailed) -->
+    <div class="slide">
+        <h2>Case Study: Pfizer's NOPAT (2022)</h2>
+        <div class="card" style="padding: 1rem; overflow-y: auto;">
+            <table class="is-table">
+                <tr><td>Revenues</td><td class="text-right">$100,330</td></tr>
+                <tr><td>Cost of sales</td><td class="text-right">34,344</td></tr>
+                <tr><td>Selling, informational & admin</td><td class="text-right">13,677</td></tr>
+                <tr><td>Research & development</td><td class="text-right">11,428</td></tr>
+                <tr><td>Acquired IPR&D</td><td class="text-right">953</td></tr>
+                <tr><td>Amortization of intangibles</td><td class="text-right">3,609</td></tr>
+                <tr><td>Restructuring charges</td><td class="text-right">1,375</td></tr>
+                <tr><td>Other operating (income) expense</td><td class="text-right">225</td></tr>
+                <tr class="is-total"><td>= NOPBT (Operating Profit)</td><td class="text-right" style="color:var(--primary);">$34,719</td></tr>
+                <tr><td colspan="2" style="border:none; height:10px;"></td></tr>
+                <tr><td>Reported Tax Expense</td><td class="text-right">$3,328</td></tr>
+                <tr><td style="color:#718096; opacity: 0.6;">Net Nonoperating Income (Shield Calculation)</td><td class="text-right" style="color:#718096; opacity: 0.6;">$10</td></tr>
+                <tr><td style="color:#000000">Tax Shield ($10 * 22%)</td><td class="text-right" style="color:#000000">($2)</td></tr>
+                <tr class="is-total"><td>= Tax on Operating Income</td><td class="text-right">3,326</td></tr>
+                <tr><td colspan="2" style="border:none; height:10px;"></td></tr>
+                <tr style="background:#2c3e50; color:white; font-weight:bold; font-size:1.2rem;"><td>Net Operating Profit After Tax</td><td class="text-right">$31,393</td></tr>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Slide 15: RNOA Reveal -->
+    <div class="slide">
+        <h2>The Result: Return on Net Operating Assets</h2>
+        <p>Now we combine Slide 5 (NOA) and Slide 14 (NOPAT).</p>
+        <div class="flex-center" style="flex-direction: column;">
+            <div class="formula" style="font-size: 2rem;">RNOA = NOPAT / Average NOA</div>
+            <div class="grid-2" style="width:100%; margin-top:20px;">
+                <div class="flip-container" onclick="this.classList.toggle('flipped')">
+                    <div class="flip-inner">
+                        <!-- Updated styling here as requested -->
+                        <div class="flip-front" style="background: #ed8936; color: white; border: none;">
+                            <h3 class="text-white">Traditional ROA</h3>
+                            <h1 class="text-white">16.6%</h1>
+                            <p class="text-white">(Click to explain)</p>
+                        </div>
+                        <div class="flip-back">
+                            <h3>Blended View</h3>
+                            <p>Mixes high-return operations with low-return cash/debt investments.</p>
+                        </div>
+                    </div>
+                </div>
+                
+                 <div class="flip-container" onclick="this.classList.toggle('flipped')">
+                    <div class="flip-inner">
+                        <div class="flip-front" style="background: var(--dark-box); color: white; border: 2px solid var(--accent);">
+                            <h3>Advanced RNOA</h3>
+                            <h1 style="color: var(--accent);">32.1%</h1>
+                            <p>(Click to explain)</p>
+                        </div>
+                        <div class="flip-back">
+                            <h3>Core Operating Efficiency</h3>
+                            <p>The true return on the assets actually running the business.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 16: RNOA Decomposition -->
+    <div class="slide">
+        <h2>Decomposing: ROA vs RNOA</h2>
+        <div class="grid-2">
+            <div class="flip-container" onclick="this.classList.toggle('flipped')">
+                <div class="flip-inner">
+                    <!-- Update styling here too for consistency -->
+                    <div class="flip-front" style="background: #ed8936; color: white; border: none;">
+                        <h3 class="text-white">Traditional DuPont (ROA)</h3>
+                        <div class="formula" style="font-size: 1rem; color: #2d3748;">ROA = Profit Margin &times; Asset Turnover</div>
+                        <p class="mt-4 text-white">Includes financing noise. Why? (Click)</p>
+                    </div>
+                    <div class="flip-back">
+                        <h3>Noise Explained</h3>
+                        <p><strong>Numerator:</strong> Net Income includes Interest Expense.</p>
+                        <p><strong>Denominator:</strong> Average Assets includes Cash (which generates little return).</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card-highlight text-center">
+                <h3>Advanced (RNOA)</h3>
+                <div class="formula" style="font-size: 1rem;">RNOA = NOPM &times; NOAT</div>
+                <p><strong>Net Operating Profit Margin &times; Net Operating Asset Turnover</strong></p>
+                <p>Pure operating metrics.</p>
+            </div>
+        </div>
+        <p class="text-center mt-4">Just like ROA, RNOA breaks down into Profitability and Efficiency.</p>
+    </div>
+
+    <!-- Slide 17: Pfizer Drivers -->
+    <div class="slide">
+        <h2>Pfizer's Engine</h2>
+        <div class="grid-2">
+            <div class="flip-container" onclick="this.classList.toggle('flipped')">
+                <div class="flip-inner">
+                    <div class="flip-front">
+                        <h3>Net Operating Profit Margin (NOPM)</h3>
+                        <p class="text-white mt-4" style="font-size: 1.5rem;">31.3%</p>
+                        <p class="text-white">(Click to Flip)</p>
+                    </div>
+                    <div class="flip-back">
+                        <h3>Interpretation</h3>
+                        <p>Equation: NOPAT / Sales</p>
+                        <p>Pfizer earns 31.3 cents of pure operating profit for every dollar of sales. <strong>Very High Profitability.</strong></p>
+                    </div>
+                </div>
+            </div>
+            <div class="flip-container" onclick="this.classList.toggle('flipped')">
+                <div class="flip-inner">
+                    <div class="flip-front" style="background: var(--accent);">
+                        <h3>Net Operating Asset Turnover (NOAT)</h3>
+                        <p class="text-white mt-4" style="font-size: 1.5rem;">1.03</p>
+                        <p class="text-white">(Click to Flip)</p>
+                    </div>
+                    <div class="flip-back">
+                        <h3>Interpretation</h3>
+                        <p>Equation: Sales / Avg NOA</p>
+                        <p>Pfizer generates $1.03 in sales for every dollar invested in net operating assets. <strong>Moderate Efficiency.</strong></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 18: Strategy Trade-off -->
+    <div class="slide">
+        <h2>The Strategy Trade-off</h2>
+        <div class="strategy-chart">
+            <div style="position: absolute; bottom: 10px; right: 10px; font-weight: bold; color: var(--text-color);">Margin (NOPM)</div>
+            <div style="position: absolute; top: 10px; left: 10px; font-weight: bold; color: var(--text-color);">Turnover (NOAT)</div>
+            
+            <div class="curve-line"></div>
+            
+            <!-- Pfizer Circle -->
+            <div class="strategy-circle" style="background:var(--primary); bottom: 100px; right: 50px;">
+                Pfizer<br>31% Margin
+            </div>
+            
+            <!-- Retailer Circle -->
+            <div class="strategy-circle" style="background:var(--accent); top: 50px; left: 50px;">
+                Retailer<br>High Turn
+            </div>
+        </div>
+        <p class="text-center">Pfizer relies on <strong>high margins</strong>. A retailer relies on <strong>high turnover</strong>.</p>
+    </div>
+
+    <!-- Slide 19: The Advanced Structure Context -->
+    <div class="slide">
+        <h2>The Advanced DuPont Equation Structure</h2>
+        <div class="card-dark text-center" style="margin-bottom:20px; padding: 2rem;">
+             <h3 style="color:white;">ROE = Operating Return + Nonoperating Return</h3>
+        </div>
+        
+        <div class="grid-2">
+            <div class="card">
+                 <h4>1. Operating Return</h4>
+                 <p>This is simply <strong>RNOA</strong> (Return on Net Operating Assets).</p>
+            </div>
+            <div class="card">
+                 <h4>2. Nonoperating Return</h4>
+                 <p>This requires deeper analysis. It is driven by how we fund the business.</p>
+                 <p class="text-accent font-weight-bold">Formula: FLEV &times; Spread</p>
+            </div>
+        </div>
+        <div class="card-highlight mt-4 text-center">
+            <h3>Final Equation: ROE = RNOA + (FLEV &times; Spread)</h3>
+        </div>
+    </div>
+
+    <!-- Slide 20: Financial Leverage (FLEV) -->
+    <div class="slide">
+        <h2>Concept: Financial Leverage (FLEV)</h2>
+        <div class="card-highlight text-center" style="width: fit-content; margin: 0 auto; padding: 1.5rem;">
+            <h3 style="font-size: 1.5rem;">FLEV = Avg Net Nonop Obligations / Avg Equity</h3>
+        </div>
+        <div class="mt-4">
+             <p><strong>Note:</strong> This is different from the basic DuPont "Average Assets / Average Equity" leverage.</p>
+             <div class="card-highlight">
+                <p><strong>Definition of NNO:</strong> Net Nonoperating Obligations = Nonoperating Liabilities - Nonoperating Assets.</p>
+                <div class="grid-2 mt-4" style="font-size: 0.9rem;">
+                    <div>
+                        <strong>Nonoperating Liabilities (Debt):</strong>
+                        <ul>
+                            <li>Short-term Notes</li>
+                            <li>Long-term Bonds</li>
+                            <li>Capital Lease Obligations</li>
+                            <li>Dividends Payable</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <strong>Nonoperating Assets (Cash):</strong>
+                        <ul>
+                            <li>Excess Cash</li>
+                            <li>Marketable Securities</li>
+                            <li>Discontinued Operations Assets</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 21: The Spread -->
+    <div class="slide">
+        <h2>Concept: The Spread</h2>
+        <div class="card-dark text-center">
+            <h3 class="text-white">Spread = RNOA - NNEP</h3>
+        </div>
+        <div class="mt-4 text-center">
+             <p><strong>NNEP = Net Nonoperating Expense / Avg Net Nonoperating Obligations</strong></p>
+             <p>(This is effectively the Cost of Debt)</p>
+        </div>
+        
+        <div class="grid-2 mt-4">
+            <div class="card">
+                <h4 class="text-success">Positive Spread</h4>
+                <p>RNOA > Cost of Debt.</p>
+                <p>Borrowing money generates excess return for shareholders. "Judicious use of debt."</p>
+            </div>
+            <div class="card">
+                <h4 class="text-error">Negative Spread</h4>
+                <p>RNOA < Cost of Debt.</p>
+                <p>Borrowing money destroys value. The operations can't cover the interest cost.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 22: Pfizer's Spread -->
+    <div class="slide">
+        <h2>Pfizer's Spread Analysis</h2>
+        <p>Pfizer had a massive positive spread in 2022.</p>
+        <div class="card">
+            <p><strong>RNOA:</strong> 32.1%</p>
+            <p><strong>Net Nonop Cost:</strong> ~0% (Remember they had net nonoperating income)</p>
+            <p><strong>Spread:</strong> ~32%</p>
+            <p class="text-accent mt-4">Because the spread is positive, even small leverage boosts ROE significantly.</p>
+        </div>
+        
+        <!-- Interactive Leverage Simulator -->
+        <div id="pfizer-leverage-sim" style="margin-top:20px; background:white; padding:20px; border-radius:12px; box-shadow:var(--shadow);">
+             <h4>Leverage Simulator</h4>
+             <p>Adjust FLEV to see how leverage amplifies ROE when Spread is positive.</p>
+             <div style="display:flex; align-items:center; gap:10px;">
+                <span>FLEV:</span>
+                <input type="range" id="pf-lev-slider" min="0" max="2" step="0.1" value="0.13" oninput="updatePfizerLeverage()" style="width:200px;">
+                <span id="pf-lev-val" style="font-weight:bold;">0.13</span>
+             </div>
+             
+             <!-- Dynamic Chart -->
+             <div style="display:flex; align-items:flex-end; height: 250px; margin-top:20px; justify-content:center; gap: 20px;">
+                <div style="text-align:center;">
+                     <div style="height:150px; width:80px; background:var(--primary); margin:0 auto; display:flex; align-items:center; justify-content:center; color:white;">32.1%</div>
+                     <p>RNOA</p>
+                </div>
+                <div style="font-size:2rem; padding-bottom: 60px;">+</div>
+                <div style="text-align:center;">
+                     <div id="viz-boost-bar" style="height:20px; width:80px; background:var(--accent); margin:0 auto; display:flex; align-items:center; justify-content:center; color:white; transition: height 0.2s;">4.2%</div>
+                     <p>Lev Impact</p>
+                </div>
+                <div style="font-size:2rem; padding-bottom: 60px;">=</div>
+                <div style="text-align:center;">
+                     <div id="viz-roe-bar" style="height:170px; width:80px; background:var(--success); margin:0 auto; display:flex; flex-direction:column; justify-content:flex-end; transition: height 0.2s;">
+                         <div id="viz-roe-val" style="height:100%; display:flex; align-items:center; justify-content:center; color:white; font-weight:bold;">36.3%</div>
+                     </div>
+                     <p>ROE</p>
+                </div>
+            </div>
+             
+             <div class="mt-4 text-center">
+                 <p class="font-weight-bold" id="sim-equation">36.3% = 32.1% + (0.13 &times; 32.2%)</p>
+                 <p id="pf-roe-val" style="display:none;">36.3%</p> <!-- Hidden holder for JS targeting -->
+             </div>
+        </div>
+    </div>
+
+    <!-- Slide 23: Pfizer Final Decomposition -->
+    <div class="slide">
+        <h2>Pfizer's Final Decomposition</h2>
+        <p>Let's check the numbers for 2022.</p>
+        <div class="card-dark" style="min-height: 400px; display: flex; flex-direction: column; justify-content: center;">
+            <h3 class="text-white text-center mb-4">ROE (36.3%) = RNOA (32.1%) + Nonoperating Return (4.2%)</h3>
+            <div style="background: rgba(255,255,255,0.1); padding: 25px; border-radius: 8px;">
+                <p class="text-white" style="font-size: 1.1rem; margin-bottom: 1rem;"><strong>Insight:</strong> 88% of Pfizer's return (32.1 / 36.3) comes from core operations.</p>
+                <p class="text-white" style="font-size: 1.1rem;">Traditional DuPont (ROA 16.6% / ROE 36.3%) suggested only 46% came from operations. The advanced method reveals the truth.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 24: Interactive: Equation Builder -->
+    <div class="slide">
+        <h2>Activity: Build the Equation</h2>
+        <p>Click the components to rebuild the Advanced DuPont Formula.</p>
+        <div id="eq-display" style="min-height: 50px; background: white; border: 1px solid #ccc; border-radius: 8px; margin-bottom: 20px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: bold; color: var(--primary);"></div>
+        <div class="grid-3">
+            <button class="btn" onclick="addToEq('RNOA')">RNOA</button>
+            <button class="btn" onclick="addToEq('FLEV')">FLEV</button>
+            <button class="btn" onclick="addToEq('Spread')">Spread</button>
+            <button class="btn" onclick="addToEq('+')">+</button>
+            <button class="btn" onclick="addToEq('x')">&times;</button>
+        </div>
+        <button class="btn mt-4" style="background: #e53e3e;" onclick="resetEq()">Reset</button>
+        <p id="eq-feedback" class="mt-2 text-center"></p>
+    </div>
+
+    <!-- Slide 25: Case Study: Apple -->
+    <div class="slide">
+        <h2>Case Study: Apple (Cash Drag)</h2>
+        <div class="grid-2">
+            <div class="card">
+                <h3>Apple 2022</h3>
+                <p><strong>RNOA:</strong> 864.9% (Incredible)</p>
+                <p><strong>ROE:</strong> 175.5% (Lower)</p>
+            </div>
+            <div class="card-dark">
+                <h3 class="text-white">Why?</h3>
+                <p class="text-white">Apple holds massive cash reserves (Nonoperating Assets).</p>
+                <p class="text-white">Cash earns very low interest (~2%).</p>
+                <p class="text-error"><strong>Negative Leverage:</strong> This cash drags down the overall return.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 26: Visualizing Negative Leverage -->
+    <div class="slide">
+        <h2>Visualizing Apple's Negative Leverage</h2>
+        <p>The "Weight" of Cash.</p>
+        <div style="display:flex; align-items:center; height:200px; gap: 10px;">
+            <div style="flex:1; background:var(--success); height:100%; display:flex; align-items:center; justify-content:center; color:white; border-radius: 8px; flex-direction: column;">
+                <span>RNOA</span>
+                <span style="font-size: 2rem;">865%</span>
+            </div>
+            <div style="font-size:2rem;">-</div>
+            <div style="flex:0.5; background:var(--error); height:60%; display:flex; align-items:center; justify-content:center; color:white; border-radius: 8px; flex-direction: column;">
+                <span>Cash Drag</span>
+            </div>
+            <div style="font-size:2rem;">=</div>
+            <div style="flex:0.8; background:var(--primary); height:80%; display:flex; align-items:center; justify-content:center; color:white; border-radius: 8px; flex-direction: column;">
+                <span>ROE</span>
+                <span style="font-size: 1.5rem;">176%</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 27: Summary -->
+    <div class="slide">
+        <h2>Summary</h2>
+        <div class="card-dark" style="padding: 3rem;">
+            <ul>
+                <li class="bullet-point text-white mb-2"><strong>Reformulation:</strong> Separate Operating from Financing.</li>
+                <li class="bullet-point text-white mb-2"><strong>NOA:</strong> Assets - Operating Liabilities (Invested Capital).</li>
+                <li class="bullet-point text-white mb-2"><strong>NOPAT:</strong> Operating Profit - Operating Tax (removes debt shield).</li>
+                <li class="bullet-point text-white mb-2"><strong>RNOA:</strong> The "Truth Teller" for operational performance.</li>
+                <li class="bullet-point text-white mb-2"><strong>Leverage:</strong> Boosts ROE only if Spread is positive.</li>
+            </ul>
+        </div>
+        <div class="text-center mt-4">
+            <button class="btn" onclick="revealBullets()">Click to Reveal Summary</button>
+            <button class="btn mt-4 w-100" onclick="nextSlide()">Proceed to Final Quiz</button>
+        </div>
+    </div>
+
+    <!-- Slide 28-35: Quizzes -->
+    <div class="slide">
+        <h2>Quiz 1: Classification</h2>
+        <p>Accounts Payable is a(n):</p>
+        <div class="grid-2">
+            <button class="btn" style="background:white; color:var(--text-color); border:1px solid #ccc;" onclick="quizCheck(this, true)">Operating Liability</button>
+            <button class="btn" style="background:white; color:var(--text-color); border:1px solid #ccc;" onclick="quizCheck(this, false)">Nonoperating Liability</button>
+        </div>
+        <p class="quiz-feedback mt-4 text-center"></p>
+    </div>
+
+    <div class="slide">
+        <h2>Quiz 2: Tax Shield</h2>
+        <p>To get NOPAT, we adjust reported tax by:</p>
+        <div class="grid-2">
+            <button class="btn" style="background:white; color:var(--text-color); border:1px solid #ccc;" onclick="quizCheck(this, true)">Adding back the tax shield</button>
+            <button class="btn" style="background:white; color:var(--text-color); border:1px solid #ccc;" onclick="quizCheck(this, false)">Subtracting interest</button>
+        </div>
+        <p class="quiz-feedback mt-4 text-center"></p>
+    </div>
+
+    <div class="slide">
+        <h2>Quiz 3: RNOA</h2>
+        <p>If RNOA > ROE, the company likely has:</p>
+        <div class="grid-2">
+            <button class="btn" style="background:white; color:var(--text-color); border:1px solid #ccc;" onclick="quizCheck(this, false)">High Debt</button>
+            <button class="btn" style="background:white; color:var(--text-color); border:1px solid #ccc;" onclick="quizCheck(this, true)">Excess Cash (Negative Leverage)</button>
+        </div>
+        <p class="quiz-feedback mt-4 text-center"></p>
+    </div>
+    
+    <div class="slide">
+        <h2>Quiz 4: NOA</h2>
+        <p>Calculate NOA: Op Assets = 100, Op Liab = 40, Cash = 20.</p>
+        <input type="number" id="q4-input" class="fib-input" style="width:100%;">
+        <button class="btn mt-4" onclick="checkQ4()">Check</button>
+        <p id="q4-fb" class="mt-4 text-center"></p>
+    </div>
+    
+    <div class="slide">
+        <h2>Quiz 5: Drivers</h2>
+        <p>A grocery store typically has:</p>
+        <div class="grid-2">
+            <button class="btn" style="background:white; color:var(--text-color); border:1px solid #ccc;" onclick="quizCheck(this, false)">High Margin, Low Turnover</button>
+            <button class="btn" style="background:white; color:var(--text-color); border:1px solid #ccc;" onclick="quizCheck(this, true)">Low Margin, High Turnover</button>
+        </div>
+        <p class="quiz-feedback mt-4 text-center"></p>
+    </div>
+    
+    <div class="slide">
+        <h2>Quiz 6: Spread</h2>
+        <p>If RNOA is 10% and Net Borrowing Cost is 5%, Leverage is:</p>
+        <div class="grid-2">
+            <button class="btn" style="background:white; color:var(--text-color); border:1px solid #ccc;" onclick="quizCheck(this, true)">Beneficial (Positive)</button>
+            <button class="btn" style="background:white; color:var(--text-color); border:1px solid #ccc;" onclick="quizCheck(this, false)">Harmful (Negative)</button>
+        </div>
+        <p class="quiz-feedback mt-4 text-center"></p>
+    </div>
+    
+     <div class="slide">
+        <h2>Quiz 7: Apple</h2>
+        <p>Why is Apple's RNOA (865%) so much higher than ROE (176%)?</p>
+        <div class="grid-2">
+            <button class="btn" style="background:white; color:var(--text-color); border:1px solid #ccc;" onclick="quizCheck(this, true)">Cash Drag lowers ROE</button>
+            <button class="btn" style="background:white; color:var(--text-color); border:1px solid #ccc;" onclick="quizCheck(this, false)">High Debt increases ROE</button>
+        </div>
+        <p class="quiz-feedback mt-4 text-center"></p>
+    </div>
+    
+     <div class="slide">
+        <h2>Quiz 8: NOPAT Logic</h2>
+        <p>If a company has Zero Debt and Zero Cash, NOPAT equals:</p>
+        <div class="grid-2">
+            <button class="btn" style="background:white; color:var(--text-color); border:1px solid #ccc;" onclick="quizCheck(this, true)">Net Income</button>
+            <button class="btn" style="background:white; color:var(--text-color); border:1px solid #ccc;" onclick="quizCheck(this, false)">Gross Profit</button>
+        </div>
+        <p class="quiz-feedback mt-4 text-center"></p>
+    </div>
+
+    <!-- Final Score -->
+    <div class="slide">
+        <div class="flex-center" style="flex-direction:column;">
+            <i class="fas fa-trophy fa-4x text-accent mb-4"></i>
+            <h1>Masterclass Complete</h1>
+            <p>You have mastered the advanced decomposition of ROE.</p>
+            <button class="btn mt-4" onclick="location.reload()">Restart Course</button>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <div id="nav-bar">
+        <div style="font-weight: bold; color: var(--secondary);">Adv. ROE</div>
+        <div class="progress-bar">
+            <div id="progress-fill"></div>
+        </div>
+        <div>
+            <button class="btn" style="padding: 8px 16px; margin-right: 10px;" onclick="prevSlide()"><i class="fas fa-arrow-left"></i></button>
+            <button class="btn" style="padding: 8px 16px;" onclick="nextSlide()"><i class="fas fa-arrow-right"></i></button>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    /* --- State Management --- */
+    let currentSlide = 0;
+    const slides = document.querySelectorAll('.slide');
+    const totalSlides = slides.length;
+
+    /* --- Navigation Logic --- */
+    function updateNav() {
+        slides.forEach((s, index) => {
+            if(index === currentSlide) s.classList.add('active');
+            else s.classList.remove('active');
+        });
+        const progress = ((currentSlide + 1) / totalSlides) * 100;
+        document.getElementById('progress-fill').style.width = `${progress}%`;
+    }
+
+    function nextSlide() {
+        if(currentSlide < totalSlides - 1) {
+            currentSlide++;
+            updateNav();
+        }
+    }
+
+    function prevSlide() {
+        if(currentSlide > 0) {
+            currentSlide--;
+            updateNav();
+        }
+    }
+
+    /* --- Interactive Functions --- */
+
+    // Slide 4: Balance Sheet Toggle
+    function toggleBS(el, type) {
+        if(el.classList.contains('selected')) {
+            el.classList.remove('selected');
+        } else {
+            el.classList.add('selected');
+            el.dataset.userChoice = type; 
+        }
+    }
+
+    function checkBS() {
+        const items = document.querySelectorAll('.bs-item');
+        let allCorrect = true;
+        
+        items.forEach(item => {
+            const type = item.getAttribute('onclick').includes("'op'") ? 'op' : 'non';
+            const isSelected = item.classList.contains('selected');
+            
+            if(type === 'op') {
+                if(isSelected) item.classList.add('correct');
+                else { item.classList.add('wrong'); allCorrect = false; }
+            } else {
+                if(!isSelected) item.classList.add('correct'); 
+                else { item.classList.add('wrong'); allCorrect = false; }
+            }
+        });
+
+        const fb = document.getElementById('bs-feedback');
+        if(allCorrect) {
+            fb.innerText = "Excellent! You correctly identified the operating items.";
+            fb.className = "text-center mt-2 font-weight-bold text-success";
+        } else {
+            fb.innerText = "Review the red items. Cash and Debt are Nonoperating.";
+            fb.className = "text-center mt-2 font-weight-bold text-error";
+        }
+    }
+
+    // Slide 6: Drag and Drop
+    const draggables = document.querySelectorAll('.draggable');
+    const dropZones = document.querySelectorAll('.drop-zone');
+
+    draggables.forEach(d => {
+        d.addEventListener('dragstart', () => d.classList.add('dragging'));
+        d.addEventListener('dragend', () => {
+            d.classList.remove('dragging');
+            checkDnd();
+        });
+    });
+
+    dropZones.forEach(zone => {
+        zone.addEventListener('dragover', e => {
+            e.preventDefault();
+            if(zone.id !== 'source-zone') zone.style.background = '#cbd5e0';
+        });
+        zone.addEventListener('dragleave', () => {
+             if(zone.id !== 'source-zone') zone.style.background = '#fff';
+        });
+        zone.addEventListener('drop', e => {
+            e.preventDefault();
+            const draggable = document.querySelector('.dragging');
+            if(zone.id !== 'source-zone') {
+                zone.appendChild(draggable);
+                zone.style.background = '#fff';
+            }
+        });
+    });
+
+    function checkDnd() {
+        const oaZone = document.getElementById('zone-oa');
+        const olZone = document.getElementById('zone-ol');
+        let correct = true;
+        
+        // Check OA Zone
+        Array.from(oaZone.children).forEach(c => {
+            if(c.tagName === 'DIV' && c.getAttribute('data-type') !== 'oa') correct = false;
+        });
+        // Check OL Zone
+        Array.from(olZone.children).forEach(c => {
+             if(c.tagName === 'DIV' && c.getAttribute('data-type') !== 'ol') correct = false;
+        });
+
+        const fb = document.getElementById('dnd-feedback');
+        if(correct && oaZone.children.length > 1 && olZone.children.length > 1) {
+            fb.innerText = "Correct! You have successfully separated operating assets and liabilities.";
+            fb.className = "text-center mt-2 font-weight-bold text-success";
+        } else {
+            fb.innerText = "Keep trying. Remember: Debt and Cash stay in the source list.";
+            fb.className = "text-center mt-2 font-weight-bold text-error";
+        }
+    }
+
+    // Slide 7: Shield Animation
+    function switchScenario(type, btn) {
+        document.querySelectorAll('.btn-tab').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        if(type === 'debt') {
+            document.getElementById('scene-debt').style.display = 'block';
+            document.getElementById('scene-cash').style.display = 'none';
+        } else {
+            document.getElementById('scene-debt').style.display = 'none';
+            document.getElementById('scene-cash').style.display = 'block';
+        }
+    }
+
+    function animateShield(type) {
+        if(type === 'debt') {
+            const shield = document.getElementById('viz-shield-debt');
+            const btn = document.getElementById('sim-btn-debt');
+            
+            if(shield.style.height === '0px' || shield.style.height === '') {
+                // ADD BACK SHIELD
+                shield.style.height = '30px'; 
+                btn.innerText = "Reset";
+                btn.style.background = "#e2e8f0";
+            } else {
+                // RESET
+                shield.style.height = '0px';
+                btn.innerText = "Add Back Shield";
+                btn.style.background = "white";
+            }
+        } else {
+            const shield = document.getElementById('viz-shield-cash-top');
+            const btn = document.getElementById('sim-btn-cash');
+            
+            if(shield.style.height === '40px') {
+                 // REMOVE TAX (Simulate NO Cash)
+                 shield.style.height = '0px';
+                 btn.innerText = "Reset";
+                 btn.style.background = "#e2e8f0";
+            } else {
+                 // RESET
+                 shield.style.height = '40px';
+                 btn.innerText = "Remove Investment Tax";
+                 btn.style.background = "white";
+            }
+        }
+    }
+
+    // Slide 22: Pfizer Leverage Simulator
+    function updatePfizerLeverage() {
+        const flev = parseFloat(document.getElementById('pf-lev-slider').value);
+        document.getElementById('pf-lev-val').innerText = flev;
+        
+        // Constants for Pfizer
+        const rnoa = 32.1;
+        const spread = 32.2;
+        
+        const roe = rnoa + (flev * spread);
+        document.getElementById('pf-roe-val').innerText = roe.toFixed(1) + "%"; // Placeholder text inside sim
+        
+        // Use existing chart IDs
+        const boostVal = (flev * spread).toFixed(1);
+        document.getElementById('viz-boost-bar').innerText = boostVal + "%";
+        document.getElementById('viz-roe-val').innerText = roe.toFixed(1) + "%";
+        
+        // Update Equation Text
+        document.getElementById('sim-equation').innerHTML = roe.toFixed(1) + "% = 32.1% + (" + flev + " &times; 32.2%)";
+        
+        const scale = 4.6;
+        document.getElementById('viz-boost-bar').style.height = (boostVal * scale) + "px";
+        document.getElementById('viz-roe-bar').style.height = (roe * scale) + "px";
+    }
+
+    // Slide 13: Tax Quiz
+    function checkTaxQuiz(btn, isCorrect) {
+        if(isCorrect) {
+            btn.style.background = "var(--success)";
+            btn.style.color = "white";
+            document.getElementById('tax-quiz-fb').innerHTML = "<span class='text-success'>Correct! The Shield = Interest * Rate ($100 * 20% = $20)</span>";
+        } else {
+            btn.style.background = "var(--error)";
+            btn.style.color = "white";
+            document.getElementById('tax-quiz-fb').innerHTML = "<span class='text-error'>Incorrect. Shield = Interest * Tax Rate.</span>";
+        }
+    }
+
+    // Slide 23: Equation Builder
+    let eqParts = [];
+    function addToEq(part) {
+        eqParts.push(part);
+        document.getElementById('eq-display').innerText = eqParts.join(" ");
+        
+        const str = eqParts.join("");
+        // ROE = RNOA + (FLEV x Spread)
+        if(str.includes("RNOA") && str.includes("FLEV") && str.includes("Spread") && str.includes("+")) {
+             document.getElementById('eq-feedback').innerText = "Correct Structure!";
+             document.getElementById('eq-feedback').style.color = "var(--success)";
+        }
+    }
+    function resetEq() {
+        eqParts = [];
+        document.getElementById('eq-display').innerText = "";
+        document.getElementById('eq-feedback').innerText = "";
+    }
+    
+    // Slide 26: Reveal Bullets
+    function revealBullets() {
+        const bullets = document.querySelectorAll('.bullet-point');
+        let delay = 0;
+        bullets.forEach(b => {
+            setTimeout(() => {
+                b.classList.add('bullet-visible');
+            }, delay);
+            delay += 500;
+        });
+    }
+
+    /* --- Final Quizzes --- */
+    function quizCheck(btn, isCorrect) {
+        const parent = btn.parentElement;
+        const fb = parent.nextElementSibling;
+        
+        // Disable siblings
+        Array.from(parent.children).forEach(b => b.disabled = true);
+        
+        if(isCorrect) {
+            btn.style.background = "var(--success)";
+            btn.style.color = "white";
+            fb.innerText = "Correct!";
+            fb.style.color = "var(--success)";
+        } else {
+            btn.style.background = "var(--error)";
+            btn.style.color = "white";
+            fb.innerText = "Incorrect.";
+            fb.style.color = "var(--error)";
+        }
+    }
+    
+    function checkQ4() {
+        const val = document.getElementById('q4-input').value;
+        const fb = document.getElementById('q4-fb');
+        if(val == 60) {
+            fb.innerText = "Correct! (100 - 40)";
+            fb.style.color = "var(--success)";
+        } else {
+            fb.innerText = "Incorrect. Formula: OA - OL";
+            fb.style.color = "var(--error)";
+        }
+    }
+
+    // Init
+    updateNav();
+
+</script>
+
+</body>
+</html>

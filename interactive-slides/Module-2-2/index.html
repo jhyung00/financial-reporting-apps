@@ -1,0 +1,1761 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mastering Financial Analysis: From Transaction to Transformation</title>
+    <!-- Fonts -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Roboto:wght@300;400;500;700&family=Fira+Code:wght@400&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-color: #f4f6f8;
+            --text-color: #2c3e50;
+            --accent-blue: #2980b9;
+            --accent-light: #3498db;
+            --success: #27ae60;
+            --error: #c0392b;
+            --card-bg: #ffffff;
+            --shadow: 0 4px 6px rgba(0,0,0,0.1);
+            --shadow-lg: 0 10px 25px rgba(0,0,0,0.15);
+            --header-font: 'Playfair Display', serif;
+            --body-font: 'Roboto', sans-serif;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: var(--body-font);
+            background-color: #dfe6e9;
+            color: var(--text-color);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        /* --- Main Layout --- */
+        #app-container {
+            width: 100%;
+            max-width: 1400px;
+            height: 90vh;
+            background-color: var(--bg-color);
+            position: relative;
+            box-shadow: var(--shadow-lg);
+            border-radius: 12px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .slide {
+            display: none;
+            flex: 1;
+            padding: 2rem 4rem;
+            overflow-y: auto;
+            flex-direction: column;
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        .slide.active { display: flex; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* --- Typography & Utils --- */
+        h1, h2, h3 { font-family: var(--header-font); color: #2c3e50; margin-bottom: 1rem; }
+        h1 { font-size: 3rem; }
+        h2 { font-size: 2.2rem; border-bottom: 3px solid var(--accent-light); padding-bottom: 10px; display: inline-block; }
+        p, li { font-size: 1.15rem; line-height: 1.6; color: #34495e; margin-bottom: 1rem; }
+        
+        .text-accent { color: var(--accent-blue); }
+        .text-center { text-align: center; }
+        .flex-center { display: flex; justify-content: center; align-items: center; height: 100%; }
+        .mt-4 { margin-top: 2rem; }
+        .mb-4 { margin-bottom: 2rem; }
+
+        /* --- Grid Layouts --- */
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: start; }
+        .grid-2-wide { display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: start; }
+        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem; }
+
+        /* --- Components --- */
+        .card {
+            background: var(--card-bg);
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            border-left: 5px solid transparent;
+            transition: transform 0.2s;
+            height: 100%; 
+        }
+        .card:hover { transform: translateY(-5px); }
+        .card-highlight { border-left-color: var(--accent-blue); }
+        .card-success { border-left-color: var(--success); background-color: #f0fff4; }
+        .card-warn { border-left-color: #f39c12; background-color: #fffaf0; }
+
+        /* --- Tables --- */
+        .financial-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.9rem;
+            background: white;
+            border: 1px solid #ddd;
+        }
+        .financial-table th, .financial-table td {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            text-align: right;
+        }
+        .financial-table th { text-align: left; background-color: #f8f9fa; font-weight: bold; }
+        .financial-table td:first-child { text-align: left; }
+        .financial-table tr.total-row { font-weight: bold; background-color: #f1f8ff; border-top: 2px solid #ddd; }
+
+        /* --- Timeline Visual --- */
+        .timeline-container {
+            position: relative;
+            padding: 20px 0 80px 0; 
+            margin: 20px 0;
+        }
+        .timeline-line {
+            height: 4px;
+            background: #bdc3c7;
+            position: relative;
+            width: 100%;
+            top: 10px;
+        }
+        .timeline-point {
+            width: 20px;
+            height: 20px;
+            background: var(--accent-blue);
+            border-radius: 50%;
+            position: absolute;
+            top: 2px;
+            z-index: 2;
+        }
+        .timeline-label {
+            position: absolute;
+            top: 40px;
+            transform: translateX(-50%);
+            text-align: center;
+            font-weight: bold;
+            font-size: 0.8rem;
+            width: auto;
+            max-width: 150px;
+            white-space: normal;
+            line-height: 1.2;
+            background: rgba(255,255,255,0.9);
+            padding: 5px 8px;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border: 1px solid #eee;
+            z-index: 1;
+        }
+        .time-arrow {
+            position: absolute;
+            right: -10px;
+            top: 4px;
+            color: #bdc3c7;
+        }
+
+        /* --- FSET Table Simulator --- */
+        .fset-container {
+            background: white;
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            padding: 1rem;
+            width: 100%;
+            position: relative;
+        }
+        
+        .fset-reset-btn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            margin-bottom: 10px;
+            display: inline-block;
+        }
+        
+        .fset-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: center;
+            table-layout: fixed;
+        }
+        .fset-table th {
+            background: #2c3e50;
+            color: white;
+            padding: 5px 2px;
+            font-size: 0.75rem;
+            white-space: normal;
+            word-wrap: break-word;
+            line-height: 1.1;
+        }
+        .fset-table td {
+            padding: 5px 2px;
+            border-bottom: 1px solid #eee;
+            border-right: 1px solid #eee;
+        }
+        .fset-control {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            align-items: center;
+        }
+        .fset-btn {
+            background: #ecf0f1;
+            border: 1px solid #bdc3c7;
+            border-radius: 3px;
+            width: 80%;
+            max-width: 25px;
+            height: 22px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.6rem;
+            padding: 0;
+        }
+        .fset-btn:hover { background: #bdc3c7; }
+        .fset-btn.selected-up { background: var(--success); color: white; border-color: var(--success); }
+        .fset-btn.selected-down { background: var(--error); color: white; border-color: var(--error); }
+        
+        /* Column Width Utilities for FSET */
+        .col-sign { width: 3%; font-weight: bold; color: #7f8c8d; }
+        .col-data { width: 10%; }
+
+        .account-selector-container {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .account-selector {
+            margin-top: 15px;
+            padding: 10px;
+            width: 100%;
+            max-width: 300px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 1rem;
+            font-family: var(--body-font);
+        }
+
+        /* --- Calculator UI --- */
+        .calc-ui {
+            background: #2c3e50;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            max-width: 300px;
+            margin: 0 auto;
+            color: white;
+        }
+        .calc-screen {
+            background: #ecf0f1;
+            color: #333;
+            font-family: 'Fira Code', monospace;
+            padding: 10px;
+            text-align: right;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            font-size: 1.2rem;
+            height: 45px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+        }
+        .calc-input-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 3px;
+            transition: background 0.2s;
+        }
+        .calc-input-row:hover {
+            background: rgba(255,255,255,0.1);
+        }
+        .calc-input-row:active {
+            background: rgba(255,255,255,0.2);
+        }
+
+        /* --- Flip Cards --- */
+        .flip-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 2rem; perspective: 1000px; }
+        .flip-card { background-color: transparent; height: 260px; perspective: 1000px; cursor: pointer; }
+        .flip-inner { position: relative; width: 100%; height: 100%; text-align: center; transition: transform 0.6s; transform-style: preserve-3d; box-shadow: var(--shadow); border-radius: 8px; }
+        .flip-card.flipped .flip-inner { transform: rotateY(180deg); }
+        .flip-front, .flip-back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 2rem; border-radius: 8px; }
+        .flip-front { background: var(--accent-blue); color: white; }
+        .flip-back { background: white; color: var(--text-color); transform: rotateY(180deg); border: 2px solid var(--accent-blue); }
+
+        /* Small Hint Flip Card */
+        .flip-hint {
+            background-color: transparent;
+            height: 50px;
+            width: 200px;
+            perspective: 1000px;
+            cursor: pointer;
+            margin: 10px auto;
+        }
+        .flip-hint .flip-inner { box-shadow: none; border: 1px dashed #aaa; }
+        .flip-hint.flipped .flip-inner { transform: rotateY(180deg); }
+        .flip-hint .flip-front, .flip-hint .flip-back { padding: 0.5rem; background: #eee; border: none; color: #555; font-size: 0.9rem; }
+        .flip-hint .flip-back { background: #dff9fb; color: #333; font-weight: bold; border: 1px solid #81ecec; transform: rotateY(180deg); }
+
+        /* --- T-Accounts Animation --- */
+        .t-account-grid { display: grid; grid-template-columns: 1fr 1.5fr 1fr; gap: 1.5rem; margin-top: 1rem; align-items: start; }
+        .t-account-wrapper { background: white; padding: 10px; border-radius: 8px; box-shadow: var(--shadow); }
+        .main-account { border: 2px solid var(--accent-blue); background: #f0f8ff; }
+        .t-account-visual { display: flex; border-top: 2px solid #333; margin-top: 5px; }
+        .t-left { flex: 1; border-right: 2px solid #333; padding: 5px; text-align: right; min-height: 80px; font-size: 0.9rem; color: #c0392b; }
+        .t-right { flex: 1; padding: 5px; text-align: left; min-height: 80px; font-size: 0.9rem; color: #27ae60; }
+
+        /* --- Interactive Elements --- */
+        .btn-action {
+            background: var(--accent-blue);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            margin-top: 10px;
+        }
+        .btn-action:hover { background: var(--accent-light); }
+        .feedback-msg { min-height: 1.5rem; font-weight: bold; margin-top: 1rem; text-align: center; }
+
+        /* --- Navigation --- */
+        #nav-bar {
+            background: white;
+            border-top: 1px solid #ddd;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .progress-bar-container { flex: 1; height: 6px; background: #eee; margin: 0 20px; border-radius: 3px; }
+        #progress-fill { height: 100%; background: var(--accent-blue); width: 0%; border-radius: 3px; transition: width 0.3s; }
+
+        /* --- Final Exam --- */
+        .quiz-question { margin-bottom: 2rem; border-bottom: 1px solid #eee; padding-bottom: 2rem; }
+        .quiz-option { 
+            display: block; padding: 10px; margin: 5px 0; background: white; 
+            border: 1px solid #ddd; border-radius: 5px; cursor: pointer; transition: 0.2s; 
+        }
+        .quiz-option:hover { background: #f9f9f9; border-color: var(--accent-blue); }
+        .quiz-option.selected { background: #e3f2fd; border-color: var(--accent-blue); font-weight: bold; }
+
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+
+    <!-- INTRO -->
+    <div class="slide active" id="slide-1">
+        <div class="flex-center" style="flex-direction: column; text-align: center;">
+            <i class="fas fa-chart-line fa-4x text-accent mb-4"></i>
+            <h1>From Transaction to Transformation</h1>
+            <h3 style="color: #7f8c8d; font-weight: 300;">The Complete Financial Analysis Course</h3>
+            <p class="mt-4">Interactive Drills | FSET Simulation | Final Exam</p>
+            <button class="btn-action mt-4" onclick="nextSlide()">Begin Course</button>
+        </div>
+    </div>
+
+    <!-- ACT 1: INCOME STATEMENT -->
+    <div class="slide" id="slide-2">
+        <h2>Act 1: The Income Statement</h2>
+        <div class="grid-2">
+            <div>
+                <div class="card card-highlight">
+                    <p><strong>Definition:</strong> Reports revenues earned, expenses incurred, and resulting net income over a period of time.</p>
+                </div>
+                <p class="mt-4">It is the video recording of the company's profitability.</p>
+                <ul>
+                    <li><i class="fas fa-check text-accent"></i> <strong>Top Line:</strong> Net Sales</li>
+                    <li><i class="fas fa-check text-accent"></i> <strong>Middle:</strong> Expenses (COGS, OpEx)</li>
+                    <li><i class="fas fa-check text-accent"></i> <strong>Bottom Line:</strong> Net Income</li>
+                </ul>
+            </div>
+            <div>
+                <!-- APPLE INCOME STATEMENT -->
+                <table class="financial-table">
+                    <tr><th colspan="2">Apple Inc. - Income Statement (2022)</th></tr>
+                    <tr><td>Net Sales</td><td>$394,328</td></tr>
+                    <tr><td>Cost of Sales</td><td>(223,546)</td></tr>
+                    <tr class="total-row"><td>Gross Margin</td><td>170,782</td></tr>
+                    <tr><td>Operating Expenses</td><td>(51,345)</td></tr>
+                    <tr class="total-row"><td>Operating Income</td><td>119,437</td></tr>
+                    <tr><td>Other / Tax</td><td>(19,634)</td></tr>
+                    <tr class="total-row" style="background:#d4edda; color: #155724;"><td>Net Income</td><td>$99,803</td></tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-3">
+        <h2>Case Study: Apple Inc.</h2>
+        <p>We will use Apple's fiscal year 2022 data for our analysis.</p>
+        <div class="fset-container text-center">
+            <h1 class="text-accent">$394,328 Million</h1>
+            <p><strong>Net Sales (Revenue)</strong></p>
+            <p class="mt-4">This represents the total value of iPhones, Macs, and Services sold to customers.</p>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-4">
+        <h2>Cost of Goods Sold (COGS)</h2>
+        <div class="grid-2">
+            <div>
+                <p>Direct costs to produce the goods sold.</p>
+                <div class="card">
+                    <h3>Revenue</h3>
+                    <p class="text-accent">$394,328</p>
+                </div>
+                <div class="card mt-4">
+                    <h3>COGS</h3>
+                    <p class="text-error">$223,546</p>
+                </div>
+            </div>
+            
+            <div class="flip-card" onclick="this.classList.toggle('flipped')" style="height: 350px;">
+                <div class="flip-inner">
+                    <div class="flip-front" style="background: var(--text-color);">
+                        <h3>What are Direct Costs?</h3>
+                        <p style="color:white; margin-top:10px;">Click to reveal examples.</p>
+                    </div>
+                    <div class="flip-back">
+                        <h3>Direct Costs Include:</h3>
+                        <ul style="text-align: left; padding-left: 20px;">
+                            <li><strong>Materials:</strong> Screens, Chips, Aluminum.</li>
+                            <li><strong>Direct Labor:</strong> Assembly line wages.</li>
+                            <li><strong>Mfg Overhead:</strong> Factory rent/power.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Interactive Gross Margin -->
+    <div class="slide" id="slide-5">
+        <h2>Gross Margin Analysis</h2>
+        <div class="grid-2">
+            <div class="card text-center" style="min-height: 300px;">
+                <p>Calculate Apple's Gross Margin.</p>
+                <div style="display: flex; gap: 10px; justify-content: center; margin: 20px 0;">
+                    <input type="number" id="gm-rev" value="394328" placeholder="Rev" style="width: 120px; padding: 10px;">
+                    <span style="align-self: center;">-</span>
+                    <input type="number" id="gm-cogs" value="223546" placeholder="COGS" style="width: 120px; padding: 10px;">
+                </div>
+                <button class="btn-action" onclick="calcGrossMargin()">Calculate</button>
+                <div id="gm-result" class="mt-4" style="font-weight: bold; font-size: 1.4rem;"></div>
+            </div>
+            
+            <div class="flip-card" onclick="this.classList.toggle('flipped')" style="height: 300px;">
+                <div class="flip-inner">
+                    <div class="flip-front" style="background: var(--text-color);">
+                        <h3>Interpretation</h3>
+                        <p style="color:white; margin-top:10px;">Click to reveal what this 43.3% means.</p>
+                    </div>
+                    <div class="flip-back">
+                        <h3>Pricing Power</h3>
+                        <p>A 43% Gross Margin is exceptionally high for hardware. It means Apple commands a premium price and keeps 43 cents of every dollar purely for manufacturing markup, before paying for R&D or Marketing.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ACT 2: ACCRUAL ACCOUNTING -->
+    <div class="slide" id="slide-6">
+        <h2>Act 2: Accrual Accounting</h2>
+        <div class="grid-2">
+            <div class="card card-highlight">
+                <h3 class="text-accent">Profit is an Opinion, Cash is a Fact.</h3>
+                <p><strong>Accrual Accounting</strong> (GAAP) records transactions when they are <em>earned</em> or <em>incurred</em>, regardless of when cash moves.</p>
+                <p><strong>Cash Accounting</strong> records transactions only when money hits the bank.</p>
+            </div>
+            <div class="card">
+                <h3>Why Accrual?</h3>
+                <p>It matches effort (expenses) with accomplishment (revenue). It provides a more accurate picture of long-term economic reality than simple cash movements.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-7">
+        <h2>Cash vs. Accrual: A Tale of Two Profits</h2>
+        <p>Scenario: In December, you sell $500 of goods on credit (customer pays in Jan).</p>
+        <table class="financial-table mt-4" style="font-size: 1.2rem;">
+            <thead>
+                <tr>
+                    <th></th>
+                    <th>Accrual Basis (GAAP)</th>
+                    <th>Cash Basis</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>December Revenue</strong></td>
+                    <td class="text-accent">$500 (Earned)</td>
+                    <td class="text-error">$0 (No Cash)</td>
+                </tr>
+                <tr>
+                    <td><strong>Dec Cost of Goods Sold</strong></td>
+                    <td class="text-error">($200)</td>
+                    <td>$0</td>
+                </tr>
+                <tr>
+                    <td><strong>Gross Margin Reported</strong></td>
+                    <td class="text-accent">$300</td>
+                    <td class="text-error">$0</td>
+                </tr>
+                <tr>
+                    <td colspan="3" style="padding:0;">
+                        <div class="card-highlight" style="padding: 1rem; margin: 1rem; border-radius:4px; text-align:center;">
+                            <strong>Reality:</strong> You did the work and sold the product. Accrual captures this economic reality.
+                        </div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Timeline Mismatch -->
+    <div class="slide" id="slide-8">
+        <h2>The Timing Mismatch</h2>
+        <p>Revenue and Cash often move at different speeds. Notice the visual gap.</p>
+        
+        <div class="card" style="margin-bottom: 2rem;">
+            <h3>Scenario 1: Credit Sale (Accrual)</h3>
+            <p>You sell goods now, get paid later.</p>
+            <div class="timeline-container">
+                <div class="timeline-line"></div>
+                <!-- Point 1 -->
+                <div class="timeline-point" style="left: 20%;"></div>
+                <div class="timeline-label" style="left: 20%;">Revenue Recorded<br>(Income Statement)</div>
+                <!-- Point 2 -->
+                <div class="timeline-point" style="left: 80%; background: var(--success);"></div>
+                <div class="timeline-label" style="left: 80%;">Cash Received<br>(Cash Flow)</div>
+                <i class="fas fa-arrow-right fa-2x time-arrow"></i>
+            </div>
+            <p class="text-center text-accent" style="margin-top: 40px;">Gap = Accounts Receivable</p>
+        </div>
+
+        <div class="card">
+            <h3>Scenario 2: Prepaid (Deferral)</h3>
+            <p>Customer pays now, you deliver later.</p>
+            <div class="timeline-container">
+                <div class="timeline-line"></div>
+                <!-- Point 1 -->
+                <div class="timeline-point" style="left: 20%; background: var(--success);"></div>
+                <div class="timeline-label" style="left: 20%;">Cash Received<br>(Cash Flow)</div>
+                <!-- Point 2 -->
+                <div class="timeline-point" style="left: 80%;"></div>
+                <div class="timeline-label" style="left: 80%;">Revenue Recorded<br>(Income Statement)</div>
+                <i class="fas fa-arrow-right fa-2x time-arrow"></i>
+            </div>
+            <p class="text-center text-accent" style="margin-top: 40px;">Gap = Unearned Revenue</p>
+        </div>
+    </div>
+
+    <!-- ACT 3: FSET TRANSACTIONS -->
+    <div class="slide" id="slide-9">
+        <h2>Act 3: The FSET Blueprint</h2>
+        <div class="fset-container text-center">
+            <h3>Assets = Liabilities + Equity</h3>
+            <div class="fset-container" style="background: #f1f8ff; margin-top: 1rem; border: 1px solid #3498db;">
+                <table class="fset-table">
+                    <tr>
+                        <th class="col-data">Cash</th><th class="col-sign">+</th><th class="col-data">NonCash</th>
+                        <th class="col-sign">=</th>
+                        <th class="col-data">Liabilities</th><th class="col-sign">+</th><th class="col-data">Cont.Cap</th><th class="col-sign">+</th><th class="col-data">Earn.Cap</th>
+                        <th class="col-sign">(</th><th class="col-data">Rev</th><th class="col-sign">-</th><th class="col-data">Exp</th><th class="col-sign">=</th><th class="col-data">NI</th><th class="col-sign">)</th>
+                    </tr>
+                </table>
+            </div>
+            <p class="mt-4">This template ensures that every transaction balances the equation. Note that <strong>Revenue - Expenses = Net Income</strong>, which feeds into Earned Capital.</p>
+        </div>
+    </div>
+
+    <!-- FSET DRILL 1 -->
+    <div class="slide" id="slide-10">
+        <h2>Drill 1: Purchase Inventory</h2>
+        <p><strong>Transaction:</strong> Apple purchases $221,912 of inventory on account (credit).</p>
+        
+        <div class="flip-hint" onclick="this.classList.toggle('flipped')">
+            <div class="flip-inner">
+                <div class="flip-front">Need a Hint?</div>
+                <div class="flip-back">We get an asset (Inventory), but we owe money (A/P).</div>
+            </div>
+        </div>
+        
+        <div class="fset-container">
+            <button class="fset-reset-btn" onclick="resetFSET('drill-1-table')"><i class="fas fa-undo"></i> Reset</button>
+            <table class="fset-table" id="drill-1-table">
+                <tr><th>Cash</th><th>NonCash</th><th>=</th><th>Liab</th><th>+</th><th>CC</th><th>+</th><th>EC</th><th>Rev</th><th>Exp</th><th>NI</th></tr>
+                <tr>
+                    <td><div class="fset-control" data-col="cash"><button class="fset-btn" onclick="toggleFSET(this, 'up')">▲</button><button class="fset-btn" onclick="toggleFSET(this, 'down')">▼</button></div></td>
+                    <td><div class="fset-control" data-col="nca"><button class="fset-btn" onclick="toggleFSET(this, 'up')">▲</button><button class="fset-btn" onclick="toggleFSET(this, 'down')">▼</button></div></td>
+                    <td>=</td>
+                    <td><div class="fset-control" data-col="liab"><button class="fset-btn" onclick="toggleFSET(this, 'up')">▲</button><button class="fset-btn" onclick="toggleFSET(this, 'down')">▼</button></div></td>
+                    <td>+</td>
+                    <td><div class="fset-control" data-col="cc"><button class="fset-btn" onclick="toggleFSET(this, 'up')">▲</button><button class="fset-btn" onclick="toggleFSET(this, 'down')">▼</button></div></td>
+                    <td>+</td>
+                    <td><div class="fset-control" data-col="ec"><button class="fset-btn" onclick="toggleFSET(this, 'up')">▲</button><button class="fset-btn" onclick="toggleFSET(this, 'down')">▼</button></div></td>
+                    <td><div class="fset-control" data-col="rev"><button class="fset-btn" onclick="toggleFSET(this, 'up')">▲</button><button class="fset-btn" onclick="toggleFSET(this, 'down')">▼</button></div></td>
+                    <td><div class="fset-control" data-col="exp"><button class="fset-btn" onclick="toggleFSET(this, 'up')">▲</button><button class="fset-btn" onclick="toggleFSET(this, 'down')">▼</button></div></td>
+                    <td><div class="fset-control" data-col="ni"><button class="fset-btn" onclick="toggleFSET(this, 'up')">▲</button><button class="fset-btn" onclick="toggleFSET(this, 'down')">▼</button></div></td>
+                </tr>
+            </table>
+            
+            <p class="mt-4"><strong>Identify TWO Specific Accounts Involved:</strong></p>
+            <div class="account-selector-container">
+                <select id="drill-1-acct1" class="account-selector">
+                    <option value="">-- Select Account 1 --</option>
+                    <option value="inventory">Inventory</option>
+                    <option value="cash">Cash</option>
+                    <option value="ap">Accounts Payable</option>
+                </select>
+                <select id="drill-1-acct2" class="account-selector">
+                    <option value="">-- Select Account 2 --</option>
+                    <option value="inventory">Inventory</option>
+                    <option value="ap">Accounts Payable</option>
+                    <option value="wages">Wages Payable</option>
+                </select>
+            </div>
+
+            <button class="btn-action mt-4" onclick="checkFSET('drill-1-table', ['nca-up', 'liab-up'], ['drill-1-acct1', 'drill-1-acct2'], ['inventory', 'ap'])">Check Answer</button>
+            <p class="feedback-msg"></p>
+        </div>
+    </div>
+
+    <!-- FSET DRILL 2 -->
+    <div class="slide" id="slide-11">
+        <h2>Drill 2: Sell Product (Revenue)</h2>
+        <p><strong>Transaction:</strong> Apple sells products for $394,328 Cash.</p>
+        <p class="text-accent"><strong>Note:</strong> Four columns are affected in this transaction.</p>
+        
+        <div class="flip-hint" onclick="this.classList.toggle('flipped')">
+            <div class="flip-inner">
+                <div class="flip-front">Need a Hint?</div>
+                <div class="flip-back">Cash up. Revenue up. Net Income up. Earned Cap up.</div>
+            </div>
+        </div>
+        
+        <div class="fset-container">
+            <button class="fset-reset-btn" onclick="resetFSET('drill-2-table')"><i class="fas fa-undo"></i> Reset</button>
+            <table class="fset-table" id="drill-2-table">
+                <tr><th>Cash</th><th>NonCash</th><th>=</th><th>Liab</th><th>+</th><th>CC</th><th>+</th><th>EC</th><th>Rev</th><th>Exp</th><th>NI</th></tr>
+                <tr>
+                    <td><div class="fset-control" data-col="cash"><button class="fset-btn" onclick="toggleFSET(this, 'up')">▲</button><button class="fset-btn" onclick="toggleFSET(this, 'down')">▼</button></div></td>
+                    <td><div class="fset-control" data-col="nca"><button class="fset-btn" onclick="toggleFSET(this, 'up')">▲</button><button class="fset-btn" onclick="toggleFSET(this, 'down')">▼</button></div></td>
+                    <td>=</td>
+                    <td><div class="fset-control" data-col="liab"><button class="fset-btn" onclick="toggleFSET(this, 'up')">▲</button><button class="fset-btn" onclick="toggleFSET(this, 'down')">▼</button></div></td>
+                    <td>+</td>
+                    <td><div class="fset-control" data-col="cc"><button class="fset-btn" onclick="toggleFSET(this, 'up')">▲</button><button class="fset-btn" onclick="toggleFSET(this, 'down')">▼</button></div></td>
+                    <td>+</td>
+                    <td><div class="fset-control" data-col="ec"><button class="fset-btn" onclick="toggleFSET(this, 'up')">▲</button><button class="fset-btn" onclick="toggleFSET(this, 'down')">▼</button></div></td>
+                    <td><div class="fset-control" data-col="rev"><button class="fset-btn" onclick="toggleFSET(this, 'up')">▲</button><button class="fset-btn" onclick="toggleFSET(this, 'down')">▼</button></div></td>
+                    <td><div class="fset-control" data-col="exp"><button class="fset-btn" onclick="toggleFSET(this, 'up')">▲</button><button class="fset-btn" onclick="toggleFSET(this, 'down')">▼</button></div></td>
+                    <td><div class="fset-control" data-col="ni"><button class="fset-btn" onclick="toggleFSET(this, 'up')">▲</button><button class="fset-btn" onclick="toggleFSET(this, 'down')">▼</button></div></td>
+                </tr>
+            </table>
+            
+            <p class="mt-4"><strong>Identify TWO Specific Accounts Involved:</strong></p>
+            <div class="account-selector-container">
+                <select id="drill-2-acct1" class="account-selector">
+                    <option value="">-- Select Account 1 --</option>
+                    <option value="cash">Cash</option>
+                    <option value="rev">Sales Revenue</option>
+                    <option value="ar">Accounts Receivable</option>
+                </select>
+                <select id="drill-2-acct2" class="account-selector">
+                    <option value="">-- Select Account 2 --</option>
+                    <option value="cash">Cash</option>
+                    <option value="rev">Sales Revenue</option>
+                    <option value="unearned">Unearned Revenue</option>
+                </select>
+            </div>
+
+            <button class="btn-action mt-4" onclick="checkFSET('drill-2-table', ['cash-up', 'rev-up', 'ni-up', 'ec-up'], ['drill-2-acct1', 'drill-2-acct2'], ['cash', 'rev'])">Check Answer</button>
+            <p class="feedback-msg"></p>
+        </div>
+    </div>
+
+    <!-- FSET DRILL 3 -->
+    <div class="slide" id="slide-12">
+        <h2>Drill 3: Sell Product (Expense)</h2>
+        <p><strong>Transaction:</strong> Record the Cost of Goods Sold ($223,546) for the sale in Drill 2.</p>
+        <p class="text-accent"><strong>Note:</strong> Four columns are affected in this transaction.</p>
+        
+        <div class="flip-hint" onclick="this.classList.toggle('flipped')">
+            <div class="flip-inner">
+                <div class="flip-front">Need a Hint?</div>
+                <div class="flip-back">Inventory leaves. Expense up. Net Income down. Earned Cap down.</div>
+            </div>
+        </div>
+        
+        <div class="fset-container">
+            <button class="fset-reset-btn" onclick="resetFSET('drill-3-table')"><i class="fas fa-undo"></i> Reset</button>
+            <table class="fset-table" id="drill-3-table">
+                <tr><th>Cash</th><th>NonCash</th><th>=</th><th>Liab</th><th>+</th><th>CC</th><th>+</th><th>EC</th><th>Rev</th><th>Exp</th><th>NI</th></tr>
+                <tr>
+                    <td><div class="fset-control" data-col="cash"><button class="fset-btn" onclick="toggleFSET(this, 'up')">▲</button><button class="fset-btn" onclick="toggleFSET(this, 'down')">▼</button></div></td>
+                    <td><div class="fset-control" data-col="nca"><button class="fset-btn" onclick="toggleFSET(this, 'up')">▲</button><button class="fset-btn" onclick="toggleFSET(this, 'down')">▼</button></div></td>
+                    <td>=</td>
+                    <td><div class="fset-control" data-col="liab"><button class="fset-btn" onclick="toggleFSET(this, 'up')">▲</button><button class="fset-btn" onclick="toggleFSET(this, 'down')">▼</button></div></td>
+                    <td>+</td>
+                    <td><div class="fset-control" data-col="cc"><button class="fset-btn" onclick="toggleFSET(this, 'up')">▲</button><button class="fset-btn" onclick="toggleFSET(this, 'down')">▼</button></div></td>
+                    <td>+</td>
+                    <td><div class="fset-control" data-col="ec"><button class="fset-btn" onclick="toggleFSET(this, 'up')">▲</button><button class="fset-btn" onclick="toggleFSET(this, 'down')">▼</button></div></td>
+                    <td><div class="fset-control" data-col="rev"><button class="fset-btn" onclick="toggleFSET(this, 'up')">▲</button><button class="fset-btn" onclick="toggleFSET(this, 'down')">▼</button></div></td>
+                    <td><div class="fset-control" data-col="exp"><button class="fset-btn" onclick="toggleFSET(this, 'up')">▲</button><button class="fset-btn" onclick="toggleFSET(this, 'down')">▼</button></div></td>
+                    <td><div class="fset-control" data-col="ni"><button class="fset-btn" onclick="toggleFSET(this, 'up')">▲</button><button class="fset-btn" onclick="toggleFSET(this, 'down')">▼</button></div></td>
+                </tr>
+            </table>
+
+            <p class="mt-4"><strong>Identify TWO Specific Accounts Involved:</strong></p>
+            <div class="account-selector-container">
+                <select id="drill-3-acct1" class="account-selector">
+                    <option value="">-- Select Account 1 --</option>
+                    <option value="inventory">Inventory</option>
+                    <option value="cogs">Cost of Goods Sold (Exp)</option>
+                    <option value="ppe">Property Plant Equipment</option>
+                </select>
+                <select id="drill-3-acct2" class="account-selector">
+                    <option value="">-- Select Account 2 --</option>
+                    <option value="inventory">Inventory</option>
+                    <option value="cogs">Cost of Goods Sold (Exp)</option>
+                    <option value="supplies">Supplies</option>
+                </select>
+            </div>
+
+            <button class="btn-action mt-4" onclick="checkFSET('drill-3-table', ['nca-down', 'exp-up', 'ni-down', 'ec-down'], ['drill-3-acct1', 'drill-3-acct2'], ['inventory', 'cogs'])">Check Answer</button>
+            <p class="feedback-msg"></p>
+        </div>
+    </div>
+
+    <!-- FSET DRILL 4 -->
+    <div class="slide" id="slide-13">
+        <h2>Drill 4: Pay Accounts Payable</h2>
+        <p><strong>Transaction:</strong> Apple pays $212,500 cash toward what it owes suppliers.</p>
+        
+        <div class="flip-hint" onclick="this.classList.toggle('flipped')">
+            <div class="flip-inner">
+                <div class="flip-front">Need a Hint?</div>
+                <div class="flip-back">Cash goes out. Liability decreases.</div>
+            </div>
+        </div>
+
+        <div class="fset-container">
+            <button class="fset-reset-btn" onclick="resetFSET('drill-4-table')"><i class="fas fa-undo"></i> Reset</button>
+            <table class="fset-table" id="drill-4-table">
+                <tr><th>Cash</th><th>NonCash</th><th>=</th><th>Liab</th><th>+</th><th>CC</th><th>+</th><th>EC</th><th>Rev</th><th>Exp</th><th>NI</th></tr>
+                <tr>
+                    <td><div class="fset-control" data-col="cash"><button class="fset-btn" onclick="toggleFSET(this, 'up')">▲</button><button class="fset-btn" onclick="toggleFSET(this, 'down')">▼</button></div></td>
+                    <td><div class="fset-control" data-col="nca"><button class="fset-btn" onclick="toggleFSET(this, 'up')">▲</button><button class="fset-btn" onclick="toggleFSET(this, 'down')">▼</button></div></td>
+                    <td>=</td>
+                    <td><div class="fset-control" data-col="liab"><button class="fset-btn" onclick="toggleFSET(this, 'up')">▲</button><button class="fset-btn" onclick="toggleFSET(this, 'down')">▼</button></div></td>
+                    <td>+</td>
+                    <td><div class="fset-control" data-col="cc"><button class="fset-btn" onclick="toggleFSET(this, 'up')">▲</button><button class="fset-btn" onclick="toggleFSET(this, 'down')">▼</button></div></td>
+                    <td>+</td>
+                    <td><div class="fset-control" data-col="ec"><button class="fset-btn" onclick="toggleFSET(this, 'up')">▲</button><button class="fset-btn" onclick="toggleFSET(this, 'down')">▼</button></div></td>
+                    <td><div class="fset-control" data-col="rev"><button class="fset-btn" onclick="toggleFSET(this, 'up')">▲</button><button class="fset-btn" onclick="toggleFSET(this, 'down')">▼</button></div></td>
+                    <td><div class="fset-control" data-col="exp"><button class="fset-btn" onclick="toggleFSET(this, 'up')">▲</button><button class="fset-btn" onclick="toggleFSET(this, 'down')">▼</button></div></td>
+                    <td><div class="fset-control" data-col="ni"><button class="fset-btn" onclick="toggleFSET(this, 'up')">▲</button><button class="fset-btn" onclick="toggleFSET(this, 'down')">▼</button></div></td>
+                </tr>
+            </table>
+            
+            <p class="mt-4"><strong>Identify TWO Specific Accounts Involved:</strong></p>
+            <div class="account-selector-container">
+                <select id="drill-4-acct1" class="account-selector">
+                    <option value="">-- Select Account 1 --</option>
+                    <option value="cash">Cash</option>
+                    <option value="ap">Accounts Payable</option>
+                    <option value="ar">Accounts Receivable</option>
+                </select>
+                <select id="drill-4-acct2" class="account-selector">
+                    <option value="">-- Select Account 2 --</option>
+                    <option value="cash">Cash</option>
+                    <option value="ap">Accounts Payable</option>
+                    <option value="bonds">Bonds Payable</option>
+                </select>
+            </div>
+
+            <button class="btn-action mt-4" onclick="checkFSET('drill-4-table', ['cash-down', 'liab-down'], ['drill-4-acct1', 'drill-4-acct2'], ['cash', 'ap'])">Check Answer</button>
+            <p class="feedback-msg"></p>
+        </div>
+    </div>
+
+    <!-- ACT 4: ADJUSTMENTS -->
+    <div class="slide" id="slide-14">
+        <h2>Act 4: Adjustments</h2>
+        <p>Adjustments ensure that revenues and expenses are recorded in the correct period.</p>
+        
+        <div class="grid-2-wide">
+            <!-- Deferral -->
+            <div class="card card-warn" style="min-width: 350px;">
+                <h4>Deferrals (Prepayments)</h4>
+                <div class="timeline-container">
+                    <div class="timeline-line"></div>
+                    <div class="timeline-point" style="left: 10%; background: var(--success);"></div>
+                    <div class="timeline-label" style="left: 10%;">Cash Paid</div>
+                    <div class="timeline-point" style="left: 90%;"></div>
+                    <div class="timeline-label" style="left: 90%;">Expense Recorded</div>
+                </div>
+                <div class="flip-card" onclick="this.classList.toggle('flipped')" style="height: 100px; margin-top: 40px;">
+                    <div class="flip-inner">
+                        <div class="flip-front" style="padding: 1rem;"><h5>Example Transaction</h5></div>
+                        <div class="flip-back" style="padding: 1rem;"><p style="font-size: 0.9rem;">Paying for 12 months of Insurance upfront.</p></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Accrual -->
+            <div class="card card-warn" style="min-width: 350px;">
+                <h4>Accruals</h4>
+                <div class="timeline-container">
+                    <div class="timeline-line"></div>
+                    <div class="timeline-point" style="left: 10%;"></div>
+                    <div class="timeline-label" style="left: 10%;">Expense Recorded</div>
+                    <div class="timeline-point" style="left: 90%; background: var(--success);"></div>
+                    <div class="timeline-label" style="left: 90%;">Cash Paid</div>
+                </div>
+                <div class="flip-card" onclick="this.classList.toggle('flipped')" style="height: 100px; margin-top: 40px;">
+                    <div class="flip-inner">
+                        <div class="flip-front" style="padding: 1rem;"><h5>Example Transaction</h5></div>
+                        <div class="flip-back" style="padding: 1rem;"><p style="font-size: 0.9rem;">Electricity bill received in Jan for Dec usage.</p></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DRILL 5: PREPAID EXP -->
+    <div class="slide" id="slide-15">
+        <h2>Adj Drill 1: Prepaid Expense</h2>
+        <p><strong>Scenario:</strong> You paid $200 for insurance last year. $50 of it has now been used.</p>
+        
+        <div class="flip-hint" onclick="this.classList.toggle('flipped')">
+            <div class="flip-inner">
+                <div class="flip-front">Need a Hint?</div>
+                <div class="flip-back">Prepaid Asset down. Expense up. Net Inc down. Earned Cap down.</div>
+            </div>
+        </div>
+        
+        <div class="fset-container">
+            <button class="fset-reset-btn" onclick="resetFSET('drill-5-table')"><i class="fas fa-undo"></i> Reset</button>
+            <table class="fset-table" id="drill-5-table">
+                <tr><th>Cash</th><th>NonCash</th><th>=</th><th>Liab</th><th>+</th><th>CC</th><th>+</th><th>EC</th><th>Rev</th><th>Exp</th><th>NI</th></tr>
+                <tr>
+                    <td><div class="fset-control" data-col="cash"><button class="fset-btn" onclick="toggleFSET(this, 'up')">▲</button><button class="fset-btn" onclick="toggleFSET(this, 'down')">▼</button></div></td>
+                    <td><div class="fset-control" data-col="nca"><button class="fset-btn" onclick="toggleFSET(this, 'up')">▲</button><button class="fset-btn" onclick="toggleFSET(this, 'down')">▼</button></div></td>
+                    <td>=</td>
+                    <td><div class="fset-control" data-col="liab"><button class="fset-btn" onclick="toggleFSET(this, 'up')">▲</button><button class="fset-btn" onclick="toggleFSET(this, 'down')">▼</button></div></td>
+                    <td>+</td>
+                    <td><div class="fset-control" data-col="cc"><button class="fset-btn" onclick="toggleFSET(this, 'up')">▲</button><button class="fset-btn" onclick="toggleFSET(this, 'down')">▼</button></div></td>
+                    <td>+</td>
+                    <td><div class="fset-control" data-col="ec"><button class="fset-btn" onclick="toggleFSET(this, 'up')">▲</button><button class="fset-btn" onclick="toggleFSET(this, 'down')">▼</button></div></td>
+                    <td><div class="fset-control" data-col="rev"><button class="fset-btn" onclick="toggleFSET(this, 'up')">▲</button><button class="fset-btn" onclick="toggleFSET(this, 'down')">▼</button></div></td>
+                    <td><div class="fset-control" data-col="exp"><button class="fset-btn" onclick="toggleFSET(this, 'up')">▲</button><button class="fset-btn" onclick="toggleFSET(this, 'down')">▼</button></div></td>
+                    <td><div class="fset-control" data-col="ni"><button class="fset-btn" onclick="toggleFSET(this, 'up')">▲</button><button class="fset-btn" onclick="toggleFSET(this, 'down')">▼</button></div></td>
+                </tr>
+            </table>
+
+            <p class="mt-4"><strong>Identify TWO Specific Accounts Involved:</strong></p>
+            <div class="account-selector-container">
+                <select id="drill-5-acct1" class="account-selector">
+                    <option value="">-- Select Account 1 --</option>
+                    <option value="prepaid">Prepaid Expense (Asset)</option>
+                    <option value="ins_exp">Insurance Expense</option>
+                    <option value="cash">Cash</option>
+                </select>
+                <select id="drill-5-acct2" class="account-selector">
+                    <option value="">-- Select Account 2 --</option>
+                    <option value="prepaid">Prepaid Expense (Asset)</option>
+                    <option value="ins_exp">Insurance Expense</option>
+                    <option value="liab">Insurance Payable</option>
+                </select>
+            </div>
+
+            <button class="btn-action mt-4" onclick="checkFSET('drill-5-table', ['nca-down', 'exp-up', 'ni-down', 'ec-down'], ['drill-5-acct1', 'drill-5-acct2'], ['prepaid', 'ins_exp'])">Check Answer</button>
+            <p class="feedback-msg"></p>
+        </div>
+    </div>
+
+    <!-- DRILL 6: UNEARNED REV -->
+    <div class="slide" id="slide-16">
+        <h2>Adj Drill 2: Unearned Revenue</h2>
+        <p><strong>Scenario:</strong> A customer paid $400 in advance for an iPad. You have now delivered it.</p>
+        
+        <div class="flip-hint" onclick="this.classList.toggle('flipped')">
+            <div class="flip-inner">
+                <div class="flip-front">Need a Hint?</div>
+                <div class="flip-back">Liability (Unearned Rev) down. Rev up. NI up. EC up.</div>
+            </div>
+        </div>
+        
+        <div class="fset-container">
+            <button class="fset-reset-btn" onclick="resetFSET('drill-6-table')"><i class="fas fa-undo"></i> Reset</button>
+            <table class="fset-table" id="drill-6-table">
+                <tr><th>Cash</th><th>NonCash</th><th>=</th><th>Liab</th><th>+</th><th>CC</th><th>+</th><th>EC</th><th>Rev</th><th>Exp</th><th>NI</th></tr>
+                <tr>
+                    <td><div class="fset-control" data-col="cash"><button class="fset-btn" onclick="toggleFSET(this, 'up')">▲</button><button class="fset-btn" onclick="toggleFSET(this, 'down')">▼</button></div></td>
+                    <td><div class="fset-control" data-col="nca"><button class="fset-btn" onclick="toggleFSET(this, 'up')">▲</button><button class="fset-btn" onclick="toggleFSET(this, 'down')">▼</button></div></td>
+                    <td>=</td>
+                    <td><div class="fset-control" data-col="liab"><button class="fset-btn" onclick="toggleFSET(this, 'up')">▲</button><button class="fset-btn" onclick="toggleFSET(this, 'down')">▼</button></div></td>
+                    <td>+</td>
+                    <td><div class="fset-control" data-col="cc"><button class="fset-btn" onclick="toggleFSET(this, 'up')">▲</button><button class="fset-btn" onclick="toggleFSET(this, 'down')">▼</button></div></td>
+                    <td>+</td>
+                    <td><div class="fset-control" data-col="ec"><button class="fset-btn" onclick="toggleFSET(this, 'up')">▲</button><button class="fset-btn" onclick="toggleFSET(this, 'down')">▼</button></div></td>
+                    <td><div class="fset-control" data-col="rev"><button class="fset-btn" onclick="toggleFSET(this, 'up')">▲</button><button class="fset-btn" onclick="toggleFSET(this, 'down')">▼</button></div></td>
+                    <td><div class="fset-control" data-col="exp"><button class="fset-btn" onclick="toggleFSET(this, 'up')">▲</button><button class="fset-btn" onclick="toggleFSET(this, 'down')">▼</button></div></td>
+                    <td><div class="fset-control" data-col="ni"><button class="fset-btn" onclick="toggleFSET(this, 'up')">▲</button><button class="fset-btn" onclick="toggleFSET(this, 'down')">▼</button></div></td>
+                </tr>
+            </table>
+
+            <p class="mt-4"><strong>Identify TWO Specific Accounts Involved:</strong></p>
+            <div class="account-selector-container">
+                <select id="drill-6-acct1" class="account-selector">
+                    <option value="">-- Select Account 1 --</option>
+                    <option value="unearned">Unearned Revenue</option>
+                    <option value="sales">Sales Revenue</option>
+                    <option value="cash">Cash</option>
+                </select>
+                <select id="drill-6-acct2" class="account-selector">
+                    <option value="">-- Select Account 2 --</option>
+                    <option value="unearned">Unearned Revenue</option>
+                    <option value="sales">Sales Revenue</option>
+                    <option value="ar">Accounts Receivable</option>
+                </select>
+            </div>
+
+            <button class="btn-action mt-4" onclick="checkFSET('drill-6-table', ['liab-down', 'rev-up', 'ni-up', 'ec-up'], ['drill-6-acct1', 'drill-6-acct2'], ['unearned', 'sales'])">Check Answer</button>
+            <p class="feedback-msg"></p>
+        </div>
+    </div>
+
+    <!-- NEW DRILL 7: ACCRUE INTEREST -->
+    <div class="slide" id="slide-17">
+        <h2>Adj Drill 3: Accrue Interest</h2>
+        <p><strong>Scenario:</strong> You owe $100 in interest on a bank loan for this month. You will pay it next month.</p>
+        
+        <div class="flip-hint" onclick="this.classList.toggle('flipped')">
+            <div class="flip-inner">
+                <div class="flip-front">Need a Hint?</div>
+                <div class="flip-back">Liability up. Expense up. Net Inc down. Earned Cap down.</div>
+            </div>
+        </div>
+        
+        <div class="fset-container">
+            <button class="fset-reset-btn" onclick="resetFSET('drill-7-table')"><i class="fas fa-undo"></i> Reset</button>
+            <table class="fset-table" id="drill-7-table">
+                <tr><th>Cash</th><th>NonCash</th><th>=</th><th>Liab</th><th>+</th><th>CC</th><th>+</th><th>EC</th><th>Rev</th><th>Exp</th><th>NI</th></tr>
+                <tr>
+                    <td><div class="fset-control" data-col="cash"><button class="fset-btn" onclick="toggleFSET(this, 'up')">▲</button><button class="fset-btn" onclick="toggleFSET(this, 'down')">▼</button></div></td>
+                    <td><div class="fset-control" data-col="nca"><button class="fset-btn" onclick="toggleFSET(this, 'up')">▲</button><button class="fset-btn" onclick="toggleFSET(this, 'down')">▼</button></div></td>
+                    <td>=</td>
+                    <td><div class="fset-control" data-col="liab"><button class="fset-btn" onclick="toggleFSET(this, 'up')">▲</button><button class="fset-btn" onclick="toggleFSET(this, 'down')">▼</button></div></td>
+                    <td>+</td>
+                    <td><div class="fset-control" data-col="cc"><button class="fset-btn" onclick="toggleFSET(this, 'up')">▲</button><button class="fset-btn" onclick="toggleFSET(this, 'down')">▼</button></div></td>
+                    <td>+</td>
+                    <td><div class="fset-control" data-col="ec"><button class="fset-btn" onclick="toggleFSET(this, 'up')">▲</button><button class="fset-btn" onclick="toggleFSET(this, 'down')">▼</button></div></td>
+                    <td><div class="fset-control" data-col="rev"><button class="fset-btn" onclick="toggleFSET(this, 'up')">▲</button><button class="fset-btn" onclick="toggleFSET(this, 'down')">▼</button></div></td>
+                    <td><div class="fset-control" data-col="exp"><button class="fset-btn" onclick="toggleFSET(this, 'up')">▲</button><button class="fset-btn" onclick="toggleFSET(this, 'down')">▼</button></div></td>
+                    <td><div class="fset-control" data-col="ni"><button class="fset-btn" onclick="toggleFSET(this, 'up')">▲</button><button class="fset-btn" onclick="toggleFSET(this, 'down')">▼</button></div></td>
+                </tr>
+            </table>
+
+            <p class="mt-4"><strong>Identify TWO Specific Accounts Involved:</strong></p>
+            <div class="account-selector-container">
+                <select id="drill-7-acct1" class="account-selector">
+                    <option value="">-- Select Account 1 --</option>
+                    <option value="int_pay">Interest Payable</option>
+                    <option value="int_exp">Interest Expense</option>
+                    <option value="cash">Cash</option>
+                </select>
+                <select id="drill-7-acct2" class="account-selector">
+                    <option value="">-- Select Account 2 --</option>
+                    <option value="int_pay">Interest Payable</option>
+                    <option value="int_exp">Interest Expense</option>
+                    <option value="loan">Loan Principal</option>
+                </select>
+            </div>
+
+            <button class="btn-action mt-4" onclick="checkFSET('drill-7-table', ['liab-up', 'exp-up', 'ni-down', 'ec-down'], ['drill-7-acct1', 'drill-7-acct2'], ['int_pay', 'int_exp'])">Check Answer</button>
+            <p class="feedback-msg"></p>
+        </div>
+    </div>
+
+    <!-- NEW DRILL 8: DEPRECIATION -->
+    <div class="slide" id="slide-18">
+        <h2>Adj Drill 4: Depreciation</h2>
+        <p><strong>Scenario:</strong> Record $500 of depreciation on your factory equipment for the year.</p>
+        
+        <div class="flip-hint" onclick="this.classList.toggle('flipped')">
+            <div class="flip-inner">
+                <div class="flip-front">Need a Hint?</div>
+                <div class="flip-back">NonCash decreases (Accum. Depr). Expense up. NI down. EC down.</div>
+            </div>
+        </div>
+        
+        <div class="fset-container">
+            <button class="fset-reset-btn" onclick="resetFSET('drill-8-table')"><i class="fas fa-undo"></i> Reset</button>
+            <table class="fset-table" id="drill-8-table">
+                <tr><th>Cash</th><th>NonCash</th><th>=</th><th>Liab</th><th>+</th><th>CC</th><th>+</th><th>EC</th><th>Rev</th><th>Exp</th><th>NI</th></tr>
+                <tr>
+                    <td><div class="fset-control" data-col="cash"><button class="fset-btn" onclick="toggleFSET(this, 'up')">▲</button><button class="fset-btn" onclick="toggleFSET(this, 'down')">▼</button></div></td>
+                    <td><div class="fset-control" data-col="nca"><button class="fset-btn" onclick="toggleFSET(this, 'up')">▲</button><button class="fset-btn" onclick="toggleFSET(this, 'down')">▼</button></div></td>
+                    <td>=</td>
+                    <td><div class="fset-control" data-col="liab"><button class="fset-btn" onclick="toggleFSET(this, 'up')">▲</button><button class="fset-btn" onclick="toggleFSET(this, 'down')">▼</button></div></td>
+                    <td>+</td>
+                    <td><div class="fset-control" data-col="cc"><button class="fset-btn" onclick="toggleFSET(this, 'up')">▲</button><button class="fset-btn" onclick="toggleFSET(this, 'down')">▼</button></div></td>
+                    <td>+</td>
+                    <td><div class="fset-control" data-col="ec"><button class="fset-btn" onclick="toggleFSET(this, 'up')">▲</button><button class="fset-btn" onclick="toggleFSET(this, 'down')">▼</button></div></td>
+                    <td><div class="fset-control" data-col="rev"><button class="fset-btn" onclick="toggleFSET(this, 'up')">▲</button><button class="fset-btn" onclick="toggleFSET(this, 'down')">▼</button></div></td>
+                    <td><div class="fset-control" data-col="exp"><button class="fset-btn" onclick="toggleFSET(this, 'up')">▲</button><button class="fset-btn" onclick="toggleFSET(this, 'down')">▼</button></div></td>
+                    <td><div class="fset-control" data-col="ni"><button class="fset-btn" onclick="toggleFSET(this, 'up')">▲</button><button class="fset-btn" onclick="toggleFSET(this, 'down')">▼</button></div></td>
+                </tr>
+            </table>
+
+            <p class="mt-4"><strong>Identify TWO Specific Accounts Involved:</strong></p>
+            <div class="account-selector-container">
+                <select id="drill-8-acct1" class="account-selector">
+                    <option value="">-- Select Account 1 --</option>
+                    <option value="accum_depr">Accumulated Depreciation</option>
+                    <option value="depr_exp">Depreciation Expense</option>
+                    <option value="cash">Cash</option>
+                </select>
+                <select id="drill-8-acct2" class="account-selector">
+                    <option value="">-- Select Account 2 --</option>
+                    <option value="accum_depr">Accumulated Depreciation</option>
+                    <option value="depr_exp">Depreciation Expense</option>
+                    <option value="ppe">Equipment (Gross)</option>
+                </select>
+            </div>
+
+            <button class="btn-action mt-4" onclick="checkFSET('drill-8-table', ['nca-down', 'exp-up', 'ni-down', 'ec-down'], ['drill-8-acct1', 'drill-8-acct2'], ['accum_depr', 'depr_exp'])">Check Answer</button>
+            <p class="feedback-msg"></p>
+        </div>
+    </div>
+
+    <!-- NEW: IMPACT OF ERRORS -->
+    <div class="slide" id="slide-19">
+        <h2>Impact of Errors (Omissions)</h2>
+        <p>What happens if we FORGET to record adjustments?</p>
+        <div class="grid-2">
+            <div class="card">
+                <h3>Scenario A</h3>
+                <p>Forgot to record Accrued Wages Expense.</p>
+                <div style="background: #f8f9fa; padding: 1rem; margin-top: 1rem; border-radius: 4px;">
+                    <p><strong>Expenses:</strong> <select id="err-1-exp"><option>--</option><option value="under">Understated</option><option value="over">Overstated</option></select></p>
+                    <p><strong>Net Income:</strong> <select id="err-1-ni"><option>--</option><option value="under">Understated</option><option value="over">Overstated</option></select></p>
+                    <p><strong>Liabilities:</strong> <select id="err-1-liab"><option>--</option><option value="under">Understated</option><option value="over">Overstated</option></select></p>
+                    <button class="btn-action" onclick="checkError(1, 'under', 'over', 'under')">Check</button>
+                    <p id="err-msg-1"></p>
+                </div>
+            </div>
+            <div class="card">
+                <h3>Scenario B</h3>
+                <p>Forgot to record Depreciation.</p>
+                <div style="background: #f8f9fa; padding: 1rem; margin-top: 1rem; border-radius: 4px;">
+                    <p><strong>Expenses:</strong> <select id="err-2-exp"><option>--</option><option value="under">Understated</option><option value="over">Overstated</option></select></p>
+                    <p><strong>Assets:</strong> <select id="err-2-ast"><option>--</option><option value="under">Understated</option><option value="over">Overstated</option></select></p>
+                    <p><strong>Net Income:</strong> <select id="err-2-ni"><option>--</option><option value="under">Understated</option><option value="over">Overstated</option></select></p>
+                    <button class="btn-action" onclick="checkError(2, 'under', 'over', 'over')">Check</button>
+                    <p id="err-msg-2"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- NEW SLIDE: EQUITY CONCEPT -->
+    <div class="slide" id="slide-20">
+        <h2>The Bridge: Stockholders' Equity</h2>
+        <div class="grid-2">
+            <div>
+                <p>The <strong>Statement of Stockholders' Equity</strong> acts as a bridge between the Income Statement and the Balance Sheet.</p>
+                <div class="card card-highlight mt-4">
+                    <h3>Purpose</h3>
+                    <p>It details the changes in the owners' claim on the company's assets during the period.</p>
+                </div>
+            </div>
+            <div class="card text-center" style="display:flex; flex-direction:column; justify-content:center;">
+                <h3>The Equity Formula</h3>
+                <div style="display: flex; gap: 2rem; justify-content: center; margin-top: 1rem; text-align: left;">
+                    <!-- Col 1 -->
+                    <div style="background: #f0f4c3; padding: 1rem; border-radius: 8px;">
+                        <h4>Contributed Capital</h4>
+                        <div>Beg. Capital</div>
+                        <div class="text-success">+ Stock Issuance</div>
+                        <div class="text-error">- Repurchases</div>
+                        <hr>
+                        <div>= End. Capital</div>
+                    </div>
+                    <!-- Col 2 -->
+                    <div style="background: #e1bee7; padding: 1rem; border-radius: 8px;">
+                        <h4>Retained Earnings</h4>
+                        <div>Beg. Retained Earnings</div>
+                        <div class="text-success">+ Net Income</div>
+                        <div class="text-error">- Dividends</div>
+                        <hr>
+                        <div>= End. Ret. Earnings</div>
+                    </div>
+                </div>
+                <div style="margin-top: 1rem; font-weight: bold; border-top: 2px solid #333; padding-top: 0.5rem;">
+                    End. Capital + End. RE = Total Ending Equity
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- NEW: STOCKHOLDERS EQUITY -->
+    <div class="slide" id="slide-21">
+        <h2>Statement of Stockholders' Equity</h2>
+        <p>This statement explains the changes in equity during the year.</p>
+        
+        <div class="grid-2">
+            <div class="card">
+                <table class="financial-table">
+                    <tr><th colspan="2">Apple Inc. - Stockholders' Equity (2022)</th></tr>
+                    <tr><td colspan="2" style="background: #eee; font-weight:bold;">Common Stock & Paid-in Capital</td></tr>
+                    <tr><td>Beginning Balance</td><td>$57,365</td></tr>
+                    <tr><td>Issuance of Stock</td><td>+ 7,484</td></tr>
+                    <tr class="total-row"><td>Ending Balance</td><td>$64,849</td></tr>
+                    
+                    <tr><td colspan="2" style="background: #eee; font-weight:bold;">Retained Earnings</td></tr>
+                    <tr><td>Beginning Balance</td><td>$5,562</td></tr>
+                    <tr><td>Net Income</td><td>+ 99,803</td></tr>
+                    <tr><td>Dividends</td><td>(14,793)</td></tr>
+                    <tr><td>Stock Repurchase</td><td>(90,186)</td></tr>
+                    <tr class="total-row"><td>Ending Balance</td><td>$396</td></tr>
+                </table>
+            </div>
+
+            <div class="fset-container text-center" style="max-width: 700px; margin: 0 auto; background: transparent; box-shadow: none;">
+                <!-- CALCULATOR UI -->
+                <div class="calc-ui">
+                    <div class="calc-screen" id="calc-display">0</div>
+                    <div class="calc-input-row" onclick="addToCalc(5562)">
+                        <span>Beg RE:</span> <span>$5,562</span>
+                    </div>
+                    <div class="calc-input-row text-success" onclick="addToCalc(99803)">
+                        <span>+ Net Income:</span> <span>$99,803</span>
+                    </div>
+                    <div class="calc-input-row text-error" onclick="addToCalc(-14793)">
+                        <span>- Dividends:</span> <span>($14,793)</span>
+                    </div>
+                    <div class="calc-input-row text-error" onclick="addToCalc(-90186)">
+                        <span>- Buybacks:</span> <span>($90,186)</span>
+                    </div>
+                    <div class="calc-input-row" onclick="addToCalc(-3454)">
+                        <span>Other Adj:</span> <span>($3,454)</span>
+                    </div>
+                    <div style="text-align: center; margin: 5px 0;">
+                        <button onclick="clearCalc()" style="background: #e74c3c; border:none; color:white; padding: 2px 10px; border-radius: 3px; cursor: pointer; font-size: 0.8rem;">Clear</button>
+                    </div>
+                    <div style="margin-top: 15px; border-top: 1px solid #7f8c8d; padding-top: 10px;">
+                        <input type="number" id="calc-re-input" placeholder="Enter Result" style="width: 100%; padding: 8px; border-radius: 4px; border: none;">
+                        <button class="btn-action" style="width: 100%; margin-top: 10px;" onclick="checkEquity()">Check Answer</button>
+                    </div>
+                    <p id="equity-msg" style="margin-top: 10px; font-weight: bold;"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- NEW: FSET TO STATEMENTS -->
+    <div class="slide" id="slide-22">
+        <h2>Connecting FSET to Financial Statements</h2>
+        <p>How do our FSET columns map to the actual reports?</p>
+        <div class="grid-3">
+            <div class="card" style="border-top: 5px solid #3498db; max-width: 350px; margin: 0 auto;">
+                <h4 class="text-center">Balance Sheet</h4>
+                <p class="text-center" style="font-size: 0.9rem;">(Snapshot)</p>
+                <hr style="margin: 10px 0; border:0; border-top:1px solid #eee;">
+                <ul style="font-size: 0.9rem; list-style: none;">
+                    <li><i class="fas fa-arrow-right"></i> Cash Column</li>
+                    <li><i class="fas fa-arrow-right"></i> NonCash Column <br><small class="text-accent">(Inventory, PPE, Intangibles)</small></li>
+                    <li><i class="fas fa-arrow-right"></i> Liabilities Column</li>
+                    <li><i class="fas fa-arrow-right"></i> Contrib. Cap Column</li>
+                    <li><i class="fas fa-arrow-right"></i> Ending Retained Earnings</li>
+                </ul>
+            </div>
+            <div class="card" style="border-top: 5px solid #2ecc71; max-width: 350px; margin: 0 auto;">
+                <h4 class="text-center">Income Statement</h4>
+                <p class="text-center" style="font-size: 0.9rem;">(Period Activity)</p>
+                <hr style="margin: 10px 0; border:0; border-top:1px solid #eee;">
+                <ul style="font-size: 0.9rem; list-style: none;">
+                    <li><i class="fas fa-arrow-right"></i> <strong>Revenue</strong> (increases Earned Cap)</li>
+                    <li><i class="fas fa-arrow-right"></i> <strong>Expenses</strong> (decrease Earned Cap)</li>
+                    <li style="margin-top: 10px; font-weight: bold;">= Net Income</li>
+                </ul>
+            </div>
+            <div class="card" style="border-top: 5px solid #e74c3c; max-width: 350px; margin: 0 auto;">
+                <h4 class="text-center">Statement of Cash Flows</h4>
+                <p class="text-center" style="font-size: 0.9rem;">(Change in Cash)</p>
+                <hr style="margin: 10px 0; border:0; border-top:1px solid #eee;">
+                <ul style="font-size: 0.9rem; list-style: none;">
+                    <li><i class="fas fa-arrow-right"></i> Sum of all changes in the <strong>Cash Column</strong>.</li>
+                    <li>Classified into Operating, Investing, Financing.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- ACT 5: CASH & CLOSING -->
+    <div class="slide" id="slide-23">
+        <h2>Drag & Drop Challenge</h2>
+        <div style="display: flex; gap: 20px; height: 350px; margin-top: 20px;">
+            <div id="source" style="flex:1; background: #eee; padding: 10px; border-radius: 8px; overflow-y: auto;">
+                <div class="card draggable" draggable="true" id="d1" data-cat="ops" style="padding:10px; margin-bottom:10px; height: auto; border: 1px solid #ccc; font-size: 0.9rem;">Pay Wages</div>
+                <div class="card draggable" draggable="true" id="d2" data-cat="fin" style="padding:10px; margin-bottom:10px; height: auto; border: 1px solid #ccc; font-size: 0.9rem;">Pay Dividends</div>
+                <div class="card draggable" draggable="true" id="d3" data-cat="inv" style="padding:10px; margin-bottom:10px; height: auto; border: 1px solid #ccc; font-size: 0.9rem;">Buy Factory</div>
+                <div class="card draggable" draggable="true" id="d4" data-cat="fin" style="padding:10px; margin-bottom:10px; height: auto; border: 1px solid #ccc; font-size: 0.9rem;">Issue Stock</div>
+                <div class="card draggable" draggable="true" id="d5" data-cat="ops" style="padding:10px; margin-bottom:10px; height: auto; border: 1px solid #ccc; font-size: 0.9rem;">Collect Cash from Customers</div>
+                <div class="card draggable" draggable="true" id="d6" data-cat="inv" style="padding:10px; margin-bottom:10px; height: auto; border: 1px solid #ccc; font-size: 0.9rem;">Sell Old Truck</div>
+            </div>
+            <div style="flex:2; display: flex; gap: 10px;">
+                <div class="dropzone" data-cat="ops" style="flex:1; border: 2px dashed #bbb; border-radius: 8px; text-align: center; padding-top: 10px;"><h5>Operating</h5></div>
+                <div class="dropzone" data-cat="inv" style="flex:1; border: 2px dashed #bbb; border-radius: 8px; text-align: center; padding-top: 10px;"><h5>Investing</h5></div>
+                <div class="dropzone" data-cat="fin" style="flex:1; border: 2px dashed #bbb; border-radius: 8px; text-align: center; padding-top: 10px;"><h5>Financing</h5></div>
+            </div>
+        </div>
+        <p id="dnd-msg" class="text-center mt-4"></p>
+    </div>
+
+    <!-- NEW SLIDE: PERM VS TEMP CONCEPT -->
+    <div class="slide" id="slide-24">
+        <h2>The Accounting Cycle: A Car Analogy</h2>
+        <div class="grid-2">
+            <div class="card">
+                <h3>Trip Meter vs. Odometer</h3>
+                <p>Imagine your car's dashboard.</p>
+                <ul class="mt-4">
+                    <li><strong>Trip Meter (Income Statement):</strong> Measures distance for <em>one trip</em>. You hit reset (close the books) at the end of the trip so you can measure the next one from zero.</li>
+                    <li><strong>Odometer (Balance Sheet):</strong> Measures <em>total cumulative</em> distance driven since the car was built. It never resets; it just keeps adding up.</li>
+                </ul>
+            </div>
+            <div class="card text-center flex-center">
+                <i class="fas fa-tachometer-alt fa-6x text-accent"></i>
+                <h4 class="mt-4">Closing Process</h4>
+                <p>Like pressing the reset button on your trip meter.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- TEMP VS PERM DRILL -->
+    <div class="slide" id="slide-25">
+        <h2>Permanent vs Temporary Accounts</h2>
+        <div class="flip-grid">
+            <!-- Perm -->
+            <div class="flip-card" onclick="this.classList.toggle('flipped')">
+                <div class="flip-inner">
+                    <div class="flip-front">
+                        <h3>Which accounts are Permanent?</h3>
+                        <p>(Click to Reveal)</p>
+                    </div>
+                    <div class="flip-back">
+                        <h3>Balance Sheet Accounts</h3>
+                        <p>Assets, Liabilities, Equity.</p>
+                        <p>Like the Odometer.</p>
+                    </div>
+                </div>
+            </div>
+            <!-- Temp -->
+             <div class="flip-card" onclick="this.classList.toggle('flipped')">
+                <div class="flip-inner">
+                    <div class="flip-front">
+                        <h3>Which accounts are Temporary?</h3>
+                        <p>(Click to Reveal)</p>
+                    </div>
+                    <div class="flip-back">
+                        <h3>Income Statement Accounts</h3>
+                        <p>Revenue, Expenses, Dividends.</p>
+                        <p>Like the Trip Meter.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-26">
+        <h2>Closing the Books: The Cycle Completes</h2>
+        <p>Watch how temporary accounts (Revenue, Expense, Dividends) are reset to zero and transferred to Retained Earnings.</p>
+        
+        <div style="display:flex; justify-content:center; gap:10px; margin-bottom:20px;">
+            <button class="btn-action" onclick="closingStep(1)" id="btn-close-1">1. Close Revenue</button>
+            <button class="btn-action" onclick="closingStep(2)" id="btn-close-2" disabled style="background:#bdc3c7">2. Close Expense</button>
+            <button class="btn-action" onclick="closingStep(3)" id="btn-close-3" disabled style="background:#bdc3c7">3. Close Dividends</button>
+            <button class="btn-action" onclick="resetClosing()" style="background:#95a5a6">Reset</button>
+        </div>
+
+        <div class="t-account-grid">
+            <!-- Revenue -->
+            <div class="t-account-wrapper">
+                <h4 class="text-center">Revenue</h4>
+                <div class="t-account-visual">
+                    <div class="t-left" id="rev-left"></div> <!-- Closing Entry -->
+                    <div class="t-right" id="rev-right">100</div> <!-- Beg Bal -->
+                </div>
+                <div class="text-center mt-2" id="rev-bal">Bal: 100</div>
+            </div>
+
+            <!-- Retained Earnings -->
+            <div class="t-account-wrapper main-account">
+                <h4 class="text-center" style="color:var(--accent-blue)">Retained Earnings</h4>
+                <div class="t-account-visual">
+                    <div class="t-left">
+                        <div id="re-left-exp"></div>
+                        <div id="re-left-div"></div>
+                    </div>
+                    <div class="t-right">
+                        <div style="border-bottom:1px solid #eee; margin-bottom:5px;">0 (Beg)</div>
+                        <div id="re-right-rev"></div>
+                    </div>
+                </div>
+                <div class="text-center mt-2" id="re-bal" style="font-weight:bold; color:var(--accent-blue)">Bal: 0</div>
+            </div>
+
+            <!-- Expenses -->
+            <div class="t-account-wrapper">
+                <h4 class="text-center">Expenses</h4>
+                <div class="t-account-visual">
+                    <div class="t-left" id="exp-left">80</div> <!-- Beg Bal -->
+                    <div class="t-right" id="exp-right"></div> <!-- Closing Entry -->
+                </div>
+                <div class="text-center mt-2" id="exp-bal">Bal: 80</div>
+            </div>
+            
+            <!-- Dividends (Smaller or below) -->
+            <div class="t-account-wrapper" style="grid-column: 2;">
+                <h4 class="text-center">Dividends</h4>
+                <div class="t-account-visual">
+                    <div class="t-left" id="div-left">20</div>
+                    <div class="t-right" id="div-right"></div>
+                </div>
+                <div class="text-center mt-2" id="div-bal">Bal: 20</div>
+            </div>
+        </div>
+        
+        <div id="closing-feedback" class="text-center mt-4" style="font-size:1.1rem; min-height: 30px;"></div>
+        <p class="text-center text-error mt-2"><strong>Note:</strong> Dividends also reduce Retained Earnings directly (Debit RE, Credit Dividends).</p>
+    </div>
+
+    <!-- FINAL EXAM -->
+    <div class="slide" id="slide-27">
+        <h2>Final Exam</h2>
+        <p>Test your knowledge with these 10 questions. Score 80% to pass.</p>
+        <div id="quiz-area" style="max-width: 800px; margin: 0 auto; background: white; padding: 2rem; border-radius: 8px; box-shadow: var(--shadow);">
+            <!-- Q1 -->
+            <div class="quiz-question" id="q1">
+                <p>1. Which financial statement reports a company's financial position at a specific point in time?</p>
+                <span class="quiz-option" onclick="selectOption(1, 'a')">A) Income Statement</span>
+                <span class="quiz-option" onclick="selectOption(1, 'b')">B) Balance Sheet</span>
+                <span class="quiz-option" onclick="selectOption(1, 'c')">C) Statement of Cash Flows</span>
+            </div>
+            <!-- Q2 -->
+            <div class="quiz-question" id="q2">
+                <p>2. Under Accrual Accounting, when is revenue recorded?</p>
+                <span class="quiz-option" onclick="selectOption(2, 'a')">A) When cash is received</span>
+                <span class="quiz-option" onclick="selectOption(2, 'b')">B) When the obligation is satisfied</span>
+                <span class="quiz-option" onclick="selectOption(2, 'c')">C) At the end of the month</span>
+            </div>
+            <!-- Q3 -->
+            <div class="quiz-question" id="q3">
+                <p>3. If Apple sells an iPhone on credit, which accounts are affected?</p>
+                <span class="quiz-option" onclick="selectOption(3, 'a')">A) Cash increases, Revenue increases</span>
+                <span class="quiz-option" onclick="selectOption(3, 'b')">B) Accounts Receivable increases, Revenue increases</span>
+                <span class="quiz-option" onclick="selectOption(3, 'c')">C) Inventory increases, Cash decreases</span>
+            </div>
+            <!-- Q4 -->
+            <div class="quiz-question" id="q4">
+                <p>4. Which of the following is a Temporary Account?</p>
+                <span class="quiz-option" onclick="selectOption(4, 'a')">A) Retained Earnings</span>
+                <span class="quiz-option" onclick="selectOption(4, 'b')">B) Accounts Payable</span>
+                <span class="quiz-option" onclick="selectOption(4, 'c')">C) Cost of Goods Sold Expense</span>
+            </div>
+            <!-- Q5 -->
+            <div class="quiz-question" id="q5">
+                <p>5. Paying dividends is classified as which type of Cash Flow?</p>
+                <span class="quiz-option" onclick="selectOption(5, 'a')">A) Operating</span>
+                <span class="quiz-option" onclick="selectOption(5, 'b')">B) Investing</span>
+                <span class="quiz-option" onclick="selectOption(5, 'c')">C) Financing</span>
+            </div>
+            <!-- Q6 -->
+            <div class="quiz-question" id="q6">
+                <p>6. Unearned Revenue is classified as:</p>
+                <span class="quiz-option" onclick="selectOption(6, 'a')">A) An Asset</span>
+                <span class="quiz-option" onclick="selectOption(6, 'b')">B) A Liability</span>
+                <span class="quiz-option" onclick="selectOption(6, 'c')">C) Revenue</span>
+            </div>
+            <!-- Q7 -->
+            <div class="quiz-question" id="q7">
+                <p>7. Calculate Gross Margin if Revenue is $100 and COGS is $60.</p>
+                <span class="quiz-option" onclick="selectOption(7, 'a')">A) $40</span>
+                <span class="quiz-option" onclick="selectOption(7, 'b')">B) 40%</span>
+                <span class="quiz-option" onclick="selectOption(7, 'c')">C) $160</span>
+            </div>
+            <!-- Q8 -->
+            <div class="quiz-question" id="q8">
+                <p>8. An adjustment for Accrued Wages will:</p>
+                <span class="quiz-option" onclick="selectOption(8, 'a')">A) Decrease Cash</span>
+                <span class="quiz-option" onclick="selectOption(8, 'b')">B) Increase Liabilities (Wages Payable) and Expenses</span>
+                <span class="quiz-option" onclick="selectOption(8, 'c')">C) Increase Assets</span>
+            </div>
+            <!-- Q9 -->
+            <div class="quiz-question" id="q9">
+                <p>9. Retained Earnings represents:</p>
+                <span class="quiz-option" onclick="selectOption(9, 'a')">A) Cash held in the bank</span>
+                <span class="quiz-option" onclick="selectOption(9, 'b')">B) Accumulated profits kept in the business</span>
+                <span class="quiz-option" onclick="selectOption(9, 'c')">C) Money contributed by shareholders</span>
+            </div>
+            <!-- Q10 -->
+            <div class="quiz-question" id="q10">
+                <p>10. The fundamental accounting equation is:</p>
+                <span class="quiz-option" onclick="selectOption(10, 'a')">A) Assets = Liabilities + Equity</span>
+                <span class="quiz-option" onclick="selectOption(10, 'b')">B) Revenue - Expense = Net Income</span>
+                <span class="quiz-option" onclick="selectOption(10, 'c')">C) Assets + Liabilities = Equity</span>
+            </div>
+
+            <button class="btn-action" onclick="gradeQuiz()">Submit Final Exam</button>
+            <h2 id="final-score" class="text-center mt-4"></h2>
+        </div>
+    </div>
+
+    <!-- NAVIGATION BAR -->
+    <div id="nav-bar">
+        <div style="font-family: var(--header-font); font-weight: bold;">FinAnalysis Master</div>
+        <div class="progress-bar-container">
+            <div id="progress-fill"></div>
+        </div>
+        <div>
+            <button class="fset-btn" onclick="prevSlide()" style="width: auto; padding: 0 15px;"><i class="fas fa-chevron-left"></i></button>
+            <span id="slide-indicator" style="margin: 0 10px;">1 / 27</span>
+            <button class="fset-btn" onclick="nextSlide()" style="width: auto; padding: 0 15px;"><i class="fas fa-chevron-right"></i></button>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // --- STATE MANAGEMENT ---
+    let currentSlide = 0;
+    const slides = document.querySelectorAll('.slide');
+    const totalSlides = slides.length;
+
+    // --- NAVIGATION ---
+    function showSlide(index) {
+        if(index < 0) index = 0;
+        if(index >= totalSlides) index = totalSlides - 1;
+        
+        slides[currentSlide].classList.remove('active');
+        slides[index].classList.add('active');
+        currentSlide = index;
+        
+        updateNav();
+    }
+
+    function nextSlide() { showSlide(currentSlide + 1); }
+    function prevSlide() { showSlide(currentSlide - 1); }
+
+    function updateNav() {
+        document.getElementById('slide-indicator').textContent = `${currentSlide + 1} / ${totalSlides}`;
+        const pct = ((currentSlide + 1) / totalSlides) * 100;
+        document.getElementById('progress-fill').style.width = `${pct}%`;
+    }
+
+    document.addEventListener('keydown', (e) => {
+        if(e.key === 'ArrowRight') nextSlide();
+        if(e.key === 'ArrowLeft') prevSlide();
+    });
+
+    // --- CALCULATORS ---
+    function calcGrossMargin() {
+        const rev = parseFloat(document.getElementById('gm-rev').value) || 0;
+        const cogs = parseFloat(document.getElementById('gm-cogs').value) || 0;
+        const margin = rev - cogs;
+        const pct = rev > 0 ? ((margin / rev) * 100).toFixed(1) : 0;
+        
+        const el = document.getElementById('gm-result');
+        el.innerHTML = `$${margin.toLocaleString()} <span class="text-accent">(${pct}%)</span>`;
+        el.style.color = margin >= 0 ? 'var(--text-color)' : 'var(--error)';
+    }
+
+    // --- FSET SIMULATOR LOGIC ---
+    function toggleFSET(btn, dir) {
+        const parent = btn.parentElement;
+        parent.querySelectorAll('.fset-btn').forEach(b => {
+            b.classList.remove('selected-up', 'selected-down');
+        });
+        if(dir === 'up') btn.classList.add('selected-up');
+        if(dir === 'down') btn.classList.add('selected-down');
+    }
+
+    function resetFSET(tableId) {
+        const table = document.getElementById(tableId);
+        const btns = table.querySelectorAll('.fset-btn');
+        btns.forEach(btn => btn.classList.remove('selected-up', 'selected-down'));
+        // Also find feedback message and clear it
+        const feedback = table.parentElement.querySelector('.feedback-msg');
+        if(feedback) {
+            feedback.textContent = "";
+        }
+    }
+
+    // Updated checkFSET to handle 2 accounts
+    function checkFSET(tableId, correctStates, selectIds, correctAccountVals) {
+        const table = document.getElementById(tableId);
+        
+        // 1. Check Arrows (Movement)
+        const activeBtns = table.querySelectorAll('.selected-up, .selected-down');
+        let userStates = [];
+        activeBtns.forEach(btn => {
+            const col = btn.parentElement.dataset.col;
+            const dir = btn.classList.contains('selected-up') ? 'up' : 'down';
+            userStates.push(`${col}-${dir}`);
+        });
+        userStates.sort();
+        correctStates.sort();
+        const arrowsCorrect = JSON.stringify(userStates) === JSON.stringify(correctStates);
+
+        // 2. Check Specific Accounts (Set Matching)
+        const userAcct1 = document.getElementById(selectIds[0]).value;
+        const userAcct2 = document.getElementById(selectIds[1]).value;
+        const userAccts = [userAcct1, userAcct2].sort();
+        const correctAccts = correctAccountVals.sort();
+        
+        const accountsCorrect = JSON.stringify(userAccts) === JSON.stringify(correctAccts);
+        
+        const feedback = table.nextElementSibling.nextElementSibling.nextElementSibling; // button -> p
+        
+        if(arrowsCorrect && accountsCorrect) {
+            feedback.textContent = "Correct! Balance achieved and correct accounts identified.";
+            feedback.style.color = "var(--success)";
+        } else if (arrowsCorrect && !accountsCorrect) {
+            feedback.textContent = "Equation balanced, but incorrect specific accounts selected.";
+            feedback.style.color = "#e67e22";
+        } else {
+            feedback.textContent = "Incorrect. Check your arrows and account selections.";
+            feedback.style.color = "var(--error)";
+        }
+    }
+
+    // --- IMPACT OF ERRORS LOGIC ---
+    function checkError(id, exp, ast_liab, ni) {
+        // IDs: err-1-exp, err-1-ni, err-1-liab
+        // Args are correct answers: 'under' or 'over'
+        let isCorrect = true;
+        
+        // Expense Check
+        const expVal = document.getElementById(`err-${id}-exp`).value;
+        if(expVal !== exp) isCorrect = false;
+
+        // Balance Sheet Item Check
+        const bsId = id === 1 ? 'liab' : 'ast';
+        const bsVal = document.getElementById(`err-${id}-${bsId}`).value;
+        if(bsVal !== ast_liab) isCorrect = false;
+
+        // NI Check
+        const niVal = document.getElementById(`err-${id}-ni`).value;
+        if(niVal !== ni) isCorrect = false;
+
+        const msg = document.getElementById(`err-msg-${id}`);
+        if(isCorrect) {
+            msg.textContent = "Correct Analysis!";
+            msg.style.color = "var(--success)";
+        } else {
+            msg.textContent = "Incorrect. Think about the accounting equation.";
+            msg.style.color = "var(--error)";
+        }
+    }
+
+    // --- EQUITY LOGIC & CALCULATOR ---
+    // Make the calculator work interactively
+    let calcTotal = 0;
+    
+    function addToCalc(amount) {
+        calcTotal += amount;
+        document.getElementById('calc-display').innerText = calcTotal.toLocaleString();
+    }
+    
+    function clearCalc() {
+        calcTotal = 0;
+        document.getElementById('calc-display').innerText = "0";
+    }
+
+    function checkEquity() {
+        const correct = -3068; 
+        const val = parseFloat(document.getElementById('calc-re-input').value.replace(/,/g, '')) || 0;
+        const msg = document.getElementById('equity-msg');
+        
+        // Since input might be confusing with negative, let's accept positive input if they ignore sign or negative.
+        if(Math.abs(val - correct) < 500) {
+            msg.textContent = "Correct! $(3,068) Million (Deficit due to buybacks)";
+            msg.style.color = "var(--success)";
+        } else {
+            msg.textContent = "Incorrect. Sum the column: 5,562 + 99,803 - 14,793 - 90,186 - 3,454";
+            msg.style.color = "var(--error)";
+        }
+    }
+
+    // --- CLOSING PROCESS LOGIC ---
+    function closingStep(step) {
+        if(step === 1) {
+            // Close Revenue
+            document.getElementById('rev-left').innerHTML = "<span style='color:red'>100</span>";
+            document.getElementById('rev-bal').innerText = "Bal: 0";
+            
+            document.getElementById('re-right-rev').innerHTML = "<span style='color:green'>100</span> <small>(Rev)</small>";
+            document.getElementById('re-bal').innerText = "Bal: 100";
+            
+            document.getElementById('closing-feedback').innerText = "Revenue closed (to 0). Transferred to increase Retained Earnings.";
+            
+            document.getElementById('btn-close-1').disabled = true;
+            document.getElementById('btn-close-1').style.background = "#bdc3c7";
+            document.getElementById('btn-close-2').disabled = false;
+            document.getElementById('btn-close-2').style.background = "var(--accent-blue)";
+        }
+        if(step === 2) {
+            // Close Expense
+            document.getElementById('exp-right').innerHTML = "<span style='color:red'>80</span>";
+            document.getElementById('exp-bal').innerText = "Bal: 0";
+            
+            document.getElementById('re-left-exp').innerHTML = "<span style='color:red'>80</span> <small>(Exp)</small>";
+            document.getElementById('re-bal').innerText = "Bal: 20"; // 100 - 80
+            
+            document.getElementById('closing-feedback').innerText = "Expenses closed (to 0). Transferred to decrease Retained Earnings.";
+            
+            document.getElementById('btn-close-2').disabled = true;
+            document.getElementById('btn-close-2').style.background = "#bdc3c7";
+            document.getElementById('btn-close-3').disabled = false;
+            document.getElementById('btn-close-3').style.background = "var(--accent-blue)";
+        }
+        if(step === 3) {
+            // Close Dividends
+            document.getElementById('div-right').innerHTML = "<span style='color:red'>20</span>";
+            document.getElementById('div-bal').innerText = "Bal: 0";
+            
+            document.getElementById('re-left-div').innerHTML = "<span style='color:red'>20</span> <small>(Div)</small>";
+            document.getElementById('re-bal').innerText = "Bal: 0"; // 20 - 20
+            
+            document.getElementById('closing-feedback').innerHTML = "<strong>Process Complete!</strong> Dividends closed. Ending Retained Earnings is updated.";
+            
+            document.getElementById('btn-close-3').disabled = true;
+            document.getElementById('btn-close-3').style.background = "#bdc3c7";
+        }
+    }
+
+    function resetClosing() {
+        document.getElementById('rev-left').innerHTML = "";
+        document.getElementById('rev-bal').innerText = "Bal: 100";
+        document.getElementById('re-right-rev').innerHTML = "";
+        document.getElementById('re-bal').innerText = "Bal: 0";
+        document.getElementById('exp-right').innerHTML = "";
+        document.getElementById('exp-bal').innerText = "Bal: 80";
+        document.getElementById('re-left-exp').innerHTML = "";
+        document.getElementById('div-right').innerHTML = "";
+        document.getElementById('div-bal').innerText = "Bal: 20";
+        document.getElementById('re-left-div').innerHTML = "";
+        document.getElementById('closing-feedback').innerText = "";
+        
+        document.getElementById('btn-close-1').disabled = false;
+        document.getElementById('btn-close-1').style.background = "var(--accent-blue)";
+        document.getElementById('btn-close-2').disabled = true;
+        document.getElementById('btn-close-2').style.background = "#bdc3c7";
+        document.getElementById('btn-close-3').disabled = true;
+        document.getElementById('btn-close-3').style.background = "#bdc3c7";
+    }
+
+    // --- DRAG AND DROP ---
+    const draggables = document.querySelectorAll('.draggable');
+    const dropzones = document.querySelectorAll('.dropzone');
+
+    draggables.forEach(d => {
+        d.addEventListener('dragstart', () => d.classList.add('dragging'));
+        d.addEventListener('dragend', () => d.classList.remove('dragging'));
+    });
+
+    dropzones.forEach(zone => {
+        zone.addEventListener('dragover', e => {
+            e.preventDefault();
+            zone.style.background = '#e1f5fe';
+        });
+        zone.addEventListener('dragleave', () => zone.style.background = 'transparent');
+        zone.addEventListener('drop', e => {
+            e.preventDefault();
+            zone.style.background = 'transparent';
+            const draggable = document.querySelector('.dragging');
+            const dragCat = draggable.dataset.cat;
+            const zoneCat = zone.dataset.cat;
+            
+            if(dragCat === zoneCat) {
+                zone.appendChild(draggable);
+                draggable.style.borderLeft = "5px solid var(--success)";
+                document.getElementById('dnd-msg').textContent = "Correct Match!";
+                document.getElementById('dnd-msg').style.color = "var(--success)";
+            } else {
+                document.getElementById('dnd-msg').textContent = "Incorrect bucket!";
+                document.getElementById('dnd-msg').style.color = "var(--error)";
+            }
+        });
+    });
+
+    // --- FINAL EXAM ---
+    let userAnswers = {};
+    function selectOption(qNum, option) {
+        userAnswers[qNum] = option;
+        // Visual selection
+        const qDiv = document.getElementById(`q${qNum}`);
+        const opts = qDiv.querySelectorAll('.quiz-option');
+        opts.forEach(o => o.classList.remove('selected'));
+        event.target.classList.add('selected');
+    }
+
+    function gradeQuiz() {
+        const key = {
+            1: 'b', 2: 'b', 3: 'b', 4: 'c', 5: 'c',
+            6: 'b', 7: 'a', 8: 'b', 9: 'b', 10: 'a'
+        };
+        let score = 0;
+        for(let i=1; i<=10; i++) {
+            const qDiv = document.getElementById(`q${i}`);
+            // Reset colors
+            qDiv.querySelectorAll('.quiz-option').forEach(o => o.style.background = 'white');
+            
+            if(userAnswers[i] === key[i]) {
+                score++;
+                // Highlight correct
+                qDiv.querySelector(`.selected`).style.background = '#d4edda';
+            } else {
+                 // Highlight wrong if selected
+                 if(userAnswers[i]) {
+                     qDiv.querySelector(`.selected`).style.background = '#f8d7da';
+                 }
+            }
+        }
+        
+        const pct = (score / 10) * 100;
+        const resultEl = document.getElementById('final-score');
+        resultEl.textContent = `You scored ${pct}% (${score}/10)`;
+        resultEl.style.color = pct >= 80 ? 'var(--success)' : 'var(--error)';
+    }
+
+    // Init
+    updateNav();
+
+</script>
+</body>
+</html>

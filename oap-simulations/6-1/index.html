@@ -1,0 +1,1082 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financial Analysis Simulation: Module 6 (Deep Dive)</title>
+    
+    <!-- React & ReactDOM (CDNJS for reliability) -->
+    <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+    <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        /* Custom scrollbar for data tables */
+        .custom-scroll::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        .custom-scroll::-webkit-scrollbar-track {
+            background: #f1f5f9; 
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background: #cbd5e1; 
+            border-radius: 4px;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; 
+        }
+        
+        /* Table Cell Hover Effect */
+        .data-cell {
+            cursor: pointer;
+            transition: background-color 0.15s;
+        }
+        .data-cell:hover {
+            background-color: #e0f2fe; /* light blue */
+            font-weight: 600;
+            color: #0284c7;
+        }
+        
+        /* Input Validation Styles */
+        .input-correct {
+            border-color: #22c55e !important;
+            background-color: #f0fdf4 !important;
+            color: #15803d !important;
+        }
+        .input-incorrect {
+            border-color: #ef4444 !important;
+            background-color: #fef2f2 !important;
+            color: #b91c1c !important;
+        }
+
+        /* Formula Box Styling */
+        .formula-box {
+            background-color: #f8fafc;
+            border-left: 3px solid #6366f1;
+            padding: 12px;
+            margin-bottom: 12px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.85rem;
+            color: #334155;
+            display: none;
+            white-space: pre-wrap; /* Preserve line breaks */
+        }
+        .formula-box.open {
+            display: block;
+        }
+        
+        /* Toast Notification */
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: #334155;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 6px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+            z-index: 50;
+        }
+        .toast.show {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 h-screen overflow-hidden">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useMemo } = React;
+
+        // --- DATA & CONFIGURATION ---
+
+        const QUIZ_DATA = [
+            {
+                id: 'q1',
+                question: "Why does using the FIFO inventory costing method increase gross profit during periods of rising inventory costs?",
+                options: [
+                    { key: 'A', text: "It matches current higher costs against revenue." },
+                    { key: 'B', text: "It expenses older, lower costs to COGS first." },
+                    { key: 'C', text: "It reduces the value of ending inventory." },
+                    { key: 'D', text: "It increases the tax burden which increases gross profit." }
+                ],
+                answer: 'B',
+                explanation: "Under FIFO, the oldest (lower-cost) inventory is expensed to COGS first. When prices are rising, COGS reflects older, cheaper costs while Revenue reflects current selling prices. The result is lower COGS and higher gross profit."
+            },
+            {
+                id: 'q2',
+                question: "In a period of rising inventory costs, which method yields the (a) Lowest Net Income and (b) Greatest Cash Flow (assuming the same method is used for tax purposes)?",
+                options: [
+                    { key: 'A', text: "(a) FIFO, (b) FIFO" },
+                    { key: 'B', text: "(a) LIFO, (b) LIFO" },
+                    { key: 'C', text: "(a) Average Cost, (b) LIFO" },
+                    { key: 'D', text: "(a) LIFO, (b) FIFO" }
+                ],
+                answer: 'B',
+                explanation: "LIFO results in the highest COGS (using newest, highest costs), which lowers Net Income. However, lower taxable income means lower taxes paid, which results in the Greatest Cash Flow. "
+            },
+            {
+                id: 'q3',
+                question: "Why might companies adopt LIFO during periods of consistently rising costs, even if it doesn't reflect the physical flow of goods?",
+                options: [
+                    { key: 'A', text: "To report higher earnings per share." },
+                    { key: 'B', text: "To increase the book value of inventory assets." },
+                    { key: 'C', text: "To reduce taxable income and improve cash flow." },
+                    { key: 'D', text: "To simplify record-keeping requirements." }
+                ],
+                answer: 'C',
+                explanation: "Companies adopt LIFO in rising cost environments primarily for tax savings and improved cash flow (Tax deferral frees up operating cash). The trade-off is lower reported earnings and inventory values."
+            },
+            {
+                id: 'q4',
+                question: "Which of the following actions would directly SHORTEN (improve) the Cash Conversion Cycle?",
+                options: [
+                    { key: 'A', text: "Paying suppliers faster (Lower DPO)" },
+                    { key: 'B', text: "Collecting receivables slower (Higher DSO)" },
+                    { key: 'C', text: "Selling inventory faster (Lower DIO)" },
+                    { key: 'D', text: "Buying more inventory (Higher Inventory Balance)" }
+                ],
+                answer: 'C',
+                explanation: "The Cash Conversion Cycle (CCC) = DIO + DSO - DPO. To shorten the cycle, you want to reduce the time inventory is held (Lower DIO), reduce the time to collect cash (Lower DSO), or increase the time to pay suppliers (Higher DPO). Selling inventory faster lowers DIO."
+            },
+            {
+                id: 'q5',
+                question: "In a period of rising prices (inflation), switching from LIFO to FIFO would typically result in:",
+                options: [
+                    { key: 'A', text: "Higher COGS and Lower Net Income" },
+                    { key: 'B', text: "Lower COGS and Higher Net Income" },
+                    { key: 'C', text: "Lower Inventory Balance on Balance Sheet" },
+                    { key: 'D', text: "No change to Net Income" }
+                ],
+                answer: 'B',
+                explanation: "Under FIFO (First-In, First-Out), the older, cheaper costs are matched against revenue. In inflation, this results in lower COGS compared to LIFO. Lower COGS means Higher Gross Profit and Higher Net Income."
+            },
+            {
+                id: 'q6',
+                question: "If a company increases its Days Sales Outstanding (DSO) from 40 to 50 days, while keeping Revenue constant, what is the immediate impact on Operating Cash Flow?",
+                options: [
+                    { key: 'A', text: "Cash Flow increases" },
+                    { key: 'B', text: "Cash Flow decreases" },
+                    { key: 'C', text: "No impact on Cash Flow" },
+                    { key: 'D', text: "Cash Flow impact depends on DPO" }
+                ],
+                answer: 'B',
+                explanation: "Increasing DSO means it takes longer to collect cash from customers. This results in a higher Accounts Receivable balance. An increase in a current asset (AR) is a USE of cash, therefore Operating Cash Flow decreases."
+            },
+            {
+                id: 'q7',
+                question: "A company has a significantly lower Accounts Payable Turnover (and thus higher DPO) than its competitors. What is a potential NEGATIVE interpretation of this?",
+                options: [
+                    { key: 'A', text: "The company has strong bargaining power" },
+                    { key: 'B', text: "The company is managing cash efficiently" },
+                    { key: 'C', text: "The company may be facing liquidity problems" },
+                    { key: 'D', text: "The company is paying early to get discounts" }
+                ],
+                answer: 'C',
+                explanation: "While high DPO can indicate strong bargaining power (delaying payment to use cash elsewhere), if it is excessive compared to peers, it may signal that the company is unable to pay its bills on time due to liquidity distress."
+            },
+            {
+                id: 'q8',
+                question: "Which scenario best represents a company that is effectively using its suppliers to fund its operations (Negative Working Capital Cycle)?",
+                options: [
+                    { key: 'A', text: "DPO is greater than (DIO + DSO)" },
+                    { key: 'B', text: "DSO is greater than DPO" },
+                    { key: 'C', text: "DIO is very high" },
+                    { key: 'D', text: "CCC is positive" }
+                ],
+                answer: 'A',
+                explanation: "If DPO > (DIO + DSO), the Cash Conversion Cycle is negative. This means the company collects cash from customers BEFORE it has to pay its suppliers. The suppliers are effectively financing the company's inventory and receivables."
+            }
+        ];
+
+        const DATA_SETS = {
+            ITW: {
+                name: "Illinois Tool Works (ITW)",
+                currency: "$ Millions",
+                sec_link: "https://www.sec.gov/ix?doc=/Archives/edgar/data/0000049826/000004982623000008/itw-20221231.htm",
+                CASE_DATA: {
+                    bs: {
+                        title: "Balance Sheet (ITW)",
+                        headers: ["Item", "Dec 31, 2022", "Dec 31, 2021"],
+                        rows: [
+                            ["ASSETS", "", ""],
+                            ["Cash & Equivalents", "1,156", "1,730"],
+                            ["Trade Receivables", "3,060", "2,950"],
+                            ["Inventories", "2,054", "1,694"],
+                            ["Total Current Assets", "6,270", "6,374"],
+                            ["", "", ""],
+                            ["Net Plant & Equipment", "1,848", "1,809"],
+                            ["Goodwill & Intangibles", "5,632", "5,937"],
+                            ["Deferred Income Taxes", "494", "552"],
+                            ["Other Assets", "1,178", "1,405"],
+                            ["Total Assets", "15,422", "16,077"],
+                            ["", "", ""],
+                            ["LIABILITIES & EQUITY", "", ""],
+                            ["Accounts Payable", "594", "585"],
+                            ["Other Current Liabs", "3,866", "2,885"],
+                            ["Total Current Liabilities", "4,460", "3,470"],
+                            ["", "", ""],
+                            ["Long-Term Debt", "6,173", "6,909"],
+                            ["Other Noncurrent Liabs", "1,700", "2,072"],
+                            ["Total Liabilities", "12,333", "12,451"],
+                            ["Total Equity", "3,089", "3,626"]
+                        ]
+                    },
+                    is: {
+                        title: "Income Statement (ITW)",
+                        headers: ["Item", "2022", "2021"],
+                        rows: [
+                            ["Operating Revenue", "15,932", "14,455"],
+                            ["Cost of Revenue", "9,429", "8,489"],
+                            ["Gross Profit", "6,503", "5,966"],
+                            ["SG&A Expenses", "2,538", "2,333"],
+                            ["Amortization", "134", "133"],
+                            ["Operating Income", "3,831", "3,500"],
+                            ["Interest Expense", "203", "222"],
+                            ["Other Income (Expense)", "(192)", "150"],
+                            ["Income Before Tax", "3,842", "3,428"],
+                            ["Income Taxes", "808", "734"],
+                            ["Net Income", "3,034", "2,694"]
+                        ]
+                    },
+                    cf: {
+                        title: "Cash Flow Info",
+                        headers: ["Item", "2022", "2021"],
+                        rows: [
+                            ["Depreciation Expense", "276", "277"]
+                        ]
+                    }
+                }
+            },
+            PH: {
+                name: "Parker Hannifin (PH)",
+                currency: "$ Thousands",
+                sec_link: "https://www.sec.gov/ix?doc=/Archives/edgar/data/0000076334/000007633422000034/ph-20220630.htm",
+                CASE_DATA: {
+                    bs: {
+                        title: "Balance Sheet (PH)",
+                        headers: ["Item", "Jun 30, 2022", "Jun 30, 2021"],
+                        rows: [
+                            ["ASSETS", "", ""],
+                            ["Cash & Equivalents", "7,472,091", "1,346,108"],
+                            ["Accounts Receivable", "2,360,000", "2,180,000"],
+                            ["Inventories", "2,214,553", "2,090,642"], 
+                            ["Total Current Assets", "12,046,644", "5,616,750"],
+                            ["", "", ""],
+                            ["Net PPE", "2,122,758", "2,266,476"],
+                            ["Goodwill & Intangibles", "10,875,899", "11,579,484"],
+                            ["Other Assets", "898,642", "878,490"],
+                            ["Total Assets", "25,943,943", "20,341,200"],
+                            ["", "", ""],
+                            ["LIABILITIES & EQUITY", "", ""],
+                            ["Accounts Payable", "1,731,925", "1,667,878"],
+                            ["Other Current Liabs", "4,127,393", "1,428,625"],
+                            ["Total Current Liabilities", "5,859,318", "3,096,503"],
+                            ["", "", ""],
+                            ["Long-term Debt", "9,755,825", "6,582,053"],
+                            ["Other Liabilities", "1,468,880", "2,248,974"],
+                            ["Total Liabilities", "17,084,023", "11,927,530"],
+                            ["Total Equity", "8,859,920", "8,413,670"]
+                        ]
+                    },
+                    is: {
+                        title: "Income Statement (PH)",
+                        headers: ["Item", "2022", "2021"],
+                        rows: [
+                            ["Net Sales", "15,861,608", "14,347,640"],
+                            ["Cost of Sales", "11,387,267", "10,449,680"],
+                            ["Gross Profit", "4,474,341", "3,897,960"],
+                            ["SG&A Expenses", "1,627,116", "1,527,302"],
+                            ["Operating Income", "2,854,346", "2,479,990"],
+                            ["Interest Expense", "255,252", "250,036"],
+                            ["Income Before Taxes", "1,614,226", "2,246,957"],
+                            ["Net Income", "1,316,186", "1,746,861"]
+                        ]
+                    },
+                    cf: {
+                        title: "Cash Flow Info",
+                        headers: ["Item", "2022", "2021"],
+                        rows: [
+                            ["Depreciation Expense", "257,314", "269,943"]
+                        ]
+                    }
+                }
+            }
+        };
+
+        const ANSWER_KEYS = {
+            PH: {
+                'inv_policy': 'FIFO',
+                'inv_common_size_2022': 8.5,
+                'avg_inventory': 2152598,
+                'inv_turn_calc': 5.3,
+                'dio_calc': 69.0, 
+                'avg_ar': 2270000,
+                'ar_turn_calc': 7.0,
+                'dso_calc': 52.2,
+                'avg_ap': 1699902,
+                'ap_turn_calc': 6.7, 
+                'dpo_calc': 54.5, 
+                'ccc_calc': 66.7, 
+                'rev_per_day': 43456, 
+                'cogs_per_day': 31198, 
+                'cash_eff_dso': -34765, 
+                'cash_eff_dio': 56729, 
+                'cash_eff_dpo': 185383, 
+                'total_cash_eff': 207347, 
+                'q1': 'B',
+                'q2': 'B',
+                'q3': 'C',
+                'q4': 'C',
+                'q5': 'B',
+                'q6': 'B',
+                'q7': 'C',
+                'q8': 'A',
+            },
+            ITW: {
+                'inv_policy': 'LIFO',
+                'inv_common_size_2022': 13.3,
+                'avg_inventory': 1874, 
+                'inv_turn_calc': 5.0, 
+                'dio_calc': 72.5, 
+                'avg_ar': 3005,
+                'ar_turn_calc': 5.3,
+                'dso_calc': 68.9,
+                'avg_ap': 590,
+                'ap_turn_calc': 16.0, 
+                'dpo_calc': 22.8, 
+                'ccc_calc': 118.6, 
+                'rev_per_day': 44, 
+                'cogs_per_day': 26, 
+                'cash_eff_dso': -59, 
+                'cash_eff_dio': -273, 
+                'cash_eff_dpo': -32, 
+                'total_cash_eff': -364, 
+                'lifo_reserve_2022': 111,
+                'fifo_inventory_2022': 2165,
+                'fifo_cogs_2022': 9436,
+                'q1': 'B',
+                'q2': 'B',
+                'q3': 'C',
+                'q4': 'C',
+                'q5': 'B',
+                'q6': 'B',
+                'q7': 'C',
+                'q8': 'A',
+            }
+        };
+
+        // --- UTILITIES ---
+
+        const evaluateMath = (str) => {
+            if (!str) return NaN;
+            try {
+                // Safer parsing than new Function, covers basic math ops allowed in the input
+                const cleanStr = str.toString().replace(/,/g, '').replace(/[^-+*/0-9().\s]/g, '');
+                if (!cleanStr) return NaN;
+                // eslint-disable-next-line no-new-func
+                return new Function('return ' + cleanStr)();
+            } catch (e) {
+                return NaN;
+            }
+        };
+
+        const checkValue = (userVal, keyVal, tolerance = 0.05) => {
+            if (userVal === "" || userVal === undefined) return "neutral";
+            const userNum = parseFloat(userVal);
+            if (isNaN(userNum)) {
+                if (typeof keyVal === 'string' && typeof userVal === 'string') {
+                    return userVal.toLowerCase() === keyVal.toLowerCase() ? 'correct' : 'incorrect';
+                }
+                return "incorrect";
+            }
+            if (typeof keyVal === 'string') {
+                return userVal.toString().toLowerCase() === keyVal.toLowerCase() ? 'correct' : 'incorrect';
+            }
+            const diff = Math.abs(userNum - keyVal);
+            const allowableDiff = Math.abs(keyVal * (keyVal > 1000 ? 0.05 : 0.05));
+            if (keyVal < 100 && diff <= 0.5) return "correct"; 
+            if (keyVal > 1000 && diff < 500) return "correct"; 
+            if (keyVal === 0 && diff < 1) return "correct"; 
+            return diff <= allowableDiff ? "correct" : "incorrect";
+        };
+
+        // --- COMPONENTS ---
+
+        function Toast({ message, show }) {
+            return (
+                <div className={`toast ${show ? 'show' : ''}`}>
+                    {message}
+                </div>
+            );
+        }
+
+        function FormulaToggle({ children }) {
+            const [isOpen, setIsOpen] = useState(false);
+            return (
+                <div className="mb-4">
+                    <button 
+                        onClick={() => setIsOpen(!isOpen)}
+                        className="text-xs text-indigo-600 font-bold hover:underline flex items-center gap-1 mb-1"
+                    >
+                        <i data-lucide="info" className="w-3 h-3"></i> {isOpen ? "Hide Formulas" : "Show Formulas"}
+                    </button>
+                    <div className={`formula-box ${isOpen ? 'open' : ''}`}>
+                        {children}
+                    </div>
+                </div>
+            );
+        }
+
+        function QuizQuestion({ data, value, onChange }) {
+            const isCorrect = value === data.answer;
+            const hasAnswered = value !== undefined && value !== "";
+            
+            return (
+                <div className="bg-white p-5 rounded-lg shadow-sm border border-slate-200 mb-6">
+                    <h3 className="font-bold text-slate-800 mb-3">{data.question}</h3>
+                    <div className="space-y-2 mb-4">
+                        {data.options.map(opt => (
+                            <label key={opt.key} className={`flex items-center p-3 rounded border cursor-pointer transition-colors ${value === opt.key ? (opt.key === data.answer ? 'bg-green-50 border-green-300' : 'bg-red-50 border-red-300') : 'hover:bg-slate-50 border-slate-200'}`}>
+                                <input 
+                                    type="radio" 
+                                    name={data.id} 
+                                    value={opt.key}
+                                    checked={value === opt.key}
+                                    onChange={() => onChange(data.id, opt.key)}
+                                    className="mr-3 text-blue-600 focus:ring-blue-500"
+                                />
+                                <span className={`text-sm ${value === opt.key && opt.key === data.answer ? 'font-bold text-green-700' : 'text-slate-700'}`}>
+                                    {opt.text}
+                                </span>
+                                {hasAnswered && opt.key === data.answer && (
+                                    <i data-lucide="check" className="w-4 h-4 text-green-600 ml-auto"></i>
+                                )}
+                                {hasAnswered && value === opt.key && value !== data.answer && (
+                                    <i data-lucide="x" className="w-4 h-4 text-red-600 ml-auto"></i>
+                                )}
+                            </label>
+                        ))}
+                    </div>
+                    {hasAnswered && (
+                        <div className={`p-3 rounded text-sm ${isCorrect ? 'bg-green-50 text-green-800' : 'bg-slate-100 text-slate-700'}`}>
+                            <strong className="block mb-1 text-xs uppercase tracking-wider opacity-75">Explanation:</strong>
+                            {data.explanation}
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        function SmartInput({ 
+            id, 
+            label, 
+            value, 
+            onChange, 
+            answerKey, 
+            activeInputRef, 
+            placeholder = "Calc or Input",
+            type = "number",
+            suffix = ""
+        }) {
+            const [localValue, setLocalValue] = useState(value || "");
+            const inputRef = useRef(null);
+            
+            useEffect(() => {
+                setLocalValue(value || "");
+            }, [value]);
+
+            const triggerCalculation = () => {
+                if (type === "text") {
+                     onChange(id, localValue);
+                     return;
+                }
+                const evaluated = evaluateMath(localValue);
+                if (!isNaN(evaluated)) {
+                    const formatted = parseFloat(evaluated.toFixed(type === 'int' ? 0 : 2));
+                    setLocalValue(formatted); 
+                    onChange(id, formatted);
+                } else {
+                    onChange(id, localValue);
+                }
+            };
+
+            const handleKeyDown = (e) => {
+                if (e.key === 'Enter') {
+                    triggerCalculation();
+                    e.target.blur(); 
+                }
+            };
+
+            const status = checkValue(value, answerKey);
+            const statusClass = status === 'correct' ? 'input-correct' : status === 'incorrect' ? 'input-incorrect' : 'border-slate-300 focus:border-blue-500';
+
+            return (
+                <div className="flex flex-col mb-4">
+                    <label 
+                        className="text-xs font-semibold text-slate-500 mb-1 cursor-pointer hover:text-blue-600"
+                        onClick={() => inputRef.current && inputRef.current.focus()}
+                    >
+                        {label}
+                    </label>
+                    <div className="relative">
+                        <input
+                            ref={inputRef}
+                            type="text"
+                            className={`w-full p-2 text-sm border rounded shadow-sm focus:ring-1 focus:ring-blue-500 outline-none transition-colors ${statusClass}`}
+                            value={localValue}
+                            onChange={(e) => setLocalValue(e.target.value)}
+                            onBlur={triggerCalculation}
+                            onKeyDown={handleKeyDown}
+                            onFocus={(e) => {
+                                activeInputRef.current = {
+                                    setValue: (val) => {
+                                        const input = inputRef.current;
+                                        if (!input) return;
+                                        const currentVal = input.value;
+                                        const start = input.selectionStart;
+                                        const end = input.selectionEnd;
+                                        const newVal = currentVal.substring(0, start) + val + currentVal.substring(end);
+                                        setLocalValue(newVal);
+                                        setTimeout(() => {
+                                            input.focus();
+                                            const newCursorPos = start + val.toString().length;
+                                            input.setSelectionRange(newCursorPos, newCursorPos);
+                                        }, 0);
+                                    }
+                                };
+                            }}
+                            placeholder={placeholder}
+                        />
+                        {suffix && <span className="absolute right-3 top-2 text-xs text-slate-400 font-bold">{suffix}</span>}
+                    </div>
+                </div>
+            );
+        }
+
+        function DataPanel({ companyKey, data, onCellClick }) {
+            const handleCellClick = (rawText) => {
+                if (!rawText) return;
+                let clean = rawText.toString().replace(/[$,]/g, '');
+                if (clean.startsWith('(') && clean.endsWith(')')) {
+                    clean = '-' + clean.slice(1, -1);
+                }
+                onCellClick(clean);
+            };
+
+            return (
+                <div className="bg-white shadow-lg border-r border-slate-200 h-full overflow-y-auto custom-scroll flex flex-col">
+                    <div className="p-4 border-b border-slate-100 bg-slate-50 sticky top-0 z-10">
+                        <div className="flex justify-between items-start mb-2">
+                            <div>
+                                <h2 className="font-bold text-lg text-slate-800">{data.name}</h2>
+                                <span className="text-xs text-slate-500 font-mono">Currency: {data.currency}</span>
+                            </div>
+                            <a 
+                                href={data.sec_link} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-1 text-xs font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded border border-blue-200 transition-colors"
+                            >
+                                <i data-lucide="external-link" className="w-3 h-3"></i> View 10-K
+                            </a>
+                        </div>
+                        <div className="mt-2 text-xs text-blue-600 bg-blue-50 p-2 rounded border border-blue-100">
+                            <span className="font-bold">Tip:</span> Click numbers to add them. Type +, -, *, / to calculate. Press Enter.
+                        </div>
+                    </div>
+                    
+                    <div className="p-4 space-y-8">
+                        {Object.entries(data.CASE_DATA).map(([key, section]) => (
+                            <div key={key}>
+                                <h3 className="font-bold text-slate-700 mb-2 border-l-4 border-blue-500 pl-2">{section.title}</h3>
+                                <table className="w-full text-sm text-left border-collapse">
+                                    <thead className="text-xs text-slate-500 bg-slate-100 uppercase sticky top-0">
+                                        <tr>
+                                            {section.headers.map((h, i) => (
+                                                <th key={i} className="p-2 border-b border-slate-200">{h}</th>
+                                            ))}
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-100">
+                                        {section.rows.map((row, rIdx) => (
+                                            <tr key={rIdx} className="hover:bg-slate-50">
+                                                {row.map((cell, cIdx) => (
+                                                    <td 
+                                                        key={cIdx} 
+                                                        className={`p-2 ${cIdx > 0 ? 'font-mono text-right data-cell text-slate-700' : 'font-medium text-slate-900'} ${(cell === "" || String(cell).match(/ASSETS|LIABILITIES|EQUITY/)) ? 'font-bold bg-slate-100' : ''}`}
+                                                        onMouseDown={(e) => {
+                                                            if (cIdx > 0 && cell && cell !== "") {
+                                                                e.preventDefault();
+                                                                handleCellClick(cell);
+                                                            }
+                                                        }}
+                                                    >
+                                                        {cell}
+                                                    </td>
+                                                ))}
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        }
+
+        function Workspace({ companyKey, inputs, updateInput, activeInputRef }) {
+            const [activeTab, setActiveTab] = useState('analysis');
+            const keys = ANSWER_KEYS[companyKey];
+            
+            useEffect(() => {
+                if (window.lucide) window.lucide.createIcons();
+            }, [activeTab]);
+
+            return (
+                <div className="bg-slate-50 h-full overflow-y-auto custom-scroll p-6 pb-20">
+                    
+                    <div className="mb-6 border-b border-slate-200 pb-4 flex justify-between items-end">
+                        <div>
+                            <h1 className="text-2xl font-bold text-slate-800">Module 6: Operating Assets Analysis</h1>
+                            <p className="text-slate-600">Step-by-step working capital analysis.</p>
+                        </div>
+                        <div className="flex space-x-1 bg-slate-200 p-1 rounded">
+                            <button 
+                                onClick={() => setActiveTab('analysis')}
+                                className={`px-4 py-1.5 text-sm font-semibold rounded transition-all ${activeTab === 'analysis' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-600 hover:text-slate-800'}`}
+                            >
+                                Analysis
+                            </button>
+                            <button 
+                                onClick={() => setActiveTab('quiz')}
+                                className={`px-4 py-1.5 text-sm font-semibold rounded transition-all ${activeTab === 'quiz' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-600 hover:text-slate-800'}`}
+                            >
+                                Conceptual Quiz
+                            </button>
+                        </div>
+                    </div>
+
+                    {activeTab === 'quiz' ? (
+                        <div className="max-w-3xl mx-auto">
+                            <div className="bg-blue-50 border border-blue-100 p-4 rounded-lg mb-6">
+                                <h3 className="text-blue-900 font-bold mb-1 flex items-center gap-2">
+                                    <i data-lucide="help-circle" className="w-5 h-5"></i> Concept Check
+                                </h3>
+                                <p className="text-sm text-blue-800">Test your understanding of the concepts used in this simulation. Detailed explanations will appear after you select an answer.</p>
+                            </div>
+                            
+                            {QUIZ_DATA.map(q => (
+                                <QuizQuestion 
+                                    key={q.id} 
+                                    data={q} 
+                                    value={inputs[q.id]} 
+                                    onChange={updateInput} 
+                                />
+                            ))}
+                        </div>
+                    ) : (
+                        <>
+                            {/* Section 1: Inventory */}
+                            <div className="bg-white p-6 rounded-lg shadow-sm border border-slate-200 mb-6">
+                                <h2 className="text-xl font-bold text-indigo-900 mb-4 flex items-center gap-2">
+                                    <i data-lucide="package" className="w-5 h-5"></i> 1. Inventory Mechanics
+                                </h2>
+                                
+                                <FormulaToggle>
+                                    {"Average Inventory = (Inventory_t + Inventory_t-1) / 2\n"}
+                                    {"Inventory Turnover = COGS / Average Inventory\n"}
+                                    {"DIO (Days Inventory Outstanding) = 365 / Inventory Turnover"}
+                                </FormulaToggle>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="flex flex-col mb-4">
+                                        <label className="text-xs font-semibold text-slate-500 mb-1">Costing Method</label>
+                                        <select 
+                                            className={`w-full p-2 text-sm border rounded shadow-sm outline-none ${checkValue(inputs['inv_policy'], keys['inv_policy']) === 'correct' ? 'input-correct' : 'border-slate-300'}`}
+                                            value={inputs['inv_policy'] || ""}
+                                            onChange={(e) => updateInput('inv_policy', e.target.value)}
+                                        >
+                                            <option value="">Select Method...</option>
+                                            <option value="FIFO">FIFO</option>
+                                            <option value="LIFO">LIFO</option>
+                                        </select>
+                                    </div>
+                                    <SmartInput id="inv_common_size_2022" label="Inventory % of Assets (2022)" value={inputs['inv_common_size_2022']} onChange={updateInput} answerKey={keys['inv_common_size_2022']} activeInputRef={activeInputRef} suffix="%" />
+                                    
+                                    {/* Step by Step Inventory Calc */}
+                                    <SmartInput id="avg_inventory" label="Step 1: Average Inventory" value={inputs['avg_inventory']} onChange={updateInput} answerKey={keys['avg_inventory']} activeInputRef={activeInputRef} type="int" />
+                                    <SmartInput id="inv_turn_calc" label="Step 2: Inventory Turnover" value={inputs['inv_turn_calc']} onChange={updateInput} answerKey={keys['inv_turn_calc']} activeInputRef={activeInputRef} suffix="x" />
+                                    <SmartInput id="dio_calc" label="Step 3: DIO (Days)" value={inputs['dio_calc']} onChange={updateInput} answerKey={keys['dio_calc']} activeInputRef={activeInputRef} suffix="days" />
+                                </div>
+                            </div>
+
+                            {/* Section 2: Receivables (NEW) */}
+                            <div className="bg-white p-6 rounded-lg shadow-sm border border-slate-200 mb-6">
+                                <h2 className="text-xl font-bold text-indigo-900 mb-4 flex items-center gap-2">
+                                    <i data-lucide="users" className="w-5 h-5"></i> 2. Receivables Mechanics
+                                </h2>
+
+                                <FormulaToggle>
+                                    {"Average AR = (AR_t + AR_t-1) / 2\n"}
+                                    {"AR Turnover = Revenue / Average AR\n"}
+                                    {"DSO (Days Sales Outstanding) = 365 / AR Turnover"}
+                                </FormulaToggle>
+                                
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <SmartInput id="avg_ar" label="Step 1: Average Accounts Receivable" value={inputs['avg_ar']} onChange={updateInput} answerKey={keys['avg_ar']} activeInputRef={activeInputRef} type="int" />
+                                    <SmartInput id="ar_turn_calc" label="Step 2: AR Turnover" value={inputs['ar_turn_calc']} onChange={updateInput} answerKey={keys['ar_turn_calc']} activeInputRef={activeInputRef} suffix="x" />
+                                    <SmartInput id="dso_calc" label="Step 3: DSO (Days)" value={inputs['dso_calc']} onChange={updateInput} answerKey={keys['dso_calc']} activeInputRef={activeInputRef} suffix="days" />
+                                </div>
+                            </div>
+
+                            {/* Section 3: Payables */}
+                            <div className="bg-white p-6 rounded-lg shadow-sm border border-slate-200 mb-6">
+                                <h2 className="text-xl font-bold text-indigo-900 mb-4 flex items-center gap-2">
+                                    <i data-lucide="file-minus" className="w-5 h-5"></i> 3. Payables Mechanics
+                                </h2>
+
+                                <FormulaToggle>
+                                    {"Average AP = (AP_t + AP_t-1) / 2\n"}
+                                    {"AP Turnover = COGS / Average AP\n"}
+                                    {"DPO (Days Payable Outstanding) = 365 / AP Turnover"}
+                                </FormulaToggle>
+                                
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <SmartInput id="avg_ap" label="Step 1: Average Accounts Payable" value={inputs['avg_ap']} onChange={updateInput} answerKey={keys['avg_ap']} activeInputRef={activeInputRef} type="int" />
+                                    <SmartInput id="ap_turn_calc" label="Step 2: AP Turnover" value={inputs['ap_turn_calc']} onChange={updateInput} answerKey={keys['ap_turn_calc']} activeInputRef={activeInputRef} suffix="x" />
+                                    <SmartInput id="dpo_calc" label="Step 3: DPO (Days)" value={inputs['dpo_calc']} onChange={updateInput} answerKey={keys['dpo_calc']} activeInputRef={activeInputRef} suffix="days" />
+                                </div>
+                            </div>
+
+                            {/* Section 4: Cash Conversion Cycle */}
+                            <div className="bg-white p-6 rounded-lg shadow-sm border border-slate-200 mb-6">
+                                <h2 className="text-xl font-bold text-indigo-900 mb-4 flex items-center gap-2">
+                                    <i data-lucide="refresh-cw" className="w-5 h-5"></i> 4. Cash Conversion Cycle (CCC)
+                                </h2>
+                                
+                                <FormulaToggle>
+                                    {"Operating Cycle = DIO + DSO\n"}
+                                    {"CCC = Operating Cycle - DPO"}
+                                </FormulaToggle>
+
+                                {/* Visual Timeline */}
+                                <div className="mb-8 p-4 bg-slate-50 rounded border border-slate-200">
+                                    <h3 className="text-sm font-bold text-slate-500 mb-4 uppercase text-center">Cash Cycle Timeline</h3>
+                                    
+                                    {/* Row 1: Operating Cycle */}
+                                    <div className="flex w-full mb-2">
+                                        <div className="flex-1 bg-blue-100 border-2 border-blue-400 p-2 text-center rounded-l relative group">
+                                            <span className="text-xs font-bold text-blue-800 block">Inventory Period (DIO)</span>
+                                            <span className="text-lg font-bold text-blue-900">{inputs['dio_calc'] || 0} days</span>
+                                            <div className="absolute top-full left-0 w-full h-2 bg-blue-200/50 transform rotate-1"></div>
+                                        </div>
+                                        <div className="flex-1 bg-green-100 border-2 border-green-400 p-2 text-center rounded-r border-l-0">
+                                            <span className="text-xs font-bold text-green-800 block">Receivable Period (DSO)</span>
+                                            <span className="text-lg font-bold text-green-900">{inputs['dso_calc'] || 0} days</span>
+                                        </div>
+                                    </div>
+
+                                    {/* Row 2: Financing vs CCC */}
+                                    <div className="flex w-full">
+                                        <div className="w-1/3 bg-red-100 border-2 border-red-400 p-2 text-center rounded-l">
+                                            <span className="text-xs font-bold text-red-800 block">Payable Period (DPO)</span>
+                                            <span className="text-lg font-bold text-red-900">{inputs['dpo_calc'] || 0} days</span>
+                                        </div>
+                                        <div className="flex-1 bg-purple-100 border-2 border-dashed border-purple-500 p-2 text-center rounded-r relative">
+                                            <span className="text-xs font-bold text-purple-800 block">Cash Conversion Cycle (CCC)</span>
+                                            <span className="text-xs text-purple-600">(The Cash Gap)</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Calculation Inputs */}
+                                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                                    <div className="p-3 bg-slate-100 rounded text-center">
+                                        <span className="text-xs text-slate-500 uppercase font-bold block mb-1">DIO (Sec 1)</span>
+                                        <div className="text-lg font-bold text-slate-700">{inputs['dio_calc'] || '-'}</div>
+                                    </div>
+                                    <div className="flex justify-center pb-3 text-slate-400 font-bold text-xl">+</div>
+                                    <div className="p-3 bg-slate-100 rounded text-center">
+                                        <span className="text-xs text-slate-500 uppercase font-bold block mb-1">DSO (Sec 2)</span>
+                                        <div className="text-lg font-bold text-slate-700">{inputs['dso_calc'] || '-'}</div>
+                                    </div>
+                                    <div className="flex justify-center pb-3 text-slate-400 font-bold text-xl">-</div>
+                                    <div className="p-3 bg-slate-100 rounded text-center">
+                                        <span className="text-xs text-slate-500 uppercase font-bold block mb-1">DPO (Sec 3)</span>
+                                        <div className="text-lg font-bold text-slate-700">{inputs['dpo_calc'] || '-'}</div>
+                                    </div>
+                                    <div className="flex justify-center pb-3 text-slate-400 font-bold text-xl">=</div>
+                                    
+                                    <div className="md:col-span-4">
+                                         <SmartInput id="ccc_calc" label="Calculate Final CCC" value={inputs['ccc_calc']} onChange={updateInput} answerKey={keys['ccc_calc']} activeInputRef={activeInputRef} suffix="days" placeholder="DIO + DSO - DPO" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Section 5: Cash Flow Impact */}
+                            <div className="bg-white p-6 rounded-lg shadow-sm border border-slate-200 mb-6 border-l-4 border-l-green-500">
+                                <h2 className="text-xl font-bold text-green-900 mb-4 flex items-center gap-2">
+                                    <i data-lucide="dollar-sign" className="w-5 h-5"></i> 5. Cash Flow Impact (Year-over-Year)
+                                </h2>
+
+                                <FormulaToggle>
+                                    {"Revenue per Day = Annual Revenue / 365\n"}
+                                    {"COGS per Day = Annual COGS / 365\n\n"}
+                                    {"Cash Impact (Receivables) = -(Current DSO - Prior DSO) * Revenue per Day\n"}
+                                    {"Cash Impact (Inventory)   = -(Current DIO - Prior DIO) * COGS per Day\n"}
+                                    {"Cash Impact (Payables)    = +(Current DPO - Prior DPO) * COGS per Day\n\n"}
+                                    {"Total Cash Effect = Sum of the three effects above"}
+                                </FormulaToggle>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                                    <SmartInput id="rev_per_day" label="Revenue per Day" value={inputs['rev_per_day']} onChange={updateInput} answerKey={keys['rev_per_day']} activeInputRef={activeInputRef} type="int" />
+                                    <SmartInput id="cogs_per_day" label="COGS per Day" value={inputs['cogs_per_day']} onChange={updateInput} answerKey={keys['cogs_per_day']} activeInputRef={activeInputRef} type="int" />
+                                </div>
+                                
+                                <h3 className="font-bold text-sm text-slate-700 mb-2 border-b pb-1">Calculate Cash Effect of Changes</h3>
+                                <div className="space-y-2">
+                                    <SmartInput id="cash_eff_dso" label="Effect of DSO Change" value={inputs['cash_eff_dso']} onChange={updateInput} answerKey={keys['cash_eff_dso']} activeInputRef={activeInputRef} type="int" placeholder="-(ΔDSO) * Rev/Day" />
+                                    <SmartInput id="cash_eff_dio" label="Effect of DIO Change" value={inputs['cash_eff_dio']} onChange={updateInput} answerKey={keys['cash_eff_dio']} activeInputRef={activeInputRef} type="int" placeholder="-(ΔDIO) * COGS/Day" />
+                                    <SmartInput id="cash_eff_dpo" label="Effect of DPO Change" value={inputs['cash_eff_dpo']} onChange={updateInput} answerKey={keys['cash_eff_dpo']} activeInputRef={activeInputRef} type="int" placeholder="+(ΔDPO) * COGS/Day" />
+                                    <div className="pt-2 border-t">
+                                        <SmartInput id="total_cash_eff" label="Total Cash Impact (Sum)" value={inputs['total_cash_eff']} onChange={updateInput} answerKey={keys['total_cash_eff']} activeInputRef={activeInputRef} type="int" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* LIFO Section (ITW Only) */}
+                            {companyKey === 'ITW' && (
+                                <div className="bg-amber-50 p-6 rounded-lg shadow-sm border border-amber-200 mb-6">
+                                    <h2 className="text-xl font-bold text-amber-900 mb-4 flex items-center gap-2">
+                                        <i data-lucide="layers" className="w-5 h-5"></i> LIFO Reserve
+                                    </h2>
+                                    <FormulaToggle>
+                                        {"FIFO Inventory = LIFO Inventory + LIFO Reserve\n"}
+                                        {"FIFO COGS = LIFO COGS - Δ LIFO Reserve"}
+                                    </FormulaToggle>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <SmartInput id="lifo_reserve_2022" label="LIFO Reserve (2022)" value={inputs['lifo_reserve_2022']} onChange={updateInput} answerKey={keys['lifo_reserve_2022']} activeInputRef={activeInputRef} />
+                                        <SmartInput id="fifo_inventory_2022" label="FIFO Inventory (Inv + Reserve)" value={inputs['fifo_inventory_2022']} onChange={updateInput} answerKey={keys['fifo_inventory_2022']} activeInputRef={activeInputRef} />
+                                        <SmartInput id="fifo_cogs_2022" label="FIFO COGS (COGS - Δ Reserve)" value={inputs['fifo_cogs_2022']} onChange={updateInput} answerKey={keys['fifo_cogs_2022']} activeInputRef={activeInputRef} />
+                                    </div>
+                                </div>
+                            )}
+                        </>
+                    )}
+
+                </div>
+            );
+        }
+
+        // The missing App component definition
+        function App() {
+            const [company, setCompany] = useState("ITW");
+            const [studentName, setStudentName] = useState("");
+            
+            const [allInputs, setAllInputs] = useState({
+                ITW: {},
+                PH: {}
+            });
+
+            const [instructorMode, setInstructorMode] = useState(false);
+            const [showLogin, setShowLogin] = useState(false);
+            const [password, setPassword] = useState("");
+            const [showSaveModal, setShowSaveModal] = useState(false);
+            const [toastMessage, setToastMessage] = useState("");
+
+            const activeInputRef = useRef(null);
+
+            useEffect(() => {
+                if (window.lucide) window.lucide.createIcons();
+            }, [company, instructorMode]);
+
+            const showToast = (msg) => {
+                setToastMessage(msg);
+                setTimeout(() => setToastMessage(""), 3000);
+            };
+
+            const updateInput = (id, value) => {
+                setAllInputs(prev => ({
+                    ...prev,
+                    [company]: {
+                        ...prev[company],
+                        [id]: value
+                    }
+                }));
+            };
+
+            const handleLogin = () => {
+                if (password === "teacher") {
+                    setInstructorMode(true);
+                    setShowLogin(false);
+                    setPassword("");
+                } else {
+                    alert("Incorrect Password");
+                }
+            };
+
+            const handleAutoFill = () => {
+                if (!instructorMode) return;
+                setAllInputs(prev => ({
+                    ...prev,
+                    [company]: { ...ANSWER_KEYS[company] }
+                }));
+            };
+
+            const handleClear = () => {
+                if (!instructorMode && !confirm("Clear all work?")) return;
+                setAllInputs(prev => ({
+                    ...prev,
+                    [company]: {}
+                }));
+            };
+
+            const handleSave = () => {
+                const data = `Module 6 Detailed Analysis\nStudent: ${studentName}\nDate: ${new Date().toLocaleDateString()}\n\n` + 
+                             `--- ILLINOIS TOOL WORKS (ITW) ---\n` + JSON.stringify(allInputs.ITW, null, 2) + `\n\n` +
+                             `--- PARKER HANNIFIN (PH) ---\n` + JSON.stringify(allInputs.PH, null, 2);
+                
+                const blob = new Blob([data], { type: "text/plain" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `${studentName.replace(/\s+/g, '_')}_Mod6_Full.txt`;
+                a.click();
+                setShowSaveModal(false);
+            };
+
+            const handleDataClick = (val) => {
+                if (activeInputRef.current) {
+                    activeInputRef.current.setValue(val);
+                } else {
+                    showToast("Please select an input field first!");
+                }
+            };
+
+            return (
+                <div className="flex flex-col h-screen">
+                    <Toast message={toastMessage} show={!!toastMessage} />
+                    <div className="bg-slate-900 text-white p-3 flex justify-between items-center shadow-md shrink-0">
+                        <div className="flex items-center gap-4">
+                            <h1 className="font-bold text-lg tracking-tight">FinSim <span className="font-normal text-slate-400">| Module 6 Deep Dive</span></h1>
+                            <div className="bg-slate-800 p-1 rounded flex">
+                                <button 
+                                    className={`px-4 py-1 rounded text-sm transition-colors ${company === 'ITW' ? 'bg-blue-600 font-bold' : 'hover:bg-slate-700'}`}
+                                    onClick={() => setCompany("ITW")}
+                                >
+                                    ITW
+                                </button>
+                                <button 
+                                    className={`px-4 py-1 rounded text-sm transition-colors ${company === 'PH' ? 'bg-blue-600 font-bold' : 'hover:bg-slate-700'}`}
+                                    onClick={() => setCompany("PH")}
+                                >
+                                    Parker Hannifin
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="flex gap-2">
+                             {instructorMode && (
+                                <>
+                                    <button onClick={handleAutoFill} className="px-3 py-1 bg-green-700 hover:bg-green-600 rounded text-xs font-bold uppercase tracking-wider flex items-center gap-1">
+                                        <i data-lucide="zap" className="w-3 h-3"></i> Auto-Fill
+                                    </button>
+                                    <button onClick={handleClear} className="px-3 py-1 bg-red-800 hover:bg-red-700 rounded text-xs font-bold uppercase tracking-wider">
+                                        Clear
+                                    </button>
+                                </>
+                            )}
+                            <button onClick={() => setShowSaveModal(true)} className="px-3 py-1 bg-slate-700 hover:bg-slate-600 rounded text-sm flex items-center gap-1">
+                                <i data-lucide="save" className="w-4 h-4"></i> Save
+                            </button>
+                            <button onClick={() => instructorMode ? setInstructorMode(false) : setShowLogin(true)} className={`px-3 py-1 rounded text-sm flex items-center gap-1 ${instructorMode ? 'bg-amber-600' : 'bg-slate-700'}`}>
+                                <i data-lucide={instructorMode ? "unlock" : "lock"} className="w-4 h-4"></i> {instructorMode ? "Teacher" : "Instructor"}
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="flex flex-1 overflow-hidden">
+                        <div className="w-1/2 h-full bg-white z-0 relative">
+                            <DataPanel 
+                                companyKey={company} 
+                                data={DATA_SETS[company]} 
+                                onCellClick={handleDataClick} 
+                            />
+                        </div>
+
+                        <div className="w-1/2 h-full bg-slate-50 relative border-l border-slate-300">
+                             <Workspace 
+                                companyKey={company} 
+                                inputs={allInputs[company]} 
+                                updateInput={updateInput}
+                                activeInputRef={activeInputRef}
+                             />
+                        </div>
+                    </div>
+
+                    {showLogin && (
+                        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                            <div className="bg-white p-6 rounded shadow-xl w-80">
+                                <h3 className="font-bold mb-4">Instructor Access</h3>
+                                <input 
+                                    type="password" 
+                                    placeholder="Enter password" 
+                                    className="w-full border p-2 mb-4 rounded"
+                                    value={password}
+                                    onChange={e => setPassword(e.target.value)}
+                                />
+                                <div className="flex justify-end gap-2">
+                                    <button onClick={() => setShowLogin(false)} className="px-4 py-2 text-sm text-slate-600">Cancel</button>
+                                    <button onClick={handleLogin} className="px-4 py-2 bg-blue-600 text-white rounded text-sm">Unlock</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {showSaveModal && (
+                        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                            <div className="bg-white p-6 rounded shadow-xl w-96">
+                                <h3 className="font-bold mb-4">Save Your Work</h3>
+                                <label className="block text-sm mb-1">Student Name</label>
+                                <input 
+                                    type="text" 
+                                    placeholder="John Doe" 
+                                    className="w-full border p-2 mb-4 rounded"
+                                    value={studentName}
+                                    onChange={e => setStudentName(e.target.value)}
+                                />
+                                <div className="flex justify-end gap-2">
+                                    <button onClick={() => setShowSaveModal(false)} className="px-4 py-2 text-sm text-slate-600">Cancel</button>
+                                    <button onClick={handleSave} disabled={!studentName} className="px-4 py-2 bg-green-600 text-white rounded text-sm disabled:opacity-50">Download Report</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        try {
+            const root = ReactDOM.createRoot(document.getElementById('root'));
+            root.render(<App />);
+        } catch (e) {
+            console.error("App render failed:", e);
+            document.body.innerHTML = '<div class="p-10 text-red-600"><h1>Application Error</h1><p>' + e.message + '</p></div>';
+        }
+    </script>
+</body>
+</html>
