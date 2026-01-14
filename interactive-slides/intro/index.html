@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financial Reporting and Analysis - BFIN 367</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Lato:wght@300;400;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+/* 1. THE SETUP */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background-color: #e2e8f0; /* Darker grey background for contrast */
+  margin: 0;
+  height: 100vh;
+  width: 100vw;
+  font-family: 'Lato', sans-serif;
+  overflow: hidden; /* Prevent body scroll */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* 2. SLIDE WRAPPER & CONTAINER */
+.slide-wrapper {
+    width: 1280px;
+    height: 720px;
+    position: relative;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    border-radius: 12px;
+    background: white;
+    overflow: hidden; /* content stays inside */
+}
+
+.slide-container {
+  position: absolute; /* Stack slides on top of each other */
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: none; /* Hidden by default */
+  flex-direction: column;
+  padding: 60px;
+  overflow-y: auto; /* Allow internal scrolling if content is too long */
+  background: white;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.slide-container.active {
+    display: flex; /* Only show active slide */
+}
+
+/* Remove padding for bleed slides */
+.slide-container.bleed {
+    padding: 0;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* 3. TYPOGRAPHY & THEME */
+:root {
+  --primary-color: #1e3a8a; /* Deep Finance Blue */
+  --secondary-color: #3b82f6; /* Brighter Blue */
+  --accent-color: #fbbf24; /* Gold */
+  --text-dark: #1e293b;
+  --bg-cream: #f8fafc;
+}
+
+h1, h2, h3 {
+  font-family: 'Playfair Display', serif;
+  color: var(--primary-color);
+  margin: 0;
+}
+
+h1 { font-size: 64px; font-weight: 700; margin-bottom: 20px; }
+h2.slide-title { font-size: 48px; margin-bottom: 40px; width: 100%; border-bottom: 3px solid var(--accent-color); padding-bottom: 15px; }
+h3 { font-size: 28px; font-weight: 700; margin-bottom: 10px; }
+p, li, td, th { font-size: 18px; line-height: 1.6; color: var(--text-dark); }
+
+/* 4. LAYOUT UTILITIES */
+.content-area { display: flex; flex-direction: column; flex-grow: 1; width: 100%; justify-content: center; }
+
+.two-column { display: grid; grid-template-columns: 1fr 1fr; gap: 50px; width: 100%; align-items: center; height: 100%; }
+.two-column.tiled { align-items: start; }
+.two-column.tiled > div { background: var(--bg-cream); padding: 30px; border-radius: 10px; border-left: 5px solid var(--primary-color); height: 100%; }
+
+.tiled-content { display: flex; gap: 30px; width: 100%; justify-content: center; }
+.tile { flex: 1; background: var(--bg-cream); padding: 30px; border-radius: 10px; text-align: center; border: 1px solid #e2e8f0; display: flex; flex-direction: column; justify-content: center; }
+.tile .icon { font-size: 40px; color: var(--secondary-color); margin-bottom: 20px; }
+
+/* Bleed Image Layout */
+.bleed-layout { display: grid; grid-template-columns: 1fr 1fr; height: 100%; width: 100%; }
+.bleed-layout .content-side { padding: 80px; display: flex; flex-direction: column; justify-content: center; }
+.bleed-layout .image-side { height: 100%; width: 100%; background-color: #eee; }
+.bleed-layout .image-side img { width: 100%; height: 100%; object-fit: cover; }
+
+/* Images */
+.image-wrapper { width: 100%; height: 400px; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+.image-wrapper img { width: 100%; height: 100%; object-fit: cover; }
+
+/* Chart */
+.chart-container { display: flex; width: 100%; justify-content: center; align-items: center; gap: 50px; }
+.doughnut-chart { width: 350px; height: 350px; border-radius: 50%; position: relative; flex-shrink: 0; }
+
+/* Table */
+table { width: 100%; border-collapse: collapse; margin-top: 20px; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+th { background-color: var(--primary-color); color: white; padding: 15px; text-align: left; }
+td { border-bottom: 1px solid #e2e8f0; padding: 12px; }
+tr:nth-child(even) { background-color: #f8fafc; }
+
+/* Quiz */
+.quiz-container { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 30px; padding-bottom: 60px; }
+.quiz-question { background: #f8fafc; padding: 15px 20px; border-radius: 8px; border: 1px solid #e2e8f0; }
+.quiz-question p { font-weight: 700; margin: 0 0 10px 0; font-size: 16px; }
+.options label { display: block; margin-bottom: 4px; cursor: pointer; font-size: 15px; }
+.quiz-feedback { margin-top: 5px; font-weight: bold; font-size: 14px; display: none; }
+.quiz-feedback.correct { color: #16a34a; }
+.quiz-feedback.incorrect { color: #dc2626; }
+.submit-btn { grid-column: span 2; padding: 15px; background: var(--primary-color); color: white; border: none; border-radius: 8px; font-size: 18px; cursor: pointer; margin-top: 10px; width: 100%; }
+.submit-btn:hover { background: var(--secondary-color); }
+
+/* Navigation & UI */
+.nav-controls { position: absolute; bottom: 30px; right: 30px; display: flex; gap: 10px; z-index: 2000; }
+.nav-btn { background: var(--primary-color); color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; font-size: 18px; transition: 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+.nav-btn:hover { background: var(--secondary-color); transform: translateY(-2px); }
+
+.slide-counter { position: absolute; bottom: 30px; left: 30px; background: rgba(255, 255, 255, 0.9); padding: 8px 16px; border-radius: 6px; font-weight: bold; color: var(--primary-color); z-index: 2000; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+
+/* Title Slide Specifics */
+.title-content { z-index: 10; color: white; text-align: center; position: relative; }
+.title-content h1 { color: white; text-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+.title-content p { color: #e2e8f0; text-shadow: 0 1px 2px rgba(0,0,0,0.3); }
+.full-bg-overlay { background: rgba(30, 58, 138, 0.85); position: absolute; top:0; left:0; width:100%; height:100%; z-index: 1; }
+
+    </style>
+</head>
+<body>
+
+<div class="slide-wrapper">
+
+    <!-- NAVIGATION UI -->
+    <div class="slide-counter" id="slideCounter">1 / 14</div>
+    <div class="nav-controls">
+        <button class="nav-btn" onclick="prevSlide()" title="Previous Slide"><i class="fa-solid fa-chevron-left"></i></button>
+        <button class="nav-btn" onclick="nextSlide()" title="Next Slide"><i class="fa-solid fa-chevron-right"></i></button>
+    </div>
+
+    <!-- Slide 1: Title Slide -->
+    <div class="slide-container active bleed" id="slide1">
+        <div style="width: 100%; height: 100%; position: relative; display: flex; justify-content: center; align-items: center;">
+            <img src="https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1280&q=80" style="position: absolute; width: 100%; height: 100%; object-fit: cover;" alt="Background">
+            <div class="full-bg-overlay"></div>
+            <div class="title-content">
+                <h1>Financial Reporting<br>& Analysis</h1>
+                <p style="font-size: 32px; font-weight: 300; margin-top: 20px;">BFIN 367 | Section 01</p>
+                <p style="margin-top: 40px; font-family: 'JetBrains Mono', monospace;">Instructor: Joo Ha, PhD</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 2: Instructor & Logistics -->
+    <div class="slide-container" id="slide2">
+        <h2 class="slide-title">Instructor & Logistics</h2>
+        <div class="content-area">
+            <div class="two-column">
+                <div>
+                    <div class="image-wrapper">
+                        <img src="https://images.unsplash.com/photo-1544531586-fde5298cdd40?auto=format&fit=crop&w=800&q=80" alt="Professor">
+                    </div>
+                </div>
+                <div>
+                    <h3>Joo Ha, PhD</h3>
+                    <p><i class="fa-solid fa-envelope"></i> haj@gonzaga.edu</p>
+                    <p><i class="fa-solid fa-phone"></i> 509-313-3435</p>
+                    <p><i class="fa-solid fa-location-dot"></i> Office: Jepson 214</p>
+                    <br>
+                    <h3>Office Hours</h3>
+                    <ul>
+                        <li><strong>Mon:</strong> 2:30 PM - 4:30 PM</li>
+                        <li><strong>Wed:</strong> 12:05 PM - 1:00 PM</li>
+                        <li><em>By appointment: In-person or Zoom</em></li>
+                    </ul>
+                    <br>
+                    <h3>Class Meetings</h3>
+                    <p>MWF 1:25pm-2:15pm in Jepson 103</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 3: Course Objectives -->
+    <div class="slide-container" id="slide3">
+        <h2 class="slide-title">Course Description & Objectives</h2>
+        <div class="content-area">
+            <p class="subtitle" style="text-align: center; max-width: 900px; margin: 0 auto 40px auto;">
+                This course emphasizes the <strong>interpretation and application</strong> of financial statements from the perspective of investors, creditors, and other stakeholders.
+            </p>
+            <div class="tiled-content">
+                <div class="tile">
+                    <div class="icon"><i class="fa-solid fa-magnifying-glass-chart"></i></div>
+                    <h3>Analyze</h3>
+                    <p>Interpret income statements, balance sheets, and cash flow statements.</p>
+                </div>
+                <div class="tile">
+                    <div class="icon"><i class="fa-solid fa-scale-balanced"></i></div>
+                    <h3>Evaluate</h3>
+                    <p>Understand accounting quality, profitability, and credit risk using ratios.</p>
+                </div>
+                <div class="tile">
+                    <div class="icon"><i class="fa-solid fa-chart-line"></i></div>
+                    <h3>Forecast</h3>
+                    <p>Apply foundational forecasting tools based on accounting data.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 4: Required Materials -->
+    <div class="slide-container" id="slide4">
+        <h2 class="slide-title">Required Materials</h2>
+        <div class="content-area">
+            <div class="two-column">
+                <div>
+                    <h3>1. Textbook</h3>
+                    <p><strong>"Financial Statement Analysis & Valuation, 7e"</strong><br>
+                    by Easton, McAnally, Crawford, Sommers (2025)<br>
+                    ISBN: 9781618536259</p>
+                    
+                    <h3 style="margin-top: 30px;">2. MyBusinessCourse</h3>
+                    <p>Includes e-textbook. Access via <a href="#" style="color: var(--secondary-color);">mybusinesscourse.com</a><br>
+                    Enrollment Code: 1127-8903-9568</p>
+
+                    <h3 style="margin-top: 30px;">3. Course Apps</h3>
+                    <p>Lecture slides, exercises, and in-class activities.<br>
+                    <span style="font-family: 'JetBrains Mono', monospace; font-size: 14px; background: #eee; padding: 5px;">jhyung00.github.io/financial-reporting-apps/</span></p>
+                </div>
+                <div class="image-wrapper">
+                    <img src="https://images.unsplash.com/photo-1497633762265-9d179a990aa6?auto=format&fit=crop&w=800&q=80" alt="Books">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 5: Grading Breakdown -->
+    <div class="slide-container" id="slide5">
+        <h2 class="slide-title">Grading Breakdown</h2>
+        <div class="content-area">
+            <div class="chart-container">
+                <div class="doughnut-chart" style="background: conic-gradient(var(--secondary-color) 0% 70%, var(--accent-color) 70% 90%, #94a3b8 90% 100%);">
+                    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 250px; height: 250px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 40px; font-weight: bold; color: var(--primary-color);">100%</div>
+                </div>
+                <ul class="legend">
+                    <li><div class="color-box" style="background-color: var(--secondary-color);"></div> <strong>Exams (70%)</strong> - 3 Midterms + Final</li>
+                    <li><div class="color-box" style="background-color: var(--accent-color);"></div> <strong>In-Class Activities (20%)</strong></li>
+                    <li><div class="color-box" style="background-color: #94a3b8;"></div> <strong>Homework (10%)</strong></li>
+                </ul>
+            </div>
+            <p class="chart-summary" style="text-align: center; margin-top: 30px; font-style: italic;">
+                Note: Grades are <strong>NOT</strong> rounded. A = 94-100%.
+            </p>
+        </div>
+    </div>
+
+    <!-- Slide 6: In-Class Activities (Bleed Layout) -->
+    <div class="slide-container bleed" id="slide6">
+        <div class="bleed-layout">
+            <div class="content-side">
+                <h2>In-Class Activities (20%)</h2>
+                <p><strong>When:</strong> Most Friday sessions.</p>
+                <p><strong>Focus:</strong> Active learning, problem sets, and a comprehensive course project.</p>
+                <p><strong>Format:</strong> Collaborative work with study partners (pairs or small groups).</p>
+                <hr style="border: 0; border-top: 2px solid var(--accent-color); margin: 20px 0;">
+                <p><strong>Policy:</strong> Students must complete reading prep. Unfinished work must be submitted by the end of the day for credit.</p>
+            </div>
+            <div class="image-side">
+                <img src="https://images.unsplash.com/photo-1531545514256-b1400bc00f31?auto=format&fit=crop&w=800&q=80" alt="Group Study">
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 7: Homework & Exams -->
+    <div class="slide-container" id="slide7">
+        <h2 class="slide-title">Homework & Exams</h2>
+        <div class="content-area">
+            <div class="two-column tiled">
+                <div>
+                    <h3><i class="fa-solid fa-house-laptop"></i> Homework (10%)</h3>
+                    <ul>
+                        <li>Submitted via MyBusinessCourse (MBC).</li>
+                        <li>Unlimited attempts allowed.</li>
+                        <li>Hints and feedback enabled.</li>
+                        <li><strong style="color: #dc2626;">No late submissions accepted.</strong></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3><i class="fa-solid fa-pen-to-square"></i> Exams (70%)</h3>
+                    <ul>
+                        <li><strong>3 Midterms:</strong> 15% each (45% total).</li>
+                        <li><strong>1 Cumulative Final:</strong> 25%.</li>
+                        <li>Mix of multiple-choice & short answer.</li>
+                        <li>Closed-book, individual work.</li>
+                        <li>No leaving the room during exams.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 8: Midterm Replacement Policy -->
+    <div class="slide-container" id="slide8">
+        <h2 class="slide-title">Midterm Grade Replacement Policy</h2>
+        <div class="content-area">
+            <div class="two-column" style="align-items: center;">
+                <div style="text-align: center;">
+                    <span style="font-size: 80px; font-weight: 700; color: var(--secondary-color);">1</span>
+                    <br>
+                    <span style="font-size: 24px; font-weight: bold;">Poor Performance?</span>
+                    <br><br>
+                    <p>We have a safety net for one bad exam score.</p>
+                </div>
+                <div style="background: #eff6ff; padding: 40px; border-radius: 12px; border-left: 8px solid var(--secondary-color);">
+                    <h3>How it Works:</h3>
+                    <p>If you take <strong>ALL THREE</strong> midterm exams:</p>
+                    <p>The score of your lowest midterm will be <span style="background: var(--accent-color); padding: 0 5px;">replaced</span> by the <strong>average</strong> of your two higher midterm scores.</p>
+                    <br>
+                    <p style="font-size: 14px; color: #64748b;"><em>* This option is forfeited if you miss any scheduled midterm exam.</em></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 9: Policies -->
+    <div class="slide-container" id="slide9">
+        <h2 class="slide-title">Course Policies</h2>
+        <div class="content-area">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+                <div class="tile">
+                    <div class="icon"><i class="fa-solid fa-clipboard-user"></i></div>
+                    <h3>Attendance</h3>
+                    <p style="font-size: 16px;">Crucial for learning. Inform instructor of University-sanctioned absences in advance.</p>
+                </div>
+                <div class="tile">
+                    <div class="icon"><i class="fa-solid fa-robot"></i></div>
+                    <h3>AI Policy</h3>
+                    <p style="font-size: 16px;">Collaborator: Yes. Author: No. Cite all AI tools. Do not submit AI work as your own.</p>
+                </div>
+                <div class="tile">
+                    <div class="icon"><i class="fa-solid fa-video"></i></div>
+                    <h3>Recordings</h3>
+                    <p style="font-size: 16px;">Not guaranteed. For educational use only. Strict rules against sharing.</p>
+                </div>
+                 <div class="tile">
+                    <div class="icon"><i class="fa-solid fa-ban"></i></div>
+                    <h3>Extra Credit</h3>
+                    <p style="font-size: 16px;"><strong>No extra credit assignments.</strong> Focus on required work. Grades are NOT rounded.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 10: Schedule Part 1 -->
+    <div class="slide-container" id="slide10">
+        <h2 class="slide-title">Schedule: Phase 1 (Jan - Feb)</h2>
+        <div class="content-area">
+            <table>
+                <thead>
+                    <tr>
+                        <th width="20%">Dates</th>
+                        <th width="40%">Topic</th>
+                        <th>Assessments</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Jan 14-16</td>
+                        <td>Course Intro, Financial Info Ecosystem</td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td>Jan 19-23</td>
+                        <td>Balance Sheet (MLK Holiday Mon)</td>
+                        <td>Activity 1: 10-K & Statements</td>
+                    </tr>
+                    <tr>
+                        <td>Jan 26-30</td>
+                        <td>Income Statement, OAP Project</td>
+                        <td>Activity 2: Analysis</td>
+                    </tr>
+                    <tr>
+                        <td>Feb 2-6</td>
+                        <td>Dupont Analysis (Basic & Adv)</td>
+                        <td>Activity 3: Dupont Disaggregation</td>
+                    </tr>
+                    <tr style="background-color: #fef3c7;">
+                        <td><strong>Feb 9-13</strong></td>
+                        <td>Review</td>
+                        <td><strong>Midterm 1 (Feb 13)</strong><br>HW1 Due Feb 12</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Slide 11: Schedule Part 2 -->
+    <div class="slide-container" id="slide11">
+        <h2 class="slide-title">Schedule: Phase 2 (Feb - Mar)</h2>
+        <div class="content-area">
+            <table>
+                <thead>
+                    <tr>
+                        <th width="20%">Dates</th>
+                        <th width="40%">Topic</th>
+                        <th>Assessments</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Feb 16-20</td>
+                        <td>Credit Analysis (Presidents' Day Mon)</td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td>Feb 23-27</td>
+                        <td>Revenue Recognition, Accounts Receivable</td>
+                        <td>Activity 4: Credit Analysis</td>
+                    </tr>
+                    <tr>
+                        <td>Mar 2-6</td>
+                        <td>Revenue Rec, Operating Income</td>
+                        <td>Activity 5</td>
+                    </tr>
+                    <tr style="background-color: #fef3c7;">
+                        <td><strong>Mar 6</strong></td>
+                        <td><strong>Midterm Exam 2</strong></td>
+                        <td>Covers Ch 4, 5<br>HW2 Due Mar 5</td>
+                    </tr>
+                    <tr>
+                        <td>Mar 9-13</td>
+                        <td>Spring Break</td>
+                        <td>No Class</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Slide 12: Schedule Part 3 -->
+    <div class="slide-container" id="slide12">
+        <h2 class="slide-title">Schedule: Phase 3 (Mar - Apr)</h2>
+        <div class="content-area">
+            <table>
+                <thead>
+                    <tr>
+                        <th width="20%">Dates</th>
+                        <th width="40%">Topic</th>
+                        <th>Assessments</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Mar 16-20</td>
+                        <td>Inventories, Long-lived Assets</td>
+                        <td>Activity 6: Operating Assets</td>
+                    </tr>
+                    <tr>
+                        <td>Mar 23-27</td>
+                        <td>Bonds, Debt Analysis</td>
+                        <td>Activity 7: PPE Intangibles</td>
+                    </tr>
+                    <tr>
+                        <td>Mar 30-Apr 3</td>
+                        <td>Debt Analysis Cont. (Good Friday Fri)</td>
+                        <td>Activity 8: Operating Liabilities</td>
+                    </tr>
+                    <tr style="background-color: #fef3c7;">
+                        <td><strong>Apr 10</strong></td>
+                        <td><strong>Midterm Exam 3</strong></td>
+                        <td>Covers Ch 6, 7<br>HW3 Due Apr 9</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Slide 13: Schedule Part 4 -->
+    <div class="slide-container" id="slide13">
+        <h2 class="slide-title">Schedule: Phase 4 (Apr - Finals)</h2>
+        <div class="content-area">
+            <table>
+                <thead>
+                    <tr>
+                        <th width="20%">Dates</th>
+                        <th width="40%">Topic</th>
+                        <th>Assessments</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Apr 13-17</td>
+                        <td>Shareholders' Equity, Dividends</td>
+                        <td>Activity 9: Equity (Easter Mon)</td>
+                    </tr>
+                    <tr>
+                        <td>Apr 20-24</td>
+                        <td>Stock Based Comp, Intercorporate Inv</td>
+                        <td>Activity 10: Investments</td>
+                    </tr>
+                    <tr>
+                        <td>Apr 27-May 1</td>
+                        <td>Investments Cont., Review</td>
+                        <td>Activity 11 / HW4 Due May 6</td>
+                    </tr>
+                    <tr style="background-color: #dbeafe;">
+                        <td><strong>May 7 (Thu)</strong></td>
+                        <td><strong>Cumulative Final Exam</strong></td>
+                        <td>1:00 PM - 3:00 PM</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Slide 14: Syllabus Quiz -->
+    <div class="slide-container" id="slide14">
+        <h2 class="slide-title">Syllabus Quiz</h2>
+        <div class="content-area" style="justify-content: start;">
+            <div class="quiz-container">
+                <!-- Left Col -->
+                <div style="display: flex; flex-direction: column; gap: 15px;">
+                    <div class="quiz-question" id="q1">
+                        <p>1. What percentage of the final grade are In-Class Activities?</p>
+                        <div class="options">
+                            <label><input type="radio" name="q1" value="10"> 10%</label>
+                            <label><input type="radio" name="q1" value="20"> 20%</label>
+                            <label><input type="radio" name="q1" value="45"> 45%</label>
+                        </div>
+                        <div class="quiz-feedback" id="f1"></div>
+                    </div>
+                    <div class="quiz-question" id="q2">
+                        <p>2. Are homework assignments allowed late submissions?</p>
+                        <div class="options">
+                            <label><input type="radio" name="q2" value="yes"> Yes, with penalty</label>
+                            <label><input type="radio" name="q2" value="no"> No, never</label>
+                        </div>
+                        <div class="quiz-feedback" id="f2"></div>
+                    </div>
+                    <div class="quiz-question" id="q3">
+                        <p>3. How many midterm exams are there?</p>
+                        <div class="options">
+                            <label><input type="radio" name="q3" value="2"> Two</label>
+                            <label><input type="radio" name="q3" value="3"> Three</label>
+                            <label><input type="radio" name="q3" value="4"> Four</label>
+                        </div>
+                        <div class="quiz-feedback" id="f3"></div>
+                    </div>
+                    <div class="quiz-question" id="q4">
+                        <p>4. Where are In-Class Activities submitted?</p>
+                        <div class="options">
+                            <label><input type="radio" name="q4" value="canvas"> Canvas</label>
+                            <label><input type="radio" name="q4" value="mbc"> MyBusinessCourse</label>
+                            <label><input type="radio" name="q4" value="github"> Course Site / Canvas</label>
+                        </div>
+                        <div class="quiz-feedback" id="f4"></div>
+                    </div>
+                     <div class="quiz-question" id="q5">
+                        <p>5. Is the Final Exam cumulative?</p>
+                        <div class="options">
+                            <label><input type="radio" name="q5" value="yes"> Yes</label>
+                            <label><input type="radio" name="q5" value="no"> No</label>
+                        </div>
+                        <div class="quiz-feedback" id="f5"></div>
+                    </div>
+                </div>
+
+                <!-- Right Col -->
+                <div style="display: flex; flex-direction: column; gap: 15px;">
+                    <div class="quiz-question" id="q6">
+                        <p>6. To replace a low midterm score, you must:</p>
+                        <div class="options">
+                            <label><input type="radio" name="q6" value="ask"> Ask the professor</label>
+                            <label><input type="radio" name="q6" value="take_all"> Take all 3 midterms</label>
+                        </div>
+                        <div class="quiz-feedback" id="f6"></div>
+                    </div>
+                    <div class="quiz-question" id="q7">
+                        <p>7. Does this course offer extra credit assignments?</p>
+                        <div class="options">
+                            <label><input type="radio" name="q7" value="yes"> Yes, for extra effort</label>
+                            <label><input type="radio" name="q7" value="no"> No, never</label>
+                        </div>
+                        <div class="quiz-feedback" id="f7"></div>
+                    </div>
+                    <div class="quiz-question" id="q8">
+                        <p>8. What is the lowest grade percentage for an A?</p>
+                        <div class="options">
+                            <label><input type="radio" name="q8" value="90"> 90%</label>
+                            <label><input type="radio" name="q8" value="93"> 93%</label>
+                            <label><input type="radio" name="q8" value="94"> 94%</label>
+                        </div>
+                        <div class="quiz-feedback" id="f8"></div>
+                    </div>
+                    <div class="quiz-question" id="q9">
+                        <p>9. Can you use AI to write your papers?</p>
+                        <div class="options">
+                            <label><input type="radio" name="q9" value="yes"> Yes, completely</label>
+                            <label><input type="radio" name="q9" value="collab"> Collab only & Cite</label>
+                        </div>
+                        <div class="quiz-feedback" id="f9"></div>
+                    </div>
+                    <div class="quiz-question" id="q10">
+                        <p>10. Can you leave the room during an exam?</p>
+                        <div class="options">
+                            <label><input type="radio" name="q10" value="yes"> Yes</label>
+                            <label><input type="radio" name="q10" value="no"> No</label>
+                        </div>
+                        <div class="quiz-feedback" id="f10"></div>
+                    </div>
+                </div>
+                
+                <button class="submit-btn" onclick="checkQuiz()">Submit Answers</button>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // Quiz Logic
+    function checkQuiz() {
+        const answers = {
+            q1: '20',
+            q2: 'no',
+            q3: '3',
+            q4: 'github',
+            q5: 'yes',
+            q6: 'take_all',
+            q7: 'no',
+            q8: '94',
+            q9: 'collab',
+            q10: 'no'
+        };
+
+        let score = 0;
+        let total = 10;
+
+        for (let i = 1; i <= total; i++) {
+            const qName = 'q' + i;
+            const feedbackEl = document.getElementById('f' + i);
+            const selected = document.querySelector(`input[name="${qName}"]:checked`);
+
+            feedbackEl.style.display = 'block';
+
+            if (selected && selected.value === answers[qName]) {
+                score++;
+                feedbackEl.textContent = "Correct!";
+                feedbackEl.className = "quiz-feedback correct";
+            } else {
+                feedbackEl.textContent = "Incorrect.";
+                feedbackEl.className = "quiz-feedback incorrect";
+            }
+        }
+        alert(`You scored ${score} out of ${total}`);
+    }
+
+    // Slideshow Logic
+    let currentSlide = 1;
+    const totalSlides = 14;
+
+    function showSlide(n) {
+        if (n > totalSlides) currentSlide = 1;
+        else if (n < 1) currentSlide = totalSlides;
+        else currentSlide = n;
+
+        // Hide all slides
+        document.querySelectorAll('.slide-container').forEach(slide => {
+            slide.classList.remove('active');
+        });
+
+        // Show current
+        document.getElementById('slide' + currentSlide).classList.add('active');
+        document.getElementById('slideCounter').textContent = `${currentSlide} / ${totalSlides}`;
+    }
+
+    function nextSlide() {
+        showSlide(currentSlide + 1);
+    }
+
+    function prevSlide() {
+        showSlide(currentSlide - 1);
+    }
+
+    // Keyboard navigation
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'ArrowRight') nextSlide();
+        if (event.key === 'ArrowLeft') prevSlide();
+    });
+
+</script>
+
+</body>
+</html>
