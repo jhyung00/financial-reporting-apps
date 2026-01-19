@@ -1,0 +1,1852 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Analyst's Toolkit: PP&E and Intangibles</title>
+    <style>
+        :root {
+            --primary: #1e1e2e;
+            --secondary: #89b4fa;
+            --accent: #f9e2af;
+            --danger: #f38ba8;
+            --success: #a6e3a1;
+            --text: #cdd6f4;
+            --bg-card: #313244;
+            --bg-slide: #181825;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--primary);
+            color: var(--text);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Container */
+        #presentation-container {
+            width: 95vw;
+            height: 90vh;
+            background-color: var(--bg-slide);
+            border-radius: 1rem;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid #45475a;
+        }
+
+        /* Slides */
+        .slide {
+            display: none;
+            height: 100%;
+            width: 100%;
+            padding: 2rem 3rem;
+            box-sizing: border-box;
+            flex-direction: column;
+            overflow-y: auto;
+            opacity: 0;
+            transition: opacity 0.4s ease-in-out;
+            padding-bottom: 100px;
+        }
+
+        .slide.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        /* Typography */
+        h1 { font-size: 2.5rem; color: var(--secondary); margin-bottom: 0.5rem; }
+        h2 { font-size: 1.8rem; color: var(--accent); margin-bottom: 1.5rem; border-bottom: 2px solid var(--secondary); padding-bottom: 0.5rem; }
+        h3 { font-size: 1.3rem; color: #fab387; margin-top: 1.5rem; }
+        p, li { font-size: 1.05rem; line-height: 1.6; color: #bac2de; margin-bottom: 0.8rem; }
+        
+        /* Force normal font style */
+        .no-italics { font-style: normal !important; }
+
+        /* Financial Tables */
+        .financial-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            background: #1e1e2e;
+            border: 1px solid #45475a;
+        }
+        
+        .financial-table th, .financial-table td {
+            padding: 0.6rem;
+            border-bottom: 1px solid #45475a;
+            text-align: right;
+        }
+        
+        .financial-table th {
+            background-color: #313244;
+            color: var(--secondary);
+            text-align: center;
+            font-weight: bold;
+        }
+        
+        .financial-table td:first-child {
+            text-align: left;
+            color: var(--accent);
+        }
+
+        .highlight-row { background-color: rgba(137, 180, 250, 0.1); }
+        .negative { color: var(--danger); }
+        .positive { color: var(--success); }
+
+        /* Flip Cards */
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin: 1.5rem 0;
+        }
+
+        .flip-card {
+            background-color: transparent;
+            height: 220px;
+            perspective: 1000px;
+            cursor: pointer;
+        }
+
+        .flip-card.wide {
+            grid-column: span 2;
+            height: 200px; 
+        }
+
+        .flip-card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+            border-radius: 1rem;
+        }
+
+        .flip-card.flipped .flip-card-inner { transform: rotateY(180deg); }
+
+        .flip-card-front, .flip-card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            box-sizing: border-box;
+            border-radius: 1rem;
+            border: 1px solid #45475a;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+
+        .flip-card-front { background-color: var(--bg-card); color: var(--secondary); }
+        .flip-card-front h3 { color: var(--secondary); margin: 0; }
+        
+        .flip-card-back { background-color: var(--secondary); color: var(--primary); transform: rotateY(180deg); }
+        .flip-card-back p { color: #181825; font-weight: 500; font-style: normal; }
+
+        /* Poll Cards */
+        .poll-container {
+            margin: 2rem auto;
+            max-width: 700px;
+        }
+        .poll-question {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--text);
+            margin-bottom: 1rem;
+            text-align: center;
+            font-style: normal;
+        }
+        .poll-card {
+            height: 250px;
+            perspective: 1000px;
+            cursor: pointer;
+        }
+        .poll-front {
+            background: linear-gradient(135deg, #1e1e2e 0%, #313244 100%);
+            border: 2px dashed var(--accent);
+        }
+        .poll-back {
+            background: var(--success);
+            color: #1e1e2e;
+            font-size: 1.3rem;
+            font-weight: bold;
+            font-style: normal;
+        }
+
+        /* Story/Hook Box */
+        .hook-box {
+            background: linear-gradient(135deg, #313244 0%, #1e1e2e 100%);
+            border-left: 5px solid var(--accent);
+            padding: 2rem;
+            border-radius: 0 1rem 1rem 0;
+            margin: 2rem 0;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        /* Controls */
+        .controls {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 70px;
+            background: #11111b;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 2rem;
+            border-top: 1px solid #45475a;
+            z-index: 100;
+        }
+
+        .btn {
+            background-color: var(--secondary);
+            color: var(--primary);
+            border: none;
+            padding: 0.6rem 1.5rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn:hover { background-color: var(--accent); transform: translateY(-2px); }
+        .btn:disabled { background-color: #45475a; cursor: not-allowed; transform: none; }
+
+        .progress-container { flex-grow: 1; margin: 0 2rem; height: 6px; background: #313244; border-radius: 3px; }
+        .progress-bar { height: 100%; background: var(--secondary); width: 0%; transition: width 0.3s ease; border-radius: 3px; }
+
+        /* Quiz */
+        .quiz-option {
+            background: var(--bg-card);
+            border: 1px solid #45475a;
+            padding: 1rem;
+            margin: 0.5rem 0;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .quiz-option:hover { border-color: var(--secondary); background: #45475a; }
+        .quiz-option.correct { border-color: var(--success); background: rgba(166, 227, 161, 0.2); color: var(--success); }
+        .quiz-option.incorrect { border-color: var(--danger); background: rgba(243, 139, 168, 0.2); color: var(--danger); }
+
+        /* Confetti */
+        #confetti-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 999; }
+        
+        .nav-info { color: #6c7086; font-size: 0.9rem; margin-right: 1rem; }
+
+        /* Special Visuals */
+        .reveal-box {
+            background: #313244;
+            border: 2px dashed #6c7086;
+            color: transparent;
+            cursor: pointer;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            transition: all 0.3s;
+            user-select: none;
+        }
+        .reveal-box.revealed {
+            background: var(--success);
+            color: #1e1e2e;
+            border-style: solid;
+            font-weight: bold;
+        }
+        .reveal-box:not(.revealed):hover {
+            border-color: var(--secondary);
+            background: rgba(137, 180, 250, 0.1);
+        }
+
+        .equation-box {
+            font-size: 1.4rem;
+            background: rgba(0,0,0,0.3);
+            padding: 1.5rem;
+            border-radius: 1rem;
+            text-align: center;
+            margin: 1.5rem 0;
+            border: 1px solid var(--secondary);
+        }
+
+        /* Big Bath SVG */
+        .bath-container {
+            width: 150px;
+            height: 150px;
+            margin: 0 auto;
+        }
+
+        /* Chart for Apple/MSFT */
+        .chart-container {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-around;
+            height: 250px;
+            margin-top: 2rem;
+            padding: 1rem;
+            background: rgba(255,255,255,0.05);
+            border-radius: 1rem;
+        }
+        .chart-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 40%;
+        }
+        .chart-bars {
+            display: flex;
+            align-items: flex-end;
+            gap: 15px;
+            height: 200px;
+            width: 100%;
+            justify-content: center;
+        }
+        .bar {
+            width: 50px;
+            border-radius: 4px 4px 0 0;
+            transition: height 1s;
+            position: relative;
+        }
+        .bar-label {
+            position: absolute;
+            top: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.9rem;
+            white-space: nowrap;
+            color: var(--text);
+            font-weight: bold;
+        }
+        .bar-book { background: var(--secondary); }
+        .bar-market { background: var(--success); }
+        .legend { display: flex; gap: 20px; justify-content: center; margin-top: 10px; font-size: 0.8rem; }
+        .legend-item { display: flex; align-items: center; gap: 5px; }
+        .dot { width: 10px; height: 10px; border-radius: 50%; }
+
+        /* Reveal List */
+        .reveal-list li {
+            opacity: 0.3;
+            transform: translateX(0);
+            transition: all 0.3s ease;
+            margin-bottom: 1.2rem;
+            cursor: pointer;
+            list-style-type: none;
+            border-left: 3px solid transparent;
+            padding-left: 10px;
+        }
+        .reveal-list li:hover { opacity: 0.6; border-left-color: var(--secondary); }
+        .reveal-list li.visible {
+            opacity: 1;
+            transform: translateX(10px);
+            border-left-color: var(--accent);
+            font-size: 1.1rem;
+            color: white;
+        }
+
+        /* Solution Table Slide 33 */
+        .solution-wrapper {
+            display: none;
+            animation: fadeIn 0.5s;
+            margin-bottom: 50px;
+        }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* Macy's Chart FIXED CSS */
+        .macys-chart-container {
+            display: flex;
+            justify-content: center;
+            height: 300px; /* Increased height */
+            padding: 1rem;
+            background: #2a2a35;
+            border-radius: 1rem;
+            position: relative;
+            border: 2px solid #45475a;
+        }
+        
+        .macys-bars-area {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Zero Line at 65% down because negative drop (-7.3) is larger than positive rise (+3.2) */
+        .macys-zero-line {
+            position: absolute;
+            top: 65%;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: #ffffff;
+            opacity: 0.5;
+            z-index: 1;
+        }
+
+        /* Container for the bars */
+        .macys-bars-flex {
+            display: flex;
+            justify-content: space-around;
+            align-items: flex-start; /* Alignment doesn't matter much as we use absolute heights */
+            width: 100%;
+            height: 100%;
+            position: relative;
+            z-index: 2;
+        }
+
+        .m-col {
+            position: relative;
+            width: 40px;
+            height: 100%;
+            /* Border for debugging: border: 1px dashed #555; */
+        }
+
+        /* Bars growing UP from 65% */
+        .m-bar-pos {
+            background: #4ade80;
+            border-radius: 4px 4px 0 0;
+            position: absolute;
+            bottom: 35%; /* 100% - 65% top */
+            width: 100%;
+            box-shadow: 0 0 10px rgba(74, 222, 128, 0.3);
+            /* Height set inline */
+        }
+
+        /* Bars growing DOWN from 65% */
+        .m-bar-neg {
+            background: #f87171;
+            border-radius: 0 0 4px 4px;
+            position: absolute;
+            top: 65%;
+            width: 100%;
+            box-shadow: 0 0 10px rgba(248, 113, 113, 0.3);
+            /* Height set inline */
+        }
+
+        .m-label {
+            position: absolute;
+            /* Anchored to bottom of the container to be consistent */
+            bottom: 5px; 
+            font-size: 0.75rem;
+            width: 100%;
+            text-align: center;
+            color: #bac2de;
+            font-weight: bold;
+        }
+
+        .m-val {
+            position: absolute;
+            font-size: 0.8rem;
+            width: 150%;
+            left: -25%;
+            text-align: center;
+            color: white;
+            font-weight: bold;
+            text-shadow: 1px 1px 4px black;
+        }
+        
+        /* Positioning values clearly away from the bars */
+        .m-val-pos { bottom: 100%; margin-bottom: 5px; } /* Above positive bar */
+        .m-val-neg { top: 100%; margin-top: 5px; } /* Below negative bar */
+
+        /* Fun Text Animation */
+        .fun-text {
+            display: inline-block;
+            font-weight: bold;
+            font-size: 1.8rem;
+            color: var(--accent);
+            animation: pulseText 2s infinite;
+        }
+        @keyframes pulseText {
+            0% { transform: scale(1); text-shadow: 0 0 0 rgba(249, 226, 175, 0); }
+            50% { transform: scale(1.05); text-shadow: 0 0 15px rgba(249, 226, 175, 0.7); }
+            100% { transform: scale(1); text-shadow: 0 0 0 rgba(249, 226, 175, 0); }
+        }
+
+        /* Image Containers */
+        .img-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 2rem 0;
+        }
+        .img-container img {
+            max-height: 250px;
+            max-width: 100%;
+            border-radius: 1rem;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+        }
+
+    </style>
+</head>
+<body>
+
+<div id="presentation-container">
+    <canvas id="confetti-canvas"></canvas>
+
+    <!-- Slide 1: Intro -->
+    <div class="slide active">
+        <div style="text-align: center; margin-top: 10%;">
+            <h1 style="font-size: 3rem;">Beyond the Bottom Line</h1>
+            <h2 style="border:none; color: var(--text);">Separating Signal from Noise in Asset Analysis</h2>
+            <p style="margin-top: 2rem; font-size: 1.2rem;">Module 6: Long-Term Assets & Analyst Adjustments</p>
+            <button class="btn" onclick="nextSlide()" style="margin-top: 3rem; font-size: 1.2rem; padding: 1rem 2rem;">Begin Investigation</button>
+        </div>
+    </div>
+
+    <!-- Slide 2: Hook -->
+    <div class="slide">
+        <h2>The Detective's Dilemma</h2>
+        <div class="hook-box">
+            <p>Imagine you're analyzing "TechTitan Inc." They just reported a massive 50% jump in Net Income. The stock is soaring. Everyone is cheering.</p>
+            <p>But you dig deeper. You find that their actual sales of software are <em>down</em>.</p>
+            <p>So where did the money come from? They sold their headquarters building for a huge one-time gain.</p>
+            <p><strong>This is the Analyst's core mission:</strong> Separating the <em>Signal</em> (sustainable software sales) from the <em>Noise</em> (one-time building sales).</p>
+        </div>
+    </div>
+
+    <!-- Slide 3: Roadmap -->
+    <div class="slide">
+        <h2>Mission Roadmap</h2>
+        <div class="card-grid">
+            <div class="flip-card" onclick="this.classList.toggle('flipped')">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front"><h3>1. The Basics</h3></div>
+                    <div class="flip-card-back"><p>Capitalization, Depreciation, and R&D rules.</p></div>
+                </div>
+            </div>
+            <div class="flip-card" onclick="this.classList.toggle('flipped')">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front"><h3>2. The Noise</h3></div>
+                    <div class="flip-card-back"><p>Adjusting for Asset Sales, Impairments, and Restructuring.</p></div>
+                </div>
+            </div>
+            <div class="flip-card" onclick="this.classList.toggle('flipped')">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front"><h3>3. The Health Check</h3></div>
+                    <div class="flip-card-back"><p>Diagnosing Asset Efficiency (Turnover, Age, Leases).</p></div>
+                </div>
+            </div>
+            <div class="flip-card" onclick="this.classList.toggle('flipped')">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front"><h3>4. The Unseen</h3></div>
+                    <div class="flip-card-back"><p>Intangibles, Goodwill, and what happens when acquisitions fail.</p></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 4: Capitalization -->
+    <div class="slide">
+        <h2>Part 1: To Capitalize or Expense?</h2>
+        <p>This is the first decision in accounting for any long-term asset.</p>
+        
+        <div style="display:flex; justify-content:space-between; gap:2rem; margin-top:2rem;">
+            <div style="background: #313244; padding:1.5rem; border-radius:1rem; flex:1;">
+                <h3 style="color:var(--success);">Capitalize (CAPEX)</h3>
+                <p>Record as an Asset on Balance Sheet.</p>
+                <p>Includes: Purchase price, transport, duties, tax, installation, testing.</p>
+                <p><em>Effect:</em> Smooths cost over time via depreciation.</p>
+            </div>
+            <div style="background: #313244; padding:1.5rem; border-radius:1rem; flex:1;">
+                <h3 style="color:var(--danger);">Expense</h3>
+                <p>Record immediately on Income Statement.</p>
+                <p>Includes: Routine repairs, low-value items, most R&D.</p>
+                <p><em>Effect:</em> Hits profit immediately.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Poll 1 -->
+    <div class="slide">
+        <h2>Poll Question 1</h2>
+        <div class="poll-container">
+            <div class="poll-question no-italics">You buy a trash can for the office for $20. It will last 10 years. Do you Capitalize or Expense it?</div>
+            <div class="poll-card" onclick="this.querySelector('.flip-card-inner').style.transform = this.querySelector('.flip-card-inner').style.transform === 'rotateY(180deg)' ? 'rotateY(0deg)' : 'rotateY(180deg)'">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front poll-front">
+                        <h3 style="color:var(--accent);">Click to Reveal Answer</h3>
+                    </div>
+                    <div class="flip-card-back poll-back">
+                        <p>EXPENSE IT!</p>
+                        <p style="font-size:1rem; font-weight:normal;">Technically it's an asset, but due to <strong>Materiality</strong>, small items are expensed immediately to save accounting effort.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 6: Depreciation -->
+    <div class="slide">
+        <h2>Depreciation: Using it Up</h2>
+        <p>Depreciation is the allocation of cost over time. It requires three estimates:</p>
+        <ul>
+            <li><strong>Useful Life:</strong> How long will it last?</li>
+            <li><strong>Salvage Value:</strong> What's it worth at the end?</li>
+            <li><strong>Method:</strong> How fast does it wear out?</li>
+        </ul>
+        <div class="hook-box" style="margin-top:1rem; border-color: var(--secondary);">
+            <p><strong>Straight-Line:</strong> Equal expense every year. (Most common for financial reporting)</p>
+            <p><strong>Accelerated (MACRS):</strong> More expense early on. (Used for Tax to save cash flow)</p>
+        </div>
+    </div>
+
+    <!-- Slide 7: Straight Line Math -->
+    <div class="slide">
+        <h2>Straight-Line Math</h2>
+        <p>Let's crunch the numbers.</p>
+        <p><strong>Machine Cost:</strong> $100,000<br><strong>Salvage Value:</strong> $10,000<br><strong>Life:</strong> 5 Years</p>
+
+        <div style="background:var(--bg-card); padding:2rem; border-radius:1rem; text-align:center; font-family: monospace; font-size: 1.2rem; margin: 2rem;">
+            (Cost - Salvage) / Life<br>
+            ($100,000 - $10,000) / 5<br>
+            = <span style="color:var(--secondary); font-weight:bold;">$18,000 per year</span>
+        </div>
+    </div>
+
+    <!-- Slide 8: Net Book Value -->
+    <div class="slide">
+        <h2>Net Book Value (NBV)</h2>
+        <p>On the Balance Sheet, the asset shrinks every year.</p>
+        
+        <table class="financial-table">
+            <thead>
+                <tr>
+                    <th>Year</th>
+                    <th>Asset Cost</th>
+                    <th>Accumulated Depreciation</th>
+                    <th>Net Book Value</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td>Start</td><td>$100,000</td><td>$0</td><td>$100,000</td></tr>
+                <tr><td>Year 1</td><td>$100,000</td><td>($18,000)</td><td>$82,000</td></tr>
+                <tr><td>Year 2</td><td>$100,000</td><td>($36,000)</td><td>$64,000</td></tr>
+                <tr><td>...</td><td>...</td><td>...</td><td>...</td></tr>
+                <tr><td>Year 5</td><td>$100,000</td><td>($90,000)</td><td><strong>$10,000</strong> (Salvage)</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Poll 2 -->
+    <div class="slide">
+        <h2>Poll Question 2</h2>
+        <div class="poll-container">
+            <div class="poll-question no-italics">Which depreciation method results in higher Net Income in Year 1: Straight-Line or Double Declining Balance?</div>
+            <div class="poll-card" onclick="this.querySelector('.flip-card-inner').style.transform = this.querySelector('.flip-card-inner').style.transform === 'rotateY(180deg)' ? 'rotateY(0deg)' : 'rotateY(180deg)'">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front poll-front">
+                        <h3 style="color:var(--accent);">Click to Reveal Answer</h3>
+                    </div>
+                    <div class="flip-card-back poll-back">
+                        <p>STRAIGHT-LINE</p>
+                        <p style="font-size:1rem; font-weight:normal;" class="no-italics">Accelerated methods (like DDB) record <strong>higher expense</strong> in early years, which lowers income. Straight-line has lower expense early on, leading to higher income.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 10: R&D -->
+    <div class="slide">
+        <h2>The R&D Debate</h2>
+        <p>Research & Development creates future value. It <em>feels</em> like an asset. But GAAP is conservative.</p>
+        
+        <div class="card-grid">
+            <div class="flip-card" onclick="this.classList.toggle('flipped')">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front"><h3>Personnel & Ideas</h3></div>
+                    <div class="flip-card-back">
+                        <p style="color:var(--danger);">EXPENSE IMMEDIATELY</p>
+                        <p>Future benefits are too uncertain.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="flip-card" onclick="this.classList.toggle('flipped')">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front"><h3>Project-Specific Machines</h3></div>
+                    <div class="flip-card-back">
+                        <p style="color:var(--danger);">EXPENSE IMMEDIATELY</p>
+                        <p>If it has no alternative use, it's a sunk cost.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="flip-card" onclick="this.classList.toggle('flipped')">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front"><h3>General Labs & Buildings</h3></div>
+                    <div class="flip-card-back">
+                        <p style="color:var(--success);">CAPITALIZE</p>
+                        <p>Because they can be used for other things later.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 11: Asset Sales Noise -->
+    <div class="slide">
+        <h2>Part 2: The Noise of Asset Sales</h2>
+        <p>Companies sell assets all the time. But the accounting can mislead you. We must classify the outcome:</p>
+        
+        <div style="display:flex; justify-content:space-around; gap:2rem; margin-top:2rem;">
+            <div style="background:#1e3a29; border:2px solid var(--success); padding:2rem; border-radius:1rem; flex:1; text-align:center;">
+                <h3 style="color:var(--success);">GAIN</h3>
+                <p style="font-size:1.2rem;">$$ \text{Proceeds} > \text{Net Book Value} $$</p>
+            </div>
+            <div style="background:#451a24; border:2px solid var(--danger); padding:2rem; border-radius:1rem; flex:1; text-align:center;">
+                <h3 style="color:var(--danger);">LOSS</h3>
+                <p style="font-size:1.2rem;">$$ \text{Proceeds} < \text{Net Book Value} $$</p>
+            </div>
+        </div>
+        
+        <div class="hook-box" style="margin-top:2rem;">
+            <h3>Macy's Example (2022)</h3>
+            <p>Macy's reported gains of <strong>$89 million</strong> from selling real estate.</p>
+            <p>Is this core business income? <strong>NO.</strong> It's a one-time event. It's "Noise."</p>
+        </div>
+    </div>
+
+    <!-- Slide 12: Macy's Story -->
+    <div class="slide">
+        <h2>Real World Noise: Macy's 2025</h2>
+        <div style="display: flex; gap: 2rem;">
+            <div style="flex: 1;">
+                <div class="hook-box" style="margin-top:0;">
+                    <h3 style="color: var(--secondary);">The Headline</h3>
+                    <p><strong>Net Income Fell:</strong> $11M (2025) vs $28M (Prior Year).</p>
+                    <p><strong>The Noise:</strong> Adjusted EPS was 9¢ (stripping out real estate gains).</p>
+                    <p><strong>The Signal:</strong> Despite falling profit, Same-Store Sales grew >3%.</p>
+                </div>
+                <p style="font-size: 0.9rem; margin-top: 1rem;"><em>Note: Company-wide sales include licensed depts. Marketplace included from Q1 2024. Data as of Dec 3, 2025.</em></p>
+            </div>
+            
+            <div style="flex: 1.2;">
+                <h3 style="text-align: center; margin-bottom: 1rem;">Macy's Comparable Sales Growth</h3>
+                <div class="macys-chart-container">
+                    <div class="macys-bars-area">
+                        <div class="macys-zero-line"></div>
+                        <div class="macys-bars-flex">
+                            
+                            <!-- Q1 23: -7.2 -->
+                            <div class="m-col">
+                                <div class="m-bar-neg" style="height: 60px;"> <!-- scaled ~8px per unit -->
+                                    <span class="m-val m-val-neg">-7.2</span>
+                                </div>
+                                <span class="m-label">Q1'23</span>
+                            </div>
+
+                            <!-- Q2 23: -7.3 -->
+                            <div class="m-col">
+                                <div class="m-bar-neg" style="height: 61px;">
+                                    <span class="m-val m-val-neg">-7.3</span>
+                                </div>
+                                <span class="m-label">Q2'23</span>
+                            </div>
+
+                            <!-- Q1 24: -0.4 -->
+                            <div class="m-col">
+                                <div class="m-bar-neg" style="height: 4px;">
+                                    <span class="m-val m-val-neg">-0.4</span>
+                                </div>
+                                <span class="m-label">Q1'24</span>
+                            </div>
+
+                            <!-- Q2 24: -3.3 -->
+                            <div class="m-col">
+                                <div class="m-bar-neg" style="height: 28px;">
+                                    <span class="m-val m-val-neg">-3.3</span>
+                                </div>
+                                <span class="m-label">Q2'24</span>
+                            </div>
+
+                            <!-- Q3 24: -1.3 -->
+                            <div class="m-col">
+                                <div class="m-bar-neg" style="height: 11px;">
+                                    <span class="m-val m-val-neg">-1.3</span>
+                                </div>
+                                <span class="m-label">Q3'24</span>
+                            </div>
+
+                            <!-- Q4 24: +0.2 -->
+                            <div class="m-col">
+                                <div class="m-bar-pos" style="height: 2px;">
+                                    <span class="m-val m-val-pos">+0.2</span>
+                                </div>
+                                <span class="m-label">Q4'24</span>
+                            </div>
+
+                            <!-- Q1 25: -1.2 -->
+                            <div class="m-col">
+                                <div class="m-bar-neg" style="height: 10px;">
+                                    <span class="m-val m-val-neg">-1.2</span>
+                                </div>
+                                <span class="m-label">Q1'25</span>
+                            </div>
+
+                            <!-- Q2 25: +1.9 -->
+                            <div class="m-col">
+                                <div class="m-bar-pos" style="height: 16px;">
+                                    <span class="m-val m-val-pos">+1.9</span>
+                                </div>
+                                <span class="m-label">Q2'25</span>
+                            </div>
+
+                            <!-- Q3 25: +3.2 -->
+                            <div class="m-col">
+                                <div class="m-bar-pos" style="height: 27px;">
+                                    <span class="m-val m-val-pos">+3.2%</span>
+                                </div>
+                                <span class="m-label">Q3'25</span>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 13: Analyst Insight -->
+    <div class="slide">
+        <h2>The Deeper Insight</h2>
+        <div class="img-container">
+            <img src="https://images.unsplash.com/photo-1543286386-713bdd548da4?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Correction of history - Data Analysis">
+        </div>
+        
+        <div style="margin-top: 2rem; text-align:center;">
+            <p>Here is a secret:</p>
+            <div class="fun-text">The Gain is just a correction of history.</div>
+        </div>
+        
+        <div style="margin-top: 2rem;">
+            <p><strong>If you have a Gain:</strong> It means you depreciated the asset <em>too much</em> in the past. You told shareholders profits were lower than they really were.</p>
+            <p><strong>If you have a Loss:</strong> It means you didn't depreciate enough. You overstated past profits.</p>
+        </div>
+    </div>
+
+    <!-- Poll 3 -->
+    <div class="slide">
+        <h2>Poll Question 3</h2>
+        <div class="poll-container">
+            <div class="poll-question no-italics">We sell a truck for $5,000. Its Net Book Value is $8,000. We record a $3,000 Loss. Did we depreciate too much or too little in the past?</div>
+            <div class="poll-card" onclick="this.querySelector('.flip-card-inner').style.transform = this.querySelector('.flip-card-inner').style.transform === 'rotateY(180deg)' ? 'rotateY(0deg)' : 'rotateY(180deg)'">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front poll-front">
+                        <h3 style="color:var(--accent);">Click to Reveal Answer</h3>
+                    </div>
+                    <div class="flip-card-back poll-back">
+                        <p>TOO LITTLE</p>
+                        <p style="font-size:1rem; font-weight:normal;" class="no-italics">We thought the truck was worth $8,000 on our books, but the market said it was only worth $5,000. We didn't expense (depreciate) enough value in prior years.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 15: T-Mobile Case -->
+    <div class="slide">
+        <div style="display:flex; justify-content: space-between; align-items: center;">
+            <h2>Case Study: T-Mobile Wireline Sale</h2>
+        </div>
+        <p>In 2022, T-Mobile sold wireline assets and recorded a <strong>$1 Billion Gain</strong>.</p>
+        <p>As an analyst, you have two jobs:</p>
+        <ol>
+            <li><strong>Reversal:</strong> Remove the $1B gain from 2022 (it's not recurring).</li>
+            <li><strong>Allocation:</strong> Spread that $1B back over the years the asset was used (correcting the past).</li>
+        </ol>
+        <p><em>Assumption: Assets were used for 10 years.</em></p>
+    </div>
+
+    <!-- Slide 16: T-Mobile Adjustment Table -->
+    <div class="slide">
+        <h2>T-Mobile: The Adjustment (Expanded)</h2>
+        <p>We smooth the $1B gain back over 10 years ($100M/year).</p>
+        
+        <h3>Income Statement Adjustments ($ Millions)</h3>
+        <table class="financial-table">
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th>2013</th>
+                    <th>2014</th>
+                    <th>...</th>
+                    <th>2021</th>
+                    <th>2022</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Gain on disposal (reversal)</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td>...</td>
+                    <td>-</td>
+                    <td><span class="negative">-$1,000</span></td>
+                </tr>
+                <tr>
+                    <td>Tax expense (reversal)</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td>...</td>
+                    <td>-</td>
+                    <td><span class="positive">+200</span></td>
+                </tr>
+                <tr>
+                    <td><strong>Net income (reversal)</strong></td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td>...</td>
+                    <td>-</td>
+                    <td><span class="negative">-800</span></td>
+                </tr>
+                <tr>
+                    <td>Depreciation expense (Allocation)</td>
+                    <td><span class="negative">-$100</span></td>
+                    <td><span class="negative">-$100</span></td>
+                    <td>...</td>
+                    <td><span class="negative">-$100</span></td>
+                    <td><span class="negative">-$100</span></td>
+                </tr>
+                <tr>
+                    <td>Tax expense at 20%</td>
+                    <td><span class="positive">+20</span></td>
+                    <td><span class="positive">+20</span></td>
+                    <td>...</td>
+                    <td><span class="positive">+20</span></td>
+                    <td><span class="positive">+20</span></td>
+                </tr>
+                <tr>
+                    <td><strong>Net income (allocation)</strong></td>
+                    <td><span class="positive">+80</span></td>
+                    <td><span class="positive">+80</span></td>
+                    <td>...</td>
+                    <td><span class="positive">+80</span></td>
+                    <td><span class="positive">+80</span></td>
+                </tr>
+                <tr class="highlight-row">
+                    <td><strong>Total net income impact</strong></td>
+                    <td><span class="positive">+$80</span></td>
+                    <td><span class="positive">+$80</span></td>
+                    <td>...</td>
+                    <td><span class="positive">+$80</span></td>
+                    <td><span class="negative">-$720</span></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>Balance Sheet Adjustments ($ Millions)</h3>
+        <table class="financial-table">
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th>2013</th>
+                    <th>2014</th>
+                    <th>...</th>
+                    <th>2021</th>
+                    <th>2022*</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Accumulated Depreciation</td>
+                    <td><span class="negative">-$100</span></td>
+                    <td><span class="negative">-$200</span></td>
+                    <td>...</td>
+                    <td><span class="negative">-$900</span></td>
+                    <td>0</td>
+                </tr>
+                <tr>
+                    <td>Deferred Tax Liabilities</td>
+                    <td><span class="positive">+20</span></td>
+                    <td><span class="positive">+40</span></td>
+                    <td>...</td>
+                    <td><span class="positive">+180</span></td>
+                    <td>0</td>
+                </tr>
+                <tr class="highlight-row">
+                    <td><strong>Retained Earnings</strong></td>
+                    <td><span class="positive">+$80</span></td>
+                    <td><span class="positive">+$160</span></td>
+                    <td>...</td>
+                    <td><span class="positive">+$720</span></td>
+                    <td>0</td>
+                </tr>
+            </tbody>
+        </table>
+        <p style="font-size: 0.9rem;">*No adjustment in current year-end because the sale resets the balances.</p>
+    </div>
+
+    <!-- Slide 17: Impairment -->
+    <div class="slide">
+        <h2>Impairment Analysis</h2>
+        <div style="background:var(--bg-card); padding:2rem; border-radius:1rem; text-align:center; margin-bottom: 2rem;">
+            <h3>Is Sum of Future Cash Flows < Net Book Value?</h3>
+        </div>
+        
+        <div class="card-grid">
+            <div class="flip-card wide" onclick="this.classList.toggle('flipped')">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front" style="background:#451a24; border: 2px solid var(--danger);">
+                        <h3 style="color:var(--danger); font-size: 2rem;">YES</h3>
+                        <p style="color:#f38ba8;">Tap for Consequence</p>
+                    </div>
+                    <div class="flip-card-back" style="background:var(--danger); color: #451a24;">
+                        <h3>THE HIT</h3>
+                        <p>Asset is Impaired.<br>Write it down to Fair Value.<br>Recognize immediate Loss.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="flip-card wide" onclick="this.classList.toggle('flipped')">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front" style="background:#1e3a29; border: 2px solid var(--success);">
+                        <h3 style="color:var(--success); font-size: 2rem;">NO</h3>
+                        <p style="color:#a6e3a1;">Tap for Consequence</p>
+                    </div>
+                    <div class="flip-card-back" style="background:var(--success); color: #1e3a29;">
+                        <h3>THE REALITY</h3>
+                        <p>Do Nothing.<br>GAAP ignores increases in value.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 18: CVS Example -->
+    <div class="slide">
+        <h2>Real Life: CVS Health (2021)</h2>
+        <p>CVS decided to close 900 stores. The assets in those stores (shelves, signs, lease rights) were suddenly worth much less.</p>
+        <div class="hook-box">
+            <p><strong>The Hit:</strong> $1,358 Million Impairment Charge.</p>
+            <p><strong>The Reality:</strong> This is a non-cash expense. The cash was spent years ago to build the stores. This charge just acknowledges the mistake in valuation.</p>
+        </div>
+    </div>
+
+    <!-- Slide 19: Restructuring -->
+    <div class="slide">
+        <h2>Restructuring: The "Big Bath"</h2>
+        <div style="display: flex; align-items: center; justify-content: space-around;">
+            <div style="width: 60%;">
+                <p>Companies often group bad news into one big "Restructuring" charge to clear the decks.</p>
+                <p><strong>Components:</strong></p>
+                <ul>
+                    <li><strong>Employee Severance:</strong> Cash to be paid to fired workers.</li>
+                    <li><strong>Asset Write-downs:</strong> Non-cash reduction of asset values.</li>
+                    <li><strong>Exit Costs:</strong> Fees to break contracts/leases.</li>
+                </ul>
+            </div>
+            <div class="bath-container">
+                <!-- SVG Bath Icon -->
+                <svg viewBox="0 0 100 100" fill="none" stroke="var(--secondary)" stroke-width="2">
+                    <path d="M10,40 Q20,80 50,80 Q80,80 90,40 L90,30 L10,30 Z" fill="#313244"/>
+                    <line x1="20" y1="30" x2="20" y2="10" />
+                    <line x1="30" y1="30" x2="30" y2="10" />
+                    <path d="M15,10 Q25,0 35,10" />
+                    <!-- Water -->
+                    <path d="M15,40 Q30,50 45,40 T75,40 T90,40" stroke="var(--accent)" />
+                    <!-- Drain -->
+                    <circle cx="50" cy="70" r="5" fill="var(--danger)"/>
+                </svg>
+            </div>
+        </div>
+    </div>
+
+    <!-- Poll 4 -->
+    <div class="slide">
+        <h2>Poll Question 4</h2>
+        <div class="poll-container">
+            <div class="poll-question no-italics">True or False: A massive Restructuring Charge is usually a sign that a company is aggressively growing and expanding.</div>
+            <div class="poll-card" onclick="this.querySelector('.flip-card-inner').style.transform = this.querySelector('.flip-card-inner').style.transform === 'rotateY(180deg)' ? 'rotateY(0deg)' : 'rotateY(180deg)'">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front poll-front">
+                        <h3 style="color:var(--accent);">Click to Reveal Answer</h3>
+                    </div>
+                    <div class="flip-card-back poll-back" style="background:var(--danger);">
+                        <p>FALSE</p>
+                        <p style="font-size:1rem; font-weight:normal;" class="no-italics">Restructuring usually happens when things are going wrong. They are shrinking, firing people, and closing divisions to stop losses ("Right-sizing").</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 21: Pfizer -->
+    <div class="slide">
+        <h2>Pfizer's 2022 Clean-Up</h2>
+        <p>Pfizer optimized R&D and fired employees.</p>
+        <table class="financial-table">
+            <thead>
+                <tr><th>Category ($ Millions)</th><th>2020</th><th>2021</th><th>2022</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>Employee Terminations</td><td>$474</td><td>$680</td><td>$776</td></tr>
+                <tr><td>Asset Impairments</td><td>$66</td><td>$53</td><td>$52</td></tr>
+                <tr><td>Exit Costs</td><td>($6)</td><td>$8</td><td>$54</td></tr>
+                <tr><td><strong>Total Restructuring</strong></td><td><strong>$535</strong></td><td><strong>$741</strong></td><td><strong>$882</strong></td></tr>
+            </tbody>
+        </table>
+        <p>That $882M is a huge hit to 2022 earnings. Is it fair to penalize 2022 alone?</p>
+    </div>
+
+    <!-- Slide 22: Pfizer Adjustment Logic -->
+    <div class="slide">
+        <h2>Analyst Adjustment: Smoothing</h2>
+        <p>If Pfizer had perfect foresight, they would have recognized these costs over the years the employees worked there.</p>
+        <p><strong>The Strategy:</strong></p>
+        <ol>
+            <li><strong>Reverse</strong> the $776M termination charge from 2022.</li>
+            <li><strong>Allocate</strong> it back over the prior 3 years (approximate service period).</li>
+        </ol>
+    </div>
+
+    <!-- Slide 23: Pfizer Adjustment Table -->
+    <div class="slide">
+        <h2>Pfizer: The Numbers</h2>
+        <p>Smoothing the $776M Severance over 3 years ($258.7M/year).</p>
+        <table class="financial-table">
+            <thead>
+                <tr><th>Adjustment ($M)</th><th>2020</th><th>2021</th><th>2022</th></tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Reported Restructuring</strong></td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td><span class="negative">($776.0)</span></td>
+                </tr>
+                <tr class="highlight-row">
+                    <td><strong>Reversal (2022)</strong></td>
+                    <td></td>
+                    <td></td>
+                    <td><span class="positive">+$776.0</span></td>
+                </tr>
+                <tr>
+                    <td><strong>Allocation (Expense)</strong></td>
+                    <td><span class="negative">($258.7)</span></td>
+                    <td><span class="negative">($258.7)</span></td>
+                    <td><span class="negative">($258.7)</span></td>
+                </tr>
+                <tr>
+                    <td>Tax Effect (22%)</td>
+                    <td><span class="positive">+$56.9</span></td>
+                    <td><span class="positive">+$56.9</span></td>
+                    <td><span class="negative">($113.8)</span></td>
+                </tr>
+                <tr>
+                    <td><strong>Net Income Impact</strong></td>
+                    <td><span class="negative">($201.8)</span></td>
+                    <td><span class="negative">($201.8)</span></td>
+                    <td><span class="positive">+$403.5</span></td>
+                </tr>
+            </tbody>
+        </table>
+        <p><em>Result: 2022 Income looks better, past years look worse. This is a truer economic picture.</em></p>
+    </div>
+
+    <!-- Slide 24: Health Check Overview -->
+    <div class="slide">
+        <h2>Part 3: Diagnosing PP&E Health</h2>
+        <p>Is the factory productive? Are the machines falling apart? Check these vitals:</p>
+        <div class="card-grid">
+            <div class="flip-card" onclick="this.classList.toggle('flipped')">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front"><h3>PP&E Turnover</h3></div>
+                    <div class="flip-card-back"><p class="no-italics">Measures revenue generated per dollar of fixed assets.</p></div>
+                </div>
+            </div>
+            <div class="flip-card" onclick="this.classList.toggle('flipped')">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front"><h3>Average Useful Life</h3></div>
+                    <div class="flip-card-back"><p class="no-italics">Depreciable Cost / Depreciation Expense<br>How long do assets last?</p></div>
+                </div>
+            </div>
+            <div class="flip-card" onclick="this.classList.toggle('flipped')">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front"><h3>Percent Used Up</h3></div>
+                    <div class="flip-card-back"><p class="no-italics">Accum. Depr / Depreciable Cost<br>Are we due for a massive replacement cycle?</p></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 25: PP&E Turnover -->
+    <div class="slide">
+        <h2>PP&E Turnover: Interpreting the Ratio</h2>
+        <div class="card-grid">
+            <div class="flip-card" onclick="this.classList.toggle('flipped')">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front"><h3>HIGH Turnover</h3></div>
+                    <div class="flip-card-back">
+                        <p><strong>Efficient</strong></p>
+                        <p>Generating lots of sales with few assets (or assets are old/fully depreciated).</p>
+                    </div>
+                </div>
+            </div>
+            <div class="flip-card" onclick="this.classList.toggle('flipped')">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front"><h3>LOW Turnover</h3></div>
+                    <div class="flip-card-back">
+                        <p><strong>Capital Intensive</strong></p>
+                        <p>Heavy investment required to generate sales (e.g., Utilities, Oil, Telecom).</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 26: Home Depot Turnover -->
+    <div class="slide">
+        <h2>Home Depot Turnover (2022)</h2>
+        <div class="equation-box">
+            $$ \text{PP&E Turnover} = \frac{\text{Sales}}{\text{Average Net PP&E}} $$
+        </div>
+        
+        <div class="card-grid">
+            <div class="flip-card wide" onclick="this.classList.toggle('flipped')">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front"><h3>TAP TO REVEAL</h3></div>
+                    <div class="flip-card-back">
+                        <p style="font-size: 1.2rem;">$157,403 / $25,415 = <strong>6.2 times</strong></p>
+                        <p class="no-italics">Home Depot generates <strong>$6.20 in Sales per $1 of Net PP&E</strong>.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 27: Average Useful Life -->
+    <div class="slide">
+        <h2>Average Useful Life</h2>
+        <div class="equation-box">
+            $$ \text{Avg Useful Life} = \frac{\text{Gross Depreciable Assets}}{\text{Depreciation Expense}} $$
+        </div>
+
+        <h3>How long does Home Depot keep its stuff?</h3>
+        
+        <div class="card-grid">
+            <div class="flip-card wide" onclick="this.classList.toggle('flipped')">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front"><h3>TAP TO REVEAL</h3></div>
+                    <div class="flip-card-back">
+                        <p style="font-size: 1.2rem;">$41,916 / $2,756 = <strong>15.2 Years</strong></p>
+                        <p class="no-italics">This suggests their equipment and buildings last about 15 years on average.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 28: Percent Used Up -->
+    <div class="slide">
+        <h2>Percent Used Up</h2>
+        <div class="equation-box">
+            $$ \text{Percent Used Up} = \frac{\text{Accumulated Depreciation}}{\text{Gross Depreciable Cost}} $$
+        </div>
+
+        <h3>How worn out is the fleet?</h3>
+        
+        <div class="card-grid">
+            <div class="flip-card wide" onclick="this.classList.toggle('flipped')">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front"><h3>TAP TO REVEAL</h3></div>
+                    <div class="flip-card-back">
+                        <p style="font-size: 1.2rem;">$26,644 / $42,259 = <strong>63%</strong></p>
+                        <p class="no-italics"><strong>Interpretation:</strong> Home Depot's assets are 63% "gone". They will likely need heavy CAPEX soon to replace them.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 29: Leased Assets -->
+    <div class="slide">
+        <h2>The Hidden Assets: Leases</h2>
+        <p>Companies rent a lot of stuff. If we ignore leases, we miss a huge chunk of assets.</p>
+        
+        <table class="financial-table">
+            <thead>
+                <tr>
+                    <th>Type ($ Millions)</th>
+                    <th>FY2022</th>
+                    <th>FY2021</th>
+                    <th>FY2020</th>
+                    <th>FY2019</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Operating lease assets</td>
+                    <td>$6,941</td>
+                    <td>$5,968</td>
+                    <td>$5,962</td>
+                    <td>$5,595</td>
+                </tr>
+                <tr>
+                    <td>Finance lease assets</td>
+                    <td>2,899</td>
+                    <td>2,896</td>
+                    <td>2,493</td>
+                    <td>934</td>
+                </tr>
+                <tr class="highlight-row">
+                    <td><strong>Total lease assets</strong></td>
+                    <td><strong>$9,840</strong></td>
+                    <td><strong>$8,864</strong></td>
+                    <td><strong>$8,455</strong></td>
+                    <td><strong>$6,529</strong></td>
+                </tr>
+            </tbody>
+        </table>
+        <p><em>Insight:</em> Home Depot has nearly $10 Billion in assets that traditionally weren't counted as "PP&E" in ratios.</p>
+    </div>
+
+    <!-- Slide 30: Adjusted Turnover -->
+    <div class="slide">
+        <h2>Adjusting Turnover for Leases</h2>
+        <p>If we ignore leases, Home Depot looks more efficient than it is.</p>
+        <table class="financial-table">
+            <thead>
+                <tr><th>Metric</th><th>Reported</th><th>Adjusted (with Leases)</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>Sales</td><td>$157,403</td><td>$157,403</td></tr>
+                <tr><td>Asset Base</td><td>$25,631 (PP&E)</td><td>$32,572 (PP&E + ROU)</td></tr>
+                <tr class="highlight-row">
+                    <td><strong>Turnover</strong></td>
+                    <td><strong>6.19x</strong></td>
+                    <td><strong>4.94x</strong></td>
+                </tr>
+            </tbody>
+        </table>
+        <p>The Adjusted Turnover (4.94) is the <em>true</em> efficiency.</p>
+    </div>
+
+    <!-- Slide 31: Intangibles -->
+    <div class="slide">
+        <h2>Part 4: The Unseen Value</h2>
+        <p>For many companies, physical assets are irrelevant. The value is in Brands, Patents, and Code.</p>
+        <p><strong>The Gap:</strong> Market Value is often 3x-4x higher than Book Value. Why? Because internally developed intangibles (like the Nike Swoosh) are usually <strong>not on the balance sheet</strong>.</p>
+        <p>They only appear when bought.</p>
+    </div>
+
+    <!-- Slide 32: Acquisition Math -->
+    <div class="slide">
+        <h2>The Birth of Goodwill</h2>
+        <p>How is Goodwill created? Let's look at <strong>AMD acquiring Xilinx (2022)</strong>.</p>
+        <table class="financial-table">
+            <tr><td>Purchase Price</td><td>$48,793 M</td></tr>
+            <tr><td>Less: Fair Value of Net Assets</td><td>($26,009 M)</td></tr>
+            <tr class="highlight-row">
+                <td><strong>Equals: Goodwill</strong></td>
+                <td>
+                    <span class="reveal-box" onclick="this.classList.add('revealed')">$22,784 M</span>
+                </td>
+            </tr>
+        </table>
+        <p>Goodwill is the "Plug." It's the premium paid over the value of identifiable stuff.</p>
+    </div>
+
+    <!-- Slide 33: Buffett on Goodwill -->
+    <div class="slide">
+        <h2>Warren Buffett on Goodwill</h2>
+        <div style="display: flex; gap: 2rem; height: 70%;">
+            <div style="flex: 1; display: flex; flex-direction: column; justify-content: center;">
+                <iframe 
+                    width="100%" 
+                    height="300" 
+                    src="https://www.youtube.com/embed/pDHFihXUXkg?rel=0&modestbranding=1" 
+                    title="YouTube video player"
+                    frameborder="0" 
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+                    allowfullscreen 
+                    referrerpolicy="strict-origin-when-cross-origin"
+                    style="border-radius: 1rem; border: 1px solid #45475a;">
+                </iframe>
+                <div style="margin-top:10px; text-align:center;">
+                  <a class="btn" href="https://www.youtube.com/watch?v=pDHFihXUXkg" target="_blank">
+                    Video not loading? Open in YouTube
+                  </a>
+                </div>
+            </div>
+            <div style="flex: 1; overflow-y: auto;">
+                <h3>Key Takeaways</h3>
+                <ul>
+                    <li><strong>Business Attractiveness:</strong> Ignore goodwill. Look at Return on Tangible Assets.</li>
+                    <li><strong>Capital Allocation:</strong> You MUST include goodwill to judge management, because they spent real money to buy it.</li>
+                    <li><strong>Amortization vs Write-offs:</strong> Amortization makes no sense (brands often gain value). But write-offs are appropriate when a purchase was a mistake.</li>
+                    <li><strong>The Lubrizol Example:</strong> Good business on its own (high return on tangible assets), but Berkshire's return is lower because of the premium paid.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 34: Apple vs MSFT -->
+    <div class="slide">
+        <h2>Goodwill: The "Restaurant Analogy"</h2>
+        <div style="background:var(--bg-card); padding:1rem; border-radius:1rem; margin-bottom:1rem;">
+            <h3>What are you paying for?</h3>
+            <p>If you buy a popular restaurant, you pay for the ovens and tables (Identifiable Assets). But you pay EXTRA for the reputation and loyal customers.</p>
+            <p style="color:var(--accent); font-weight:bold;">That EXTRA is Goodwill.</p>
+        </div>
+
+        <div style="display: flex; gap: 1rem;">
+            <div style="flex:1; background: #262626; padding:1rem; border-radius:1rem; border: 1px solid #555;">
+                <h4 style="color:#00a4ef;">Microsoft</h4>
+                <p><strong>Strategy:</strong> Buys big companies (LinkedIn, Activision).</p>
+                <p><strong>Result:</strong> High Goodwill.</p>
+                
+            </div>
+            <div style="flex:1; background: #e5e5e5; color: #000000; padding:1rem; border-radius:1rem; border: 1px solid #999;">
+                <h4 style="color:black;">Apple</h4>
+                <p style="color:black;"><strong>Strategy:</strong> Builds internally. Organic growth.</p>
+                <p style="color:black;"><strong>Result:</strong> Low Goodwill.</p>
+            </div>
+        </div>
+
+        <!-- Chart -->
+        <div class="chart-container">
+            <div class="chart-group">
+                <div class="chart-bars">
+                    <div class="bar bar-book" style="height: 80px;"><span class="bar-label">Book</span></div>
+                    <div class="bar bar-market" style="height: 140px;"><span class="bar-label">Market</span></div>
+                </div>
+                <div style="text-align: center; margin-top: 5px;">Microsoft</div>
+            </div>
+            <div class="chart-group">
+                <div class="chart-bars">
+                    <div class="bar bar-book" style="height: 10px;"><span class="bar-label">Book</span></div>
+                    <div class="bar bar-market" style="height: 200px;"><span class="bar-label">Market</span></div>
+                </div>
+                <div style="text-align: center; margin-top: 5px;">Apple</div>
+            </div>
+        </div>
+        <div class="legend">
+            <div class="legend-item"><div class="dot" style="background:var(--secondary)"></div>Book Value (Assets)</div>
+            <div class="legend-item"><div class="dot" style="background:var(--success)"></div>Market Value (Price)</div>
+        </div>
+
+        <p style="font-size:0.9rem; margin-top:1rem; text-align: center; padding-bottom: 2rem;"><em>Key Lesson: Apple's massive brand value is "hidden" off the balance sheet because it was built, not bought.</em></p>
+    </div>
+
+    <!-- Poll 5 -->
+    <div class="slide">
+        <h2>Poll Question 5</h2>
+        <div class="poll-container">
+            <div class="poll-question no-italics">True or False: A company can record Goodwill for its own excellent reputation and brand name that it built over 50 years.</div>
+            <div class="poll-card" onclick="this.querySelector('.flip-card-inner').style.transform = this.querySelector('.flip-card-inner').style.transform === 'rotateY(180deg)' ? 'rotateY(0deg)' : 'rotateY(180deg)'">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front poll-front">
+                        <h3 style="color:var(--accent);">Click to Reveal Answer</h3>
+                    </div>
+                    <div class="flip-card-back poll-back" style="background:var(--danger);">
+                        <p>FALSE</p>
+                        <p style="font-size:1rem; font-weight:normal;" class="no-italics">Internally generated Goodwill is <strong>never</strong> recorded. Goodwill only appears when you buy ANOTHER company and pay a premium.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 36: Valuing Intangibles -->
+    <div class="slide">
+        <h2>How do they value the parts?</h2>
+        <div class="img-container">
+            <img src="https://images.unsplash.com/photo-1554224155-6726b3ff858f?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80" alt="Valuation Assessment">
+        </div>
+        <p>AMD identified $27B in specific intangibles. How?</p>
+        
+        <div class="card-grid">
+            <div class="flip-card" onclick="this.classList.toggle('flipped')">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front"><h3>Relief from Royalty</h3></div>
+                    <div class="flip-card-back"><p class="no-italics">"If we didn't own this brand, how much would we have to pay to license it?" (Used for Brands).</p></div>
+                </div>
+            </div>
+            <div class="flip-card" onclick="this.classList.toggle('flipped')">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front"><h3>Replacement Cost</h3></div>
+                    <div class="flip-card-back"><p class="no-italics">"How much would it cost to rebuild this code from scratch?" (Used for Software).</p></div>
+                </div>
+            </div>
+            <div class="flip-card" onclick="this.classList.toggle('flipped')">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front"><h3>Excess Earnings</h3></div>
+                    <div class="flip-card-back"><p class="no-italics">"How much cash does this generate above a normal return on assets?"</p></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 37: Goodwill Impairment -->
+    <div class="slide">
+        <h2>When Goodwill Goes Bad</h2>
+        <p>Goodwill is not amortized. It sits there forever... unless it is <strong>Impaired</strong>.</p>
+        <div class="hook-box" style="border-color:var(--danger);">
+            <h3>Impairment Signal</h3>
+            <p>A Goodwill Write-down means management admits: "We overpaid."</p>
+            <p>It's an admission of a failed acquisition strategy.</p>
+        </div>
+    </div>
+
+    <!-- Slide 38: DXC Case -->
+    <div class="slide">
+        <h2>Case Study: DXC Technology</h2>
+        <p>In 2020, DXC took a massive <strong>$6.8 Billion</strong> impairment charge on goodwill from a deal 4 years prior.</p>
+        <p>As an analyst, seeing this huge loss in 2020 is "Noise." It distorts 2020 performance.</p>
+        <p>The loss really belongs to the years 2017, 2018, 2019, and 2020 (when value was eroding).</p>
+    </div>
+
+    <!-- Slide 39: DXC Adjustment -->
+    <div class="slide">
+        <h2>DXC Adjustment: Spreading the Pain</h2>
+        <p>We take the $6.8B loss and spread it back over 4 years ($1.7B/year).</p>
+        <table class="financial-table">
+            <thead>
+                <tr><th>Metric ($B)</th><th>2017</th><th>2018</th><th>2019</th><th>2020</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>Allocation of Loss</td><td>($1.7)</td><td>($1.7)</td><td>($1.7)</td><td>($1.7)</td></tr>
+                <tr><td>Tax Benefit</td><td>$0.4</td><td>$0.4</td><td>$0.4</td><td>$0.4</td></tr>
+                <tr class="highlight-row"><td><strong>Net Income Impact</strong></td><td><strong>($1.3)</strong></td><td><strong>($1.3)</strong></td><td><strong>($1.3)</strong></td><td><strong>($1.3)</strong></td></tr>
+            </tbody>
+        </table>
+        <p><em>Result:</em> 2020 Income increases (removing the huge hit), but prior years' income decreases.</p>
+    </div>
+
+    <!-- Slide 40: Practice Exercise -->
+    <div class="slide">
+        <h2>Your Turn: Asset Sale Adjustment</h2>
+        <div class="hook-box" style="border-color: var(--secondary);">
+            <h3>Scenario</h3>
+            <p>Company Z sells a warehouse for a <strong>$500 Million Gain</strong> in 2023. The warehouse was used for 5 years.</p>
+            <p>Tax Rate: 20%</p>
+        </div>
+        
+        <h3>Calculate the Adjusted Net Income Impact</h3>
+        <button id="toggleBtn" class="btn" onclick="toggleSolution()">Reveal Solution</button>
+        
+        <div id="solution-33" class="solution-wrapper">
+            <table class="financial-table">
+                <thead>
+                    <tr><th>Step</th><th>Adjustment</th><th>Calculation</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td colspan="3" class="highlight-row"><strong>Part 1: Reversal (Remove One-Time Gain)</strong></td>
+                    </tr>
+                    <tr>
+                        <td>Reverse Gain</td>
+                        <td><span class="negative">-$500 M</span></td>
+                        <td>Remove reported gain</td>
+                    </tr>
+                    <tr>
+                        <td>Reverse Tax Exp</td>
+                        <td><span class="positive">+$100 M</span></td>
+                        <td>$500 * 20%</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Net Reversal</strong></td>
+                        <td><strong>-$400 M</strong></td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td colspan="3" class="highlight-row"><strong>Part 2: Allocation (Correct Past Depreciation)</strong></td>
+                    </tr>
+                    <tr>
+                        <td>Adjust Depr Expense</td>
+                        <td><span class="positive">+$100 M</span></td>
+                        <td>$500 Gain / 5 Yrs = $100M/yr<br>(Gain means past exp was too high, so we reduce exp/increase income)</td>
+                    </tr>
+                    <tr>
+                        <td>Adjust Tax Expense</td>
+                        <td><span class="negative">-$20 M</span></td>
+                        <td>$100 * 20%</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Net Allocation</strong></td>
+                        <td><strong>+$80 M</strong></td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td colspan="3" style="border-top: 2px solid white;"><strong>Total Adjustment: -$400 + $80 = -$320 Million</strong></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Slide 41: Summary (Renamed & Reveal) -->
+    <div class="slide">
+        <h2>Summary</h2>
+        <p>We have learned to separate Signal from Noise.</p>
+        <div style="background:var(--bg-card); padding:2rem; border-radius:1rem;">
+            <ul class="reveal-list">
+                <li onclick="this.classList.add('visible')">👉 <strong>Asset Sales:</strong> Gains are just corrections of past depreciation errors. Reverse and allocate.</li>
+                <li onclick="this.classList.add('visible')">👉 <strong>Restructuring:</strong> Big one-time charges should be smoothed over the service period.</li>
+                <li onclick="this.classList.add('visible')">👉 <strong>PP&E Health:</strong> Use Turnover, Life, and Used Up ratios. Adjust for Leases!</li>
+                <li onclick="this.classList.add('visible')">👉 <strong>Goodwill:</strong> A write-down is a confession of overpayment.</li>
+            </ul>
+        </div>
+        <p style="text-align:center; margin-top:2rem; font-size: 0.9rem; color: #6c7086;">(Tap bullets to reveal)</p>
+        <p style="text-align:center; margin-top:2rem;">Ready to prove your skills?</p>
+    </div>
+
+    <!-- Slide 42: Quiz Intro -->
+    <div class="slide">
+        <div style="text-align:center; margin-top:15%;">
+            <h1>Final Exam</h1>
+            <p>15 Questions. One Analyst. Can you beat the market?</p>
+            <button class="btn" onclick="nextSlide()">Start Quiz</button>
+        </div>
+    </div>
+
+    <!-- Slide 43: Quiz -->
+    <div class="slide">
+        <div id="quiz-container" style="max-width: 800px; margin: 0 auto;">
+            <!-- Quiz Generated by JS -->
+        </div>
+        <div id="quiz-feedback" style="margin-top:1rem; font-weight:bold; min-height:20px;"></div>
+        <div style="display:flex; justify-content:space-between; margin-top:2rem;">
+            <div id="score-display">Score: 0</div>
+            <button id="next-q-btn" class="btn" style="display:none;" onclick="nextQuestion()">Next Question</button>
+        </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="controls">
+        <div class="nav-info">Slide <span id="slide-number">1</span> of <span id="total-slides">43</span></div>
+        <button class="btn" id="prevBtn" onclick="prevSlide()">Previous</button>
+        <div class="progress-container">
+            <div class="progress-bar" id="progressBar"></div>
+        </div>
+        <button class="btn" id="nextBtn" onclick="nextSlide()">Next</button>
+    </div>
+
+</div>
+
+<script>
+    // MathJax Configuration
+    window.MathJax = {
+        tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] }
+    };
+
+    let currentSlide = 0;
+    const slides = document.querySelectorAll('.slide');
+    const progressBar = document.getElementById('progressBar');
+    const slideNumber = document.getElementById('slide-number');
+    const totalSlides = document.getElementById('total-slides');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+
+    totalSlides.innerText = slides.length;
+
+    function updateSlide() {
+        slides.forEach((s, i) => {
+            s.classList.remove('active');
+            if (i === currentSlide) s.classList.add('active');
+        });
+
+        // Progress
+        const progress = ((currentSlide + 1) / slides.length) * 100;
+        progressBar.style.width = `${progress}%`;
+        slideNumber.innerText = currentSlide + 1;
+
+        // Buttons
+        prevBtn.disabled = currentSlide === 0;
+        
+        // Hide Next button on Quiz slide to force interaction
+        if (currentSlide === slides.length - 1) {
+            nextBtn.style.display = 'none';
+        } else {
+            nextBtn.style.display = 'block';
+            nextBtn.innerText = currentSlide === slides.length - 2 ? "Start Quiz" : "Next";
+        }
+    }
+
+    function nextSlide() {
+        if (currentSlide < slides.length - 1) {
+            currentSlide++;
+            updateSlide();
+        }
+    }
+
+    function prevSlide() {
+        if (currentSlide > 0) {
+            currentSlide--;
+            updateSlide();
+        }
+    }
+
+    // Toggle Solution Function for Slide 40
+    function toggleSolution() {
+        const solutionDiv = document.getElementById('solution-33');
+        const btn = document.getElementById('toggleBtn');
+        
+        if (solutionDiv.style.display === 'block') {
+            solutionDiv.style.display = 'none';
+            btn.innerText = "Reveal Solution";
+        } else {
+            solutionDiv.style.display = 'block';
+            btn.innerText = "Hide Solution";
+        }
+    }
+
+    // Quiz Logic
+    const quizQuestions = [
+        { q: "What does 'Capitalization' mean in accounting?", o: ["Recording a cost as an Asset", "Recording a cost as an Expense", "Paying off debt", "Issuing stock"], a: 0 },
+        { q: "How should R&D Personnel Salaries be treated?", o: ["Capitalized", "Expensed Immediately", "Amortized over 5 years", "Added to Goodwill"], a: 1 },
+        { q: "A Gain on Asset Sale usually implies what about the past?", o: ["We were too profitable", "We depreciated the asset too much", "We didn't depreciate enough", "Market prices fell"], a: 1 },
+        { q: "In the T-Mobile case, how do we handle the $1B Gain?", o: ["Keep it in current income", "Reverse it and allocate to Equity", "Reverse it and allocate to past Depreciation", "Ignore it"], a: 2 },
+        { q: "When is an asset considered Impaired?", o: ["When it is old", "When Future Cash Flows < Net Book Value", "When Market Value < Purchase Price", "When we stop using it"], a: 1 },
+        { q: "Which is NOT a component of Restructuring costs?", o: ["Employee Severance", "Asset Write-downs", "Marketing Expense", "Exit Costs"], a: 2 },
+        { q: "Why do analysts 'smooth' restructuring costs?", o: ["To lower taxes", "To approximate perfect foresight matching costs to benefits", "To increase current assets", "To follow GAAP rules"], a: 1 },
+        { q: "What is the formula for PP&E Turnover?", o: ["Sales / Total Assets", "Net Income / PP&E", "Sales / Average Net PP&E", "COGS / Inventory"], a: 2 },
+        { q: "If 'Percent Used Up' is 80%, what does it signal?", o: ["Assets are brand new", "High efficiency", "Massive capital replacement needed soon", "Low maintenance costs"], a: 2 },
+        { q: "What effect does adding Operating Leases (ROU) have on Turnover?", o: ["Increases Turnover", "Decreases Turnover", "No Effect", "Increases Sales"], a: 1 },
+        { q: "How is Goodwill calculated in an acquisition?", o: ["Purchase Price - Fair Value of Net Assets", "Purchase Price + Liabilities", "Fair Value of Assets only", "Stock Price * Shares"], a: 0 },
+        { q: "Does Goodwill get amortized?", o: ["Yes, over 10 years", "Yes, over 40 years", "No, it has an indefinite life", "Only if self-created"], a: 2 },
+        { q: "What does a Goodwill Impairment signal?", o: ["The subsidiary is growing", "Management overpaid for the acquisition", "Tax rates increased", "Interest rates fell"], a: 1 },
+        { q: "In the 'Signal vs Noise' framework, what is a Restructuring Charge?", o: ["Signal", "Noise", "Revenue", "Equity"], a: 1 },
+        { q: "Why does Apple have less Goodwill than Microsoft?", o: ["It has no brand value", "It grows organically rather than by acquisition", "It writes it off immediately", "It hides it in R&D"], a: 1 }
+    ];
+
+    let qIndex = 0;
+    let score = 0;
+
+    function loadQuestion() {
+        const container = document.getElementById('quiz-container');
+        const feedback = document.getElementById('quiz-feedback');
+        const nextBtn = document.getElementById('next-q-btn');
+        const q = quizQuestions[qIndex];
+
+        container.innerHTML = `<h3>Question ${qIndex + 1}/15</h3><p>${q.q}</p>`;
+        
+        q.o.forEach((opt, i) => {
+            const div = document.createElement('div');
+            div.className = 'quiz-option';
+            div.innerText = opt;
+            div.onclick = () => checkAnswer(div, i, q.a);
+            container.appendChild(div);
+        });
+
+        feedback.innerText = "";
+        nextBtn.style.display = 'none';
+    }
+
+    function checkAnswer(el, idx, correct) {
+        const opts = document.querySelectorAll('.quiz-option');
+        if ([...opts].some(o => o.classList.contains('correct') || o.classList.contains('incorrect'))) return; // Lock
+
+        const feedback = document.getElementById('quiz-feedback');
+        const nextBtn = document.getElementById('next-q-btn');
+
+        if (idx === correct) {
+            el.classList.add('correct');
+            feedback.innerText = "Correct! Good analysis.";
+            feedback.style.color = "var(--success)";
+            score++;
+        } else {
+            el.classList.add('incorrect');
+            opts[correct].classList.add('correct');
+            feedback.innerText = "Incorrect.";
+            feedback.style.color = "var(--danger)";
+        }
+
+        document.getElementById('score-display').innerText = `Score: ${score}`;
+        nextBtn.style.display = 'block';
+
+        if (qIndex === quizQuestions.length - 1) nextBtn.innerText = "Finish";
+    }
+
+    function nextQuestion() {
+        if (qIndex < quizQuestions.length - 1) {
+            qIndex++;
+            loadQuestion();
+        } else {
+            finishQuiz();
+        }
+    }
+
+    function finishQuiz() {
+        const container = document.getElementById('quiz-container');
+        document.getElementById('next-q-btn').style.display = 'none';
+        document.getElementById('quiz-feedback').innerText = "";
+
+        let msg = "";
+        if (score >= 12) {
+            msg = "Master Analyst Status Achieved! 🚀";
+            startConfetti();
+        } else {
+            msg = "Keep studying the financials. You're getting there.";
+        }
+
+        container.innerHTML = `
+            <div style="text-align:center;">
+                <h2>Quiz Complete</h2>
+                <p style="font-size:2rem; margin:2rem;">${score} / 15</p>
+                <p style="color:var(--secondary); font-size:1.5rem;">${msg}</p>
+                <button class="btn" onclick="location.reload()">Restart Module</button>
+            </div>
+        `;
+    }
+
+    // Confetti
+    function startConfetti() {
+        const canvas = document.getElementById('confetti-canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        
+        const particles = [];
+        const colors = ['#89b4fa', '#f9e2af', '#a6e3a1', '#f38ba8'];
+
+        for(let i=0; i<300; i++) {
+            particles.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height - canvas.height,
+                color: colors[Math.floor(Math.random() * colors.length)],
+                size: Math.random() * 8 + 4,
+                speedY: Math.random() * 3 + 2,
+                speedX: Math.random() * 2 - 1
+            });
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => {
+                p.y += p.speedY;
+                p.x += p.speedX;
+                if (p.y > canvas.height) p.y = -10;
+                ctx.fillStyle = p.color;
+                ctx.fillRect(p.x, p.y, p.size, p.size);
+            });
+            requestAnimationFrame(animate);
+        }
+        animate();
+        setTimeout(() => ctx.clearRect(0,0,canvas.width,canvas.height), 6000);
+    }
+
+    // Init
+    const script = document.createElement('script');
+    script.src = "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js";
+    document.head.appendChild(script);
+
+    updateSlide();
+    loadQuestion();
+
+</script>
+</body>
+</html>
