@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Financial Analysis Simulation: E4.24 & Credit Risk</title>
+    <title>Financial Analysis Simulation: Spirit AeroSystems (P4-34)</title>
     
     <!-- Dependencies -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -121,7 +121,7 @@
 
         // --- DATA: SPIRIT AEROSYSTEMS ---
         const SPIRIT_DATA = {
-            metadata: { name: "Spirit AeroSystems", year: "Current Year" },
+            metadata: { name: "Spirit AeroSystems (P4-34)", year: "Current Year" },
             tables: [
                 {
                     title: "Balance Sheet: Assets ($M)",
@@ -190,27 +190,28 @@
         };
 
         const SPIRIT_ANSWER_KEY = {
-            "s_liab_eq_curr": "Negative", "s_liab_eq_prior": "2.77",
-            "s_debt_eq_curr": "Negative", "s_debt_eq_prior": "8.65",
-            "s_cap_interp": "Capital structure ratios are the most difficult to compare due to the negative equity balance in the current year.",
+            "s_liab_eq_curr": "Negative", "s_liab_eq_prior": "16.258",
+            "s_debt_eq_curr": "Negative", "s_debt_eq_prior": "8.653",
+            "s_cap_interp": "Because the company has negative equity in the current fiscal year and very low equity in the prior year, we cannot interpret these two capital structure ratios. We can observe that the level of debt is very significant and the capital structure is weak.",
             
             "s_tie_curr": "-1.152", "s_tie_prior": "-1.893",
+            "s_ebitda_calc_curr": "55.9", "s_ebitda_calc_prior": "-131.6",
             "s_ebitda_curr": "0.229", "s_ebitda_prior": "-0.542",
-            "s_cfo_debt_curr": "-0.10", "s_cfo_debt_prior": "-0.016",
-            "s_focf_debt_curr": "-0.13", "s_focf_debt_prior": "-0.055",
+            "s_cfo_debt_curr": "-0.100", "s_cfo_debt_prior": "-0.016",
+            "s_focf_debt_curr": "-0.130", "s_focf_debt_prior": "-0.055",
             "s_cov_drivers": "Improvement in TIE/EBITDA driven by GAAP earnings. Worsening cash coverage driven by decrease in CFO.",
             
             "s_curr_ratio_curr": "1.618", "s_curr_ratio_prior": "2.029",
             "s_quick_ratio_curr": "0.588", "s_quick_ratio_prior": "1.034",
-            "s_liq_concl": "Liquidity ratios are stronger than coverage ratios, despite deterioration from the prior year."
+            "s_liq_concl": "Spirit AeroSystems has high levels of credit risk. All of the metrics are weak and most have weakened during the recent fiscal year."
         };
 
         const SPIRIT_QUESTIONS = [
             {
-                id: "sq1", title: "1. Capital Structure Ratios", desc: "Compute structure ratios. Note any negative equity issues.",
+                id: "sq1", title: "1. Capital Structure Ratios", desc: "Compute structure ratios. Note any negative equity issues by entering 'Negative' (do not calculate).",
                 sections: [
-                    { subtitle: "Liabilities-to-Equity", fields: [{ id: "s_liab_eq_curr", label: "Current", type: "text", hint: "Total Liab / Equity" }, { id: "s_liab_eq_prior", label: "Prior", type: "decimal", hint: "Total Liab / Equity" }] },
-                    { subtitle: "Total Debt-to-Equity", fields: [{ id: "s_debt_eq_curr", label: "Current", type: "text", hint: "Total Debt / Equity" }, { id: "s_debt_eq_prior", label: "Prior", type: "decimal", hint: "Total Debt / Equity" }] },
+                    { subtitle: "Liabilities-to-Equity", fields: [{ id: "s_liab_eq_curr", label: "Current", type: "text", hint: "Total Liab / Stockholders' Equity" }, { id: "s_liab_eq_prior", label: "Prior", type: "decimal", hint: "Total Liab / Stockholders' Equity" }] },
+                    { subtitle: "Total Debt-to-Equity", fields: [{ id: "s_debt_eq_curr", label: "Current", type: "text", hint: "Total Debt / Stockholders' Equity" }, { id: "s_debt_eq_prior", label: "Prior", type: "decimal", hint: "Total Debt / Stockholders' Equity" }] },
                     { subtitle: "Interpretation", fields: [{ id: "s_cap_interp", label: "Analysis", type: "text", fullWidth: true }] }
                 ]
             },
@@ -218,6 +219,7 @@
                 id: "sq2", title: "2. Coverage Ratios", desc: "Assess ability to service debt. (Total Debt = ST Debt + Curr Lease + LT Debt + Noncurr Lease)",
                 sections: [
                     { subtitle: "Times Interest Earned", fields: [{ id: "s_tie_curr", label: "Current", type: "decimal", hint: "EBIT / Interest" }, { id: "s_tie_prior", label: "Prior", type: "decimal", hint: "EBIT / Interest" }] },
+                    { subtitle: "EBITDA Build", fields: [{ id: "s_ebitda_calc_curr", label: "Current EBITDA", type: "decimal", hint: "EBIT + Depr + Amort" }, { id: "s_ebitda_calc_prior", label: "Prior EBITDA", type: "decimal", hint: "EBIT + Depr + Amort" }] },
                     { subtitle: "EBITDA Coverage", fields: [{ id: "s_ebitda_curr", label: "Current", type: "decimal", hint: "(EBIT+Dep+Amort)/Int" }, { id: "s_ebitda_prior", label: "Prior", type: "decimal", hint: "(EBIT+Dep+Amort)/Int" }] },
                     { subtitle: "CFO to Total Debt", fields: [{ id: "s_cfo_debt_curr", label: "Current", type: "decimal", hint: "CFO / Total Debt" }, { id: "s_cfo_debt_prior", label: "Prior", type: "decimal", hint: "CFO / Total Debt" }] },
                     { subtitle: "FOCF to Total Debt", fields: [{ id: "s_focf_debt_curr", label: "Current", type: "decimal", hint: "(CFO-CAPEX)/Total Debt" }, { id: "s_focf_debt_prior", label: "Prior", type: "decimal", hint: "(CFO-CAPEX)/Total Debt" }] },
@@ -279,7 +281,10 @@
             const evaluateMath = (expr) => {
                 if (!expr) return { valid: true, val: "" };
                 try {
-                    const sanitized = expr.toString().replace(/,/g, '').replace(/%/g, '/100');
+                    let sanitized = expr.toString().replace(/,/g, '').replace(/%/g, '/100');
+                    // Handle accounting parens: (123) -> -123
+                    sanitized = sanitized.replace(/\(([\d\.]+)\)/g, '-$1');
+                    
                     if (!/^[\d\.\+\-\*\/\(\)\s]+$/.test(sanitized)) return { valid: false, msg: "Invalid characters" };
                     const res = eval(sanitized);
                     if (!isFinite(res) || isNaN(res)) return { valid: false, msg: "Math Error" };
@@ -313,10 +318,9 @@
             }, [value, correctValue, type]);
 
             const handleBlur = (e) => {
-                if (type === 'text') return;
                 const { valid, val } = evaluateMath(value);
-                if (!valid) { setLocalError("Invalid Math"); return; }
                 setLocalError(null);
+                
                 if (valid && value !== "") {
                      const numVal = Number(val);
                      let displayVal = numVal;
@@ -327,6 +331,9 @@
                         displayVal = Number.isInteger(numVal) ? numVal.toString() : numVal.toFixed(3);
                      }
                      onChange(id, displayVal.toString()); 
+                } else if (!valid && type !== 'text') {
+                     // Only show invalid math error if we were expecting a number
+                     setLocalError("Invalid Math");
                 }
             };
 
@@ -360,7 +367,7 @@
                                     className={`w-full p-3 pr-10 border rounded-lg font-mono text-sm shadow-sm transition-all ${
                                         isCorrect ? "input-correct" : (value && !isActive && !isCorrect) ? "input-incorrect" : "input-neutral"
                                     }`}
-                                    placeholder={type === 'text' ? "Type answer..." : "Calculate..."}
+                                    placeholder={type === 'text' ? (correctValue === "Negative" ? "Enter answer..." : "Type answer...") : "Calculate..."}
                                 />
                             )}
                             <div className="absolute right-3 top-3 text-slate-400 pointer-events-none">
@@ -370,9 +377,9 @@
                             </div>
                         </div>
                         {hint && (
-                            <div className="w-1/3 shrink-0 bg-blue-50 border border-blue-100 rounded p-2 flex flex-col justify-center min-h-[46px]">
+                            <div className="w-2/5 shrink-0 bg-blue-50 border border-blue-100 rounded p-2 flex flex-col justify-center min-h-[46px]">
                                 <span className="text-[10px] text-blue-500 font-bold uppercase tracking-wider block mb-0.5">Formula</span>
-                                <span className="text-xs text-blue-800 font-medium leading-tight">{hint}</span>
+                                <span className="text-[10px] sm:text-xs text-blue-800 font-medium leading-tight break-words">{hint}</span>
                             </div>
                         )}
                     </div>
@@ -573,7 +580,7 @@ ${Object.keys(activeKey).map(k => `${k}: ${inputs[k] || "[Empty]"}`).join('\n')}
                                 onClick={() => setActiveTab('spirit')}
                                 className={`flex-1 py-3 text-sm font-bold flex items-center justify-center gap-2 transition-colors ${activeTab === 'spirit' ? 'bg-blue-600 text-white' : 'hover:bg-slate-700 text-slate-400'}`}
                             >
-                                <Icon name="plane" size={16} /> Spirit AeroSystems (Credit Risk)
+                                <Icon name="plane" size={16} /> Spirit AeroSystems (P4-34)
                             </button>
                         </div>
 
