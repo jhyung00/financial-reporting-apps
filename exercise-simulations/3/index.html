@@ -27,6 +27,15 @@
         .input-neutral { background-color: #fff; border-color: #cbd5e1; }
         .input-neutral:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
 
+        /* Excel Table Styles */
+        .excel-table { border-collapse: collapse; width: 100%; font-size: 0.875rem; }
+        .excel-table th, .excel-table td { border: 1px solid #e2e8f0; padding: 8px 12px; }
+        .excel-table th { background-color: #f8fafc; font-weight: 600; text-align: left; color: #475569; }
+        .excel-table td.input-cell { padding: 0; }
+        .excel-table input { border: none; width: 100%; height: 100%; padding: 8px 12px; outline: none; font-family: monospace; text-align: right; }
+        .excel-table input:focus { box-shadow: inset 0 0 0 2px #3b82f6; }
+        .excel-table tr.total-row { border-top: 2px solid #cbd5e1; font-weight: bold; background-color: #f8fafc; }
+
         /* Animations */
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
         .animate-fade-in { animation: fadeIn 0.3s ease-out; }
@@ -49,29 +58,29 @@
                 title: "Consolidated Balance Sheet",
                 headers: ["Item", "2018", "2017"],
                 rows: [
-                    ["Cash and cash equivalents", "10,019", "8,079"],
-                    ["Marketable securities", "31,095", "33,632"],
-                    ["Accounts receivable, net", "7,587", "5,832"],
-                    ["Prepaid expenses and other current assets", "1,779", "1,020"],
-                    ["Total current assets", "50,480", "48,563"],
-                    ["Property and equipment, net", "24,683", "13,721"],
-                    ["Intangible assets, net", "1,294", "1,884"],
-                    ["Goodwill", "18,301", "18,221"],
-                    ["Other assets", "2,576", "2,135"],
-                    ["Total assets", "97,334", "84,524"],
-                    ["---", "---", "---"],
-                    ["Accounts payable", "820", "380"],
-                    ["Partners payable", "541", "390"],
-                    ["Accrued expenses and other current liabilities", "5,509", "2,892"],
-                    ["Deferred revenue and deposits", "147", "98"],
-                    ["Total current liabilities", "7,017", "3,760"],
-                    ["Other liabilities", "6,190", "6,417"],
-                    ["Total liabilities", "13,207", "10,177"],
-                    ["Common stock and additional paid-in capital", "42,906", "40,584"],
-                    ["Accumulated other comprehensive loss", "(760)", "(227)"],
-                    ["Retained earnings", "41,981", "33,990"],
-                    ["Total stockholders' equity", "84,127", "74,347"],
-                    ["Total liabilities and stockholders' equity", "97,334", "84,524"]
+                    ["Cash and cash equivalents", "10,019", "8,079"],                  // 0
+                    ["Marketable securities", "31,095", "33,632"],                    // 1
+                    ["Accounts receivable, net", "7,587", "5,832"],                   // 2
+                    ["Prepaid expenses and other current assets", "1,779", "1,020"],  // 3
+                    ["Total current assets", "50,480", "48,563"],                     // 4 (Skip)
+                    ["Property and equipment, net", "24,683", "13,721"],              // 5
+                    ["Intangible assets, net", "1,294", "1,884"],                     // 6
+                    ["Goodwill", "18,301", "18,221"],                                 // 7
+                    ["Other assets", "2,576", "2,135"],                               // 8
+                    ["Total assets", "97,334", "84,524"],                             // 9 (Skip)
+                    ["---", "---", "---"],                                            // 10 (Skip)
+                    ["Accounts payable", "820", "380"],                               // 11
+                    ["Partners payable", "541", "390"],                               // 12
+                    ["Accrued expenses and other current liabilities", "5,509", "2,892"], // 13
+                    ["Deferred revenue and deposits", "147", "98"],                   // 14
+                    ["Total current liabilities", "7,017", "3,760"],                  // 15 (Skip)
+                    ["Other liabilities", "6,190", "6,417"],                          // 16
+                    ["Total liabilities", "13,207", "10,177"],                        // 17 (Skip)
+                    ["Common stock and additional paid-in capital", "42,906", "40,584"], // 18 (Equity)
+                    ["Accumulated other comprehensive loss", "(760)", "(227)"],       // 19 (Equity)
+                    ["Retained earnings", "41,981", "33,990"],                        // 20 (Equity)
+                    ["Total stockholders' equity", "84,127", "74,347"],               // 21 (Equity)
+                    ["Total liabilities and stockholders' equity", "97,334", "84,524"]// 22 (Skip)
                 ]
             },
             is: {
@@ -93,19 +102,49 @@
             }
         };
 
+        const SELECTABLE_ASSETS = [0, 1, 2, 3, 5, 6, 7, 8];
+        const SELECTABLE_LIABS = [11, 12, 13, 14, 16];
+
         const ANSWER_KEY = {
-            "nopat_2018": "19432",
+            // a. NOPAT - Approach 1 (Net Income)
+            "nopat_nonop_pretax": "-448",
+            "nopat_tax_shield": "-99",
+            "nopat_nonop_aftertax": "-349",
+            "nopat_net_income": "22112",
+            "nopat_2018": "21763",
+
+             // a. NOPAT - Approach 2 (Detailed Breakdown)
+            "nopat2_nopbt": "24913",
+            "nopat2_tax_expense": "3249",
+            "nopat2_pretax_nonop": "-448",
+            "nopat2_tax_rate": "22",
+            "nopat2_tax_shield": "-99",     // -98.56 rounded
+            "nopat2_tax_operating": "3150", // 3150.44 rounded
+            "nopat2_final": "21763",
+
+            // b. NOA - Auto-calculated from selection
+            "noa_oa_2018": "56220",
+            "noa_ol_2018": "13207",
             "noa_2018": "43013",
+            
+            "noa_oa_2017": "42813",
+            "noa_ol_2017": "10177",
             "noa_2017": "32636",
-            "rnoa_num": "19432",
+
+            // c. Ratios
+            "rnoa_num": "21763",
             "rnoa_denom": "37825", // Avg NOA
-            "rnoa_final": "51.37",
-            "nopm_num": "19432",
+            "rnoa_final": "57.54",
+            
+            "nopm_num": "21763",
             "nopm_denom": "55838",
-            "nopm_final": "34.80",
+            "nopm_final": "38.97",
+            
             "noat_num": "55838",
             "noat_denom": "37825",
-            "noat_final": "1.48",
+            "noat_final": "1.48", // 1.476 rounded
+
+            // d. ROE
             "roe_num": "22112",
             "roe_denom": "79237", // Avg Equity
             "roe_final": "27.91"
@@ -113,33 +152,22 @@
 
         const QUESTIONS = [
             {
-                id: "q1",
-                title: "a. Compute NOPAT",
-                desc: "Compute net operating profit after tax (NOPAT) for 2018. Tax rate 22%. Hint: Carefully consider whether nonoperating expense is positive or negative.",
-                fields: [
-                    { id: "nopat_2018", label: "NOPAT 2018", type: "currency" }
-                ]
-            },
-            {
-                id: "q2",
-                title: "b. Compute NOA",
-                desc: "Compute net operating assets (NOA) for 2018 and 2017.",
-                fields: [
-                    { id: "noa_2018", label: "NOA 2018", type: "currency" },
-                    { id: "noa_2017", label: "NOA 2017", type: "currency" }
-                ]
-            },
-            {
                 id: "q3",
-                title: "c. Compute RNOA, NOPM, NOAT",
-                desc: "Compute RNOA and disaggregate it into net operating profit margin (NOPM) and net operating asset turnover (NOAT) for 2018.",
+                title: "c. RNOA Decomposition",
+                desc: "Compute RNOA and disaggregate it into NOPM and NOAT.",
+                formulas: [
+                    "RNOA = NOPAT / Average NOA",
+                    "NOPM = NOPAT / Total revenue",
+                    "NOAT = Total revenue / Average NOA",
+                    "RNOA = NOPM × NOAT"
+                ],
                 sections: [
                     {
                         subtitle: "RNOA",
                         fields: [
                             { id: "rnoa_num", label: "Numerator (NOPAT)", type: "currency" },
                             { id: "rnoa_denom", label: "Denominator (Avg NOA)", type: "currency" },
-                            { id: "rnoa_final", label: "RNOA %", type: "percent" }
+                            { id: "rnoa_final", label: "RNOA %", type: "percent", highlight: true }
                         ]
                     },
                     {
@@ -162,13 +190,25 @@
             },
             {
                 id: "q4",
-                title: "d. Compute ROE",
+                title: "d. ROE",
                 desc: "Compute return on equity (ROE) for 2018.",
-                fields: [
-                    { id: "roe_num", label: "Numerator (Net Income)", type: "currency" },
-                    { id: "roe_denom", label: "Denominator (Avg Equity)", type: "currency" },
-                    { id: "roe_final", label: "ROE %", type: "percent" }
-                ]
+                formulas: [
+                    "ROE = Net income / Average Total equity"
+                ],
+                sections: [{
+                    subtitle: "ROE Calculation",
+                    fields: [
+                        { id: "roe_num", label: "Numerator (Net Income)", type: "currency" },
+                        { id: "roe_denom", label: "Denominator (Avg Equity)", type: "currency" },
+                        { id: "roe_final", label: "ROE %", type: "percent", highlight: true }
+                    ]
+                }]
+            },
+            {
+                id: "q5",
+                title: "e. Interpretation",
+                desc: "What is the primary driver for the difference between ROE and RNOA? (Self-reflection)",
+                isText: true
             }
         ];
 
@@ -178,33 +218,19 @@
             const ref = useRef(null);
 
             useEffect(() => {
-                // Safely check if Lucide is available
                 if (window.lucide && ref.current) {
-                    // Clear previous content
                     ref.current.innerHTML = '';
-                    
-                    // Create an i element that Lucide will replace/enhance
                     const i = document.createElement('i');
                     i.setAttribute('data-lucide', name);
-                    
-                    // Append it to our wrapper
                     ref.current.appendChild(i);
-                    
-                    // Use createIcons to process just this element
                     window.lucide.createIcons({
                         root: ref.current,
                         nameAttr: 'data-lucide',
-                        attrs: {
-                            width: size,
-                            height: size,
-                            "stroke-width": 2
-                        }
+                        attrs: { width: size, height: size, "stroke-width": 2 }
                     });
                 }
             }, [name, size]);
 
-            // We apply the className to the wrapper span to avoid conflicts
-            // and let text color cascade via currentColor
             return (
                 <span 
                     ref={ref} 
@@ -234,111 +260,98 @@
             );
         };
 
-        const SmartInput = ({ id, value, onChange, correctValue, label, isPct, instructorMode, activeInput, setActiveInput }) => {
+        const evaluateMath = (expr) => {
+            if (!expr) return { valid: true, val: "" };
+            if (typeof expr === 'number') return { valid: true, val: expr };
+            try {
+                // Remove = sign if user thinks like excel
+                const sanitized = expr.toString().replace(/^=/, '').replace(/,/g, '').replace(/%/g, '/100');
+                if (!/^[\d\.\+\-\*\/\(\)\s]+$/.test(sanitized)) return { valid: false, msg: "Invalid characters" };
+                // eslint-disable-next-line no-eval
+                const res = eval(sanitized);
+                if (!isFinite(res) || isNaN(res)) return { valid: false, msg: "Math Error" };
+                return { valid: true, val: res };
+            } catch (e) {
+                return { valid: false, msg: "Syntax Error" };
+            }
+        };
+
+        // Standard Input for Ratios
+        const SmartInput = ({ id, value, onChange, correctValue, label, type, highlight, instructorMode, readOnly, setActiveInput }) => {
             const [localError, setLocalError] = useState(null);
             
-            const evaluateMath = (expr) => {
-                if (!expr) return { valid: true, val: "" };
-                try {
-                    // Sanitize: allow numbers, ., +, -, *, /, (, ), %
-                    const sanitized = expr.toString().replace(/,/g, '').replace(/%/g, '/100');
-                    // Safety check regex
-                    if (!/^[\d\.\+\-\*\/\(\)\s]+$/.test(sanitized)) return { valid: false, msg: "Invalid characters" };
-                    // eslint-disable-next-line no-eval
-                    const res = eval(sanitized);
-                    if (!isFinite(res) || isNaN(res)) return { valid: false, msg: "Math Error" };
-                    return { valid: true, val: res };
-                } catch (e) {
-                    return { valid: false, msg: "Syntax Error" };
-                }
-            };
-
             const isCorrect = useMemo(() => {
-                if (!value || !correctValue) return false;
+                if (value === undefined || value === null || !correctValue) return false;
                 const { valid, val } = evaluateMath(value);
                 if (!valid) return false;
                 
                 const target = parseFloat(correctValue.replace(/,/g, ''));
                 let inputNum = parseFloat(val);
                 
-                // Tolerance 2% relative or absolute small diff
+                // 2% tolerance
                 const tolerance = Math.max(Math.abs(target * 0.02), 0.1); 
 
-                if (isPct) {
-                    // Handle 0.06 vs 6 case for percentage
-                    // If target is 6.7 (meaning 6.7%), user might type 0.067 or 6.7
-                    const asDecimal = inputNum;
-                    const asWhole = inputNum;
-                    // Check if input matches target directly (e.g. 6.7 matches 6.7)
-                    if (Math.abs(asWhole - target) <= tolerance) return true;
-                    // Check if input matches target/100 (e.g. 0.067 matches 6.7)
-                    if (Math.abs((asDecimal * 100) - target) <= tolerance) return true;
+                if (type === "percent") {
+                    if (Math.abs(inputNum - target) <= tolerance) return true;
+                    // Allows user to enter decimal (e.g. 0.27) for 27%
+                    if (Math.abs((inputNum * 100) - target) <= tolerance) return true;
                     return false;
                 } else {
                     return Math.abs(inputNum - target) <= tolerance;
                 }
-            }, [value, correctValue, isPct]);
+            }, [value, correctValue, type]);
 
             const handleBlur = (e) => {
+                if (readOnly) return;
                 const { valid, val } = evaluateMath(value);
                 if (!valid) {
                     setLocalError("Invalid Math");
                     return;
                 }
                 setLocalError(null);
-                // On blur, format the number if it's a simple number
                 if (valid && value !== "") {
-                     // Check correctness to decide if we keep raw math or show formatted
-                     // Fix: Ensure we are working with a number primitive before methods like toFixed
                      const numVal = Number(val);
                      let displayVal = numVal;
 
-                     if (isPct) {
-                        // Heuristic: if valid is < 1 and target > 1, convert to % representation for display?
-                        // Or just show what they calculated.
-                        // Let's just round it nicely.
+                     if (type === "percent") {
                         if (Math.abs(numVal) < 1 && parseFloat(correctValue) > 1) {
                             displayVal = (numVal * 100).toFixed(2);
                         } else {
                             displayVal = numVal.toFixed(2);
                         }
                      } else {
-                        // Integer or 2 decimals
                         displayVal = Number.isInteger(numVal) ? numVal.toString() : numVal.toFixed(2);
                      }
                      onChange(id, displayVal.toString()); 
                 }
             };
 
-            const handleKeyDown = (e) => {
-                if(e.key === 'Enter') {
-                    e.target.blur();
-                }
-            };
-
-            const isActive = activeInput === id;
-
             return (
                 <div className="mb-4">
-                    <label className="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">{label}</label>
+                    <label className={`block text-xs font-bold mb-1 uppercase tracking-wider ${highlight ? "text-blue-700" : "text-slate-500"}`}>
+                        {label}
+                    </label>
                     <div className="relative">
                         <input 
                             type="text" 
                             id={id}
                             value={value || ""}
                             onChange={(e) => { setLocalError(null); onChange(id, e.target.value); }}
-                            onFocus={() => setActiveInput(id)}
                             onBlur={handleBlur}
-                            onKeyDown={handleKeyDown}
+                            onFocus={() => setActiveInput && setActiveInput(id)}
+                            readOnly={readOnly}
                             className={`w-full p-3 pr-10 border rounded-lg font-mono text-sm shadow-sm ${
+                                readOnly ? "bg-slate-100 text-slate-600" :
                                 isCorrect ? "input-correct" : 
-                                (value && !isActive && !isCorrect) ? "input-incorrect" : "input-neutral"
+                                (value && !isCorrect) ? "input-incorrect" : 
+                                highlight ? "border-blue-300 bg-blue-50" : "input-neutral"
                             }`}
-                            placeholder={isPct ? "e.g., 15.5 or 0.155" : "Calculate..."}
+                            placeholder={readOnly ? "Calculated..." : (type === "percent" ? "e.g., 15.5" : "Calculate...")}
                         />
                         <div className="absolute right-3 top-3 text-slate-400">
                             {isCorrect ? <span className="text-green-600"><Icon name="check-circle" size={18} /></span> : 
                              localError ? <span className="text-red-500 font-bold">!</span> :
+                             readOnly ? <Icon name="lock" size={14} /> :
                              <Icon name="calculator" size={16} />}
                         </div>
                     </div>
@@ -352,8 +365,77 @@
             );
         };
 
+        // Excel-like row for Part A with Calc logic
+        const ExcelRow = ({ label, id, value, onChange, correctValue, instructorMode, isTotal, setActiveInput }) => {
+            const isCorrect = useMemo(() => {
+                if (!value || !correctValue) return false;
+                const { valid, val } = evaluateMath(value);
+                if (!valid) return false;
+                const target = parseFloat(correctValue.replace(/,/g,''));
+                const tolerance = Math.max(Math.abs(target * 0.02), 0.1); 
+                return Math.abs(parseFloat(val) - target) <= tolerance;
+            }, [value, correctValue]);
+
+            const handleBlur = (e) => {
+                 const { valid, val } = evaluateMath(value);
+                 if (valid && value !== "") {
+                     // Format logic:
+                     const numVal = Number(val);
+                     const displayVal = Number.isInteger(numVal) ? numVal.toString() : numVal.toFixed(2);
+                     onChange(id, displayVal.toString());
+                 }
+            };
+
+            const handleKeyDown = (e) => {
+                if(e.key === 'Enter') {
+                    e.target.blur();
+                }
+            };
+
+            return (
+                <tr className={isTotal ? "total-row" : ""}>
+                    <td className="text-slate-700">{label}</td>
+                    <td className="input-cell relative">
+                         <input 
+                            value={value || ""}
+                            onChange={(e) => onChange(id, e.target.value)}
+                            onBlur={handleBlur}
+                            onKeyDown={handleKeyDown}
+                            onFocus={() => setActiveInput(id)}
+                            className={`${isCorrect ? "text-green-700 font-bold bg-green-50/50" : value ? "text-red-600 bg-red-50/50" : ""}`}
+                            placeholder="0.00"
+                        />
+                         {instructorMode && (
+                            <span className="absolute right-1 top-1 text-[10px] text-purple-400 pointer-events-none">{correctValue}</span>
+                        )}
+                    </td>
+                </tr>
+            );
+        };
+
+        // Selector Row for Part B
+        const SelectorRow = ({ rowIdx, label, val18, val17, isSelected, onToggle }) => {
+            return (
+                <tr className={`border-b border-slate-100 hover:bg-slate-50 transition ${isSelected ? "bg-blue-50/60" : ""}`}>
+                    <td className="p-3 text-sm font-medium text-slate-700">{label}</td>
+                    <td className="p-3 text-right font-mono text-xs text-slate-500">{val18}</td>
+                    <td className="p-3 text-right font-mono text-xs text-slate-500">{val17}</td>
+                    <td className="p-3 text-center">
+                        <button 
+                            onClick={() => onToggle(rowIdx)}
+                            className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${
+                                isSelected ? "bg-blue-600 border-blue-600 text-white" : "bg-white border-slate-300 hover:border-blue-400"
+                            }`}
+                        >
+                            {isSelected && <Icon name="check" size={12} />}
+                        </button>
+                    </td>
+                </tr>
+            );
+        };
+
         const ReferenceTable = ({ title, headers, rows, onValueClick }) => {
-            const [isOpen, setIsOpen] = useState(true);
+            const [isOpen, setIsOpen] = useState(false); // Closed by default to save space
 
             return (
                 <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mb-4">
@@ -405,22 +487,66 @@
             const [inputs, setInputs] = useState({});
             const [activeInput, setActiveInput] = useState(null);
             
+            // Part B Selection State
+            const [selectedRows, setSelectedRows] = useState(new Set());
+
             // Instructor State
             const [instructorMode, setInstructorMode] = useState(false);
             const [showLogin, setShowLogin] = useState(false);
             const [password, setPassword] = useState("");
             const [clearModalOpen, setClearModalOpen] = useState(false);
             
-            // Hash Tool State
-            const [hashInput, setHashInput] = useState("");
-            const [verifiedResult, setVerifiedResult] = useState(null);
-            
             // Student Submission
             const [studentName, setStudentName] = useState("");
             const [showDownload, setShowDownload] = useState(false);
+            const [hashInput, setHashInput] = useState("");
+            const [verifiedResult, setVerifiedResult] = useState(null);
 
             const handleInputChange = (id, val) => {
                 setInputs(prev => ({ ...prev, [id]: val }));
+            };
+
+            // Calculate Part B Totals Effect
+            useEffect(() => {
+                let oa18 = 0, oa17 = 0, ol18 = 0, ol17 = 0;
+
+                selectedRows.forEach(idx => {
+                    const row = FB_DATA.bs.rows[idx];
+                    const v18 = parseFloat(row[1].replace(/,/g, '').replace(/[()]/g, ''));
+                    const v17 = parseFloat(row[2].replace(/,/g, '').replace(/[()]/g, ''));
+                    
+                    // Simple logic: if selected, add to assets or liabilities based on known ranges
+                    // Assets: 0-8
+                    // Liabilities: 11-16
+                    if (idx <= 8) {
+                        oa18 += v18;
+                        oa17 += v17;
+                    } else if (idx >= 11 && idx <= 16) {
+                        ol18 += v18;
+                        ol17 += v17;
+                    }
+                });
+
+                const noa18 = oa18 - ol18;
+                const noa17 = oa17 - ol17;
+
+                setInputs(prev => ({
+                    ...prev,
+                    "noa_oa_2018": oa18.toFixed(0),
+                    "noa_ol_2018": ol18.toFixed(0),
+                    "noa_2018": noa18.toFixed(0),
+                    "noa_oa_2017": oa17.toFixed(0),
+                    "noa_ol_2017": ol17.toFixed(0),
+                    "noa_2017": noa17.toFixed(0)
+                }));
+
+            }, [selectedRows]);
+
+            const toggleSelection = (idx) => {
+                const next = new Set(selectedRows);
+                if (next.has(idx)) next.delete(idx);
+                else next.add(idx);
+                setSelectedRows(next);
             };
 
             const handleValueClick = (val) => {
@@ -428,17 +554,13 @@
                 const cleanVal = val.replace(/,/g, '').replace(/[()]/g, (m) => m === '(' ? '-' : '');
                 setInputs(prev => {
                     const cur = prev[activeInput] || "";
-                    // Append if ends with operator, else replace if empty, else append?? 
-                    // Better UX: Append if operator, else replace.
                     const isOperator = /[+\-*/(]$/.test(cur.trim());
                     const newVal = (cur === "" || isOperator) ? cur + cleanVal : cleanVal;
                     return { ...prev, [activeInput]: newVal };
                 });
-                // Re-focus
-                setTimeout(() => document.getElementById(activeInput)?.focus(), 50);
+                // Attempt to focus back, but for ExcelRow this handles via state update
             };
 
-            // --- Instructor Logic ---
             const unlockInstructor = () => {
                 if (password.toLowerCase() === "teacher") {
                     setInstructorMode(true);
@@ -451,17 +573,24 @@
 
             const handleAutoFill = () => {
                 setInputs(ANSWER_KEY);
+                // Auto-select based on standard definition for correctness visualization
+                // User defined operating items: 3, 5, 6, 7, 8, 11, 12, 13, 14, 16.
+                // Standard usually includes 2 (AR), but following user prompt strictness if needed.
+                // Let's include 2 (AR) as it is standard, otherwise values won't match NOA total of 43,013
+                const correctIndices = [2, 3, 5, 6, 7, 8, 11, 12, 13, 14, 16]; 
+                setSelectedRows(new Set(correctIndices));
             };
 
             const handleClearConfirm = () => {
                 setInputs({});
+                setSelectedRows(new Set());
                 setClearModalOpen(false);
-                setInstructorMode(false); // Also exit mode as per prompt
+                setInstructorMode(false); 
             };
-
-            // Verification Hash
+            
+            // Hash Functions
             const verifyHash = () => {
-                try {
+                 try {
                     const decoded = atob(hashInput);
                     const data = JSON.parse(decoded);
                     setVerifiedResult(data);
@@ -475,12 +604,11 @@
                 return btoa(JSON.stringify(data));
             };
 
-            // --- Download ---
             const handleDownload = () => {
                 const timestamp = new Date().toLocaleString();
-                // Simple score calculation for the file
                 let correctCount = 0;
                 let totalCount = 0;
+                // Only grade inputs present in Answer Key
                 Object.keys(ANSWER_KEY).forEach(key => {
                     totalCount++;
                     const userVal = parseFloat((inputs[key] || "0").replace(/,/g, ''));
@@ -489,7 +617,6 @@
                     if (Math.abs(userVal - keyVal) <= tol) correctCount++;
                 });
                 
-                // Create Hash
                 const verificationHash = generateHash(studentName, `${correctCount}/${totalCount}`);
 
                 const content = `
@@ -547,7 +674,7 @@ ${Object.entries(inputs).map(([k, v]) => `${k}: ${v}`).join('\n')}
                     {/* MAIN CONTENT */}
                     <div className="flex-1 flex flex-col h-screen overflow-hidden relative">
                         
-                        {/* INSTRUCTOR TOOLBAR (STICKY) */}
+                        {/* INSTRUCTOR TOOLBAR */}
                         {instructorMode && (
                             <div className="bg-purple-700 text-white p-2 shadow-md flex items-center justify-between z-20 animate-fade-in shrink-0">
                                 <div className="flex items-center gap-3 px-4">
@@ -587,57 +714,276 @@ ${Object.entries(inputs).map(([k, v]) => `${k}: ${v}`).join('\n')}
 
                         {/* SCROLLABLE FORM AREA */}
                         <main className="flex-1 overflow-y-auto custom-scrollbar bg-slate-50/50 p-8 pb-20">
-                            <div className="max-w-3xl mx-auto space-y-8">
+                            <div className="max-w-4xl mx-auto space-y-8">
+                                
+                                {/* QUESTION A: NOPAT (Excel Style) */}
+                                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                                    <h2 className="text-lg font-bold text-slate-800 mb-2 border-b pb-2 flex items-center gap-2">
+                                        <span className="bg-blue-100 text-blue-700 w-6 h-6 rounded-full flex items-center justify-center text-xs">a</span>
+                                        Nonoperating items and NOPAT
+                                    </h2>
+                                    <p className="text-sm text-slate-500 mb-6 italic">Complete the schedules below to calculate NOPAT using two different approaches. Cells support calculation (e.g., type <code>=500+20</code>).</p>
+                                    
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                        {/* Approach 1 */}
+                                        <div className="overflow-hidden rounded-lg border border-slate-300">
+                                            <div className="bg-slate-100 px-3 py-2 text-xs font-bold uppercase text-slate-600 border-b">Approach 1: Net Income</div>
+                                            <table className="excel-table">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Item</th>
+                                                        <th className="w-32 text-right">2018 ($)</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <ExcelRow 
+                                                        id="nopat_nonop_pretax" 
+                                                        label="Nonoperating items (Pre-tax)" 
+                                                        value={inputs.nopat_nonop_pretax} 
+                                                        onChange={handleInputChange}
+                                                        correctValue={ANSWER_KEY.nopat_nonop_pretax}
+                                                        instructorMode={instructorMode}
+                                                        setActiveInput={setActiveInput}
+                                                    />
+                                                    <ExcelRow 
+                                                        id="nopat_tax_shield" 
+                                                        label="Tax shield (22%)" 
+                                                        value={inputs.nopat_tax_shield} 
+                                                        onChange={handleInputChange}
+                                                        correctValue={ANSWER_KEY.nopat_tax_shield}
+                                                        instructorMode={instructorMode}
+                                                        setActiveInput={setActiveInput}
+                                                    />
+                                                    <ExcelRow 
+                                                        id="nopat_nonop_aftertax" 
+                                                        label="Nonoperating items (After-tax)" 
+                                                        value={inputs.nopat_nonop_aftertax} 
+                                                        onChange={handleInputChange}
+                                                        correctValue={ANSWER_KEY.nopat_nonop_aftertax}
+                                                        instructorMode={instructorMode}
+                                                        setActiveInput={setActiveInput}
+                                                    />
+                                                    <ExcelRow 
+                                                        id="nopat_net_income" 
+                                                        label="Net income" 
+                                                        value={inputs.nopat_net_income} 
+                                                        onChange={handleInputChange}
+                                                        correctValue={ANSWER_KEY.nopat_net_income}
+                                                        instructorMode={instructorMode}
+                                                        setActiveInput={setActiveInput}
+                                                    />
+                                                    <ExcelRow 
+                                                        id="nopat_2018" 
+                                                        label="NOPAT" 
+                                                        value={inputs.nopat_2018} 
+                                                        onChange={handleInputChange}
+                                                        correctValue={ANSWER_KEY.nopat_2018}
+                                                        instructorMode={instructorMode}
+                                                        isTotal
+                                                        setActiveInput={setActiveInput}
+                                                    />
+                                                </tbody>
+                                            </table>
+                                        </div>
+
+                                        {/* Approach 2 */}
+                                        <div className="overflow-hidden rounded-lg border border-slate-300">
+                                            <div className="bg-slate-100 px-3 py-2 text-xs font-bold uppercase text-slate-600 border-b">Approach 2: Operating Profit</div>
+                                            <table className="excel-table">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Item</th>
+                                                        <th className="w-32 text-right">2018 ($)</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <ExcelRow 
+                                                        id="nopat2_nopbt" 
+                                                        label="NOPBT (Income from Operations)" 
+                                                        value={inputs.nopat2_nopbt} 
+                                                        onChange={handleInputChange}
+                                                        correctValue={ANSWER_KEY.nopat2_nopbt}
+                                                        instructorMode={instructorMode}
+                                                        setActiveInput={setActiveInput}
+                                                    />
+                                                    <ExcelRow 
+                                                        id="nopat2_tax_expense" 
+                                                        label="Tax expense (Reported)" 
+                                                        value={inputs.nopat2_tax_expense} 
+                                                        onChange={handleInputChange}
+                                                        correctValue={ANSWER_KEY.nopat2_tax_expense}
+                                                        instructorMode={instructorMode}
+                                                        setActiveInput={setActiveInput}
+                                                    />
+                                                    <ExcelRow 
+                                                        id="nopat2_pretax_nonop" 
+                                                        label="Pretax net nonoperating expense" 
+                                                        value={inputs.nopat2_pretax_nonop} 
+                                                        onChange={handleInputChange}
+                                                        correctValue={ANSWER_KEY.nopat2_pretax_nonop}
+                                                        instructorMode={instructorMode}
+                                                        setActiveInput={setActiveInput}
+                                                    />
+                                                    <ExcelRow 
+                                                        id="nopat2_tax_rate" 
+                                                        label="Statutory tax rate (%)" 
+                                                        value={inputs.nopat2_tax_rate} 
+                                                        onChange={handleInputChange}
+                                                        correctValue={ANSWER_KEY.nopat2_tax_rate}
+                                                        instructorMode={instructorMode}
+                                                        setActiveInput={setActiveInput}
+                                                    />
+                                                    <ExcelRow 
+                                                        id="nopat2_tax_shield" 
+                                                        label="Tax shield at marginal rate" 
+                                                        value={inputs.nopat2_tax_shield} 
+                                                        onChange={handleInputChange}
+                                                        correctValue={ANSWER_KEY.nopat2_tax_shield}
+                                                        instructorMode={instructorMode}
+                                                        setActiveInput={setActiveInput}
+                                                    />
+                                                    <ExcelRow 
+                                                        id="nopat2_tax_operating" 
+                                                        label="Tax on operating profit" 
+                                                        value={inputs.nopat2_tax_operating} 
+                                                        onChange={handleInputChange}
+                                                        correctValue={ANSWER_KEY.nopat2_tax_operating}
+                                                        instructorMode={instructorMode}
+                                                        isTotal
+                                                        setActiveInput={setActiveInput}
+                                                    />
+                                                    <ExcelRow 
+                                                        id="nopat2_final" 
+                                                        label="NOPAT" 
+                                                        value={inputs.nopat2_final} 
+                                                        onChange={handleInputChange}
+                                                        correctValue={ANSWER_KEY.nopat2_final}
+                                                        instructorMode={instructorMode}
+                                                        isTotal
+                                                        setActiveInput={setActiveInput}
+                                                    />
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                    <p className="text-xs text-slate-400 mt-2">* Note: Differences between approaches may occur due to discrepancies between statutory and effective tax rates.</p>
+                                </div>
+
+                                {/* QUESTION B: NOA Selector */}
+                                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                                    <h2 className="text-lg font-bold text-slate-800 mb-2 border-b pb-2 flex items-center gap-2">
+                                        <span className="bg-blue-100 text-blue-700 w-6 h-6 rounded-full flex items-center justify-center text-xs">b</span>
+                                        Net Operating Assets (NOA)
+                                    </h2>
+                                    <p className="text-sm text-slate-500 mb-6 italic">Select <strong>ONLY</strong> the Operating items from the Balance Sheet. <span className="text-blue-600 font-bold">Treat "Other assets" and "Other liabilities" as operating.</span> The totals will calculate automatically based on your selection.</p>
+                                    
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                        
+                                        {/* Selector Column */}
+                                        <div className="border rounded-lg overflow-hidden bg-white">
+                                            <div className="bg-slate-100 p-3 font-bold text-xs uppercase text-slate-600 border-b">Select Operating Items</div>
+                                            <div className="max-h-[500px] overflow-y-auto custom-scrollbar">
+                                                <table className="w-full">
+                                                    <tbody>
+                                                        {/* Assets Section */}
+                                                        <tr className="bg-slate-50"><td colSpan="4" className="p-2 text-xs font-bold text-slate-500 uppercase tracking-wide">Assets</td></tr>
+                                                        {SELECTABLE_ASSETS.map(idx => (
+                                                            <SelectorRow 
+                                                                key={idx} 
+                                                                rowIdx={idx}
+                                                                label={FB_DATA.bs.rows[idx][0]} 
+                                                                val18={FB_DATA.bs.rows[idx][1]} 
+                                                                val17={FB_DATA.bs.rows[idx][2]}
+                                                                isSelected={selectedRows.has(idx)}
+                                                                onToggle={toggleSelection}
+                                                            />
+                                                        ))}
+                                                        
+                                                        {/* Liabilities Section */}
+                                                        <tr className="bg-slate-50"><td colSpan="4" className="p-2 text-xs font-bold text-slate-500 uppercase tracking-wide border-t">Liabilities</td></tr>
+                                                        {SELECTABLE_LIABS.map(idx => (
+                                                            <SelectorRow 
+                                                                key={idx} 
+                                                                rowIdx={idx}
+                                                                label={FB_DATA.bs.rows[idx][0]} 
+                                                                val18={FB_DATA.bs.rows[idx][1]} 
+                                                                val17={FB_DATA.bs.rows[idx][2]}
+                                                                isSelected={selectedRows.has(idx)}
+                                                                onToggle={toggleSelection}
+                                                            />
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+
+                                        {/* Results Column */}
+                                        <div className="space-y-6">
+                                            <div className="bg-slate-50 p-4 rounded-lg border border-slate-100">
+                                                <h3 className="font-bold text-slate-700 mb-4 text-sm uppercase">2018 Calculation</h3>
+                                                <SmartInput id="noa_oa_2018" label="Operating Assets (Sum)" value={inputs.noa_oa_2018} onChange={handleInputChange} correctValue={ANSWER_KEY.noa_oa_2018} instructorMode={instructorMode} readOnly setActiveInput={setActiveInput} />
+                                                <SmartInput id="noa_ol_2018" label="Operating Liabilities (Sum)" value={inputs.noa_ol_2018} onChange={handleInputChange} correctValue={ANSWER_KEY.noa_ol_2018} instructorMode={instructorMode} readOnly setActiveInput={setActiveInput} />
+                                                <SmartInput id="noa_2018" label="NOA 2018" value={inputs.noa_2018} onChange={handleInputChange} correctValue={ANSWER_KEY.noa_2018} instructorMode={instructorMode} highlight readOnly setActiveInput={setActiveInput} />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* REMAINING QUESTIONS (C, D, E) */}
                                 {QUESTIONS.map((q) => (
                                     <div key={q.id} className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
                                         <h2 className="text-lg font-bold text-slate-800 mb-2 border-b pb-2 flex items-center gap-2">
                                             <span className="bg-blue-100 text-blue-700 w-6 h-6 rounded-full flex items-center justify-center text-xs">{q.id.replace('q','')}</span>
                                             {q.title}
                                         </h2>
-                                        <p className="text-sm text-slate-500 mb-6 italic">{q.desc}</p>
+                                        <p className="text-sm text-slate-500 mb-4 italic">{q.desc}</p>
                                         
-                                        {/* Single Section Questions */}
-                                        {q.fields && (
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                                {q.fields.map(f => (
-                                                    <SmartInput 
-                                                        key={f.id}
-                                                        id={f.id}
-                                                        label={f.label}
-                                                        isPct={f.type === "percent"}
-                                                        value={inputs[f.id]}
-                                                        onChange={handleInputChange}
-                                                        correctValue={ANSWER_KEY[f.id]}
-                                                        instructorMode={instructorMode}
-                                                        activeInput={activeInput}
-                                                        setActiveInput={setActiveInput}
-                                                    />
-                                                ))}
+                                        {/* Formula Hint Block */}
+                                        {q.formulas && (
+                                            <div className="mb-6 bg-blue-50/50 p-3 rounded border border-blue-100 text-xs text-blue-700 font-mono">
+                                                <span className="font-bold text-blue-800">Formulas:</span>
+                                                <ul className="mt-1 list-disc list-inside space-y-1">
+                                                    {q.formulas.map((f, i) => <li key={i}>{f}</li>)}
+                                                </ul>
                                             </div>
                                         )}
-
-                                        {/* Multi-Section Questions (Q3) */}
-                                        {q.sections && q.sections.map((sec, idx) => (
-                                            <div key={idx} className="mb-6 last:mb-0 bg-slate-50 p-4 rounded-lg border border-slate-100">
-                                                <h3 className="font-bold text-slate-700 mb-4 text-sm uppercase">{sec.subtitle}</h3>
-                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                                    {sec.fields.map(f => (
-                                                        <SmartInput 
-                                                            key={f.id}
-                                                            id={f.id}
-                                                            label={f.label}
-                                                            isPct={f.type === "percent"}
-                                                            value={inputs[f.id]}
-                                                            onChange={handleInputChange}
-                                                            correctValue={ANSWER_KEY[f.id]}
-                                                            instructorMode={instructorMode}
-                                                            activeInput={activeInput}
-                                                            setActiveInput={setActiveInput}
-                                                        />
-                                                    ))}
+                                        
+                                        {q.isText ? (
+                                             <div className="bg-slate-50 p-4 rounded-lg border border-slate-100">
+                                                <h3 className="font-bold text-slate-700 mb-2 text-sm uppercase">Interpretation</h3>
+                                                <textarea 
+                                                    className="w-full p-4 border rounded-lg text-sm bg-white" 
+                                                    rows="4"
+                                                    placeholder="Type your analysis here (e.g., The difference between ROE and RNOA is...)"
+                                                ></textarea>
+                                                <div className="mt-4 bg-blue-50 p-3 rounded text-sm text-blue-800 border border-blue-100">
+                                                    <p className="font-bold mb-1">Self-Check Guide:</p>
+                                                    <p>Did you mention that Facebook holds significant cash/marketable securities? How does the return on these assets compare to their core business operations?</p>
                                                 </div>
-                                            </div>
-                                        ))}
+                                             </div>
+                                        ) : (
+                                            q.sections && q.sections.map((sec, idx) => (
+                                                <div key={idx} className="mb-6 last:mb-0 bg-slate-50 p-4 rounded-lg border border-slate-100">
+                                                    <h3 className="font-bold text-slate-700 mb-4 text-sm uppercase">{sec.subtitle}</h3>
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                                        {sec.fields.map(f => (
+                                                            <SmartInput 
+                                                                key={f.id}
+                                                                id={f.id}
+                                                                label={f.label}
+                                                                type={f.type}
+                                                                highlight={f.highlight}
+                                                                value={inputs[f.id]}
+                                                                onChange={handleInputChange}
+                                                                correctValue={ANSWER_KEY[f.id]}
+                                                                instructorMode={instructorMode}
+                                                                setActiveInput={setActiveInput}
+                                                            />
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            ))
+                                        )}
                                     </div>
                                 ))}
 
