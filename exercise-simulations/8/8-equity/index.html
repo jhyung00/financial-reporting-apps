@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Equity & Comprehensive Income Analysis: Case 8-44 & 8-45</title>
+    <title>Equity & Comprehensive Income Analysis: Case 8-37, 8-44 & 8-45</title>
     
     <!-- Dependencies -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -15,7 +15,7 @@
 
     <style>
         body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
@@ -27,6 +27,18 @@
         .input-neutral { background-color: #fff; border-color: #cbd5e1; }
         .input-neutral:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
 
+        /* Resizer */
+        .resizer {
+            width: 5px;
+            cursor: col-resize;
+            background-color: transparent;
+            transition: background-color 0.2s;
+            z-index: 50;
+        }
+        .resizer:hover, .resizer.resizing {
+            background-color: #3b82f6;
+        }
+
         /* Animations */
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
         .animate-fade-in { animation: fadeIn 0.3s ease-out; }
@@ -36,47 +48,40 @@
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useMemo, useRef } = React;
+        const { useState, useEffect, useMemo, useRef, useCallback } = React;
 
         // --- DATA: CAMPBELL SOUP ---
         const CAMPBELL_DATA = {
             metadata: { name: "Campbell Soup Co. (E8-37)", year: "Current Year" },
             tables: [
                 {
-                    title: "Shareowners' Equity ($ millions)",
-                    headers: ["Account", "Current Year", "Prior Year"],
+                    title: "Statement of Shareholders' Equity ($ millions, except per share)",
+                    headers: [
+                        "Account / Transaction", 
+                        "Cap. Stock Issued (Shares)", "Cap. Stock Issued ($)", 
+                        "In Treasury (Shares)", "In Treasury ($)", 
+                        "APIC", "Retained Earnings", "Acc. OCI", "Non-controlling Interests", "Total Equity"
+                    ],
                     rows: [
-                        ["Preferred stock", "$–", "$–"],
-                        ["Capital stock ($0.0375 par)", "12", "12"],
-                        ["Additional paid-in capital", "349", "359"],
-                        ["Retained earnings", "2,224", "2,385"],
-                        ["Treasury stock, at cost", "(1,103)", "(1,066)"],
-                        ["Accumulated OCI", "(118)", "(53)"],
-                        ["Total shareowners' equity", "$1,364", "$1,637"],
-                        ["Noncontrolling interests", "9", "8"],
-                        ["Total equity", "$1,373", "$1,645"]
-                    ]
+                        ["Balance at start of current year", "323", "$12", "(22)", "$(1,066)", "$359", "$2,385", "$(53)", "$8", "$1,645"],
+                        ["Net earnings", "", "", "", "", "", "261", "", "", "261"],
+                        ["Other comprehensive income (loss)", "", "", "", "", "", "", "(65)", "1", "(64)"],
+                        ["Dividends ($1.40 per share)", "", "", "", "", "", "(422)", "", "", "(422)"],
+                        ["Treasury stock purchased", "", "", "(2)", "$(86)", "", "", "", "", "(86)"],
+                        ["Treasury stock issued (options)", "", "", "2", "49", "(10)", "", "", "", "39"],
+                        ["Balance at end of current year", "323", "$12", "(22)", "$(1,103)", "$349", "$2,224", "$(118)", "$9", "$1,373"]
+                    ],
+                    hint: "Use these values for calculations"
                 },
                 {
-                    title: "Shares Information",
-                    headers: ["Item", "Shares (m)"],
+                    title: "Additional Information",
+                    headers: ["Item", "Value"],
                     rows: [
-                        ["Authorized", "560"],
-                        ["Issued", "323"]
-                    ]
-                },
-                {
-                    title: "Stmt of Shareowners' Equity",
-                    headers: ["Item", "Amount ($m)", "Shares"],
-                    rows: [
-                        ["Beginning Retained Earnings", "2,385", ""],
-                        ["Net Earnings", "261", ""],
-                        ["Dividends ($1.40/share)", "(422)", ""],
-                        ["Ending Retained Earnings", "2,224", ""],
-                        ["Treasury Stock Purchased", "(86)", "(2)"],
-                        ["Treasury Stock Issued (Options)", "249", "2"],
-                        ["APIC Change from Options", "(10)", ""]
-                    ]
+                        ["Authorized Shares", "560 million"],
+                        ["Par Value", "$0.0375"],
+                        ["Stock Price (End of Year)", "$32.99"]
+                    ],
+                    hint: "Market Data"
                 }
             ]
         };
@@ -86,22 +91,27 @@
             "c_avg_issue": "1.12",
             "c_re_beg": "2385", "c_re_net": "261", "c_re_div": "422", "c_re_end": "2224",
             "c_opt_cash": "39", "c_opt_ts": "49", "c_opt_apic": "10",
-            "c_ts_cost": "43",
+            "c_ts_cost": "43", "c_ts_total": "86",
             "c_mkt_cap": "9930",
             "c_mb_ratio": "7.23"
         };
 
+        const CAMPBELL_INSTRUCTOR_NOTES = {
+            "cq4": "The exercise of employee stock options resulted in the issuance of 2 million shares of stock for a total of $39 million. Because the treasury stock shares were sold, the treasury stock account is reduced (an addition reduces the negative amount for treasury stock) by the original purchase cost of the shares ($49 million) and additional paid-in capital is decreased for the difference ($10 million).",
+            "cq5": "Campbell Soup repurchased 2 million shares of common stock for a total of $86 million, or at a cost of $43 per share. The effect of the repurchase of stock is to reduce cash and shareowners’ equity, thereby shrinking the company."
+        };
+
         const CAMPBELL_QUESTIONS = [
             {
-                id: "cq1", title: "Requirement (a): Capital Stock", desc: "Calculate the balance for Capital Stock.",
+                id: "cq1", title: "1. Capital Stock Computation", desc: "Show the computation, using par value and share numbers, to arrive at the $12 million in the capital (common) stock account.",
                 sections: [
                     { subtitle: "Calculation", fields: [
-                        { id: "c_cap_bal", label: "Capital Stock Balance ($m)", type: "decimal", hint: "Par Value * Issued Shares" }
+                        { id: "c_cap_bal", label: "Computed Capital Stock ($m)", type: "decimal", hint: "Issued Shares * Par Value" }
                     ]}
                 ]
             },
             {
-                id: "cq2", title: "Requirement (b): Average Issue Price", desc: "Calculate the average issue price per share.",
+                id: "cq2", title: "2. Average Issue Price", desc: "At what average price were the Campbell Soup shares issued?",
                 sections: [
                     { subtitle: "Calculation", fields: [
                         { id: "c_avg_issue", label: "Avg Issue Price ($/share)", type: "currency", hint: "(Capital Stock + APIC) / Issued Shares" }
@@ -109,41 +119,47 @@
                 ]
             },
             {
-                id: "cq3", title: "Requirement (c): Retained Earnings", desc: "Reconstruct the Retained Earnings account.",
+                id: "cq3", title: "3. Retained Earnings Reconciliation", desc: "Reconcile the beginning and ending balances of retained earnings.",
                 sections: [
                     { subtitle: "Reconciliation", fields: [
-                        { id: "c_re_beg", label: "Beginning Balance", type: "currency" },
-                        { id: "c_re_net", label: "Add: Net Earnings", type: "currency" },
-                        { id: "c_re_div", label: "Less: Dividends", type: "currency" },
-                        { id: "c_re_end", label: "Ending Balance", type: "currency" }
+                        { id: "c_re_beg", label: "Beginning Balance ($m)", type: "currency" },
+                        { id: "c_re_net", label: "Add: Net Earnings ($m)", type: "currency" },
+                        { id: "c_re_div", label: "Less: Dividends ($m)", type: "currency" },
+                        { id: "c_re_end", label: "Ending Balance ($m)", type: "currency" }
                     ]}
                 ]
             },
             {
-                id: "cq4", title: "Requirement (d): Stock Options", desc: "Analyze the effect of stock option exercises. (Enter absolute values)",
+                id: "cq4", title: "4. Stock Options Analysis", desc: "Campbell Soup reports an increase in shareowners' equity relating to the exercise of stock options (titled 'Treasury stock issued under management incentive and stock option plans'). This transaction involves the purchase of common stock by employees at a preset price. Describe how this set of transactions affects stockholders' equity by quantifying the components.",
                 sections: [
                     { subtitle: "Impact Analysis", fields: [
-                        { id: "c_opt_cash", label: "Cash Received ($m)", type: "currency", hint: "Diff between TS removed & APIC impact" },
-                        { id: "c_opt_ts", label: "Treasury Stock Removed ($m)", type: "currency", hint: "Value removed from TS account" },
-                        { id: "c_opt_apic", label: "APIC Reduction ($m)", type: "currency", hint: "Given in statement" }
+                        { id: "c_opt_cash", label: "Cash Received / Total Issuance Value ($m)", type: "currency", hint: "Total increase in equity from options" },
+                        { id: "c_opt_ts", label: "Treasury Stock Reduction (Cost Basis) ($m)", type: "currency", hint: "Original cost of shares issued" },
+                        { id: "c_opt_apic", label: "APIC Reduction ($m)", type: "currency", hint: "Difference absorbed by APIC" }
                     ]}
                 ]
             },
             {
-                id: "cq5", title: "Requirement (e): Treasury Stock", desc: "Calculate the cost per share of treasury stock repurchased.",
+                id: "cq5", title: "5. Treasury Stock Purchase", desc: "Describe the transaction relating to the 'Treasury stock purchased' line in the statement of shareowners' equity by determining the cost per share.",
                 sections: [
                     { subtitle: "Cost Analysis", fields: [
+                        { id: "c_ts_total", label: "Total Cost of Repurchase ($m)", type: "currency" },
                         { id: "c_ts_cost", label: "Cost Per Share ($)", type: "currency", hint: "Total Cost / Shares Repurchased" }
                     ]}
                 ]
             },
             {
-                id: "cq6", title: "Requirement (f) & (g): Market Value", desc: "Compute Market Cap and Market-to-Book Ratio. (Share price: $32.99)",
+                id: "cq6", title: "6. Market Capitalization", desc: "Campbell Soup's stock price was $32.99 at the end of the current fiscal year. Determine the company's market capitalization that day.",
                 sections: [
                     { subtitle: "Market Capitalization", fields: [
-                        { id: "c_mkt_cap", label: "Market Cap ($m)", type: "currency", hint: "Shares Issued * Share Price" }
-                    ]},
-                    { subtitle: "Market-to-Book", fields: [
+                        { id: "c_mkt_cap", label: "Market Cap ($m)", type: "currency", hint: "(Issued - Treasury Shares) * Share Price" }
+                    ]}
+                ]
+            },
+            {
+                id: "cq7", title: "7. Market-to-Book Ratio", desc: "Calculate and interpret the company's market-to-book ratio at the end of the current fiscal year.",
+                sections: [
+                    { subtitle: "Ratio Analysis", fields: [
                         { id: "c_mb_ratio", label: "M/B Ratio", type: "decimal", hint: "Market Cap / Total Equity" }
                     ]}
                 ]
@@ -169,7 +185,8 @@
                         ["Change in marketable securities", "(9,387)", "(2,680)", "4,268"],
                         ["Total other comprehensive (loss) income", "(333,290)", "562,117", "(111,152)"],
                         ["Comprehensive income", "1,025,478", "1,086,326", "104,323"]
-                    ]
+                    ],
+                    hint: "Income Data"
                 },
                 {
                     title: "Balance Sheet Averages ($000s)",
@@ -177,7 +194,8 @@
                     rows: [
                         ["Average assets", "21,749,614", "22,020,903", "20,297,394"],
                         ["Average equity", "1,467,578", "1,355,755", "1,830,608"]
-                    ]
+                    ],
+                    hint: "Balance Sheet Data"
                 }
             ]
         };
@@ -185,15 +203,10 @@
         const SYSCO_ANSWER_KEY = {
             "s_formula_oci": "Other Comprehensive Income",
             "s_oci_driver": "Foreign currency translation adjustment",
-            // Req c - ROA
             "s_roa_ni_cur": "6.2", "s_roa_ni_pri": "2.4", "s_roa_ni_2p": "1.1",
-            // Req c - ROE
             "s_roe_ni_cur": "92.6", "s_roe_ni_pri": "38.7", "s_roe_ni_2p": "11.8",
-            // Req d - Adj ROA
             "s_roa_ci_cur": "4.7", "s_roa_ci_pri": "4.9", "s_roa_ci_2p": "0.5",
-            // Req d - Adj ROE
             "s_roe_ci_cur": "69.9", "s_roe_ci_pri": "80.1", "s_roe_ci_2p": "5.7",
-            // Interpretation
             "s_interp_mag": "large", "s_interp_impact": "are"
         };
 
@@ -203,7 +216,7 @@
                 sections: [{ subtitle: "Formula", fields: [{ id: "s_formula_oci", label: "Complete the formula: Net Income + ____________ = Comprehensive Income", type: "text", fullWidth: true }] }]
             },
             {
-                id: "sq1", title: "Part (b): OCI Drivers", desc: "Identify the line item that causes the largest difference.",
+                id: "sq1", title: "Part (b): OCI Drivers", desc: "Identify the line item that causes the largest difference between Net Income and Comprehensive Income.",
                 sections: [{ subtitle: "Analysis", fields: [{ id: "s_oci_driver", label: "Largest OCI Component (All Years)", type: "text", fullWidth: true }] }]
             },
             {
@@ -211,10 +224,7 @@
                 type: "ratio_table",
                 tables: [
                     {
-                        title: "Return on Assets (ROA)",
-                        headers: ["Year", "ROA %"],
-                        hint: "Net Income / Avg Assets",
-                        chartKey: "roa_ni",
+                        title: "Return on Assets (ROA)", headers: ["Year", "ROA %"], hint: "Net Income / Avg Assets", chartKey: "roa_ni",
                         rows: [
                             { label: "Two Years Prior", id: "s_roa_ni_2p" },
                             { label: "Prior Year", id: "s_roa_ni_pri" },
@@ -222,10 +232,7 @@
                         ]
                     },
                     {
-                        title: "Return on Equity (ROE)",
-                        headers: ["Year", "ROE %"],
-                        hint: "Net Income / Avg Equity",
-                        chartKey: "roe_ni",
+                        title: "Return on Equity (ROE)", headers: ["Year", "ROE %"], hint: "Net Income / Avg Equity", chartKey: "roe_ni",
                         rows: [
                             { label: "Two Years Prior", id: "s_roe_ni_2p" },
                             { label: "Prior Year", id: "s_roe_ni_pri" },
@@ -239,10 +246,7 @@
                 type: "ratio_table",
                 tables: [
                     {
-                        title: "Adjusted ROA (Comp. Income)",
-                        headers: ["Year", "Adj ROA %"],
-                        hint: "Comp. Income / Avg Assets",
-                        chartKey: "roa_ci",
+                        title: "Adjusted ROA (Comp. Income)", headers: ["Year", "Adj ROA %"], hint: "Comp. Income / Avg Assets", chartKey: "roa_ci",
                         rows: [
                             { label: "Two Years Prior", id: "s_roa_ci_2p" },
                             { label: "Prior Year", id: "s_roa_ci_pri" },
@@ -250,10 +254,7 @@
                         ]
                     },
                     {
-                        title: "Adjusted ROE (Comp. Income)",
-                        headers: ["Year", "Adj ROE %"],
-                        hint: "Comp. Income / Avg Equity",
-                        chartKey: "roe_ci",
+                        title: "Adjusted ROE (Comp. Income)", headers: ["Year", "Adj ROE %"], hint: "Comp. Income / Avg Equity", chartKey: "roe_ci",
                         rows: [
                             { label: "Two Years Prior", id: "s_roe_ci_2p" },
                             { label: "Prior Year", id: "s_roe_ci_pri" },
@@ -263,16 +264,14 @@
                 ]
             },
             {
-                id: "sq4", title: "Interpretation", desc: "Select the correct conclusions.",
+                id: "sq4", title: "Interpretation", desc: "Select the correct conclusions based on the data.",
                 type: "interpretation_text"
             }
         ];
 
         const CHART_DATA = {
-            "roa_ni": [1.1, 2.4, 6.2],
-            "roe_ni": [11.8, 38.7, 92.6],
-            "roa_ci": [0.5, 4.9, 4.7],
-            "roe_ci": [5.7, 80.1, 69.9]
+            "roa_ni": [1.1, 2.4, 6.2], "roe_ni": [11.8, 38.7, 92.6],
+            "roa_ci": [0.5, 4.9, 4.7], "roe_ci": [5.7, 80.1, 69.9]
         };
 
         // --- DATA: XPRESS (CASE 8-45) ---
@@ -288,7 +287,8 @@
                         ["Paid-in capital - preferred", "$85,000"],
                         ["Paid-in capital - common", "$300,000"],
                         ["Retained earnings", "$370,000"]
-                    ]
+                    ],
+                    hint: "Start Balances"
                 },
                 {
                     title: "2. Stock Transactions",
@@ -299,7 +299,8 @@
                         ["Mar. 14", "Sold 4,000 treasury shares at $22/share"],
                         ["July 15", "Issued 2,600 shares of preferred stock for $128,000"],
                         ["Nov. 15", "Sold 1,000 treasury shares at $26/share"]
-                    ]
+                    ],
+                    hint: "Journal Entries"
                 }
             ]
         };
@@ -310,21 +311,15 @@
                 { key: "noncashAssets", label: "Noncash Assets", type: "asset" },
                 { key: "liabilities", label: "Liabilities", type: "liability" },
                 { 
-                    key: "stock", 
-                    label: "Contributed Capital (Stock)", 
-                    type: "equity",
+                    key: "stock", label: "Contributed Capital (Stock)", type: "equity",
                     options: ["Common Stock", "Preferred Stock", "Treasury Stock"]
                 },
                 { 
-                    key: "apic", 
-                    label: "Additional Paid-in Capital", 
-                    type: "equity",
+                    key: "apic", label: "Additional Paid-in Capital", type: "equity",
                     options: ["Paid-in Capital - Common", "Paid-in Capital - Preferred", "Paid-in Capital - Treasury"]
                 },
                 { 
-                    key: "earnedCapital", 
-                    label: "Earned Capital", 
-                    type: "equity",
+                    key: "earnedCapital", label: "Earned Capital", type: "equity",
                     options: ["Retained Earnings", "Dividends"]
                 },
                 { key: "revenue", label: "Revenue", type: "income" },
@@ -340,29 +335,16 @@
             ]
         };
 
-        // Answer Key with Accounts
         const XPRESS_ANSWER_KEY = {
-            // FSE Template
             "x_jan10_cash": "504000", "x_jan10_stock": "280000", "x_jan10_stock_acct": "Common Stock", "x_jan10_apic": "224000", "x_jan10_apic_acct": "Paid-in Capital - Common",
             "x_jan23_cash": "-160000", "x_jan23_stock": "-160000", "x_jan23_stock_acct": "Treasury Stock", 
             "x_mar14_cash": "88000", "x_mar14_stock": "80000", "x_mar14_stock_acct": "Treasury Stock", "x_mar14_apic": "8000", "x_mar14_apic_acct": "Paid-in Capital - Treasury",
             "x_jul15_cash": "128000", "x_jul15_stock": "65000", "x_jul15_stock_acct": "Preferred Stock", "x_jul15_apic": "63000", "x_jul15_apic_acct": "Paid-in Capital - Preferred",
             "x_nov15_cash": "26000", "x_nov15_stock": "20000", "x_nov15_stock_acct": "Treasury Stock", "x_nov15_apic": "6000", "x_nov15_apic_acct": "Paid-in Capital - Treasury",
-            
-            // Share Counts
             "x_sc_pref": "11000", "x_sc_common_issued": "78000", "x_sc_treasury": "3000", "x_sc_common_out": "75000",
-            
-            // Stockholders Equity Section
-            "x_bs_pref": "275000",
-            "x_bs_common": "780000",
-            "x_bs_total_paid_in": "1055000",
-            "x_bs_apic_pref": "148000",
-            "x_bs_apic_common": "524000",
-            "x_bs_apic_treasury": "14000",
-            "x_bs_total_apic": "686000",
-            "x_bs_re": "491000",
-            "x_bs_treasury": "-60000",
-            "x_bs_total_se": "2172000"
+            "x_bs_pref": "275000", "x_bs_common": "780000", "x_bs_total_paid_in": "1055000",
+            "x_bs_apic_pref": "148000", "x_bs_apic_common": "524000", "x_bs_apic_treasury": "14000", "x_bs_total_apic": "686000",
+            "x_bs_re": "491000", "x_bs_treasury": "-60000", "x_bs_total_se": "2172000"
         };
 
         const XPRESS_QUESTIONS = [
@@ -451,11 +433,9 @@
             const height = 40;
             const width = 100;
             const padding = 5;
-            
             const min = Math.min(...data, 0);
             const max = Math.max(...data);
             const range = max - min || 1;
-            
             const points = data.map((d, i) => {
                 const x = (i / (data.length - 1)) * (width - 2 * padding) + padding;
                 const y = height - ((d - min) / range) * (height - 2 * padding) - padding;
@@ -465,14 +445,7 @@
             return (
                 <div className="flex flex-col items-center">
                     <svg width={width} height={height} className="overflow-visible">
-                        <polyline
-                            points={points}
-                            fill="none"
-                            stroke={color}
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                        />
+                        <polyline points={points} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                         {data.map((d, i) => {
                             const x = (i / (data.length - 1)) * (width - 2 * padding) + padding;
                             const y = height - ((d - min) / range) * (height - 2 * padding) - padding;
@@ -480,9 +453,7 @@
                         })}
                     </svg>
                     <div className="flex justify-between w-full text-[9px] text-slate-400 mt-1 px-1">
-                        <span>2yr</span>
-                        <span>Prior</span>
-                        <span>Cur</span>
+                        <span>2yr</span><span>Prior</span><span>Cur</span>
                     </div>
                 </div>
             );
@@ -494,14 +465,9 @@
             const evaluateMath = (expr) => {
                 if (!expr) return { valid: true, val: "" };
                 try {
-                    // Remove commas, replace % with /100
                     const sanitized = expr.toString().replace(/,/g, '').replace(/(\d+(\.\d+)?)%/g, '($1/100)');
-                    // Verify allowed characters
                     if (!/^[\d\.\+\-\*\/\(\)\s]+$/.test(sanitized)) return { valid: false, msg: "Invalid chars" };
-                    
-                    // Safe eval
                     const res = new Function('return ' + sanitized)();
-                    
                     if (!isFinite(res) || isNaN(res)) return { valid: false, msg: "Math Error" };
                     return { valid: true, val: res };
                 } catch (e) {
@@ -514,26 +480,29 @@
                 if (type === 'text') {
                     const cleanVal = value.toString().trim().toLowerCase().replace(/[.,]$/, ""); 
                     const cleanKey = correctValue.toString().trim().toLowerCase().replace(/[.,]$/, "");
-                    // Basic containment check
                     return cleanVal.includes(cleanKey) || cleanKey.includes(cleanVal);
                 }
-                
                 const { valid, val } = evaluateMath(value);
                 if (!valid) return false;
                 
                 const target = parseFloat(correctValue.replace(/,/g, ''));
                 let inputNum = parseFloat(val);
                 
-                // If it's a percentage field, handle different input formats
-                if (type === 'percent') {
-                    // Case 1: Input is like 0.067, target is 6.7
-                    const diffAsDecimal = Math.abs((inputNum * 100) - target);
-                    // Case 2: Input is like 6.7, target is 6.7
-                    const diffAsWhole = Math.abs(inputNum - target);
-                    
-                    return (diffAsDecimal <= 0.2) || (diffAsWhole <= 0.2); // +/- 0.2% tolerance
+                // Smart Percent Logic: Accept 3.8 as 3.8% if target is 3.8 or 0.038
+                if (type === 'percent' || type === 'decimal') {
+                   // Logic to handle 0.038 vs 3.8
+                   // Case A: Target is 0.038. Input is 3.8 -> Matches if we interpret input as percent
+                   // Case B: Target is 3.8. Input is 3.8 -> Matches
+                   
+                   // Normalized difference check
+                   const diffExact = Math.abs(inputNum - target);
+                   const diffPercent = Math.abs((inputNum / 100) - target);
+                   const diffPercentReverse = Math.abs((inputNum * 100) - target);
+
+                   return (diffExact <= Math.max(Math.abs(target * 0.02), 0.01)) || 
+                          (diffPercent <= Math.max(Math.abs(target * 0.02), 0.001)) ||
+                          (diffPercentReverse <= Math.max(Math.abs(target * 0.02), 0.1));
                 } else {
-                    // Standard number/currency
                     const tolerance = Math.max(Math.abs(target * 0.02), 0.1); 
                     return Math.abs(inputNum - target) <= tolerance;
                 }
@@ -549,39 +518,23 @@
 
             const handleBlurOrEnter = (e) => {
                 if (type === 'text') return;
-                
-                // Don't modify if empty or just focusing out
                 if (!value) return;
 
                 const { valid, val } = evaluateMath(value);
-                
-                if (!valid) { 
-                    setLocalError("Invalid Math"); 
-                    return; 
-                }
+                if (!valid) { setLocalError("Invalid Math"); return; }
                 setLocalError(null);
                 
-                // Only update if valid number
                 if (valid && val !== undefined && val !== null) {
                      const numVal = Number(val);
                      let displayVal = numVal;
-                     
-                     // Format display
                      if (type === 'percent') {
-                        // Heuristic: If value is small (<1) and correct answer is >1, likely decimal input
+                        // Heuristic: If target > 1 (like 6.2) and user typed < 1 (like 0.062), convert to 6.2 for display
                         const target = parseFloat(correctValue || "0");
-                        if (Math.abs(numVal) <= 1 && target > 1) { 
-                            displayVal = (numVal * 100).toFixed(1); 
-                        } else {
-                            displayVal = numVal.toFixed(1);
-                        }
+                        if (Math.abs(numVal) <= 1 && target > 1) { displayVal = (numVal * 100).toFixed(1); }
+                        else { displayVal = numVal.toFixed(1); }
                      } else {
-                        // Integers show as integers, decimals with 2 places
                         displayVal = Number.isInteger(numVal) ? numVal.toString() : numVal.toFixed(2);
                      }
-                     
-                     // Prevent overwriting with 0 if calculation was valid but resulted in small number
-                     // Only overwrite if it's a genuine result
                      onChange(id, displayVal.toString()); 
                 }
             };
@@ -591,7 +544,6 @@
             return (
                 <div className={`${isTable ? "w-full min-w-[140px]" : "mb-4 w-full"}`}>
                     {!isTable && <label className="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">{label}</label>}
-                    
                     <div className="flex flex-col gap-1 relative">
                         {options && (
                             <select
@@ -605,7 +557,6 @@
                                 {options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                             </select>
                         )}
-                        
                         <div className="relative flex-grow">
                             <input 
                                 type="text" 
@@ -636,7 +587,7 @@
                         </div>
                         {hint && !isTable && (
                             <div className="w-1/3 shrink-0 bg-blue-50 border border-blue-100 rounded p-2 flex flex-col justify-center min-h-[46px]">
-                                <span className="text-[10px] text-blue-500 font-bold uppercase tracking-wider block mb-0.5">Formula</span>
+                                <span className="text-[10px] text-blue-500 font-bold uppercase tracking-wider block mb-0.5">Formula / Logic</span>
                                 <span className="text-xs text-blue-800 font-medium leading-tight">{hint}</span>
                             </div>
                         )}
@@ -653,7 +604,6 @@
 
         const RatioTable = ({ tables, inputs, handleInputChange, activeKey, instructorMode, activeInput, setActiveInput }) => {
             const [showChart, setShowChart] = useState(false);
-
             return (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {tables.map((table, tIdx) => (
@@ -661,11 +611,7 @@
                             <div className="bg-slate-50 p-3 border-b border-slate-200 flex justify-between items-center">
                                 <h3 className="font-bold text-slate-700 text-sm flex items-center gap-2">
                                     {table.title}
-                                    <button 
-                                        onClick={() => setShowChart(!showChart)} 
-                                        className={`p-1 rounded hover:bg-slate-200 transition ${showChart ? 'text-blue-600 bg-blue-100' : 'text-slate-400'}`}
-                                        title="Toggle Trend Chart"
-                                    >
+                                    <button onClick={() => setShowChart(!showChart)} className={`p-1 rounded hover:bg-slate-200 transition ${showChart ? 'text-blue-600 bg-blue-100' : 'text-slate-400'}`} title="Toggle Trend Chart">
                                         <Icon name="line-chart" size={14} />
                                     </button>
                                 </h3>
@@ -719,26 +665,15 @@
 
         const ReferenceTable = ({ title, headers, rows, onValueClick }) => {
             const [isOpen, setIsOpen] = useState(true);
-            
-            // Helper to parse and render text with interactive numbers
             const renderInteractiveCell = (text) => {
                 if (typeof text !== 'string') return text;
-                
-                // Regex to identify numbers: optional currency, digits/commas, optional decimals, optional percent
-                // Note: This regex is basic. It matches "28,000", "18", "$128,000", "6.2%"
                 const parts = text.split(/([$]?\d[\d,\.]*%?)/g);
-                
                 return parts.map((part, i) => {
-                    // Check if part is actually a number-like string (has digit, not empty)
-                    // We also ensure it's not just a comma or dot
                     if (/[\d]/.test(part) && onValueClick) {
                         return (
-                            <span 
-                                key={i}
-                                onClick={(e) => { e.stopPropagation(); onValueClick(part); }} 
+                            <span key={i} onClick={(e) => { e.stopPropagation(); onValueClick(part); }} 
                                 className="cursor-pointer text-blue-600 font-bold hover:bg-blue-100 hover:text-blue-800 rounded px-0.5 transition-colors"
-                                title="Insert value"
-                            >
+                                title="Click to insert value">
                                 {part}
                             </span>
                         );
@@ -756,20 +691,17 @@
                         <Icon name={isOpen ? "chevron-up" : "chevron-down"} size={16} />
                     </button>
                     {isOpen && (
-                        <div className="overflow-x-auto max-h-64 custom-scrollbar">
+                        <div className="overflow-x-auto max-h-80 custom-scrollbar">
                             <table className="w-full text-xs text-left">
-                                <thead className="bg-slate-50 text-slate-500 uppercase tracking-wider sticky top-0 shadow-sm">
-                                    <tr>{headers.map((h, i) => <th key={i} className={`p-2 border-b font-medium ${i > 0 ? "text-right" : ""}`}>{h}</th>)}</tr>
+                                <thead className="bg-slate-50 text-slate-500 uppercase tracking-wider sticky top-0 shadow-sm z-10">
+                                    <tr>{headers.map((h, i) => <th key={i} className={`p-2 border-b font-medium bg-slate-50 ${i > 0 ? "text-right" : ""}`}>{h}</th>)}</tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100">
                                     {rows.map((row, rI) => (
                                         <tr key={rI} className="hover:bg-blue-50 transition-colors">
-                                            <td className="p-2 font-medium text-slate-700">{row[0]}</td>
+                                            <td className="p-2 font-medium text-slate-700 border-r border-slate-50">{row[0]}</td>
                                             {row.slice(1).map((cell, cI) => (
-                                                <td 
-                                                    key={cI} 
-                                                    className="p-2 text-right font-mono text-slate-600"
-                                                >
+                                                <td key={cI} className="p-2 text-right font-mono text-slate-600 whitespace-nowrap">
                                                     {renderInteractiveCell(cell)}
                                                 </td>
                                             ))}
@@ -785,11 +717,11 @@
 
         const FSETable = ({ config, inputs, handleInputChange, activeKey, instructorMode, activeInput, setActiveInput }) => {
             return (
-                <div className="overflow-x-auto border border-slate-200 rounded-lg shadow-sm">
+                <div className="overflow-x-auto border border-slate-200 rounded-lg shadow-sm custom-scrollbar">
                     <table className="w-full text-sm">
                         <thead className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200">
                             <tr>
-                                <th className="p-3 text-left sticky left-0 bg-slate-50 min-w-[200px] border-r border-slate-200 shadow-[4px_0_8px_-2px_rgba(0,0,0,0.05)]">Transaction</th>
+                                <th className="p-3 text-left sticky left-0 bg-slate-50 min-w-[200px] border-r border-slate-200 shadow-[4px_0_8px_-2px_rgba(0,0,0,0.05)] z-20">Transaction</th>
                                 {config.columns.map(col => (
                                     <th key={col.key} className="p-3 text-center min-w-[120px] whitespace-normal leading-tight">
                                         {col.label}
@@ -801,7 +733,7 @@
                         <tbody className="divide-y divide-slate-100">
                             {config.transactions.map((txn, idx) => (
                                 <tr key={txn.id} className={idx % 2 === 0 ? "bg-white" : "bg-slate-50/50"}>
-                                    <td className="p-3 font-medium text-slate-700 border-r border-slate-100 sticky left-0 bg-inherit shadow-[4px_0_8px_-2px_rgba(0,0,0,0.05)]">
+                                    <td className="p-3 font-medium text-slate-700 border-r border-slate-100 sticky left-0 bg-inherit shadow-[4px_0_8px_-2px_rgba(0,0,0,0.05)] z-10">
                                         {txn.label}
                                     </td>
                                     {config.columns.map(col => {
@@ -838,6 +770,8 @@
             const [activeTab, setActiveTab] = useState('campbell');
             const [inputs, setInputs] = useState({});
             const [activeInput, setActiveInput] = useState(null);
+            const [sidebarWidth, setSidebarWidth] = useState(400); // Initial width
+            const [isResizing, setIsResizing] = useState(false);
             
             // Instructor State
             const [instructorMode, setInstructorMode] = useState(false);
@@ -851,7 +785,28 @@
             const [studentName, setStudentName] = useState("");
             const [showDownload, setShowDownload] = useState(false);
 
-            // Dynamic Data Switching
+            // Resizing Logic
+            const startResizing = useCallback(() => setIsResizing(true), []);
+            const stopResizing = useCallback(() => setIsResizing(false), []);
+            const resize = useCallback((mouseMoveEvent) => {
+                if (isResizing) {
+                    const newWidth = mouseMoveEvent.clientX;
+                    if (newWidth > 250 && newWidth < 800) {
+                        setSidebarWidth(newWidth);
+                    }
+                }
+            }, [isResizing]);
+
+            useEffect(() => {
+                window.addEventListener('mousemove', resize);
+                window.addEventListener('mouseup', stopResizing);
+                return () => {
+                    window.removeEventListener('mousemove', resize);
+                    window.removeEventListener('mouseup', stopResizing);
+                };
+            }, [resize, stopResizing]);
+
+            // Data getters
             const getActiveData = () => {
                 switch(activeTab) {
                     case 'campbell': return CAMPBELL_DATA;
@@ -884,16 +839,47 @@
 
             const handleInputChange = (id, val) => setInputs(prev => ({ ...prev, [id]: val }));
 
+            // Smart Number Replacement Logic
             const handleValueClick = (val) => {
                 if (!activeInput) return;
+                
+                // 1. Clean the value clicked (remove $ and () etc)
                 const cleanVal = val.replace(/,/g, '').replace(/[()]/g, (m) => m === '(' ? '-' : '').replace(/\$/g, '');
+                
                 setInputs(prev => {
-                    const cur = prev[activeInput] || "";
-                    const isOperator = /[+\-*/(\s]$/.test(cur.toString().trim());
-                    const newVal = (cur === "" || isOperator) ? cur + cleanVal : cleanVal;
+                    const cur = (prev[activeInput] || "").toString();
+                    
+                    // Regex to match the last number in the string (including decimals)
+                    // If the string ends with an operator, we append.
+                    // If the string ends with a number, we REPLACE that number.
+                    
+                    const endsWithOperator = /[+\-*/(]\s*$/;
+                    const endsWithNumber = /(-?\d*\.?\d+)$/;
+                    
+                    let newVal = cur;
+                    
+                    if (cur === "") {
+                        newVal = cleanVal;
+                    } else if (endsWithOperator.test(cur)) {
+                        newVal = cur + cleanVal;
+                    } else {
+                        // Attempt to replace the last number token
+                        newVal = cur.replace(endsWithNumber, cleanVal);
+                    }
+
                     return { ...prev, [activeInput]: newVal };
                 });
-                setTimeout(() => document.getElementById(activeInput)?.focus(), 50);
+                
+                // Focus retention
+                setTimeout(() => {
+                    const el = document.getElementById(activeInput);
+                    if (el) {
+                        el.focus();
+                        // Optional: move cursor to end
+                        const len = el.value.length;
+                        el.setSelectionRange(len, len);
+                    }
+                }, 50);
             };
 
             const unlockInstructor = () => {
@@ -975,15 +961,15 @@ ${Object.keys(activeKey).map(k => `${k}: ${inputs[k] || "[Empty]"}`).join('\n')}
                 <div className="flex h-screen bg-slate-100 overflow-hidden font-sans">
                     
                     {/* LEFT SIDEBAR: REFERENCE */}
-                    <div className="w-1/3 min-w-[350px] bg-slate-50 border-r border-slate-200 overflow-y-auto custom-scrollbar flex flex-col relative z-0">
-                        <div className="sticky top-0 bg-white p-4 border-b border-slate-200 shadow-sm z-10">
+                    <div style={{ width: sidebarWidth }} className="bg-slate-50 border-r border-slate-200 overflow-y-auto custom-scrollbar flex flex-col relative z-0 shrink-0">
+                        <div className="sticky top-0 bg-white p-4 border-b border-slate-200 shadow-sm z-20">
                             <div className="flex items-center gap-2 text-blue-800 font-bold text-lg mb-1">
                                 <Icon name="library" /> Reference Data
                             </div>
                             <p className="text-xs text-slate-500 font-bold uppercase tracking-wider">{activeData.metadata.name}</p>
                             {activeTab !== 'sysco' && (
                                 <p className="text-xs text-blue-600 mt-1 flex items-center gap-1">
-                                    <Icon name="mouse-pointer-click" size={12} /> Click values to insert
+                                    <Icon name="mouse-pointer-click" size={12} /> Click values to insert/replace
                                 </p>
                             )}
                         </div>
@@ -1005,6 +991,9 @@ ${Object.keys(activeKey).map(k => `${k}: ${inputs[k] || "[Empty]"}`).join('\n')}
                             )}
                         </div>
                     </div>
+
+                    {/* DRAG HANDLE */}
+                    <div className="resizer" onMouseDown={startResizing}></div>
 
                     {/* MAIN CONTENT */}
                     <div className="flex-1 flex flex-col h-screen overflow-hidden relative">
@@ -1083,6 +1072,14 @@ ${Object.keys(activeKey).map(k => `${k}: ${inputs[k] || "[Empty]"}`).join('\n')}
                                         </h2>
                                         <p className="text-sm text-slate-500 mb-6 italic">{q.desc}</p>
                                         
+                                        {/* Inject Narrative Notes for Instructor Mode if they exist */}
+                                        {instructorMode && CAMPBELL_INSTRUCTOR_NOTES[q.id] && activeTab === 'campbell' && (
+                                            <div className="mb-4 p-4 bg-purple-50 border-l-4 border-purple-500 text-purple-900 text-sm rounded shadow-sm">
+                                                <strong className="block mb-1 font-bold">Instructor Note (Narrative Answer):</strong>
+                                                {CAMPBELL_INSTRUCTOR_NOTES[q.id]}
+                                            </div>
+                                        )}
+
                                         {q.type === 'fse_table' ? (
                                             <FSETable 
                                                 config={XPRESS_FSE_CONFIG} 
