@@ -76,22 +76,7 @@
             { id: "pre", label: "Prepaid expenses and other", val22: 6383169, val21: 243966, type: "asset", correct: "op" },
             { id: "ppe", label: "Property, plant and equipment, net", val22: 2122758, val21: 2266476, type: "asset", correct: "op" },
             { id: "def_a", label: "Deferred income taxes (Asset)", val22: 110585, val21: 104251, type: "asset", correct: "op" },
-            { id: "invest", label: "Investments and other assets", val22: 788057, val21: 774239, type: "asset", correct: "op" }, // Often non-op, but assumed op based on 'Operating assets shaded green' total in prompt unless stated otherwise. Wait, prompt total op assets for 2022 is 24,048,468.
-            // Let's check: 2341504+543757+2214553+6383169+2122758+110585+788057+3135817+7740082 = 25,380,282? No.
-            // Let's align with Total Operating Assets given in prompt: 24,048,468 (2022).
-            // Total Assets 2022 = 25,943,943. Non-Op Assets = 25,943,943 - 24,048,468 = 1,895,475.
-            // Cash (535,799) + Mkt Sec (27,862) = 563,661. This is not 1.8M. 
-            // The prompt says "Nonoperating assets - assets unshaded on balance sheet: 1,895,475 (2022)".
-            // Let's assume the difference is in "Prepaid expenses and other" or "Investments" or "Restricted Cash" not shown in simple BS but implied. 
-            // Actually, based on previous context, PH has restricted cash for acquisition (~6.1B discrepancy).
-            // However, sticking to the provided table values in prompt:
-            // "Operating assets (shaded green)" 2022 = 24,048,468.
-            // "Nonoperating assets (unshaded)" 2022 = 1,895,475.
-            // Let's set the classification logic to match these totals approximately or use provided "Green/Unshaded" logic.
-            // Given the complexity of specific adjustments, I will mark items generally.
-            // Cash & Mkt Securities are definitely Non-Op. 
-            // 1,895,475 - 535,799 - 27,862 = 1,331,814 remaining Non-Op. Could be part of "Investments and other assets" or "Prepaid".
-            // For simplicity in this simulation, I will mark Cash & Mkt as Non-Op, others Op, but rely on the provided TOTALS in the "Supplemental Data" for the final calculation check to avoid confusion if individual line items don't sum perfectly due to hidden adjustments.
+            { id: "invest", label: "Investments and other assets", val22: 788057, val21: 774239, type: "asset", correct: "op" },
             { id: "int", label: "Intangible assets, net", val22: 3135817, val21: 3519797, type: "asset", correct: "op" },
             { id: "good", label: "Goodwill", val22: 7740082, val21: 8059687, type: "asset", correct: "op" },
 
@@ -187,7 +172,17 @@
 
         const HINT_DATA = {
             roe: { title: "Return on Equity", def: "Net Income / Average Stockholders' Equity" },
-            dupont: { title: "DuPont Disaggregation", def: "ROE = ROA × FL × NCIR" },
+            dupont: { 
+                title: "DuPont Disaggregation", 
+                def: (
+                    <span>
+                        ROE = ROA × FL × NCIR
+                        <br/><br/>
+                        <span className="block text-slate-600 font-mono text-[11px] mb-1">ROA = Net Income / Average Total Assets</span>
+                        <span className="block text-slate-600 font-mono text-[11px]">FL = Average Total Assets / Average Total Equity</span>
+                    </span>
+                )
+            },
             roa: { title: "Return on Assets", def: "Net Income / Average Total Assets" },
             fl: { title: "Financial Leverage", def: "Avg Total Assets / Avg Stockholders' Equity" },
             ncir: { title: "NCIR", def: "Net Income / Net Income Attributable to Parent" },
@@ -214,7 +209,7 @@
                     {isOpen && (
                         <div className="mt-1 p-2 bg-blue-50 border border-blue-200 rounded text-slate-700 animate-fade-in">
                             <p className="font-bold text-blue-900">{data.title}</p>
-                            <p>{data.def}</p>
+                            <div className="mt-1">{data.def}</div>
                         </div>
                     )}
                 </div>
@@ -425,7 +420,19 @@
             };
 
             const toggleTeacher = () => teacherMode ? setTeacherMode(false) : setShowLogin(true);
-            const checkPassword = () => { if(password.toLowerCase() === 'teacher') { setTeacherMode(true); setShowLogin(false); setPassword(''); } else alert("Incorrect Code"); };
+            
+            // PASSWORD CHECK - Obfuscated
+            // 'dGVhY2hlcg==' is the Base64 encoding of 'teacher'
+            const checkPassword = () => { 
+                if(btoa(password.toLowerCase()) === 'dGVhY2hlcg==') { 
+                    setTeacherMode(true); 
+                    setShowLogin(false); 
+                    setPassword(''); 
+                } else {
+                    alert("Incorrect Code"); 
+                }
+            };
+            
             const autoFill = () => {
                 if(teacherMode) {
                     // Toggle Logic: If populated (>5 keys), clear. Else fill.
