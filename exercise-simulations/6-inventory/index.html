@@ -37,13 +37,18 @@
         html {
             scroll-behavior: smooth;
         }
+        /* Resizer handle hover effect */
+        .resizer-handle:hover {
+            background-color: #6366f1; /* Indigo 500 */
+            cursor: col-resize;
+        }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-800">
+<body class="bg-slate-50 text-slate-800 overflow-hidden"> <!-- Added overflow-hidden to body for resize layout -->
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
+        const { useState, useEffect, useRef, useCallback } = React;
 
         // --- Icons ---
         const Icons = {
@@ -64,7 +69,8 @@
             Shield: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>,
             Award: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg>,
             Trash2: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>,
-            User: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            User: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
+            MousePointerClick: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="m9 9 5 12 1.8-5.2L21 14Z"/><path d="M7.2 2.2 8 5.1"/><path d="m5.1 8-2.9-.8"/><path d="M14 4.1 12 6"/><path d="m6 12-1.9 2"/></svg>
         };
 
         // --- Data & Config ---
@@ -184,11 +190,11 @@
         };
 
         // --- SMART INPUT COMPONENT ---
-        const SmartInput = ({ id, value, correctValue, isPct, onChange, onEnter, locked, showKey }) => {
+        const SmartInput = ({ id, value, correctValue, isPct, onChange, onEnter, locked, showKey, onFocus, inputRef }) => {
             const [localVal, setLocalVal] = useState(value || '');
             const [status, setStatus] = useState('idle'); // idle, correct, incorrect
 
-            // Sync with parent value (e.g. for auto-fill)
+            // Sync with parent value (e.g. for auto-fill or clicking data row)
             useEffect(() => {
                 setLocalVal(value || '');
                 if (value) {
@@ -199,18 +205,29 @@
                 }
             }, [value, correctValue, isPct]);
 
+            const handleChange = (e) => {
+                const val = e.target.value;
+                setLocalVal(val);
+                onChange(val); // Sync parent immediately to enable smart operator detection
+            };
+
             const handleBlur = (e) => {
                 const raw = e.target.value;
                 const evaluated = evaluateMath(raw);
                 
                 if (isNaN(evaluated)) {
-                    setStatus('incorrect');
-                    return; // Don't update parent with NaN
+                    // If invalid math, keep raw string (already in parent via handleChange) but show error
+                    if (raw.trim() === '') {
+                        setStatus('idle');
+                    } else {
+                        setStatus('incorrect');
+                    }
+                    return;
                 }
 
                 // Format for display
                 const displayVal = evaluated.toString(); 
-                setLocalVal(displayVal); // Show calculated value
+                setLocalVal(displayVal); // Show calculated value (REPLACES FORMULA)
                 onChange(displayVal); // Update parent
 
                 // Validate
@@ -234,10 +251,12 @@
                             {status === 'correct' ? <Icons.CheckCircle className="w-5 h-5" /> : <Icons.DollarSign className="w-5 h-5" />}
                         </div>
                         <input
+                            ref={inputRef}
                             type="text"
                             value={localVal}
                             disabled={locked}
-                            onChange={(e) => setLocalVal(e.target.value)}
+                            onFocus={() => onFocus(id)}
+                            onChange={handleChange}
                             onBlur={handleBlur}
                             onKeyDown={handleKeyDown}
                             placeholder="Enter value or math (e.g. 500/2)"
@@ -281,7 +300,7 @@
         };
 
         // --- QUESTION CARD COMPONENT ---
-        const QuestionCard = ({ question, answer, instructorUnlocked, onAnswerChange }) => {
+        const QuestionCard = ({ question, answer, instructorUnlocked, onAnswerChange, onInputFocus, inputRef }) => {
             const [showHint, setShowHint] = useState(false);
             const renderComparisonData = () => {
                 const lifoNI = 11391;
@@ -324,6 +343,8 @@
                                     locked={false}
                                     onChange={onAnswerChange}
                                     showKey={instructorUnlocked}
+                                    onFocus={onInputFocus}
+                                    inputRef={inputRef}
                                 />
                             </div>
                         ) : (
@@ -374,6 +395,14 @@
             const [gameComplete, setGameComplete] = useState(false);
             const [studentName, setStudentName] = useState("");
             
+            // Interaction State
+            const [activeInputId, setActiveInputId] = useState(null);
+            const inputRefs = useRef({}); // Map of qId -> DOM element
+
+            // Layout State
+            const [sidebarWidth, setSidebarWidth] = useState(320); // Default width
+            const [isResizing, setIsResizing] = useState(false);
+
             // Instructor States
             const [instructorUnlocked, setInstructorUnlocked] = useState(false);
             const [showAuthModal, setShowAuthModal] = useState(false);
@@ -397,6 +426,57 @@
                 setAnswers(prev => ({ ...prev, [qId]: val }));
             };
 
+            // Smart Reference Logic
+            const handleDataClick = (val) => {
+                // If no input is active or the active input is not a text input question, do nothing
+                if (!activeInputId || !answers.hasOwnProperty(activeInputId) && answers[activeInputId] !== '') {
+                    // Check if activeId corresponds to a known input question (basic check)
+                    const q = QUESTIONS.find(q => q.id === activeInputId);
+                    if (!q || q.type !== 'input') return;
+                }
+                
+                // Ensure val is string
+                const valStr = val.toString();
+                
+                // Get current value
+                const currentVal = answers[activeInputId] || '';
+                let newVal = '';
+
+                // SMART REPLACEMENT LOGIC
+                // Regex to check if string ends with an operator (possibly followed by whitespace)
+                // Operators: + - * / ( 
+                const endsInOperator = /[\+\-\*\/(]\s*$/.test(currentVal);
+
+                if (currentVal.trim() === '') {
+                    // Empty? Just set it
+                    newVal = valStr;
+                } else if (endsInOperator) {
+                    // Ends in operator -> Append
+                    newVal = currentVal + valStr;
+                } else {
+                    // Ends in a number? Replace the last number segment
+                    // This regex finds the last number sequence (integer or decimal) at the end of string
+                    const lastNumberRegex = /(\d+(\.\d+)?)$/;
+                    
+                    if (lastNumberRegex.test(currentVal)) {
+                        newVal = currentVal.replace(lastNumberRegex, valStr);
+                    } else {
+                        // Fallback (e.g. ends in text or weird char) -> Append
+                        newVal = currentVal + valStr;
+                    }
+                }
+
+                handleAnswerChange(activeInputId, newVal);
+
+                // FOCUS RETENTION
+                // Re-focus the input after a short delay to allow React render
+                if (inputRefs.current[activeInputId]) {
+                    setTimeout(() => {
+                        inputRefs.current[activeInputId].focus();
+                    }, 10);
+                }
+            };
+
             const calculateScore = () => {
                 let s = 0;
                 QUESTIONS.forEach(q => {
@@ -417,13 +497,10 @@
             };
 
             const generateSubmission = () => {
-                // Use state name instead of prompt
                 const name = studentName || "Student";
-                
                 const finalScore = calculateScore();
                 const now = new Date();
                 
-                // Create robust hash payload
                 const payload = {
                     n: name,
                     s: finalScore,
@@ -459,6 +536,33 @@
                 link.click();
                 document.body.removeChild(link);
             };
+
+            // --- Sidebar Resize Logic ---
+            const startResizing = useCallback((mouseDownEvent) => {
+                setIsResizing(true);
+            }, []);
+
+            const stopResizing = useCallback(() => {
+                setIsResizing(false);
+            }, []);
+
+            const resize = useCallback((mouseMoveEvent) => {
+                if (isResizing) {
+                    const newWidth = mouseMoveEvent.clientX;
+                    if (newWidth > 200 && newWidth < 600) { // Constraints
+                        setSidebarWidth(newWidth);
+                    }
+                }
+            }, [isResizing]);
+
+            useEffect(() => {
+                window.addEventListener("mousemove", resize);
+                window.addEventListener("mouseup", stopResizing);
+                return () => {
+                    window.removeEventListener("mousemove", resize);
+                    window.removeEventListener("mouseup", stopResizing);
+                };
+            }, [resize, stopResizing]);
 
             // --- Instructor Logic ---
 
@@ -525,7 +629,7 @@
             // --- Render Helpers ---
 
             return (
-                <div className="min-h-screen font-sans flex flex-col md:flex-row">
+                <div className={`min-h-screen font-sans flex flex-col md:flex-row h-screen overflow-hidden`}>
                     
                     {/* INSTRUCTOR STICKY TOOLBAR */}
                     {instructorUnlocked && (
@@ -662,35 +766,47 @@
                     )}
 
                     {/* SIDEBAR DATA PANEL */}
-                    <div className={`md:w-80 bg-slate-900 text-slate-100 flex flex-col h-screen md:sticky md:top-0 border-r border-slate-800 shrink-0 ${instructorUnlocked ? 'mt-16' : ''}`}>
+                    <div 
+                        style={{ width: sidebarWidth }}
+                        className={`bg-slate-900 text-slate-100 flex flex-col h-screen shrink-0 ${instructorUnlocked ? 'mt-16' : ''}`}
+                    >
                         <div className="p-6 overflow-y-auto flex-1 scrollbar-thin">
-                            <h2 className="text-lg font-bold text-indigo-400 mb-6 flex items-center gap-2">
+                            <h2 className="text-lg font-bold text-indigo-400 mb-2 flex items-center gap-2">
                                 <Icons.Calculator /> Data Terminal
                             </h2>
+                            <p className="text-xs text-slate-400 mb-6 italic">Click values to insert into active field.</p>
                             
                             <div className="space-y-6 text-sm">
                                 <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-700">
                                     <h3 className="text-xs uppercase tracking-wider text-slate-500 mb-3 font-semibold">Current Year ($M)</h3>
-                                    <DataRow label="LIFO Inventory" value={GAME_DATA.currentYear.lifoInventory} />
-                                    <DataRow label="LIFO Reserve" value={GAME_DATA.currentYear.lifoReserve} highlight />
-                                    <DataRow label="Total Assets" value={GAME_DATA.currentYear.totalAssets} />
-                                    <DataRow label="Revenue" value={GAME_DATA.currentYear.revenue} />
-                                    <DataRow label="COGS" value={GAME_DATA.currentYear.cogs} />
-                                    <DataRow label="Net Income" value={GAME_DATA.currentYear.netIncome} />
+                                    <DataRow label="LIFO Inventory" value={GAME_DATA.currentYear.lifoInventory} onClick={handleDataClick} />
+                                    <DataRow label="LIFO Reserve" value={GAME_DATA.currentYear.lifoReserve} highlight onClick={handleDataClick} />
+                                    <DataRow label="Total Assets" value={GAME_DATA.currentYear.totalAssets} onClick={handleDataClick} />
+                                    <DataRow label="Revenue" value={GAME_DATA.currentYear.revenue} onClick={handleDataClick} />
+                                    <DataRow label="COGS" value={GAME_DATA.currentYear.cogs} onClick={handleDataClick} />
+                                    <DataRow label="Net Income" value={GAME_DATA.currentYear.netIncome} onClick={handleDataClick} />
                                 </div>
                                 <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-700 opacity-75">
                                     <h3 className="text-xs uppercase tracking-wider text-slate-500 mb-3 font-semibold">Prior Year ($M)</h3>
-                                    <DataRow label="LIFO Inventory" value={GAME_DATA.priorYear.lifoInventory} />
-                                    <DataRow label="LIFO Reserve" value={GAME_DATA.priorYear.lifoReserve} highlight />
+                                    <DataRow label="LIFO Inventory" value={GAME_DATA.priorYear.lifoInventory} onClick={handleDataClick} />
+                                    <DataRow label="LIFO Reserve" value={GAME_DATA.priorYear.lifoReserve} highlight onClick={handleDataClick} />
                                 </div>
                             </div>
                         </div>
                     </div>
 
+                    {/* DRAGGER/RESIZER HANDLE */}
+                    <div 
+                        onMouseDown={startResizing}
+                        className={`resizer-handle w-2 bg-slate-800 hover:bg-indigo-500 cursor-col-resize transition-colors flex items-center justify-center z-50 ${instructorUnlocked ? 'mt-16' : ''}`}
+                    >
+                        <div className="h-8 w-1 bg-slate-600 rounded"></div>
+                    </div>
+
                     {/* MAIN CONTENT AREA */}
-                    <div className={`flex-1 flex flex-col min-h-screen bg-slate-50 ${instructorUnlocked ? 'mt-16' : ''}`}>
+                    <div className={`flex-1 flex flex-col h-screen overflow-y-auto bg-slate-50 ${instructorUnlocked ? 'mt-16' : ''}`}>
                         {/* Header */}
-                        <header className="bg-white p-4 border-b flex justify-between items-center sticky top-0 z-40 shadow-sm">
+                        <header className="bg-white p-4 border-b flex justify-between items-center sticky top-0 z-40 shadow-sm shrink-0">
                             <h1 className="font-bold text-lg text-slate-800">Financial Analysis Module</h1>
                             <button 
                                 onClick={() => setShowAuthModal(true)}
@@ -707,9 +823,9 @@
                                     <div className="bg-indigo-50 border border-indigo-100 p-6 rounded-xl">
                                         <h2 className="text-xl font-bold text-indigo-900 mb-2">Instructions</h2>
                                         <p className="text-indigo-800">
-                                            Complete all sections below using the Data Terminal on the left. 
-                                            You may enter math directly into the input fields (e.g., 500/2). 
-                                            When finished, enter your name at the bottom and submit.
+                                            Click on data points in the left sidebar to insert them. 
+                                            You can type operators (e.g., +, -, *) between values. 
+                                            Formulas are calculated automatically when you move to the next field.
                                         </p>
                                     </div>
 
@@ -731,6 +847,8 @@
                                                         answer={answers[q.id]}
                                                         instructorUnlocked={instructorUnlocked}
                                                         onAnswerChange={(val) => handleAnswerChange(q.id, val)}
+                                                        onInputFocus={setActiveInputId}
+                                                        inputRef={(el) => inputRefs.current[q.id] = el}
                                                     />
                                                 ))}
                                             </div>
@@ -795,10 +913,16 @@
             );
         }
 
-        const DataRow = ({ label, value, highlight }) => (
-            <div className={`flex justify-between py-1 border-b border-slate-700/50 last:border-0 ${highlight ? 'text-amber-400 font-medium' : 'text-slate-300'}`}>
-                <span>{label}</span>
-                <span className="font-mono">{typeof value === 'number' ? value.toLocaleString() : value}</span>
+        const DataRow = ({ label, value, highlight, onClick }) => (
+            <div 
+                onClick={() => onClick(value)}
+                className={`group flex justify-between py-2 px-2 -mx-2 rounded cursor-pointer hover:bg-slate-700 transition-colors border-b border-slate-700/50 last:border-0 ${highlight ? 'text-amber-400 font-medium' : 'text-slate-300'}`}
+            >
+                <div className="flex items-center gap-2">
+                    <Icons.MousePointerClick className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity text-slate-400" />
+                    <span>{label}</span>
+                </div>
+                <span className="font-mono group-hover:text-white transition-colors">{typeof value === 'number' ? value.toLocaleString() : value}</span>
             </div>
         );
 
