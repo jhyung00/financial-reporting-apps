@@ -33,7 +33,6 @@
                 height: auto !important;
                 overflow: visible !important;
             }
-            /* Force the modal to be static for printing */
             .print-modal-wrapper {
                 position: static !important;
                 display: block !important;
@@ -57,23 +56,34 @@
                 border-radius: 0 !important;
                 transform: none !important;
             }
-            /* Hide scrollbars in print */
             ::-webkit-scrollbar {
                 display: none;
             }
-            /* Break pages nicely */
             .page-break-item {
                 break-inside: avoid;
                 page-break-inside: avoid;
             }
         }
+        
+        .resizer {
+            width: 4px;
+            cursor: col-resize;
+            background-color: transparent;
+            transition: background-color 0.2s;
+        }
+        .resizer:hover, .resizing .resizer {
+            background-color: #6366f1;
+        }
+        .no-select {
+            user-select: none;
+        }
     </style>
 </head>
-<body class="bg-slate-100 text-slate-800 font-sans">
+<body class="bg-slate-100 text-slate-800 font-sans no-select" oncontextmenu="return false">
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect } = React;
+        const { useState, useEffect, useRef, useCallback } = React;
 
         // --- ICONS (SVG Components) ---
         const Icon = ({ name, className }) => {
@@ -88,17 +98,177 @@
                 Save: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>,
                 Printer: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg>,
                 Key: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/></svg>,
+                Lock: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>,
                 Unlock: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>,
                 RotateCcw: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>,
                 Delete: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M20 5H9l-7 7 7 7h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Z"/><line x1="18" x2="12" y1="9" y2="15"/><line x1="12" x2="18" y1="9" y2="15"/></svg>,
                 User: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
-                Eye: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>,
-                ArrowRightLeft: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m16 3 4 4-4 4"/><path d="M20 7H4"/><path d="m8 21-4-4 4-4"/><path d="M4 17h16"/></svg>
+                Eye: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
             };
             return icons[name] || null;
         };
 
-        // --- DATA DEFINITIONS ---
+        // --- SECURITY & OBFUSCATION ---
+        const d = (s) => atob(s);
+        const e = (s) => btoa(s);
+
+        // ANSWER_KEYS renamed to _DATA_MATRIX with Base64 values
+        const _DATA_MATRIX = {
+            'cfo_salary-Label': { 
+                t: 'Y2xhc3NpZmljYXRpb24=', 
+                n: 'Q2xhc3NpZmljYXRpb24gRXJyb3I6IENGTyBzYWxhcnkgYmVsb25ncyBpbiBHZW5lcmFsICYgQWRtaW5pc3RyYXRpdmUgZXhwZW5zZXMsIG5vdCBDb3N0IG9mIFJldmVudWUu',
+                rl: 'Q0ZPIFNhbGFyeQ==', 
+                y: 'TGFiZWw=', 
+                tb: 'aW5jb21lX3N0YXRlbWVudA==' 
+            },
+            'rev_unearned-Label': { 
+                t: 'Y2xhc3NpZmljYXRpb24=', 
+                n: 'Q2xhc3NpZmljYXRpb24gRXJyb3I6IFVuZWFybmVkIFJldmVudWUgaXMgYSBMaWFiaWxpdHksIG5vdCBSZXZlbnVlLg==',
+                rl: 'U2hvcnQtdGVybSB1bmVhcm5lZCByZXZlbnVl', 
+                y: 'TGFiZWw=', 
+                tb: 'aW5jb21lX3N0YXRlbWVudA==' 
+            },
+            'rnd-Label': { 
+                t: 'bGFiZWw=', 
+                n: 'TGFiZWwgRXJyb3I6IFR5cG8gJ2RlcGxveW1lbnQnIGluc3RlYWQgb2YgJ2RldmVsb3BtZW50Jy4=',
+                rl: 'UmVzZWFyY2ggYW5kIGRlcGxveW1lbnQ=', 
+                y: 'TGFiZWw=', 
+                tb: 'aW5jb21lX3N0YXRlbWVudA==' 
+            },
+            'gross_margin-Label': { 
+                t: 'bGFiZWw=', 
+                n: 'SW5jb3JyZWN0IExhYmVsOiBTaG91bGQgYmUgJ0dyb3NzIE1hcmdpbicu',
+                rl: 'TmV0IEluY29tZSBiZWZvcmUgT3BlcmF0aW5nIEV4cGVuc2Vz', 
+                y: 'TGFiZWw=', 
+                tb: 'aW5jb21lX3N0YXRlbWVudA==' 
+            },
+            'div_exp-Label': { 
+                t: 'Y2xhc3NpZmljYXRpb24=', 
+                n: 'Q2xhc3NpZmljYXRpb24gRXJyb3I6IERpdmlkZW5kcyBhcmUgbm90IGFuIE9wZXJhdGluZyBFeHBlbnNlICh0eXBpY2FsbHkgRmluYW5jaW5nIG9yIHNlcGFyYXRlIHJlZHVjdGlvbiBvZiBSZXRhaW5lZCBFYXJuaW5ncyku',
+                rl: 'RGl2aWRlbmRzIHBhaWQ=', 
+                y: 'TGFiZWw=', 
+                tb: 'aW5jb21lX3N0YXRlbWVudA==' 
+            },
+            'lt_inv_error-Label': { 
+                t: 'Y2xhc3NpZmljYXRpb24=', 
+                n: 'Q2xhc3NpZmljYXRpb24gRXJyb3I6IExvbmctdGVybSBhc3NldHMgdW5kZXIgQ3VycmVudCBBc3NldHMu',
+                rl: 'TG9uZy10ZXJtIGludmVzdG1lbnRz', 
+                y: 'TGFiZWw=', 
+                tb: 'YmFsYW5jZV9zaGVldA==' 
+            },
+            'goodwill_error-Label': { 
+                t: 'Y2xhc3NpZmljYXRpb24=', 
+                n: 'Q2xhc3NpZmljYXRpb24gRXJyb3I6IEdvb2R3aWxsIGlzIGFuIGludGFuZ2libGUsIG5vbi1jdXJyZW50IGFzc2V0Lg==',
+                rl: 'R29vZHdpbGw=', 
+                y: 'TGFiZWw=', 
+                tb: 'YmFsYW5jZV9zaGVldA==' 
+            },
+            'ap_error-Label': { 
+                t: 'Y2xhc3NpZmljYXRpb24=', 
+                n: 'Q2xhc3NpZmljYXRpb24gRXJyb3I6IEFjY291bnRzIFBheWFibGUgaXMgYSBMaWFiaWxpdHksIGluY29ycmVjdGx5IGxpc3RlZCB1bmRlciBBc3NldHMu',
+                rl: 'QWNjb3VudHMgcGF5YWJsZQ==', 
+                y: 'TGFiZWw=', 
+                tb: 'YmFsYW5jZV9zaGVldA==' 
+            },
+            'profit_asset_error-Label': { 
+                t: 'Y2xhc3NpZmljYXRpb24=', 
+                n: 'Q2xhc3NpZmljYXRpb24gRXJyb3I6IEVxdWl0eSBpdGVtICgnUHJvZml0JykgZWFybmVkIGluY29ycmVjdGx5IGxpc3RlZCB1bmRlciBBc3NldHMu',
+                rl: 'UHJvZml0', 
+                y: 'TGFiZWw=', 
+                tb: 'YmFsYW5jZV9zaGVldA==' 
+            },
+            'ar_error-Label': { 
+                t: 'Y2xhc3NpZmljYXRpb24=', 
+                n: 'Q2xhc3NpZmljYXRpb24gRXJyb3I6IEFjY291bnRzIFJlY2VpdmFibGUgaXMgYW4gQXNzZXQsIGluY29ycmVjdGx5IGxpc3RlZCB1bmRlciBMaWFiaWxpdGllcy4=',
+                rl: 'QWNjb3VudHMgcmVjZWl2YWJsZSwgbmV0', 
+                y: 'TGFiZWw=', 
+                tb: 'YmFsYW5jZV9zaGVldA==' 
+            },
+            'st_inv_liab_error-Label': { 
+                t: 'Y2xhc3NpZmljYXRpb24=', 
+                n: 'Q2xhc3NpZmljYXRpb24gRXJyb3I6IFNob3J0LXRlcm0gaW52ZXN0bWVudHMgYXJlIEFzc2V0cywgbm90IExpYWJpbGl0aWVzLg==',
+                rl: 'U2hvcnQtdGVybSBpbnZlc3RtZW50cw==', 
+                y: 'TGFiZWw=', 
+                tb: 'YmFsYW5jZV9zaGVldA==' 
+            },
+            'retained_earnings-Label': { 
+                t: 'bGFiZWw=', 
+                n: 'TGFiZWwgRXJyb3I6ICdQcm9maXQnIHVzZWQgaW5zdGVhZCBvZiBSZXRhaW5lZCBFYXJuaW5ncy4=',
+                rl: 'UHJvZml0', 
+                y: 'TGFiZWw=', 
+                tb: 'YmFsYW5jZV9zaGVldA==' 
+            },
+            'total_liab_equity-2024': { 
+                t: 'bWF0aA==', 
+                n: 'QWNjb3VudGluZyBFcXVhdGlvbiBFcnJvcjogVG90YWwgTGlhYmlsaXRpZXMgJiBFcXVpdHkgKCQ1MjgsNjE0KSBkb2VzIG5vdCBlcXVhbCBUb3RhbCBBc3NldHMgKCQ2NTAsMzc5KS4gQWxzbyBtaXNtYXRjaGVzIEVxdWl0eSBTdGF0ZW1lbnQgdG90YWwu',
+                rl: 'VG90YWwgbGlhYmlsaXRpZXMgYW5kIHN0b2NraG9sZGVyc+KAmSBlcXVpdHk=', 
+                y: 'MjAyNA==', 
+                tb: 'YmFsYW5jZV9zaGVldA==' 
+            },
+            'total_assets-2024': { 
+                t: 'bWF0aA==', 
+                n: 'QWNjb3VudGluZyBFcXVhdGlvbiBFcnJvcjogVG90YWwgQXNzZXRzICgkNjUwLDM3OSkgZG9lcyBub3QgZXF1YWwgVG90YWwgTGlhYmlsaXRpZXMgJiBFcXVpdHkgKCQ1MjgsNjE0KS4=',
+                rl: 'VG90YWwgYXNzZXRz', 
+                y: 'MjAyNA==', 
+                tb: 'YmFsYW5jZV9zaGVldA==' 
+            },
+            'curr_lt_debt-Label': { 
+                t: 'Y2xhc3NpZmljYXRpb24=', 
+                n: 'Q2xhc3NpZmljYXRpb24gRXJyb3I6IEN1cnJlbnQgcG9ydGlvbiBvZiBsb25nLXRlcm0gZGVidCBpcyBhIEN1cnJlbnQgTGlhYmlsaXR5LCBub3QgTG9uZy1UZXJtLg==',
+                rl: 'Q3VycmVudCBwb3J0aW9uIG9mIGxvbmctdGVybSBkZWJ0', 
+                y: 'TGFiZWw=', 
+                tb: 'YmFsYW5jZV9zaGVldA==' 
+            },
+            'net_cash_ops-Label': { 
+                t: 'bGFiZWw=', 
+                n: 'TGFiZWwgRXJyb3I6ICdVc2VkIGZyb20nIGltcGxpZXMgbmVnYXRpdmUsIGJ1dCB2YWx1ZSBpcyBwb3NpdGl2ZS4=',
+                rl: 'TmV0IGNhc2ggdXNlZCBmcm9tIG9wZXJhdGlvbnM=', 
+                y: 'TGFiZWw=', 
+                tb: 'Y2FzaF9mbG93' 
+            },
+            'ppe_ops_error-Label': { 
+                t: 'Y2xhc3NpZmljYXRpb24=', 
+                n: 'Q2xhc3NpZmljYXRpb24gRXJyb3I6IENhcGl0YWwgRXhwZW5kaXR1cmVzIGJlbG9uZyBpbiBJbnZlc3RpbmcgQWN0aXZpdGllcywgbm90IE9wZXJhdGluZy4=',
+                rl: 'UHVyY2hhc2Ugb2YgcHJvcGVydHkgYW5kIGVxdWlwbWVudA==', 
+                y: 'TGFiZWw=', 
+                tb: 'Y2FzaF9mbG93' 
+            },
+            'net_cash_inv-Label': { 
+                t: 'bGFiZWw=', 
+                n: 'TGFiZWwgRXJyb3I6ICdQcm92aWRlZCBieScgaW1wbGllcyBwb3NpdGl2ZSwgYnV0IHZhbHVlIGlzIG5lZ2F0aXZlLg==',
+                rl: 'TmV0IGNhc2ggcHJvdmlkZWQgYnkgaW52ZXN0aW5n', 
+                y: 'TGFiZWw=', 
+                tb: 'Y2FzaF9mbG93' 
+            },
+            'beg_cash-2024': { 
+                t: 'bGlua2FnZQ==', 
+                n: 'UmVjb25jaWxpYXRpb24gRXJyb3I6IE1pc21hdGNoIHdpdGggcHJpb3IgeWVhciBlbmRpbmcgY2FzaC4=',
+                rl: 'Q2FzaCBhbmQgY2FzaCBlcXVpdmFsZW50cywgYmVnaW5uaW5n', 
+                y: 'MjAyNA==', 
+                tb: 'Y2FzaF9mbG93' 
+            },
+            'end_cash-2024': { 
+                t: 'bGlua2FnZQ==', 
+                n: 'UmVjb25jaWxpYXRpb24gRXJyb3I6IE1pc21hdGNoIHdpdGggQmFsYW5jZSBTaGVldCBjYXNoLg==',
+                rl: 'Q2FzaCBhbmQgY2FzaCBlcXVpdmFsZW50cywgZW5kIG9mIHBlcmlvZA==', 
+                y: 'MjAyNA==', 
+                tb: 'Y2FzaF9mbG93' 
+            },
+            'eq_net_income-2024': { 
+                t: 'bGlua2FnZQ==', 
+                n: 'TGlua2FnZSBFcnJvcjogTmV0IEluY29tZSAoJDg4LDEzNikgZG9lcyBub3QgbWF0Y2ggSW5jb21lIFN0YXRlbWVudCBOZXQgSW5jb21lICgkNjYsMzY1KS4=',
+                rl: 'TmV0IGluY29tZQ==', 
+                y: 'MjAyNA==', 
+                tb: 'ZXF1aXR5' 
+            },
+            'eq_re_rep_error-Label': { 
+                t: 'bGFiZWw=', 
+                n: 'TGFiZWwgRXJyb3I6IExhYmVsZWQgJ3NvbGQnIGJ1dCB2YWx1ZSBpcyBuZWdhdGl2ZSAocmVwdXJjaGFzZWQpLg==',
+                rl: 'Q29tbW9uIHN0b2NrIHNvbGQ=', 
+                y: 'TGFiZWw=', 
+                tb: 'ZXF1aXR5' 
+            }
+        };
 
         const TAB_YEARS = {
             income_statement: [2024],
@@ -122,58 +292,39 @@
                 { type: 'header', label: 'Revenue' },
                 { id: 'rev_prod', label: 'Product', values: { 2024: "64,773", 2023: "64,699", 2022: "72,732" } },
                 { id: 'rev_serv', label: 'Service and other', values: { 2024: "150,349", 2023: "147,216", 2022: "125,538" } },
-                // ERROR: Liability in Revenue
                 { id: 'rev_unearned', label: 'Short-term unearned revenue', values: { 2024: "30,000", 2023: "0", 2022: "0" } },
                 { type: 'total', id: 'rev_total', label: 'Total revenue', formula: ['rev_prod', 'rev_serv', 'rev_unearned'], values: { 2024: "245,122", 2023: "211,915", 2022: "198,270" } },
-                
                 { type: 'spacer' },
                 { type: 'header', label: 'Cost of revenue' },
                 { id: 'cost_prod', label: 'Product', values: { 2024: "15,272", 2023: "17,804", 2022: "19,064" }, negative_implication: true },
                 { id: 'cost_serv', label: 'Service and other', values: { 2024: "58,842", 2023: "48,059", 2022: "43,586" }, negative_implication: true },
-                // ERROR: CFO Salary in Cost of Revenue (Classification)
                 { id: 'cfo_salary', label: 'CFO Salary', values: { 2024: "5", 2023: "0", 2022: "0" }, negative_implication: true },
                 { type: 'total', id: 'cost_total', label: 'Total cost of revenue', formula: ['cost_prod', 'cost_serv', 'cfo_salary'], values: { 2024: "74,119", 2023: "65,863", 2022: "62,650" }, negative_implication: true },
-                
                 { type: 'spacer' },
-                // ERROR: Label should be Gross Margin
                 { type: 'total', id: 'gross_margin', label: 'Net Income before Operating Expenses', formula: ['rev_total', '-cost_total'], values: { 2024: "171,003", 2023: "146,052", 2022: "135,620" } },
-                
                 { type: 'header', label: 'Operating Expenses' },
-                // ERROR: Typo "deployment"
                 { id: 'rnd', label: 'Research and deployment', values: { 2024: "29,510", 2023: "27,195", 2022: "24,512" }, negative_implication: true },
                 { id: 'sales', label: 'Sales and marketing', values: { 2024: "24,456", 2023: "22,759", 2022: "21,825" }, negative_implication: true },
                 { id: 'admin', label: 'General and administrative', values: { 2024: "7,604", 2023: "7,575", 2022: "5,900" }, negative_implication: true },
-                // ERROR: Dividends as Expense
                 { id: 'div_exp', label: 'Dividends paid', values: { 2024: "21,771", 2023: "0", 2022: "0" }, negative_implication: true },
-                
                 { type: 'spacer' },
-                // Calc: 171003 - 29510 - 24456 - 7604 - 21771 = 87662
                 { type: 'total', id: 'op_income', label: 'Operating income', formula: ['gross_margin', '-rnd', '-sales', '-admin', '-div_exp'], values: { 2024: "87,662", 2023: "88,523", 2022: "83,383" } }, 
-                
                 { id: 'other_income', label: 'Other income (expense), net', values: { 2024: "(1,646)", 2023: "788", 2022: "333" } },
-                
                 { type: 'total', id: 'pretax_income', label: 'Income before income taxes', formula: ['op_income', 'other_income'], values: { 2024: "86,016", 2023: "89,311", 2022: "83,716" } },
                 { id: 'tax', label: 'Provision for income taxes', values: { 2024: "19,651", 2023: "16,950", 2022: "10,978" }, negative_implication: true },
-                
                 { type: 'total', id: 'net_income', label: 'Net income', formula: ['pretax_income', '-tax'], values: { 2024: "66,365", 2023: "72,361", 2022: "72,738" }, highlight: true }
             ],
             balance_sheet: [
                 { type: 'header', label: 'Assets' },
                 { type: 'header', label: 'Current assets' },
                 { id: 'cash', label: 'Cash and cash equivalents', values: { 2024: "18,315", 2023: "34,704" } },
-                // ERROR: Long-term assets in Current
                 { id: 'lt_inv_error', label: 'Long-term investments', values: { 2024: "57,228", 2023: "76,558" } },
-                // ERROR: Goodwill in Current
                 { id: 'goodwill_error', label: 'Goodwill', values: { 2024: "119,220", 2023: "67,886" } },
-                // ERROR: AP in Assets
                 { id: 'ap_error', label: 'Accounts payable', values: { 2024: "21,996", 2023: "18,095" } },
-                // ERROR: Profit in Assets (Equity item in assets)
                 { id: 'profit_asset_error', label: 'Profit', values: { 2024: "173,144", 2023: "118,848" } },
                 { id: 'inv', label: 'Inventories', values: { 2024: "1,246", 2023: "2,500" } },
                 { id: 'other_curr', label: 'Other current assets', values: { 2024: "26,021", 2023: "21,807" } },
-                
                 { type: 'total', id: 'total_curr_assets', label: 'Total current assets', formula: ['cash', 'lt_inv_error', 'goodwill_error', 'ap_error', 'profit_asset_error', 'inv', 'other_curr'], values: { 2024: "417,170", 2023: "340,398" } },
-                
                 { type: 'spacer' },
                 { id: 'ppe', label: 'Property and equipment, net', values: { 2024: "135,591", 2023: "95,641" } },
                 { id: 'lease_asset', label: 'Operating lease right-of-use assets', values: { 2024: "18,961", 2023: "14,346" } },
@@ -181,50 +332,37 @@
                 { id: 'intangibles', label: 'Intangible assets, net', values: { 2024: "27,597", 2023: "9,366" } },
                 { id: 'other_long', label: 'Other long-term assets', values: { 2024: "36,460", 2023: "30,601" } },
                 { type: 'total', id: 'total_assets', label: 'Total assets', formula: ['total_curr_assets', 'ppe', 'lease_asset', 'equity_inv', 'intangibles', 'other_long'], values: { 2024: "650,379", 2023: "500,231" }, highlight: true },
-
                 { type: 'spacer' },
                 { type: 'header', label: 'Liabilities and stockholders’ equity' },
                 { type: 'header', label: 'Current liabilities' },
-                // ERROR: AR in Liabilities
                 { id: 'ar_error', label: 'Accounts receivable, net', values: { 2024: "56,924", 2023: "48,688" } },
-                // ERROR: ST Inv in Liabilities
                 { id: 'st_inv_liab_error', label: 'Short-term investments', values: { 2024: "6,693", 2023: "0" } },
-                // Moved curr_lt_debt to Long-Term
                 { id: 'acc_comp', label: 'Accrued compensation', values: { 2024: "12,564", 2023: "11,009" } },
                 { id: 'st_tax', label: 'Short-term income taxes', values: { 2024: "5,017", 2023: "4,152" } },
                 { id: 'st_unearned', label: 'Short-term unearned revenue', values: { 2024: "57,582", 2023: "50,901" } },
                 { id: 'other_curr_liab', label: 'Other current liabilities', values: { 2024: "19,185", 2023: "14,745" } },
                 { type: 'total', id: 'total_curr_liab', label: 'Total current liabilities', formula: ['ar_error', 'st_inv_liab_error', 'acc_comp', 'st_tax', 'st_unearned', 'other_curr_liab'], values: { 2024: "157,965", 2023: "129,495" } },
-                
                 { type: 'header', label: 'Long-term liabilities' },
                 { id: 'lt_debt', label: 'Long-term debt', values: { 2024: "42,688", 2023: "41,990" } },
-                // ERROR: Current portion in Long Term
                 { id: 'curr_lt_debt', label: 'Current portion of long-term debt', values: { 2024: "2,249", 2023: "5,247" } },
                 { id: 'lt_tax', label: 'Long-term income taxes', values: { 2024: "27,931", 2023: "25,560" } },
                 { id: 'lt_unearned', label: 'Long-term unearned revenue', values: { 2024: "2,602", 2023: "2,912" } },
                 { id: 'deferred_tax', label: 'Deferred income taxes', values: { 2024: "2,618", 2023: "433" } },
                 { id: 'lease_liab', label: 'Operating lease liabilities', values: { 2024: "15,497", 2023: "12,728" } },
                 { id: 'other_lt_liab', label: 'Other long-term liabilities', values: { 2024: "27,064", 2023: "17,981" } },
-                
                 { type: 'total', id: 'total_liab', label: 'Total liabilities', formula: ['total_curr_liab', 'lt_debt', 'curr_lt_debt', 'lt_tax', 'lt_unearned', 'deferred_tax', 'lease_liab', 'other_lt_liab'], values: { 2024: "278,614", 2023: "236,346" } },
-                
                 { type: 'header', label: 'Stockholders’ equity' },
                 { id: 'common_stock', label: 'Common stock and paid-in capital', values: { 2024: "100,923", 2023: "93,718" } },
-                // ERROR: "Profit" (instead of Retained Earnings)
                 { id: 'retained_earnings', label: 'Profit', values: { 2024: "173,144", 2023: "118,848" } },
                 { id: 'aoci', label: 'Accumulated other comprehensive loss', values: { 2024: "(5,590)", 2023: "(6,343)" } },
                 { type: 'total', id: 'total_equity', label: 'Total stockholders’ equity', formula: ['common_stock', 'retained_earnings', 'aoci'], values: { 2024: "268,477", 2023: "206,223" } },
-                
-                // ERROR: Mismatch with Total Assets (650,379 != 547,091) - Inequality
-                // ERROR: Mismatch with Equity Statement (250,000 != 268,477) - Linkage Error (Forced Linkage Error per instruction)
                 { type: 'total', id: 'total_liab_equity', label: 'Total liabilities and stockholders’ equity', formula: ['total_liab', 'total_equity'], values: { 2024: "528,614", 2023: "442,569" }, highlight: true },
             ],
             cash_flow: [
                 { type: 'header', label: 'Operations' },
-                { id: 'cf_net_income', label: 'Net income', values: { 2024: "66,365", 2023: "72,361", 2022: "72,738" }, linkage: 'net_income' },
+                { id: 'cf_net_income', label: 'Net income', values: { 2024: "66,365", 2023: "72,361", 2022: "72,738" } },
                 { id: 'depreciation', label: 'Depreciation, amortization, and other', values: { 2024: "22,287", 2023: "13,861", 2022: "14,460" } },
                 { id: 'sbc', label: 'Stock-based compensation expense', values: { 2024: "10,734", 2023: "9,611", 2022: "7,502" } },
-                // ERROR: PPE in Operating
                 { id: 'ppe_ops_error', label: 'Purchase of property and equipment', values: { 2024: "(44,477)", 2023: "0", 2022: "0" } },
                 { id: 'inv_gains', label: 'Net recognized losses (gains) on investments', values: { 2024: "305", 2023: "196", 2022: "(409)" } },
                 { id: 'cf_def_tax', label: 'Deferred income taxes', values: { 2024: "(4,738)", 2023: "(6,059)", 2022: "(5,702)" } },
@@ -238,9 +376,7 @@
                 { id: 'chg_tax', label: 'Income taxes', values: { 2024: "1,687", 2023: "(358)", 2022: "696" } },
                 { id: 'chg_other_curr_liab', label: 'Other current liabilities', values: { 2024: "4,867", 2023: "2,272", 2022: "2,344" } },
                 { id: 'chg_other_long_liab', label: 'Other long-term liabilities', values: { 2024: "749", 2023: "553", 2022: "825" } },
-                // ERROR: Label "Used from" (Positive sum) - Updated sum: 52,300
                 { type: 'total', id: 'net_cash_ops', label: 'Net cash used from operations', formula: ['cf_net_income', 'depreciation', 'sbc', 'ppe_ops_error', 'inv_gains', 'cf_def_tax', 'chg_ar', 'chg_inv', 'chg_other_curr', 'chg_other_long', 'chg_ap', 'chg_unearned', 'chg_tax', 'chg_other_curr_liab', 'chg_other_long_liab'], values: { 2024: "52,300", 2023: "87,582", 2022: "89,035" }, highlight: true },
-
                 { type: 'spacer' },
                 { type: 'header', label: 'Financing' },
                 { id: 'debt_90', label: 'Proceeds from issuance of debt (short)', values: { 2024: "5,250", 2023: "0", 2022: "0" } },
@@ -251,7 +387,6 @@
                 { id: 'divs', label: 'Common stock cash dividends paid', values: { 2024: "(21,771)", 2023: "(19,800)", 2022: "(18,135)" } },
                 { id: 'fin_other', label: 'Other, net', values: { 2024: "(1,309)", 2023: "(1,006)", 2022: "(863)" } },
                 { type: 'total', id: 'net_cash_fin', label: 'Net cash used in financing', formula: ['debt_90', 'debt_issue', 'debt_repay', 'stock_issue', 'stock_rep', 'divs', 'fin_other'], values: { 2024: "(37,757)", 2023: "(72,042)", 2022: "(82,762)" } }, 
-
                 { type: 'spacer' },
                 { type: 'header', label: 'Investing' },
                 { id: 'acquisitions', label: 'Acquisition of companies', values: { 2024: "(69,132)", 2023: "(1,670)", 2022: "(22,038)" } },
@@ -259,16 +394,11 @@
                 { id: 'inv_mat', label: 'Maturities of investments', values: { 2024: "24,775", 2023: "33,510", 2022: "16,451" } },
                 { id: 'inv_sale', label: 'Sales of investments', values: { 2024: "10,894", 2023: "14,354", 2022: "28,443" } },
                 { id: 'inv_other', label: 'Other, net', values: { 2024: "(1,298)", 2023: "(3,116)", 2022: "(2,825)" } },
-                // ERROR: Label "Provided by" (Negative sum)
                 { type: 'total', id: 'net_cash_inv', label: 'Net cash provided by investing', formula: ['acquisitions', 'inv_purch', 'inv_mat', 'inv_sale', 'inv_other'], values: { 2024: "(52,493)", 2023: "5,427", 2022: "(6,425)" } },
-
                 { type: 'spacer' },
                 { id: 'fx', label: 'Effect of foreign exchange rates', values: { 2024: "(210)", 2023: "(194)", 2022: "(141)" } },
-                // Updated total net change: 52300 - 37757 - 52493 - 210 = (38,160)
                 { type: 'total', id: 'net_change_cash', label: 'Net change in cash and cash equivalents', formula: ['net_cash_ops', 'net_cash_fin', 'net_cash_inv', 'fx'], values: { 2024: "(38,160)", 2023: "20,773", 2022: "(293)" } },
-                
                 { id: 'beg_cash', label: 'Cash and cash equivalents, beginning', values: { 2024: "44,704", 2023: "23,931", 2022: "24,224" } },
-                // Updated ending cash: 44704 - 38160 = 6,544
                 { type: 'total', id: 'end_cash', label: 'Cash and cash equivalents, end of period', formula: ['beg_cash', 'net_change_cash'], values: { 2024: "6,544", 2023: "44,704", 2022: "23,931" }, highlight: true }
             ],
             equity: [
@@ -279,60 +409,23 @@
                 { id: 'eq_sbc', label: 'Stock-based compensation expense', values: { 2024: "10,734" } },
                 { id: 'eq_other', label: 'Other, net', values: { 2024: "181" } },
                 { type: 'total', id: 'eq_cs_end', label: 'Balance, end of period', formula: ['eq_cs_beg', 'eq_cs_issued', 'eq_cs_rep', 'eq_sbc', 'eq_other'], values: { 2024: "100,923" } },
-                
                 { type: 'spacer' },
                 { type: 'header', label: 'Retained earnings' },
                 { id: 'eq_re_beg', label: 'Balance, beginning of period', values: { 2024: "118,848" } },
-                // ERROR: Linkage (Matches real data 88,136 but mismatches Simulator IS 66,365)
                 { id: 'eq_net_income', label: 'Net income', values: { 2024: "88,136" } },
                 { id: 'eq_divs', label: 'Common stock cash dividends', values: { 2024: "(22,293)" } },
-                // ERROR: Label "sold" instead of "repurchased"
                 { id: 'eq_re_rep_error', label: 'Common stock sold', values: { 2024: "(11,547)" } },
                 { type: 'total', id: 'eq_re_end', label: 'Balance, end of period', formula: ['eq_re_beg', 'eq_net_income', 'eq_divs', 'eq_re_rep_error'], values: { 2024: "173,144" } },
-                
                 { type: 'spacer' },
                 { type: 'header', label: 'Accumulated other comprehensive loss' },
                 { id: 'eq_aoci_beg', label: 'Balance, beginning of period', values: { 2024: "(6,343)" } },
                 { id: 'eq_oci', label: 'Other comprehensive income (loss)', values: { 2024: "753" } },
                 { type: 'total', id: 'eq_aoci_end', label: 'Balance, end of period', formula: ['eq_aoci_beg', 'eq_oci'], values: { 2024: "(5,590)" } },
-                
                 { type: 'spacer' },
-                // This sums correctly to 268,477
                 { type: 'total', id: 'eq_total', label: 'Total stockholders’ equity', formula: ['eq_cs_end', 'eq_re_end', 'eq_aoci_end'], values: { 2024: "268,477" }, highlight: true },
-                
                 { type: 'spacer' },
                 { id: 'eq_div_share', label: 'Cash dividends declared per common share', values: { 2024: "$3.00" } }
             ]
-        };
-
-        const SOLUTION_FLAGS = {
-            'cfo_salary-Label': { type: 'classification', note: "Classification Error: CFO salary belongs in General & Administrative expenses, not Cost of Revenue.", rowLabel: 'CFO Salary', year: 'Label', tab: 'income_statement' },
-            'rev_unearned-Label': { type: 'classification', note: "Classification Error: Unearned Revenue is a Liability, not Revenue.", rowLabel: 'Short-term unearned revenue', year: 'Label', tab: 'income_statement' },
-            'rnd-Label': { type: 'label', note: "Label Error: Typo 'deployment' instead of 'development'.", rowLabel: 'Research and deployment', year: 'Label', tab: 'income_statement' },
-            'gross_margin-Label': { type: 'label', note: "Incorrect Label: Should be 'Gross Margin'.", rowLabel: 'Net Income before Operating Expenses', year: 'Label', tab: 'income_statement' },
-            'div_exp-Label': { type: 'classification', note: "Classification Error: Dividends are not an Operating Expense (typically Financing or separate reduction of Retained Earnings).", rowLabel: 'Dividends paid', year: 'Label', tab: 'income_statement' },
-            
-            'lt_inv_error-Label': { type: 'classification', note: "Classification Error: Long-term assets under Current Assets.", rowLabel: 'Long-term investments', year: 'Label', tab: 'balance_sheet' },
-            'goodwill_error-Label': { type: 'classification', note: "Classification Error: Goodwill is an intangible, non-current asset.", rowLabel: 'Goodwill', year: 'Label', tab: 'balance_sheet' },
-            'ap_error-Label': { type: 'classification', note: "Classification Error: Accounts Payable is a Liability, incorrectly listed under Assets.", rowLabel: 'Accounts payable', year: 'Label', tab: 'balance_sheet' },
-            'profit_asset_error-Label': { type: 'classification', note: "Classification Error: Equity item ('Profit') incorrectly listed under Assets.", rowLabel: 'Profit', year: 'Label', tab: 'balance_sheet' },
-            'ar_error-Label': { type: 'classification', note: "Classification Error: Accounts Receivable is an Asset, incorrectly listed under Liabilities.", rowLabel: 'Accounts receivable, net', year: 'Label', tab: 'balance_sheet' },
-            'st_inv_liab_error-Label': { type: 'classification', note: "Classification Error: Short-term investments are Assets, not Liabilities.", rowLabel: 'Short-term investments', year: 'Label', tab: 'balance_sheet' },
-            'retained_earnings-Label': { type: 'label', note: "Label Error: 'Profit' used instead of Retained Earnings.", rowLabel: 'Profit', year: 'Label', tab: 'balance_sheet' },
-            'total_liab_equity-2024': { type: 'math', note: "Accounting Equation Error: Total Liabilities & Equity ($528,614) does not equal Total Assets ($650,379). Also mismatches Equity Statement total.", rowLabel: 'Total liabilities and stockholders’ equity', year: 2024, tab: 'balance_sheet' },
-            'total_assets-2024': { type: 'math', note: "Accounting Equation Error: Total Assets ($650,379) does not equal Total Liabilities & Equity ($528,614).", rowLabel: 'Total assets', year: 2024, tab: 'balance_sheet' },
-            
-            'curr_lt_debt-Label': { type: 'classification', note: "Classification Error: Current portion of long-term debt is a Current Liability, not Long-Term.", rowLabel: 'Current portion of long-term debt', year: 'Label', tab: 'balance_sheet' },
-
-            'net_cash_ops-Label': { type: 'label', note: "Label Error: 'Used from' implies negative, but value is positive.", rowLabel: 'Net cash used from operations', year: 'Label', tab: 'cash_flow' },
-            'ppe_ops_error-Label': { type: 'classification', note: "Classification Error: Capital Expenditures belong in Investing Activities, not Operating.", rowLabel: 'Purchase of property and equipment', year: 'Label', tab: 'cash_flow' },
-            'net_cash_inv-Label': { type: 'label', note: "Label Error: 'Provided by' implies positive, but value is negative.", rowLabel: 'Net cash provided by investing', year: 'Label', tab: 'cash_flow' },
-            'beg_cash-2024': { type: 'linkage', note: "Reconciliation Error: Mismatch with prior year ending cash.", rowLabel: 'Cash and cash equivalents, beginning', year: 2024, tab: 'cash_flow' },
-            'end_cash-2024': { type: 'linkage', note: "Reconciliation Error: Mismatch with Balance Sheet cash.", rowLabel: 'Cash and cash equivalents, end of period', year: 2024, tab: 'cash_flow' },
-            
-            // Equity Flags
-            'eq_net_income-2024': { type: 'linkage', note: "Linkage Error: Net Income ($88,136) does not match Income Statement Net Income ($66,365).", rowLabel: 'Net income', year: 2024, tab: 'equity' },
-            'eq_re_rep_error-Label': { type: 'label', note: "Label Error: Labeled 'sold' but value is negative (repurchased).", rowLabel: 'Common stock sold', year: 'Label', tab: 'equity' }
         };
 
         const safeCalculate = (expression) => {
@@ -371,6 +464,7 @@
             const [activeTab, setActiveTab] = useState('income_statement');
             const [flags, setFlags] = useState({});
             const [selectedCell, setSelectedCell] = useState(null);
+            const [savedState, setSavedState] = useState(null);
             
             const [calcMode, setCalcMode] = useState(false);
             const [calcInput, setCalcInput] = useState('0');
@@ -386,6 +480,37 @@
             const [studentName, setStudentName] = useState('');
             const [submissionStep, setSubmissionStep] = useState('input_name'); 
             const [showSolution, setShowSolution] = useState(false);
+
+            // SIDEBAR RESIZING STATE
+            const [sidebarWidth, setSidebarWidth] = useState(320);
+            const [isResizing, setIsResizing] = useState(false);
+            const resizerRef = useRef(null);
+
+            const startResizing = useCallback(() => {
+                setIsResizing(true);
+            }, []);
+
+            const stopResizing = useCallback(() => {
+                setIsResizing(false);
+            }, []);
+
+            const resize = useCallback((mouseMoveEvent) => {
+                if (isResizing) {
+                    const newWidth = window.innerWidth - mouseMoveEvent.clientX;
+                    if (newWidth > 240 && newWidth < 600) {
+                        setSidebarWidth(newWidth);
+                    }
+                }
+            }, [isResizing]);
+
+            useEffect(() => {
+                window.addEventListener("mousemove", resize);
+                window.addEventListener("mouseup", stopResizing);
+                return () => {
+                    window.removeEventListener("mousemove", resize);
+                    window.removeEventListener("mouseup", stopResizing);
+                };
+            }, [resize, stopResizing]);
 
             const handleCalcInput = (val) => {
                 if (val === 'C') {
@@ -456,29 +581,63 @@
 
             const handleAdminLogin = (e) => {
                 e.preventDefault();
-                if (passwordInput === 'teacher') {
+                // SECURITY: Changed password to "detective" (encoded: ZGV0ZWN0aXZl)
+                if (btoa(passwordInput) === 'ZGV0ZWN0aXZl') {
                     setAdminMode(true);
                     setShowAdminLogin(false);
                     setPasswordInput('');
                 } else {
-                    alert('Incorrect password');
+                    alert('Invalid Access Token');
                 }
             };
 
             const fillSolution = () => {
-                setFlags(SOLUTION_FLAGS);
+                // ✅ Protect the student's backup: only save ONCE
+                setSavedState(prevSaved => {
+                    if (prevSaved === null) {
+                        return { ...flags }; // snapshot student work BEFORE overwriting
+                    }
+                    return prevSaved; // do NOT overwrite backup if it already exists
+                });
+
+                const solutionFlags = {};
+                Object.keys(_DATA_MATRIX).forEach(key => {
+                    const item = _DATA_MATRIX[key];
+                    solutionFlags[key] = {
+                        type: d(item.t),
+                        note: d(item.n),
+                        rowLabel: d(item.rl),
+                        year: isNaN(d(item.y)) ? d(item.y) : parseInt(d(item.y)),
+                        tab: d(item.tb)
+                    };
+                });
+                setFlags(solutionFlags);
                 setSubmissionStep('report');
                 setShowReport(true);
                 setShowSolution(true);
             };
 
-            const clearFlags = () => {
+            const handleRefreshClick = () => {
+                // ✅ If we have a backup, we are in "Undo Solution" mode
+                if (savedState !== null) {
+                    if (window.confirm("Revert to student's previous work?")) {
+                        setFlags(savedState);
+                        setSavedState(null);     // clear backup after restore
+                        setShowReport(false);
+                        setShowSolution(false);
+                        setSelectedCell(null);
+                    }
+                    return;
+                }
+
+                // ✅ Otherwise, normal "Clear Progress" mode
                 if (window.confirm("Are you sure you want to clear all student progress?")) {
                     setFlags({});
                     setShowReport(false);
                     setSubmissionStep('input_name');
                     setStudentName('');
                     setShowSolution(false);
+                    setSelectedCell(null);
                 }
             };
             
@@ -544,52 +703,88 @@
             };
 
             return (
-                <div className="min-h-screen bg-slate-100 font-sans text-slate-800 p-4 md:p-8">
-                    {/* App Container - Hidden when printing report */}
+                <div className={`min-h-screen bg-slate-100 font-sans text-slate-800 p-4 md:p-8 ${isResizing ? 'resizing' : ''}`}>
+                    {/* App Container */}
                     <div className={showReport && submissionStep === 'report' ? "no-print" : ""}>
                         <header className="max-w-7xl mx-auto mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                            <div>
-                                <h1 className="text-2xl font-bold flex items-center gap-2 text-slate-900">
-                                    <Icon name="Search" className="w-6 h-6 text-indigo-600" />
-                                    Financial Detective Simulator: Microsoft 10-K (2024 Modified)
-                                </h1>
-                                <p className="text-slate-500 text-sm mt-1">Audit the provided financial statements. Find inconsistencies, labeling errors, and math mistakes.</p>
+                            <div className="flex items-center gap-4">
+                                <Icon name="Search" className="w-8 h-8 text-indigo-600" />
+                                <div>
+                                    <div className="flex items-center gap-2">
+                                        <h1 className="text-xl font-bold text-slate-900 leading-tight">Financial Detective Simulator</h1>
+                                        {/* VISIBLE INSTRUCTOR ACCESS next to title */}
+                                        {!adminMode && (
+                                            <div onClick={() => setShowAdminLogin(true)} className="cursor-pointer text-slate-400 hover:text-indigo-600 transition-colors flex items-center gap-1 bg-slate-50 hover:bg-white px-2 py-0.5 rounded border border-transparent hover:border-indigo-100" title="Solution">
+                                                <Icon name="Lock" className="w-3 h-3" />
+                                                <span className="text-[10px] font-bold uppercase tracking-wider">Solution</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <p className="text-slate-500 text-xs mt-0.5">Audit MSFT 2024 (Modified) • Locate Classification, Labeling, & Math Errors</p>
+                                </div>
                             </div>
                             
                             <div className="flex gap-2 items-center">
                                 {adminMode && (
-                                    <div className="flex gap-2 mr-4 bg-yellow-50 p-1 rounded border border-yellow-200">
-                                        <button onClick={fillSolution} className="flex items-center gap-1 px-3 py-1.5 bg-yellow-100 text-yellow-800 rounded text-xs font-bold hover:bg-yellow-200"><Icon name="Unlock" className="w-3 h-3" /> Fill Solution</button>
-                                        <button onClick={clearFlags} className="flex items-center gap-1 px-3 py-1.5 bg-red-100 text-red-800 rounded text-xs font-bold hover:bg-red-200"><Icon name="RotateCcw" className="w-3 h-3" /> Clear All</button>
+                                    <div className="flex gap-1 mr-4 bg-yellow-50 p-1 rounded border border-yellow-200">
+                                        <button onClick={fillSolution} className="p-1.5 text-yellow-800 hover:bg-yellow-200 rounded" title="Fill Solutions"><Icon name="Unlock" className="w-4 h-4" /></button>
+                                        <button onClick={handleRefreshClick} className="p-1.5 text-red-800 hover:bg-red-200 rounded" title={savedState !== null ? "Undo Solution (Revert)" : "Clear Progress"}><Icon name="RotateCcw" className="w-4 h-4" /></button>
+                                        <button
+  onClick={() => {
+    setAdminMode(false);
+    setShowSolution(false);
+    setSavedState(null); // optional: clears undo buffer
+  }}
+  className="p-1.5 text-slate-500 hover:bg-slate-200 rounded"
+  title="Exit Solution Mode"
+>
+  <Icon name="Lock" className="w-4 h-4" />
+</button>
+
                                     </div>
                                 )}
                                 <button onClick={() => { setCalcMode(!calcMode); setSelectedCell(null); }} className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${calcMode ? 'bg-amber-100 text-amber-800 border border-amber-200 ring-2 ring-amber-400' : 'bg-white border border-slate-300 text-slate-600 hover:bg-slate-50'}`}>
                                     <Icon name="Calculator" className="w-4 h-4" />
-                                    {calcMode ? 'Hide Calc' : 'Calculator'}
+                                    {calcMode ? 'Hide' : 'Calc'}
                                 </button>
                                 <button onClick={() => { setShowReport(true); setSubmissionStep('input_name'); }} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 text-sm font-medium">
                                     <Icon name="CheckCircle2" className="w-4 h-4" />
-                                    Submit Audit ({Object.keys(flags).length})
+                                    Submit ({Object.keys(flags).length})
                                 </button>
-                                <button onClick={() => !adminMode && setShowAdminLogin(true)} className="ml-2 p-2 text-slate-300 hover:text-slate-400 transition-colors" title="Instructor Access"><Icon name="Key" className="w-4 h-4" /></button>
                             </div>
                         </header>
 
-                        <main className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-6">
-                            <div className="lg:col-span-3 space-y-6">
+                        <main className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-0">
+                            {/* MAIN TABLE AREA */}
+                            <div className="flex-1 space-y-6 lg:pr-6">
                                 <div className="flex border-b border-slate-200 space-x-6">
-                                    <button onClick={() => setActiveTab('income_statement')} className={`pb-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'income_statement' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>Income Statement</button>
-                                    <button onClick={() => setActiveTab('balance_sheet')} className={`pb-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'balance_sheet' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>Balance Sheet</button>
-                                    <button onClick={() => setActiveTab('cash_flow')} className={`pb-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'cash_flow' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>Cash Flow</button>
-                                    <button onClick={() => setActiveTab('equity')} className={`pb-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'equity' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>Equity</button>
+                                    {['income_statement', 'balance_sheet', 'cash_flow', 'equity'].map(tab => (
+                                        <button 
+                                            key={tab}
+                                            onClick={() => setActiveTab(tab)} 
+                                            className={`pb-3 text-sm font-medium border-b-2 transition-colors capitalize ${activeTab === tab ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+                                        >
+                                            {tab.replace('_', ' ')}
+                                        </button>
+                                    ))}
                                 </div>
                                 {renderTable(FINANCIAL_DATA[activeTab], activeTab)}
                             </div>
 
-                            <div className="lg:col-span-1 space-y-6 flex flex-col">
-                                {/* COMPACT CALCULATOR WIDGET (Toggleable) */}
+                            {/* DRAGGABLE RESIZER */}
+                            <div 
+                                ref={resizerRef}
+                                className="resizer hidden lg:block"
+                                onMouseDown={startResizing}
+                            ></div>
+
+                            {/* SIDEBAR AREA (Dynamic Width) */}
+                            <div 
+                                className="hidden lg:flex flex-col gap-6"
+                                style={{ width: `${sidebarWidth}px` }}
+                            >
                                 {calcMode && (
-                                    <div className="bg-slate-800 p-3 rounded-lg shadow-xl border border-slate-700 text-white animate-in slide-in-from-top-2 sticky top-20 z-50">
+                                    <div className="bg-slate-800 p-3 rounded-lg shadow-xl border border-slate-700 text-white animate-in slide-in-from-top-2">
                                         <div className="text-right mb-1">
                                             <div className="text-[10px] text-slate-400 h-3 overflow-hidden">{calcHistory}</div>
                                             <div className="text-lg font-mono">{calcInput}</div>
@@ -611,22 +806,20 @@
                                                 </button>
                                             ))}
                                         </div>
-                                        <div className="text-[9px] text-slate-400 mt-1 text-center">Click table value to import</div>
                                     </div>
                                 )}
 
-                                {/* INSPECTOR (Always Visible) */}
-                                <div className="bg-white p-4 rounded-lg shadow border border-slate-200 sticky top-6 flex-1">
-                                    <h2 className="font-bold text-slate-800 flex items-center gap-2 mb-4">
+                                <div className="bg-white p-4 rounded-lg shadow border border-slate-200 flex-1 flex flex-col min-h-0">
+                                    <h2 className="font-bold text-slate-800 flex items-center gap-2 mb-4 shrink-0">
                                         <Icon name="AlertCircle" className="w-4 h-4 text-slate-400" />
                                         Inspector
                                     </h2>
 
                                     {selectedCell ? (
-                                        <div className="space-y-4">
+                                        <div className="space-y-4 overflow-y-auto pr-1">
                                             <div className="p-3 bg-slate-50 rounded border border-slate-100 text-sm">
-                                                <div className="text-slate-500 text-xs uppercase font-bold mb-1">Selected Item</div>
-                                                <div className="font-medium text-slate-900">{selectedCell.row.label}</div>
+                                                <div className="text-slate-500 text-xs uppercase font-bold mb-1">Target</div>
+                                                <div className="font-medium text-slate-900 truncate">{selectedCell.row.label}</div>
                                                 <div className="flex justify-between mt-1">
                                                     <span className="text-slate-500">Year: {selectedCell.year}</span>
                                                     <span className="font-mono font-bold text-indigo-600">{selectedCell.year === 'Label' ? 'N/A' : selectedCell.row.values[selectedCell.year]}</span>
@@ -634,19 +827,19 @@
                                             </div>
 
                                             <div>
-                                                <label className="block text-xs font-bold text-slate-500 mb-1">Type of Error</label>
+                                                <label className="block text-xs font-bold text-slate-500 mb-1">Issue Type</label>
                                                 <select value={errorType} onChange={(e) => setErrorType(e.target.value)} className="w-full text-sm border-slate-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                                                    <option value="math">Calculation Error (Math)</option>
-                                                    <option value="label">Incorrect Label/Terminology</option>
-                                                    <option value="classification">Classification Error (Wrong Place)</option>
-                                                    <option value="linkage">Linkage Error (Mismatch)</option>
-                                                    <option value="value">Suspicious Value</option>
+                                                    <option value="math">Math Error (Calculation)</option>
+                                                    <option value="label">Labeling/Terminology</option>
+                                                    <option value="classification">Classification (Placement)</option>
+                                                    <option value="linkage">Linkage (Statement Mismatch)</option>
+                                                    <option value="value">Suspicious Figure</option>
                                                 </select>
                                             </div>
 
                                             <div>
-                                                <label className="block text-xs font-bold text-slate-500 mb-1">Auditor's Notes</label>
-                                                <textarea value={noteText} onChange={(e) => setNoteText(e.target.value)} placeholder="Why is this incorrect?" className="w-full h-24 text-sm border-slate-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2" />
+                                                <label className="block text-xs font-bold text-slate-500 mb-1">Evidence / Notes</label>
+                                                <textarea value={noteText} onChange={(e) => setNoteText(e.target.value)} placeholder="Explain the discrepancy..." className="w-full h-32 text-sm border-slate-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2" />
                                             </div>
 
                                             <div className="flex gap-2">
@@ -655,10 +848,10 @@
                                             </div>
                                         </div>
                                     ) : (
-                                        <div className="text-sm text-slate-400 text-center py-8 italic">
+                                        <div className="text-sm text-slate-400 text-center py-12 italic">
                                             {calcMode 
-                                                ? "Calculator Active: Click table numbers to import." 
-                                                : "Select a cell to inspect it or flag an error. Click line item names to flag label errors."
+                                                ? "Calculator Active. Numbers clicked in table will be imported." 
+                                                : "Click a line item or specific value to begin inspection."
                                             }
                                         </div>
                                     )}
@@ -669,23 +862,23 @@
 
                     {/* Admin Login Modal */}
                     {showAdminLogin && (
-                        <div className="fixed inset-0 bg-black/20 z-50 flex items-center justify-center backdrop-blur-sm">
-                            <div className="bg-white p-6 rounded-lg shadow-xl w-80">
-                                <h3 className="font-bold text-slate-800 mb-4">Instructor Access</h3>
+                        <div className="fixed inset-0 bg-black/40 z-[60] flex items-center justify-center backdrop-blur-md">
+                            <div className="bg-white p-6 rounded-lg shadow-2xl w-80">
+                                <h3 className="font-bold text-slate-900 mb-4 flex items-center gap-2"><Icon name="Key" className="w-4 h-4" /> Answer Solution</h3>
                                 <form onSubmit={handleAdminLogin}>
-                                    <input type="password" value={passwordInput} onChange={(e) => setPasswordInput(e.target.value)} placeholder="Enter password" className="w-full border border-slate-300 rounded p-2 mb-4 text-sm" autoFocus />
+                                    <input type="password" value={passwordInput} onChange={(e) => setPasswordInput(e.target.value)} placeholder="Master Key" className="w-full border border-slate-300 rounded p-2 mb-4 text-sm" autoFocus />
                                     <div className="flex justify-end gap-2">
                                         <button type="button" onClick={() => setShowAdminLogin(false)} className="text-slate-500 text-sm hover:text-slate-700">Cancel</button>
-                                        <button type="submit" className="bg-indigo-600 text-white px-3 py-1.5 rounded text-sm hover:bg-indigo-700">Login</button>
+                                        <button type="submit" className="bg-slate-900 text-white px-4 py-1.5 rounded text-sm hover:bg-black">Authorize</button>
                                     </div>
                                 </form>
                             </div>
                         </div>
                     )}
 
-                    {/* Report Modal - Full Screen Print Friendly */}
+                    {/* Report Modal */}
                     {showReport && (
-                        <div className={`fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm ${submissionStep === 'report' ? 'print-modal-wrapper' : ''}`}>
+                        <div className={`fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4 backdrop-blur-sm ${submissionStep === 'report' ? 'print-modal-wrapper' : ''}`}>
                             <div className={`bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden ${submissionStep === 'report' ? 'print-modal-content' : ''}`}>
                                 
                                 {submissionStep === 'input_name' && (
@@ -694,13 +887,13 @@
                                             <div className="bg-indigo-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                                                 <Icon name="User" className="w-8 h-8 text-indigo-600" />
                                             </div>
-                                            <h2 className="text-2xl font-bold text-slate-900">Finalize Audit</h2>
-                                            <p className="text-slate-500">Please enter your name to submit your findings.</p>
+                                            <h2 className="text-2xl font-bold text-slate-900">Certify Findings</h2>
+                                            <p className="text-slate-500">Provide your name to finalize the audit report.</p>
                                         </div>
-                                        <input type="text" value={studentName} onChange={(e) => setStudentName(e.target.value)} placeholder="Student Name" className="w-full p-3 border border-slate-300 rounded-lg text-lg mb-6 focus:ring-2 focus:ring-indigo-500 outline-none" autoFocus />
+                                        <input type="text" value={studentName} onChange={(e) => setStudentName(e.target.value)} placeholder="Lead Auditor Name" className="w-full p-3 border border-slate-300 rounded-lg text-lg mb-6 outline-none focus:ring-2 focus:ring-indigo-500" autoFocus />
                                         <div className="flex gap-3">
-                                            <button onClick={() => setShowReport(false)} className="flex-1 py-3 text-slate-600 hover:bg-slate-100 rounded-lg font-medium">Cancel</button>
-                                            <button onClick={handleSubmit} className="flex-1 py-3 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 shadow-lg">Submit Report</button>
+                                            <button onClick={() => setShowReport(false)} className="flex-1 py-3 text-slate-600 hover:bg-slate-100 rounded-lg font-medium">Return</button>
+                                            <button onClick={handleSubmit} className="flex-1 py-3 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 shadow-lg">Finalize Report</button>
                                         </div>
                                     </div>
                                 )}
@@ -709,23 +902,22 @@
                                     <React.Fragment>
                                         <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50 no-print">
                                             <div>
-                                                <h2 className="text-xl font-bold text-slate-900">Audit Report: {studentName}</h2>
-                                                <p className="text-sm text-slate-500">Findings Summary</p>
+                                                <h2 className="text-xl font-bold text-slate-900">Audit Summary: {studentName}</h2>
+                                                <p className="text-sm text-slate-500">{Object.keys(flags).length} Discrepancies Cataloged</p>
                                             </div>
-                                            <button onClick={() => setShowReport(false)} className="text-slate-400 hover:text-slate-600">Close</button>
+                                            <button onClick={() => setShowReport(false)} className="text-slate-400 hover:text-slate-600 p-2"><Icon name="Delete" className="w-5 h-5"/></button>
                                         </div>
                                         
-                                        {/* Print Header */}
-                                        <div className="hidden print:block p-8 border-b border-slate-200 mb-6" style={{display: 'none'}} ref={el => { if(el) el.style.display = 'block'; }}>
-                                            <h1 className="text-3xl font-bold text-slate-900 mb-2">Financial Audit Report</h1>
-                                            <div className="flex justify-between items-end">
+                                        <div className="hidden print:block p-10 border-b-4 border-slate-900 mb-8">
+                                            <h1 className="text-4xl font-black text-slate-900 mb-2 uppercase tracking-tight">Independent Audit Report</h1>
+                                            <div className="flex justify-between items-end border-t-2 border-slate-100 pt-6 mt-6">
                                                 <div>
-                                                    <p className="text-slate-600 text-lg">Auditor: <strong>{studentName}</strong></p>
-                                                    <p className="text-slate-500 text-sm">Date: {new Date().toLocaleDateString()}</p>
+                                                    <p className="text-slate-500 uppercase text-xs font-bold tracking-widest mb-1">Principal Auditor</p>
+                                                    <p className="text-2xl font-bold text-slate-900">{studentName}</p>
                                                 </div>
                                                 <div className="text-right">
-                                                    <div className="text-4xl font-bold text-indigo-600">{Object.keys(flags).length}</div>
-                                                    <div className="text-sm text-slate-500 uppercase font-bold tracking-wider">Issues Found</div>
+                                                    <p className="text-slate-500 uppercase text-xs font-bold tracking-widest mb-1">Control Summary</p>
+                                                    <p className="text-3xl font-black text-indigo-600">{Object.keys(flags).length} FLAGS</p>
                                                 </div>
                                             </div>
                                         </div>
@@ -733,43 +925,61 @@
                                         <div className={`p-6 overflow-y-auto flex-1 ${submissionStep === 'report' ? 'print-modal-content' : ''}`}>
                                             <div className="space-y-4 page-break-item">
                                                 {Object.keys(flags).length === 0 && (
-                                                    <p className="text-center text-slate-500 italic py-4">No errors were flagged.</p>
+                                                    <p className="text-center text-slate-500 italic py-12 bg-slate-50 rounded-lg border-2 border-dashed">No material errors were cataloged during this session.</p>
                                                 )}
                                                 
                                                 {Object.values(flags).map((flag, i) => (
-                                                    <div key={i} className="flex gap-4 p-4 bg-white rounded-lg border border-slate-200 shadow-sm break-inside-avoid print:border-slate-300">
-                                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 print:border print:border-slate-200 ${flag.type === 'math' ? 'bg-amber-100 text-amber-600' : ''} ${flag.type === 'label' ? 'bg-blue-100 text-blue-600' : ''} ${flag.type === 'classification' ? 'bg-orange-100 text-orange-600' : ''} ${flag.type === 'linkage' ? 'bg-purple-100 text-purple-600' : ''} ${flag.type === 'value' ? 'bg-red-100 text-red-600' : ''}`}>
-                                                            <Icon name="AlertCircle" className="w-5 h-5" />
+                                                    <div key={i} className="flex gap-4 p-5 bg-white rounded-xl border border-slate-200 shadow-sm break-inside-avoid print:border-slate-300">
+                                                        <div className={`w-12 h-12 rounded-lg flex items-center justify-center shrink-0 border-b-4 ${flag.type === 'math' ? 'bg-amber-50 border-amber-500 text-amber-600' : ''} ${flag.type === 'label' ? 'bg-blue-50 border-blue-500 text-blue-600' : ''} ${flag.type === 'classification' ? 'bg-orange-50 border-orange-500 text-orange-600' : ''} ${flag.type === 'linkage' ? 'bg-purple-50 border-purple-500 text-purple-600' : ''} ${flag.type === 'value' ? 'bg-red-50 border-red-500 text-red-600' : ''}`}>
+                                                            <Icon name="AlertCircle" className="w-6 h-6" />
                                                         </div>
-                                                        <div>
-                                                            <div className="flex items-center gap-2 mb-1">
-                                                                <span className="font-bold text-slate-900 text-lg">{flag.rowLabel}</span>
-                                                                <span className="text-xs bg-slate-100 px-2 py-0.5 rounded text-slate-600 border border-slate-200">{flag.year}</span>
-                                                                <span className="text-xs font-mono text-slate-500 uppercase ml-auto font-bold">{flag.type} Error</span>
+                                                        <div className="flex-1">
+                                                            <div className="flex items-start justify-between mb-1">
+                                                                <div>
+                                                                    <span className="font-black text-slate-900 text-lg leading-tight block">{flag.rowLabel}</span>
+                                                                    <span className="text-[10px] text-slate-400 uppercase font-black tracking-widest">{flag.tab.replace('_', ' ')} • Year: {flag.year}</span>
+                                                                </div>
+                                                                <span className="text-[10px] font-black px-2 py-1 rounded bg-slate-900 text-white uppercase ml-auto">{flag.type}</span>
                                                             </div>
-                                                            <p className="text-slate-700 leading-relaxed">{flag.note}</p>
+                                                            <p className="text-slate-700 text-sm leading-relaxed mt-2 border-l-2 border-slate-100 pl-3 italic">"{flag.note}"</p>
                                                         </div>
                                                     </div>
                                                 ))}
                                             </div>
                                             
                                             {showSolution && (
-                                                <div className="mt-8 pt-8 border-t-2 border-dashed border-slate-300 no-print page-break-item">
-                                                    <h3 className="text-lg font-bold text-green-800 mb-4 flex items-center gap-2"><Icon name="CheckCircle2" className="w-5 h-5" /> Official Solution Key</h3>
-                                                    <div className="space-y-3 opacity-75">
-                                                        {Object.values(SOLUTION_FLAGS).map((sol, i) => (
-                                                            <div key={i} className="text-sm p-3 bg-green-50 border border-green-100 rounded text-green-900">
-                                                                <strong>{sol.rowLabel} ({sol.year}):</strong> {sol.note}
-                                                            </div>
-                                                        ))}
+                                                <div className="mt-12 pt-8 border-t-4 border-double border-slate-200 no-print page-break-item">
+                                                    <h3 className="text-lg font-black text-green-900 mb-6 flex items-center gap-2 uppercase tracking-wide">
+                                                        <Icon name="CheckCircle2" className="w-5 h-5 text-green-600" /> 
+                                                        Solution Matrix (Decoded)
+                                                    </h3>
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                        {Object.keys(_DATA_MATRIX).map((key, i) => {
+                                                            const sol = _DATA_MATRIX[key];
+                                                            return (
+                                                                <div key={i} className="text-[11px] p-4 bg-green-50/50 border border-green-100 rounded-lg text-green-900 relative">
+                                                                    <span className="absolute -top-2 -left-2 w-5 h-5 bg-green-600 text-white rounded-full flex items-center justify-center text-[9px] font-bold">{i+1}</span>
+                                                                    <div className="font-bold mb-1 uppercase tracking-tighter text-green-700">{d(sol.rl)} ({d(sol.y)})</div>
+                                                                    <div className="opacity-80 leading-snug">{d(sol.n)}</div>
+                                                                </div>
+                                                            );
+                                                        })}
                                                     </div>
                                                 </div>
                                             )}
                                         </div>
 
-                                        <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-end gap-3 no-print">
-                                            {!showSolution && <button onClick={() => setShowSolution(true)} className="mr-auto flex items-center gap-2 text-indigo-600 font-medium hover:text-indigo-800"><Icon name="Eye" className="w-4 h-4" /> Reveal Solution</button>}
-                                            <button onClick={() => window.print()} className="px-4 py-2 bg-slate-800 text-white rounded-md text-sm font-medium hover:bg-slate-900 flex items-center gap-2"><Icon name="Printer" className="w-4 h-4" /> Print Report</button>
+                                        <div className="p-6 bg-slate-900 border-t border-white/10 flex justify-between items-center no-print">
+                                            {adminMode && !showSolution && (
+  <button
+    onClick={() => setShowSolution(true)}
+    className="flex items-center gap-2 text-white/60 text-sm font-medium hover:text-white transition-colors"
+  >
+    <Icon name="Eye" className="w-4 h-4" /> Reveal Solutions
+  </button>
+)}
+
+                                            <button onClick={() => window.print()} className="px-6 py-2 bg-indigo-500 text-white rounded-lg text-sm font-bold hover:bg-indigo-400 flex items-center gap-2 transition-transform hover:scale-105 active:scale-95"><Icon name="Printer" className="w-4 h-4" /> Export PDF</button>
                                         </div>
                                     </React.Fragment>
                                 )}
