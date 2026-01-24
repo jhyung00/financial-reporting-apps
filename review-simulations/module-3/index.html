@@ -20,7 +20,10 @@
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-        body { font-family: 'Inter', sans-serif; }
+        body { 
+            font-family: 'Inter', sans-serif; 
+            user-select: none; /* Prevent easy text selection */
+        }
         
         /* Custom Scrollbar */
         .scrollbar-hide::-webkit-scrollbar { display: none; }
@@ -38,30 +41,46 @@
             to { transform: translateY(0); }
         }
         .animate-slideDown { animation: slideDown 0.3s ease-out forwards; }
+
+        /* Resizer Handle Styling */
+        .resizer-handle {
+            width: 4px;
+            cursor: col-resize;
+            transition: background-color 0.2s;
+            z-index: 30;
+        }
+        .resizer-handle:hover, .resizer-handle:active {
+            background-color: #3b82f6;
+        }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-900 h-screen overflow-hidden">
+<body class="bg-slate-50 text-slate-900 h-screen overflow-hidden" oncontextmenu="return false">
     <div id="root"></div>
 
     <script type="text/babel">
         const { useState, useEffect, useMemo, useRef, useCallback } = React;
 
+        // --- SECURITY UTILS ---
+        // d() decodes the obfuscated Base64 values
+        const d = (s) => {
+            try {
+                const decoded = atob(s);
+                return isNaN(parseFloat(decoded)) ? decoded : parseFloat(decoded);
+            } catch (e) {
+                return s;
+            }
+        };
+
         // --- MATH EVALUATION UTILS ---
         const evaluateMathExpression = (expression) => {
             if (!expression) return "";
-            // Remove commas and spaces
             let cleanExpr = expression.toString().replace(/,/g, '').replace(/\s/g, '');
-            
-            // Handle percentages: replace "10%" with "*0.10" or just "0.10" depending on context
-            // Strategy: replace "number%" with "(number/100)"
             cleanExpr = cleanExpr.replace(/(\d+(\.\d+)?)%/g, '($1/100)');
 
             try {
-                // Security: Only allow math characters
                 if (!/^[\d\.\+\-\*\/\(\)]+$/.test(cleanExpr)) {
-                    return expression; // Return original if invalid chars found
+                    return expression;
                 }
-                // eslint-disable-next-line no-new-func
                 return new Function('return ' + cleanExpr)();
             } catch (e) {
                 return expression;
@@ -124,19 +143,20 @@
             }
         };
 
-        const EXERCISES = [
+        // Obfuscated Schema with Base64 answers
+        const _DATA_MATRIX = [
             {
                 id: "3-1",
                 title: "3-1: Return on Equity (ROE)",
                 description: "Calculate ROE. Use the 2022 and 2021 Merck Equity values to compute the average denominator.",
                 inputs: [
-                    { id: "ni_merck", label: "Net Income Attrib. to Merck", correct: 14519 },
-                    { id: "eq_22", label: "Merck Equity 2022", correct: 45991 },
-                    { id: "eq_21", label: "Merck Equity 2021", correct: 38184 }
+                    { id: "ni_merck", label: "Net Income Attrib. to Merck", correct: "MTQ1MTk=" },
+                    { id: "eq_22", label: "Merck Equity 2022", correct: "NDU5OTE=" },
+                    { id: "eq_21", label: "Merck Equity 2021", correct: "MzgxODQ=" }
                 ],
                 type: "average_ratio",
                 formulaDisplay: "ROE = Net Income / ((Equity'22 + Equity'21) / 2)",
-                targetValue: 34.5,
+                targetValue: "MzQuNQ==",
                 tolerance: 0.5,
                 unit: "%",
                 resultLabel: "Calculated ROE",
@@ -148,16 +168,16 @@
                 title: "3-2: ROA & Financial Leverage",
                 description: "Compute ROA and Financial Leverage (FL) using averages. Then confirm the relationship with ROE.",
                 inputs: [
-                    { id: "ni_consol", label: "Net Income (Consolidated)", correct: 14526 },
-                    { id: "assets_22", label: "Total Assets 2022", correct: 109160 },
-                    { id: "assets_21", label: "Total Assets 2021", correct: 105694 },
-                    { id: "eq_tot_22", label: "Total Equity 2022", correct: 46058 },
-                    { id: "eq_tot_21", label: "Total Equity 2021", correct: 38257 }
+                    { id: "ni_consol", label: "Net Income (Consolidated)", correct: "MTQ1MjY=" },
+                    { id: "assets_22", label: "Total Assets 2022", correct: "MTA5MTYw" },
+                    { id: "assets_21", label: "Total Assets 2021", correct: "MTA1Njk0" },
+                    { id: "eq_tot_22", label: "Total Equity 2022", correct: "NDYwNTg=" },
+                    { id: "eq_tot_21", label: "Total Equity 2021", correct: "MzgyNTc=" }
                 ],
                 type: "multi_average",
                 checks: [
-                    { id: "roa", label: "Calculated ROA", correctVal: 13.52, tolerance: 0.5, unit: "%" },
-                    { id: "fl", label: "Calculated Fin. Leverage", correctVal: 2.55, tolerance: 0.05, unit: "x" }
+                    { id: "roa", label: "Calculated ROA", correctVal: "MTMuNTI=", tolerance: 0.5, unit: "%" },
+                    { id: "fl", label: "Calculated Fin. Leverage", correctVal: "Mi41NQ==", tolerance: 0.05, unit: "x" }
                 ],
                 formulaDisplay: "ROA = NI / Avg Assets | FL = Avg Assets / Avg Tot. Equity",
                 hasRelationshipCheck: true,
@@ -170,14 +190,14 @@
                 title: "3-3: Disaggregate ROA",
                 description: "Disaggregate ROA into Profit Margin (PM) and Asset Turnover (AT).",
                 inputs: [
-                    { id: "ni", label: "Net Income", correct: 14526 },
-                    { id: "sales", label: "Sales", correct: 59283 },
-                    { id: "avg_assets", label: "Average Total Assets", correct: 107427 } 
+                    { id: "ni", label: "Net Income", correct: "MTQ1MjY=" },
+                    { id: "sales", label: "Sales", correct: "NTkyODM=" },
+                    { id: "avg_assets", label: "Average Total Assets", correct: "MTA3NDI3" } 
                 ],
                 type: "disaggregation", 
                 checks: [
-                    { id: "pm", label: "Calculated PM", correctVal: 24.50, tolerance: 0.5, unit: "%" },
-                    { id: "at", label: "Calculated AT", correctVal: 0.55, tolerance: 0.05, unit: "x" }
+                    { id: "pm", label: "Calculated PM", correctVal: "MjQuNTA=", tolerance: 0.5, unit: "%" },
+                    { id: "at", label: "Calculated AT", correctVal: "MC41NQ==", tolerance: 0.05, unit: "x" }
                 ],
                 formulaDisplay: "PM = NI / Sales | AT = Sales / Avg Assets",
                 solutionNote: "PM = 14,526 / 59,283 = 24.5%. AT = 59,283 / 107,427 = 0.55."
@@ -188,7 +208,7 @@
                 description: "Select Operating Assets and Liabilities for 2022. NOTE: Deferred Income Taxes should be classified as Operating.",
                 type: "classification_sum",
                 formulaDisplay: "NOA = Operating Assets - Operating Liabilities",
-                targetValue: 65720,
+                targetValue: "NjU3MjA=",
                 tolerance: 10, 
                 unit: "$M",
                 resultLabel: "Calculated NOA",
@@ -200,19 +220,19 @@
                 description: "Calculate NOPAT. Method 1: NOPBT - Tax on Operating Profit. Method 2 (Alternative): Net Income + Net Nonoperating Expense (NNE).",
                 type: "nopat_detailed",
                 inputs: [
-                    { id: "sales", label: "Sales", correct: 59283 },
-                    { id: "op_exp", label: "Total Operating Expenses", correct: 41338 },
-                    { id: "tax_prov", label: "Provision for Income Tax", correct: 1918 },
-                    { id: "non_op_exp", label: "Non-Operating Expenses", correct: 1501 },
-                    { id: "stat_rate", label: "Statutory Tax Rate (decimal or %)", correct: 0.22, isPct: true },
-                    { id: "net_income", label: "Net Income (Consolidated)", correct: 14526 }
+                    { id: "sales", label: "Sales", correct: "NTkyODM=" },
+                    { id: "op_exp", label: "Total Operating Expenses", correct: "NDEzMzg=" },
+                    { id: "tax_prov", label: "Provision for Income Tax", correct: "MTkxOA==" },
+                    { id: "non_op_exp", label: "Non-Operating Expenses", correct: "MTUwMQ==" },
+                    { id: "stat_rate", label: "Statutory Tax Rate (e.g. 22%)", correct: "MjI=", isPct: true },
+                    { id: "net_income", label: "Net Income (Consolidated)", correct: "MTQ1MjY=" }
                 ],
                 checks: [
-                    { id: "nopbt", label: "NOPBT", correctVal: 17945, tolerance: 10, unit: "$M" },
-                    { id: "tax_op", label: "Tax on Operating Profit", correctVal: 2248.22, tolerance: 1, unit: "$M" },
-                    { id: "nopat", label: "NOPAT (Method 1)", correctVal: 15696.78, tolerance: 1, unit: "$M" },
-                    { id: "nne", label: "NNE (Net Non-Op Exp)", correctVal: 1170.78, tolerance: 1, unit: "$M" },
-                    { id: "nopat_alt", label: "NOPAT (Method 2)", correctVal: 15696.78, tolerance: 1, unit: "$M" }
+                    { id: "nopbt", label: "NOPBT", correctVal: "MTc5NDU=", tolerance: 10, unit: "$M" },
+                    { id: "tax_op", label: "Tax on Operating Profit", correctVal: "MjI0OC4yMg==", tolerance: 1, unit: "$M" },
+                    { id: "nopat", label: "NOPAT (Method 1)", correctVal: "MTU2OTYuNzg=", tolerance: 1, unit: "$M" },
+                    { id: "nne", label: "NNE (Net Non-Op Exp)", correctVal: "MTE3MC43OA==", tolerance: 1, unit: "$M" },
+                    { id: "nopat_alt", label: "NOPAT (Method 2)", correctVal: "MTU2OTYuNzg=", tolerance: 1, unit: "$M" }
                 ],
                 formulaDisplay: "Method 1: NOPBT - Tax on Ops | Method 2: Net Income + NNE",
                 solutionNote: "Method 1: NOPBT (17,945) - Tax on Ops (2248.22) = 15,696.78. Method 2: NNE = 1501 * (1-0.22) = 1170.78. NOPAT = NI (14526) + NNE (1170.78) = 15,696.78."
@@ -223,16 +243,16 @@
                 description: "Calculate RNOA. Then calculate the proportion of ROE from operations vs financial leverage.",
                 type: "rnoa_roe_compare",
                 inputs: [
-                    { id: "nopat", label: "NOPAT (from 3-5)", correct: 15697 },
-                    { id: "noa_22", label: "NOA 2022 (from 3-4)", correct: 65720 }, 
-                    { id: "noa_21", label: "NOA 2021", correct: 66190 },
-                    { id: "roe", label: "ROE (from 3-1)", correct: 34.5, isPct: true }
+                    { id: "nopat", label: "NOPAT (from 3-5)", correct: "MTU2OTc=" },
+                    { id: "noa_22", label: "NOA 2022 (from 3-4)", correct: "NjU3MjA=" }, 
+                    { id: "noa_21", label: "NOA 2021", correct: "NjYxOTA=" },
+                    { id: "roe", label: "ROE (from 3-1)", correct: "MzQuNQ==", isPct: true }
                 ],
                 checks: [
-                    { id: "rnoa", label: "Calculated RNOA", correctVal: 23.8, tolerance: 0.5, unit: "%" },
-                    { id: "non_op_return", label: "Non-Operating Return", correctVal: 10.7, tolerance: 0.5, unit: "%" },
-                    { id: "prop_ops", label: "Prop. from Operations", correctVal: 69.0, tolerance: 1.0, unit: "%" },
-                    { id: "prop_lev", label: "Prop. from Leverage", correctVal: 31.0, tolerance: 1.0, unit: "%" }
+                    { id: "rnoa", label: "Calculated RNOA", correctVal: "MjMuOA==", tolerance: 0.5, unit: "%" },
+                    { id: "non_op_return", label: "Non-Operating Return", correctVal: "MTAuNw==", tolerance: 0.5, unit: "%" },
+                    { id: "prop_ops", label: "Prop. from Operations", correctVal: "NjkuMA==", tolerance: 1.0, unit: "%" },
+                    { id: "prop_lev", label: "Prop. from Leverage", correctVal: "MzEuMA==", tolerance: 1.0, unit: "%" }
                 ],
                 formulaDisplay: "RNOA = NOPAT / Avg NOA | Prop Ops = RNOA/ROE | Prop Lev = 1 - Prop Ops",
                 solutionNote: "Avg NOA = (65,720 + 66,190)/2 = 65,955. RNOA = 15,697 / 65,955 = 23.8%. Non-Op Return = 34.5% - 23.8% = 10.7%. Prop Ops = 23.8/34.5 = 69%. Prop Lev = 10.7/34.5 = 31%."
@@ -242,14 +262,14 @@
                 title: "3-7: Disaggregate RNOA",
                 description: "Disaggregate RNOA into Net Operating Profit Margin (NOPM) and Net Operating Asset Turnover (NOAT).",
                 inputs: [
-                    { id: "nopat", label: "NOPAT", correct: 15697 },
-                    { id: "sales", label: "Sales", correct: 59283 },
-                    { id: "avg_noa", label: "Average NOA", correct: 65905.5 }
+                    { id: "nopat", label: "NOPAT", correct: "MTU2OTc=" },
+                    { id: "sales", label: "Sales", correct: "NTkyODM=" },
+                    { id: "avg_noa", label: "Average NOA", correct: "NjU5MDUuNQ==" }
                 ],
                 type: "disaggregation",
                 checks: [
-                    { id: "nopm", label: "Calculated NOPM", correctVal: 26.48, tolerance: 0.5, unit: "%" },
-                    { id: "noat", label: "Calculated NOAT", correctVal: 0.90, tolerance: 0.05, unit: "x" }
+                    { id: "nopm", label: "Calculated NOPM", correctVal: "MjYuNDg=", tolerance: 0.5, unit: "%" },
+                    { id: "noat", label: "Calculated NOAT", correctVal: "MC45MA==", tolerance: 0.05, unit: "x" }
                 ],
                 formulaDisplay: "NOPM = NOPAT / Sales | NOAT = Sales / Avg NOA",
                 solutionNote: "NOPM = 26.48%. NOAT = 0.90."
@@ -260,18 +280,18 @@
                 description: "Analyze the non-operating return component. Calculate Financial Leverage (FLEV), Net Nonoperating Expense (NNE), Spread, and verify ROE.",
                 type: "non_operating_return",
                 inputs: [
-                    { id: "avg_nno", label: "Average NNO", correct: 23797.5 },
-                    { id: "avg_equity", label: "Average Total Equity", correct: 42157.5 },
-                    { id: "non_op_exp", label: "Non-Operating Expenses", correct: 1501 },
-                    { id: "stat_rate", label: "Statutory Tax Rate (decimal)", correct: 0.22, isPct: true },
-                    { id: "rnoa", label: "RNOA (Decimal e.g. 0.238)", correct: 0.238, isPct: true }
+                    { id: "avg_nno", label: "Average NNO", correct: "MjM3OTcuNQ==" },
+                    { id: "avg_equity", label: "Average Total Equity", correct: "NDIxNTcuNQ==" },
+                    { id: "non_op_exp", label: "Non-Operating Expenses", correct: "MTUwMQ==" },
+                    { id: "stat_rate", label: "Statutory Tax Rate (e.g. 22%)", correct: "MjI=", isPct: true },
+                    { id: "rnoa", label: "RNOA (e.g. 23.8%)", correct: "MjMuOA==", isPct: true }
                 ],
                 checks: [
-                    { id: "flev", label: "FLEV (NNO/Equity)", correctVal: 0.5645, tolerance: 0.01, unit: "x" },
-                    { id: "nne", label: "NNE (Net Non-Op Exp)", correctVal: 1170.78, tolerance: 1, unit: "$M" },
-                    { id: "nnep", label: "NNEP (NNE/Avg NNO)", correctVal: 4.92, tolerance: 0.1, unit: "%" },
-                    { id: "spread", label: "Spread (RNOA - NNEP)", correctVal: 18.88, tolerance: 0.2, unit: "%" },
-                    { id: "roe_check", label: "Check: ROE= RNOA + (FLEV × Spread)", correctVal: 34.5, tolerance: 0.5, unit: "%" }
+                    { id: "flev", label: "FLEV (NNO/Equity)", correctVal: "MC41NjQ1", tolerance: 0.01, unit: "x" },
+                    { id: "nne", label: "NNE (Net Non-Op Exp)", correctVal: "MTE3MC43OA==", tolerance: 1, unit: "$M" },
+                    { id: "nnep", label: "NNEP (NNE/Avg NNO)", correctVal: "NC45Mg==", tolerance: 0.1, unit: "%" },
+                    { id: "spread", label: "Spread (RNOA - NNEP)", correctVal: "MTguODg=", tolerance: 0.2, unit: "%" },
+                    { id: "roe_check", label: "Check: ROE= RNOA + (FLEV × Spread)", correctVal: "MzQuNQ==", tolerance: 0.5, unit: "%" }
                 ],
                 formulaDisplay: "FLEV = Avg NNO / Avg Equity | NNE = NonOpExp * (1-Tax) | NNEP = NNE / Avg NNO | Spread = RNOA - NNEP",
                 solutionNote: "NNE = 1501 * (1-0.22) = 1170.78. FLEV = 23,797.5 / 42,157.5 = 0.5645. NNEP = 1,170.78 / 23,797.5 = 4.92%. Spread = 23.8% - 4.92% = 18.88%. Implication: Positive spread means debt is effectively boosting ROE."
@@ -289,16 +309,13 @@
                 iElement.setAttribute('width', size);
                 iElement.setAttribute('height', size);
                 if (className) iElement.setAttribute('class', className);
-                
                 const tempContainer = document.createElement('div');
                 tempContainer.appendChild(iElement);
-                
                 window.lucide.createIcons({
                     root: tempContainer,
                     nameAttr: 'data-lucide',
                     attrs: { class: className }
                 });
-                
                 const svgElement = tempContainer.firstChild;
                 if (iconRef.current) {
                     iconRef.current.innerHTML = '';
@@ -318,12 +335,13 @@
             </span>
         );
 
-        const SmartInput = ({ id, value, onChange, correctValue, isPct = false, teacherMode, onFocus, onBlur }) => {
+        const SmartInput = ({ id, value, onChange, correctValueEncoded, isPct = false, teacherMode, onFocus, onBlur }) => {
             const [localValue, setLocalValue] = useState(value || "");
-            const [status, setStatus] = useState("neutral"); // neutral, correct, incorrect
+            const [status, setStatus] = useState("neutral");
+
+            const correctValue = d(correctValueEncoded);
 
             useEffect(() => {
-                // When external value changes (e.g., autofill or click-to-insert), sync local state and re-validate
                 if (value !== undefined && value !== null) {
                     setLocalValue(value);
                     validate(value);
@@ -343,62 +361,39 @@
                     setStatus("incorrect");
                     return;
                 }
-
-                // Validation logic (±2% relative tolerance)
                 let isCorrect = false;
                 const tolerance = 0.02; // 2% relative error
                 
-                // Normal Comparison
+                // Direct relative check
                 const relativeError = Math.abs((numVal - correctValue) / correctValue);
                 if (relativeError <= tolerance) isCorrect = true;
-
-                // Percentage Handling Logic (e.g. 0.067 vs 6.7)
+                
+                // Decimal vs Whole Percentage handle (e.g. 0.22 vs 22)
                 if (isPct && !isCorrect) {
-                    // Try comparing val * 100 to correct (if user typed decimal 0.22 but correct is 22)
                     const relErrScaledUp = Math.abs(((numVal * 100) - correctValue) / correctValue);
-                    // Try comparing val / 100 to correct (if user typed 22 but correct is 0.22)
                     const relErrScaledDown = Math.abs(((numVal / 100) - correctValue) / correctValue);
-                    
-                    if (relErrScaledUp <= tolerance || relErrScaledDown <= tolerance) {
-                        isCorrect = true;
-                    }
+                    if (relErrScaledUp <= tolerance || relErrScaledDown <= tolerance) isCorrect = true;
                 }
-
-                // If correctValue is 0, handle separately
-                if (correctValue === 0) {
-                     isCorrect = Math.abs(numVal) < 0.001;
-                }
-
+                
+                if (correctValue === 0) isCorrect = Math.abs(numVal) < 0.001;
                 setStatus(isCorrect ? "correct" : "incorrect");
             };
 
             const handleBlur = () => {
-                // Notify parent of blur (clears active field in app)
                 if (onBlur) onBlur();
-
                 const evaluated = evaluateMathExpression(localValue);
                 if (evaluated !== "" && !isNaN(evaluated)) {
-                    // Round to reasonable decimals for display
                     const rounded = Math.round(evaluated * 10000) / 10000; 
                     setLocalValue(rounded.toString());
-                    onChange(rounded); // Send number to parent
+                    onChange(rounded);
                 } else {
-                    onChange(localValue); // Send raw string if eval fails
+                    onChange(localValue);
                 }
             };
 
-            const handleKeyDown = (e) => {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    e.target.blur(); // Triggers handleBlur
-                }
-            };
-
-            // Style determination
             let borderClass = "border-slate-300 focus:border-blue-500 focus:ring-blue-500";
             let bgClass = "bg-white";
             let icon = null;
-
             if (status === "correct") {
                 borderClass = "border-green-500";
                 bgClass = "bg-green-50";
@@ -416,7 +411,7 @@
                         onChange={(e) => setLocalValue(e.target.value)}
                         onBlur={handleBlur}
                         onFocus={onFocus}
-                        onKeyDown={handleKeyDown}
+                        onKeyDown={(e) => e.key === 'Enter' && e.target.blur()}
                         className={`w-full border rounded-lg py-2 pl-3 pr-8 text-slate-800 outline-none font-mono text-sm transition-colors ${borderClass} ${bgClass}`}
                         placeholder="0.00 or calc..."
                     />
@@ -448,10 +443,10 @@
 
         const InstructorToolbar = ({ onAutoFill, onClearExit }) => {
             return (
-                <div className="fixed top-0 left-0 right-0 bg-purple-900 text-white h-14 flex items-center justify-between px-6 shadow-lg z-40 animate-slideDown">
+                <div className="fixed top-0 left-0 right-0 bg-purple-900 text-white h-14 flex items-center justify-between px-6 shadow-lg z-50 animate-slideDown">
                     <div className="flex items-center gap-2">
                         <div className="bg-purple-700 p-1.5 rounded-lg"><Icon name="shield" size={18} /></div>
-                        <span className="font-bold text-sm tracking-wide">INSTRUCTOR MODE</span>
+                        <span className="font-bold text-sm tracking-wide">SECURE VIEW</span>
                     </div>
                     <div className="flex items-center gap-3">
                         <button onClick={onAutoFill} className="flex items-center gap-2 px-3 py-1.5 bg-purple-700 hover:bg-purple-600 rounded text-xs font-semibold transition-colors">
@@ -465,164 +460,148 @@
             );
         };
 
-        const AnswerKeyTable = ({ exercises }) => {
-            return (
-                <div className="bg-purple-50 border border-purple-200 rounded-xl overflow-hidden mt-8 mb-8 animate-fadeIn">
-                    <div className="bg-purple-100 px-6 py-4 border-b border-purple-200 flex items-center gap-2">
-                        <Icon name="key" className="text-purple-700" />
-                        <h3 className="font-bold text-purple-900">Master Answer Key</h3>
-                    </div>
-                    <div className="p-0 overflow-x-auto">
-                        <table className="w-full text-sm text-left">
-                            <thead className="bg-purple-100/50 text-purple-900 font-bold uppercase text-xs">
-                                <tr>
-                                    <th className="px-6 py-3">Exercise</th>
-                                    <th className="px-6 py-3">Input Field</th>
-                                    <th className="px-6 py-3 text-right">Correct Value</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-purple-100">
-                                {exercises.map(ex => 
-                                    (ex.inputs || []).map(input => (
-                                        <tr key={`${ex.id}-${input.id}`} className="hover:bg-purple-50">
-                                            <td className="px-6 py-2 font-medium text-purple-800">{ex.id}</td>
-                                            <td className="px-6 py-2 text-slate-600">{input.label}</td>
-                                            <td className="px-6 py-2 text-right font-mono font-bold text-purple-700">
-                                                {input.correct.toLocaleString()}
-                                                {input.isPct ? '%' : ''}
-                                            </td>
-                                        </tr>
-                                    ))
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            );
-        };
-
-        const Sidebar = ({ isOpen, toggleSidebar, onDataClick }) => {
+        const Sidebar = ({ isOpen, toggleSidebar, onDataClick, width, setWidth }) => {
             const [expandedSection, setExpandedSection] = useState('assets');
+            const isResizing = useRef(false);
+
+            const startResizing = useCallback(() => {
+                isResizing.current = true;
+                document.body.style.cursor = 'col-resize';
+            }, []);
+
+            const stopResizing = useCallback(() => {
+                isResizing.current = false;
+                document.body.style.cursor = 'default';
+            }, []);
+
+            const resize = useCallback((e) => {
+                if (!isResizing.current) return;
+                const newWidth = e.clientX;
+                if (newWidth > 150 && newWidth < 600) {
+                    setWidth(newWidth);
+                }
+            }, [setWidth]);
+
+            useEffect(() => {
+                window.addEventListener('mousemove', resize);
+                window.addEventListener('mouseup', stopResizing);
+                return () => {
+                    window.removeEventListener('mousemove', resize);
+                    window.removeEventListener('mouseup', stopResizing);
+                };
+            }, [resize, stopResizing]);
+
             return (
-                <div className={`${isOpen ? 'w-96' : 'w-12'} transition-all duration-300 bg-slate-800 text-slate-100 flex flex-col h-full border-r border-slate-700 shrink-0`}> 
-                    <div className="p-4 border-b border-slate-700 flex justify-between items-center">
-                        {isOpen && <h2 className="font-bold text-lg text-blue-400">Financial Data</h2>}
-                        <button onClick={toggleSidebar} className="p-1 hover:bg-slate-700 rounded text-slate-300">
-                            <Icon name={isOpen ? "panel-left-close" : "panel-left-open"} />
-                        </button>
-                    </div>
-
-                    {isOpen && (
-                        <div className="flex-1 overflow-y-auto scrollbar-hide p-4 space-y-6">
-                             <div>
-                                <button 
-                                    onClick={() => setExpandedSection(expandedSection === 'income' ? '' : 'income')}
-                                    className="flex items-center justify-between w-full font-semibold text-slate-300 mb-2 hover:text-white"
-                                >
-                                    <span>Income Statement (2022)</span>
-                                    <Icon name={expandedSection === 'income' ? "chevron-up" : "chevron-down"} size={16} />
-                                </button>
-                                {expandedSection === 'income' && (
-                                    <table className="w-full text-xs text-left text-slate-400">
-                                        <tbody>
-                                            {FINANCIAL_DATA.incomeStatement.map((row, idx) => (
-                                                <tr key={idx} className="border-b border-slate-700/50 hover:bg-slate-700/30">
-                                                    <td className="py-1 pl-1">{row.item}</td>
-                                                    <td className="py-1 pr-1 text-right font-mono text-slate-200">
-                                                        <ClickableNumber value={row.value} onClick={onDataClick} />
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                )}
-                            </div>
-
-                            <div>
-                                <button 
-                                    onClick={() => setExpandedSection(expandedSection === 'assets' ? '' : 'assets')}
-                                    className="flex items-center justify-between w-full font-semibold text-slate-300 mb-2 hover:text-white"
-                                >
-                                    <span>Balance Sheet: Assets</span>
-                                    <Icon name={expandedSection === 'assets' ? "chevron-up" : "chevron-down"} size={16} />
-                                </button>
-                                {expandedSection === 'assets' && (
-                                    <table className="w-full text-xs text-left text-slate-400">
-                                        <thead>
-                                            <tr className="text-slate-500 border-b border-slate-600">
-                                                <th className="pb-1 font-normal">Item</th>
-                                                <th className="pb-1 text-right font-normal">2022</th>
-                                                <th className="pb-1 text-right font-normal">2021</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {FINANCIAL_DATA.balanceSheet.assets.map((row, idx) => (
-                                                <tr key={idx} className={`border-b border-slate-700/50 hover:bg-slate-700/30 ${row.bold ? 'font-bold text-white bg-slate-700/50' : ''}`}>
-                                                    <td className="py-1 pl-1">{row.item}</td>
-                                                    <td className="py-1 text-right font-mono text-slate-200">
-                                                        <ClickableNumber value={row.value22} onClick={onDataClick} />
-                                                    </td>
-                                                    <td className="py-1 pr-1 text-right font-mono text-slate-400">
-                                                        <ClickableNumber value={row.value21} onClick={onDataClick} />
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                )}
-                            </div>
-
-                            <div>
-                                <button 
-                                    onClick={() => setExpandedSection(expandedSection === 'liab' ? '' : 'liab')}
-                                    className="flex items-center justify-between w-full font-semibold text-slate-300 mb-2 hover:text-white"
-                                >
-                                    <span>Liabilities & Equity</span>
-                                    <Icon name={expandedSection === 'liab' ? "chevron-up" : "chevron-down"} size={16} />
-                                </button>
-                                {expandedSection === 'liab' && (
-                                    <table className="w-full text-xs text-left text-slate-400">
-                                        <thead>
-                                            <tr className="text-slate-500 border-b border-slate-600">
-                                                <th className="pb-1 font-normal">Item</th>
-                                                <th className="pb-1 text-right font-normal">2022</th>
-                                                <th className="pb-1 text-right font-normal">2021</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {FINANCIAL_DATA.balanceSheet.liabilitiesAndEquity.map((row, idx) => (
-                                                <tr key={idx} className={`border-b border-slate-700/50 hover:bg-slate-700/30 ${row.bold ? 'font-bold text-white bg-slate-700/50' : ''} ${row.isDouble ? 'border-t-4 border-double border-slate-600' : ''}`}>
-                                                    <td className="py-1 pl-1">{row.item}</td>
-                                                    <td className="py-1 text-right font-mono text-slate-200">
-                                                        <ClickableNumber value={row.value22} onClick={onDataClick} />
-                                                    </td>
-                                                    <td className="py-1 pr-1 text-right font-mono text-slate-400">
-                                                        <ClickableNumber value={row.value21} onClick={onDataClick} />
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                )}
-                            </div>
-
-                            <div className="bg-slate-700/40 p-3 rounded text-xs border border-slate-600">
-                                <h3 className="font-semibold text-blue-300 mb-2">Supplemental Data</h3>
-                                <div className="flex justify-between mb-1">
-                                    <span>NOA 2021:</span> 
-                                    <span className="font-mono text-slate-300">
-                                        <ClickableNumber value={FINANCIAL_DATA.supplemental.noa2021} onClick={onDataClick} />
-                                    </span>
-                                </div>
-                                <div className="flex justify-between mb-1">
-                                    <span>NCIR (Given):</span> 
-                                    <span className="font-mono text-slate-300">
-                                        <ClickableNumber value={FINANCIAL_DATA.supplemental.ncir} onClick={onDataClick} />
-                                    </span>
-                                </div>
-                            </div>
+                <div 
+                    className="relative flex h-full border-r border-slate-700 bg-slate-800 transition-all duration-300 ease-out shrink-0"
+                    style={{ width: isOpen ? `${width}px` : '48px' }}
+                >
+                    <div className="flex flex-col w-full h-full text-slate-100 overflow-hidden">
+                        <div className="p-4 border-b border-slate-700 flex justify-between items-center whitespace-nowrap">
+                            {isOpen && <h2 className="font-bold text-lg text-blue-400">Financial Data</h2>}
+                            <button onClick={toggleSidebar} className="p-1 hover:bg-slate-700 rounded text-slate-300">
+                                <Icon name={isOpen ? "panel-left-close" : "panel-left-open"} />
+                            </button>
                         </div>
-                    )}
+
+                        {isOpen && (
+                            <div className="flex-1 overflow-y-auto scrollbar-hide p-4 space-y-6">
+                                <div>
+                                    <button onClick={() => setExpandedSection(expandedSection === 'income' ? '' : 'income')} className="flex items-center justify-between w-full font-semibold text-slate-300 mb-2 hover:text-white">
+                                        <span>Income Statement (2022)</span>
+                                        <Icon name={expandedSection === 'income' ? "chevron-up" : "chevron-down"} size={16} />
+                                    </button>
+                                    {expandedSection === 'income' && (
+                                        <table className="w-full text-xs text-left text-slate-400">
+                                            <tbody>
+                                                {FINANCIAL_DATA.incomeStatement.map((row, idx) => (
+                                                    <tr key={idx} className="border-b border-slate-700/50 hover:bg-slate-700/30">
+                                                        <td className="py-1 pl-1">{row.item}</td>
+                                                        <td className="py-1 pr-1 text-right font-mono text-slate-200">
+                                                            <ClickableNumber value={row.value} onClick={onDataClick} />
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    )}
+                                </div>
+                                <div>
+                                    <button onClick={() => setExpandedSection(expandedSection === 'assets' ? '' : 'assets')} className="flex items-center justify-between w-full font-semibold text-slate-300 mb-2 hover:text-white">
+                                        <span>Balance Sheet: Assets</span>
+                                        <Icon name={expandedSection === 'assets' ? "chevron-up" : "chevron-down"} size={16} />
+                                    </button>
+                                    {expandedSection === 'assets' && (
+                                        <table className="w-full text-xs text-left text-slate-400">
+                                            <thead>
+                                                <tr className="text-slate-500 border-b border-slate-600">
+                                                    <th className="pb-1 font-normal">Item</th>
+                                                    <th className="pb-1 text-right font-normal">2022</th>
+                                                    <th className="pb-1 text-right font-normal">2021</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {FINANCIAL_DATA.balanceSheet.assets.map((row, idx) => (
+                                                    <tr key={idx} className={`border-b border-slate-700/50 hover:bg-slate-700/30 ${row.bold ? 'font-bold text-white bg-slate-700/50' : ''}`}>
+                                                        <td className="py-1 pl-1">{row.item}</td>
+                                                        <td className="py-1 text-right font-mono text-slate-200">
+                                                            <ClickableNumber value={row.value22} onClick={onDataClick} />
+                                                        </td>
+                                                        <td className="py-1 pr-1 text-right font-mono text-slate-400">
+                                                            <ClickableNumber value={row.value21} onClick={onDataClick} />
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    )}
+                                </div>
+                                <div>
+                                    <button onClick={() => setExpandedSection(expandedSection === 'liab' ? '' : 'liab')} className="flex items-center justify-between w-full font-semibold text-slate-300 mb-2 hover:text-white">
+                                        <span>Liabilities & Equity</span>
+                                        <Icon name={expandedSection === 'liab' ? "chevron-up" : "chevron-down"} size={16} />
+                                    </button>
+                                    {expandedSection === 'liab' && (
+                                        <table className="w-full text-xs text-left text-slate-400">
+                                            <thead>
+                                                <tr className="text-slate-500 border-b border-slate-600">
+                                                    <th className="pb-1 font-normal">Item</th>
+                                                    <th className="pb-1 text-right font-normal">2022</th>
+                                                    <th className="pb-1 text-right font-normal">2021</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {FINANCIAL_DATA.balanceSheet.liabilitiesAndEquity.map((row, idx) => (
+                                                    <tr key={idx} className={`border-b border-slate-700/50 hover:bg-slate-700/30 ${row.bold ? 'font-bold text-white bg-slate-700/50' : ''} ${row.isDouble ? 'border-t-4 border-double border-slate-600' : ''}`}>
+                                                        <td className="py-1 pl-1">{row.item}</td>
+                                                        <td className="py-1 text-right font-mono text-slate-200">
+                                                            <ClickableNumber value={row.value22} onClick={onDataClick} />
+                                                        </td>
+                                                        <td className="py-1 pr-1 text-right font-mono text-slate-400">
+                                                            <ClickableNumber value={row.value21} onClick={onDataClick} />
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    )}
+                                </div>
+                                <div className="bg-slate-700/40 p-3 rounded text-xs border border-slate-600 whitespace-nowrap">
+                                    <h3 className="font-semibold text-blue-300 mb-2">Supplemental Data</h3>
+                                    <div className="flex justify-between mb-1 gap-2">
+                                        <span>NOA 2021:</span> 
+                                        <span className="font-mono text-slate-300"><ClickableNumber value={FINANCIAL_DATA.supplemental.noa2021} onClick={onDataClick} /></span>
+                                    </div>
+                                    <div className="flex justify-between mb-1 gap-2">
+                                        <span>NCIR (Given):</span> 
+                                        <span className="font-mono text-slate-300"><ClickableNumber value={FINANCIAL_DATA.supplemental.ncir} onClick={onDataClick} /></span>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                    {/* Resizer Handle */}
+                    {isOpen && <div className="resizer-handle absolute right-0 top-0 bottom-0" onMouseDown={startResizing}></div>}
                 </div>
             );
         };
@@ -639,27 +618,22 @@
                             <p className="text-xs text-slate-500">Merck & Co. 2022 Case Study</p>
                         </div>
                     </div>
-
                     <div className="flex items-center space-x-4">
                         <div className="flex items-center space-x-2">
-                            <span className="text-sm font-medium text-slate-600 hidden md:block">Student Name:</span>
+                            <span className="text-sm font-medium text-slate-600 hidden md:block">Analyst:</span>
                             <input 
                                 type="text" 
                                 value={studentName}
                                 onChange={(e) => setStudentName(e.target.value)}
-                                placeholder="Enter Name"
-                                className="border border-slate-300 rounded px-2 py-1 text-sm w-32 md:w-48 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
+                                placeholder="Student Name"
+                                className="border border-slate-300 rounded px-2 py-1 text-sm w-32 md:w-48 focus:border-blue-500 outline-none"
                             />
                         </div>
-                        <button 
-                            onClick={onExport} 
-                            className="flex items-center gap-2 text-sm bg-slate-800 text-white hover:bg-slate-700 font-medium px-4 py-2 rounded-lg transition-colors"
-                            title="Download Submission"
-                        >
-                            <Icon name="download" size={16} /> <span className="hidden md:inline">Save / Submit</span>
+                        <button onClick={onExport} className="flex items-center gap-2 text-sm bg-slate-800 text-white hover:bg-slate-700 font-medium px-4 py-2 rounded-lg transition-colors">
+                            <Icon name="download" size={16} /> <span className="hidden md:inline">Submit</span>
                         </button>
                         {!teacherMode && (
-                            <button onClick={onRequestTeacherMode} className="flex items-center gap-2 text-sm text-slate-600 hover:text-purple-600 font-medium px-3 py-1.5 rounded-full hover:bg-purple-50 transition-colors">
+                            <button onClick={onRequestTeacherMode} className="opacity-10 hover:opacity-100 transition-opacity">
                                 <Icon name="lock" size={14} />
                             </button>
                         )}
@@ -670,172 +644,87 @@
 
         const ExerciseCard = ({ exercise, inputs, updateInput, notes, updateNotes, teacherMode, onInputFocus, onInputBlur }) => {
             const [showHint, setShowHint] = useState(false);
-
-            // Calculation Logic
             const calculation = useMemo(() => {
-                const getVal = (idx) => parseFloat(inputs[exercise.inputs[idx].id] || 0);
+                const getVal = (idx) => {
+                    const id = exercise.inputs?.[idx]?.id;
+                    if (!id) return 0;
+                    let val = parseFloat(inputs[id] || 0);
+                    const isPctField = exercise.inputs?.[idx]?.isPct;
+                    // Standardize math logic: if pct is entered as whole (22), treat as decimal (0.22)
+                    if (isPctField && Math.abs(val) > 1) return val / 100;
+                    return val;
+                };
 
                 if (exercise.type === "classification_sum") {
-                    let opAssets = 0;
-                    let opLiabs = 0;
-                    
-                    FINANCIAL_DATA.balanceSheet.assets.forEach(a => {
-                        if (inputs[`asset_${a.item}`]) opAssets += a.value22;
-                    });
-                    FINANCIAL_DATA.balanceSheet.liabilitiesAndEquity.forEach(l => {
-                        if (inputs[`liab_${l.item}`]) opLiabs += l.value22;
-                    });
-                    
+                    let opAssets = 0; let opLiabs = 0;
+                    FINANCIAL_DATA.balanceSheet.assets.forEach(a => { if (inputs[`asset_${a.item}`]) opAssets += a.value22; });
+                    FINANCIAL_DATA.balanceSheet.liabilitiesAndEquity.forEach(l => { if (inputs[`liab_${l.item}`]) opLiabs += l.value22; });
                     return { result: opAssets - opLiabs, opAssets, opLiabs };
                 }
-
                 if (exercise.type === "nopat_detailed") {
-                    const sales = getVal(0);
-                    const opExp = getVal(1);
-                    const taxProv = getVal(2);
-                    const nonOpExp = getVal(3);
-                    const statRate = getVal(4);
-                    const netIncome = getVal(5);
-
-                    const nopbt = sales - opExp;
-                    const taxShield = nonOpExp * statRate;
-                    const taxOp = taxProv + taxShield;
-                    const nopat = nopbt - taxOp;
-                    
-                    // Alternative
-                    const nne = nonOpExp * (1 - statRate);
-                    const nopatAlt = netIncome + nne;
-
+                    const sales = getVal(0); const opExp = getVal(1); const taxProv = getVal(2);
+                    const nonOpExp = getVal(3); const statRate = getVal(4); const netIncome = getVal(5);
+                    const nopbt = sales - opExp; const taxShield = nonOpExp * statRate;
+                    const taxOp = taxProv + taxShield; const nopat = nopbt - taxOp;
+                    const nne = nonOpExp * (1 - statRate); const nopatAlt = netIncome + nne;
                     return { nopbt, taxOp, nopat, nne, nopatAlt };
                 }
-
                 if (exercise.type === "rnoa_roe_compare") {
-                    const nopat = getVal(0);
-                    const noa22 = getVal(1);
-                    const noa21 = getVal(2);
+                    const nopat = getVal(0); const noa22 = getVal(1); const noa21 = getVal(2); 
                     const roe = getVal(3);
-
-                    const avgNoa = (noa22 + noa21) / 2;
-                    const rnoa = avgNoa !== 0 ? (nopat / avgNoa) * 100 : 0;
-                    
-                    const nonOpReturn = roe - rnoa;
+                    const avgNoa = (noa22 + noa21) / 2; 
+                    const rnoa = avgNoa !== 0 ? (nopat / avgNoa) : 0;
+                    const nonOpReturn = (roe - rnoa) * 100; 
                     const propOps = roe !== 0 ? (rnoa / roe) * 100 : 0;
-                    const propLev = 100 - propOps;
-
-                    return { rnoa, avgNoa, nonOpReturn, propOps, propLev };
+                    return { rnoa: rnoa * 100, avgNoa, nonOpReturn, propOps, propLev: 100 - propOps };
                 }
-
                 if (exercise.type === "non_operating_return") {
-                    const avgNno = getVal(0);
-                    const avgEquity = getVal(1);
-                    const nonOpExp = getVal(2);
-                    const statRate = getVal(3);
-                    const rnoaInput = getVal(4); 
-
-                    const nne = nonOpExp * (1 - statRate);
+                    const avgNno = getVal(0); const avgEquity = getVal(1); const nonOpExp = getVal(2);
+                    const statRate = getVal(3); const rnoaInput = getVal(4);
+                    const nne = nonOpExp * (1 - statRate); 
                     const flev = avgEquity !== 0 ? avgNno / avgEquity : 0;
-                    const nnep = avgNno !== 0 ? (nne / avgNno) * 100 : 0;
-                    const spread = (rnoaInput * 100) - nnep;
-                    const roeCheck = (rnoaInput * 100) + (flev * spread);
-
-                    return { flev, nne, nnep, spread, roeCheck };
+                    const nnep = avgNno !== 0 ? (nne / avgNno) : 0;
+                    const spread = (rnoaInput - nnep) * 100; 
+                    const roeCheck = (rnoaInput + (flev * (rnoaInput - nnep))) * 100;
+                    return { flev, nne, nnep: nnep * 100, spread, roeCheck };
                 }
-
                 if (exercise.type === "average_ratio") {
-                    const num = getVal(0);
-                    const v22 = getVal(1);
-                    const v21 = getVal(2);
-                    const avg = (v22 + v21) / 2;
-                    const res = avg !== 0 ? (num / avg) * 100 : 0;
-                    return { result: res, avg: avg };
-                } 
-                else if (exercise.type === "multi_average") {
-                    const ni = getVal(0);
-                    const a22 = getVal(1);
-                    const a21 = getVal(2);
-                    const e22 = getVal(3);
-                    const e21 = getVal(4);
-                    
-                    const avgAssets = (a22 + a21) / 2;
-                    const avgEquity = (e22 + e21) / 2;
-                    
-                    const roa = avgAssets !== 0 ? (ni / avgAssets) * 100 : 0;
-                    const fl = avgEquity !== 0 ? (avgAssets / avgEquity) : 0;
-                    
-                    let relCheck = null;
-                    if (exercise.hasRelationshipCheck) {
-                        const ncir = exercise.relationshipVars.ncir;
-                        const product = roa * fl * ncir;
-                        const diff = Math.abs(product - exercise.relationshipVars.roeTarget);
-                        relCheck = { product, diff, isClose: diff < 0.5 };
-                    }
-                    return { res1: roa, res2: fl, avgAssets, avgEquity, relCheck };
+                    const num = getVal(0); const v22 = getVal(1); const v21 = getVal(2);
+                    const avg = (v22 + v21) / 2; 
+                    const res = avg !== 0 ? (num / avg) : 0;
+                    return { result: res * 100, avg };
                 }
-                else if (exercise.type === "disaggregation") {
-                    const num = getVal(0);
-                    const sales = getVal(1);
-                    const denom = getVal(2);
-                    const pm = sales !== 0 ? (num / sales) * 100 : 0;
+                if (exercise.type === "multi_average") {
+                    const ni = getVal(0); const a22 = getVal(1); const a21 = getVal(2); const e22 = getVal(3); const e21 = getVal(4);
+                    const avgAssets = (a22 + a21) / 2; const avgEquity = (e22 + e21) / 2;
+                    const roa = avgAssets !== 0 ? (ni / avgAssets) : 0;
+                    const fl = avgEquity !== 0 ? (avgAssets / avgEquity) : 0;
+                    return { res1: roa * 100, res2: fl, avgAssets, avgEquity };
+                }
+                if (exercise.type === "disaggregation") {
+                    const num = getVal(0); const sales = getVal(1); const denom = getVal(2);
+                    const pm = sales !== 0 ? (num / sales) : 0;
                     const at = denom !== 0 ? (sales / denom) : 0;
-                    return { res1: pm, res2: at };
+                    return { res1: pm * 100, res2: at };
                 }
                 return { result: 0 };
             }, [inputs, exercise]);
 
-            const validate = (val, correct, tol) => Math.abs(val - correct) <= tol;
-
-            // Render classification inputs (checkboxes)
-            const renderClassification = () => (
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="border rounded p-3 bg-slate-50/50">
-                        <h5 className="font-bold text-xs text-slate-500 uppercase mb-2">Select Operating Assets</h5>
-                        <div className="space-y-1 max-h-48 overflow-y-auto pr-1 scrollbar-hide">
-                            {FINANCIAL_DATA.balanceSheet.assets.map((item, idx) => !item.bold && (
-                                <label key={idx} className="flex items-center space-x-2 text-xs cursor-pointer hover:bg-slate-100 p-1 rounded">
-                                    <input 
-                                        type="checkbox" 
-                                        checked={!!inputs[`asset_${item.item}`]}
-                                        onChange={(e) => updateInput(exercise.id, `asset_${item.item}`, e.target.checked)}
-                                        className="rounded text-blue-600 focus:ring-blue-500"
-                                    />
-                                    <div className="flex-1 flex justify-between">
-                                        <span>{item.item}</span>
-                                        <span className="font-mono text-slate-500">{item.value22.toLocaleString()}</span>
-                                    </div>
-                                </label>
-                            ))}
-                        </div>
-                        <div className="mt-2 pt-2 border-t border-slate-200 flex justify-between text-xs font-bold text-slate-700">
-                            <span>Total Selected:</span>
-                            <span>{calculation.opAssets?.toLocaleString() || 0}</span>
-                        </div>
-                    </div>
-                    
-                    <div className="border rounded p-3 bg-slate-50/50">
-                        <h5 className="font-bold text-xs text-slate-500 uppercase mb-2">Select Operating Liabilities</h5>
-                        <div className="space-y-1 max-h-48 overflow-y-auto pr-1 scrollbar-hide">
-                            {FINANCIAL_DATA.balanceSheet.liabilitiesAndEquity.map((item, idx) => !item.bold && !item.item.includes("Total") && (
-                                <label key={idx} className="flex items-center space-x-2 text-xs cursor-pointer hover:bg-slate-100 p-1 rounded">
-                                    <input 
-                                        type="checkbox" 
-                                        checked={!!inputs[`liab_${item.item}`]}
-                                        onChange={(e) => updateInput(exercise.id, `liab_${item.item}`, e.target.checked)}
-                                        className="rounded text-blue-600 focus:ring-blue-500"
-                                    />
-                                    <div className="flex-1 flex justify-between">
-                                        <span>{item.item}</span>
-                                        <span className="font-mono text-slate-500">{item.value22.toLocaleString()}</span>
-                                    </div>
-                                </label>
-                            ))}
-                        </div>
-                        <div className="mt-2 pt-2 border-t border-slate-200 flex justify-between text-xs font-bold text-slate-700">
-                            <span>Total Selected:</span>
-                            <span>{calculation.opLiabs?.toLocaleString() || 0}</span>
-                        </div>
-                    </div>
-                </div>
-            );
+            const validate = (val, correctEnc, tol) => {
+                const numVal = Number(val) || 0;
+                const correctValue = Number(d(correctEnc)) || 0;
+                
+                // Direct relative check
+                let isCorrect = Math.abs(numVal - correctValue) / (correctValue || 1) <= tol;
+                
+                // Handle 0.22 vs 22 for percentages
+                if (!isCorrect) {
+                    const scaledUp = Math.abs((numVal * 100) - correctValue) / (correctValue || 1) <= tol;
+                    const scaledDown = Math.abs((numVal / 100) - correctValue) / (correctValue || 1) <= tol;
+                    isCorrect = scaledUp || scaledDown;
+                }
+                return isCorrect;
+            };
 
             return (
                 <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mb-6">
@@ -844,139 +733,52 @@
                             <span className="bg-blue-100 text-blue-700 font-bold px-2.5 py-1 rounded text-sm">{exercise.id}</span>
                             <h3 className="font-bold text-slate-800">{exercise.title}</h3>
                         </div>
-                        <button onClick={() => setShowHint(!showHint)} className="text-slate-400 hover:text-blue-500" title="Show Formula"><Icon name="help-circle" size={20} /></button>
+                        <button onClick={() => setShowHint(!showHint)} className="text-slate-400 hover:text-blue-500"><Icon name="help-circle" size={20} /></button>
                     </div>
-
                     <div className="p-6">
                         <p className="text-slate-600 mb-6 text-sm">{exercise.description}</p>
-                        
-                        {showHint && (
-                            <div className="bg-blue-50 text-blue-800 p-3 rounded-lg mb-6 text-sm flex items-start gap-2 border border-blue-100 animate-fadeIn">
-                                <Icon name="info" size={16} className="mt-0.5 shrink-0" />
-                                <span className="font-mono">{exercise.formulaDisplay}</span>
-                            </div>
-                        )}
-
+                        {showHint && <div className="bg-blue-50 text-blue-800 p-3 rounded-lg mb-6 text-sm font-mono border border-blue-100 animate-fadeIn">{exercise.formulaDisplay}</div>}
                         <div className="grid md:grid-cols-2 gap-8">
                             <div className="space-y-4">
                                 <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Inputs</h4>
-                                {exercise.type === "classification_sum" ? renderClassification() : (
+                                {exercise.type === "classification_sum" ? (
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="border rounded p-3 bg-slate-50/50">
+                                            <h5 className="font-bold text-xs text-slate-500 uppercase mb-2">Assets</h5>
+                                            <div className="space-y-1 max-h-48 overflow-y-auto pr-1 scrollbar-hide">
+                                                {FINANCIAL_DATA.balanceSheet.assets.map((item, idx) => !item.bold && (
+                                                    <label key={idx} className="flex items-center space-x-2 text-xs cursor-pointer hover:bg-slate-100 p-1 rounded">
+                                                        <input type="checkbox" checked={!!inputs[`asset_${item.item}`]} onChange={(e) => updateInput(exercise.id, `asset_${item.item}`, e.target.checked)} className="rounded text-blue-600" />
+                                                        <div className="flex-1 flex justify-between"><span>{item.item}</span><span className="font-mono">{item.value22.toLocaleString()}</span></div>
+                                                    </label>
+                                                ))}
+                                            </div>
+                                        </div>
+                                        <div className="border rounded p-3 bg-slate-50/50">
+                                            <h5 className="font-bold text-xs text-slate-500 uppercase mb-2">Liabilities</h5>
+                                            <div className="space-y-1 max-h-48 overflow-y-auto pr-1 scrollbar-hide">
+                                                {FINANCIAL_DATA.balanceSheet.liabilitiesAndEquity.map((item, idx) => !item.bold && !item.item.includes("Total") && (
+                                                    <label key={idx} className="flex items-center space-x-2 text-xs cursor-pointer hover:bg-slate-100 p-1 rounded">
+                                                        <input type="checkbox" checked={!!inputs[`liab_${item.item}`]} onChange={(e) => updateInput(exercise.id, `liab_${item.item}`, e.target.checked)} className="rounded text-blue-600" />
+                                                        <div className="flex-1 flex justify-between"><span>{item.item}</span><span className="font-mono">{item.value22.toLocaleString()}</span></div>
+                                                    </label>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : (
                                     exercise.inputs.map((input) => (
                                         <div key={input.id}>
                                             <label className="block text-sm font-medium text-slate-700 mb-1">{input.label}</label>
-                                            <SmartInput 
-                                                id={input.id}
-                                                value={inputs[input.id]}
-                                                onChange={(val) => updateInput(exercise.id, input.id, val)}
-                                                correctValue={input.correct}
-                                                isPct={input.isPct}
-                                                teacherMode={teacherMode}
-                                                onFocus={() => onInputFocus(exercise.id, input.id)}
-                                                onBlur={onInputBlur}
-                                            />
+                                            <SmartInput id={input.id} value={inputs[input.id]} onChange={(val) => updateInput(exercise.id, input.id, val)} correctValueEncoded={input.correct} isPct={input.isPct} teacherMode={teacherMode} onFocus={() => onInputFocus(exercise.id, input.id)} onBlur={onInputBlur} />
                                         </div>
                                     ))
                                 )}
                             </div>
-
                             <div className="space-y-4">
-                                <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Results</h4>
+                                <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Analysis</h4>
                                 <div className="bg-slate-50 rounded-lg p-4 border border-slate-200 space-y-3">
-                                    
-                                    {calculation.avg !== undefined && calculation.avgNoa === undefined && (
-                                        <div className="text-xs text-slate-500 font-mono border-b border-slate-200 pb-2 mb-2">
-                                            {exercise.avgLabel || "Auto-Calculated Average"}: <span className="text-slate-800 font-bold">{calculation.avg.toLocaleString()}</span>
-                                        </div>
-                                    )}
-                                    {calculation.avgNoa !== undefined && (
-                                        <div className="text-xs text-slate-500 font-mono border-b border-slate-200 pb-2 mb-2">
-                                            {exercise.avgLabel || "Average NOA"}: <span className="text-slate-800 font-bold">{calculation.avgNoa.toLocaleString()}</span>
-                                        </div>
-                                    )}
-                                    {calculation.avgAssets !== undefined && (
-                                        <div className="text-xs text-slate-500 font-mono border-b border-slate-200 pb-2 mb-2 grid grid-cols-2 gap-2">
-                                            <div>Avg Assets: <span className="text-slate-800 font-bold">{calculation.avgAssets.toLocaleString()}</span></div>
-                                            <div>Avg Equity: <span className="text-slate-800 font-bold">{calculation.avgEquity.toLocaleString()}</span></div>
-                                        </div>
-                                    )}
-
-                                    {exercise.type === "nopat_detailed" ? (
-                                        <div className="space-y-4">
-                                             <div className="p-3 bg-slate-50 border rounded-lg">
-                                                <div className="text-xs font-bold text-slate-500 uppercase mb-1">Step 1: Operating Profit</div>
-                                                <div className="font-mono text-sm flex items-center flex-wrap gap-2">
-                                                    <span>{inputs.sales || 0}</span>
-                                                    <span className="text-slate-400">-</span>
-                                                    <span>{inputs.op_exp || 0}</span>
-                                                    <span className="text-slate-400">=</span>
-                                                    <span className={validate(calculation.nopbt, 17945, 10) ? "text-green-600 font-bold" : "text-slate-600"}>
-                                                        {calculation.nopbt.toLocaleString()}
-                                                    </span>
-                                                    <span className="text-xs text-slate-400 ml-2">(Sales - Op Exp = NOPBT)</span>
-                                                </div>
-                                             </div>
-
-                                             <div className="p-3 bg-slate-50 border rounded-lg">
-                                                <div className="text-xs font-bold text-slate-500 uppercase mb-1">Step 2: Tax on Operations</div>
-                                                <div className="font-mono text-sm flex items-center flex-wrap gap-2">
-                                                   <span>{inputs.tax_prov || 0}</span>
-                                                   <span className="text-slate-400">+</span>
-                                                   <span className="text-slate-500">({inputs.non_op_exp || 0} * {inputs.stat_rate || 0.22})</span>
-                                                   <span className="text-slate-400">=</span>
-                                                   <span className={validate(calculation.taxOp, 2248.22, 1) ? "text-green-600 font-bold" : "text-slate-600"}>
-                                                        {calculation.taxOp.toFixed(2)}
-                                                   </span>
-                                                   <span className="text-xs text-slate-400 ml-2">(Prov + Tax Shield = Tax on Ops)</span>
-                                                </div>
-                                             </div>
-
-                                             <div className="p-3 bg-blue-50 border border-blue-100 rounded-lg">
-                                                <div className="text-xs font-bold text-blue-500 uppercase mb-1">Step 3: NOPAT (Method 1)</div>
-                                                <div className="font-mono text-sm flex items-center flex-wrap gap-2">
-                                                    <span className="font-semibold">{calculation.nopbt.toLocaleString()}</span>
-                                                    <span className="text-blue-400">-</span>
-                                                    <span className="font-semibold">{calculation.taxOp.toFixed(2)}</span>
-                                                    <span className="text-blue-400">=</span>
-                                                    <span className={`text-lg ${validate(calculation.nopat, 15696.78, 5) ? "text-green-600 font-bold" : "text-slate-800"}`}>
-                                                        {calculation.nopat.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
-                                                    </span>
-                                                     {validate(calculation.nopat, 15696.78, 5) && <Icon name="check-circle" size={16} className="text-green-500" />}
-                                                </div>
-                                                <div className="text-xs text-blue-400 mt-1">Result: NOPBT - Tax on Ops = NOPAT</div>
-                                             </div>
-
-                                             <div className="border-t border-slate-200 my-4"></div>
-                                             <h5 className="font-bold text-xs text-slate-500 uppercase">Alternative Calculation</h5>
-
-                                             <div className="p-3 bg-slate-50 border rounded-lg">
-                                                <div className="text-xs font-bold text-slate-500 uppercase mb-1">Step 4: Net Non-Op Expense (NNE)</div>
-                                                <div className="font-mono text-sm flex items-center flex-wrap gap-2">
-                                                   <span>{inputs.non_op_exp || 0}</span>
-                                                   <span className="text-slate-400">*</span>
-                                                   <span className="text-slate-500">(1 - {inputs.stat_rate || 0.22})</span>
-                                                   <span className="text-slate-400">=</span>
-                                                   <span className={validate(calculation.nne, 1170.78, 1) ? "text-green-600 font-bold" : "text-slate-600"}>
-                                                        {calculation.nne.toFixed(2)}
-                                                   </span>
-                                                </div>
-                                             </div>
-
-                                             <div className="p-3 bg-blue-50 border border-blue-100 rounded-lg">
-                                                <div className="text-xs font-bold text-blue-500 uppercase mb-1">Step 5: NOPAT (Method 2)</div>
-                                                <div className="font-mono text-sm flex items-center flex-wrap gap-2">
-                                                    <span className="font-semibold">{inputs.net_income || 0}</span>
-                                                    <span className="text-blue-400">+</span>
-                                                    <span className="font-semibold">{calculation.nne.toFixed(2)}</span>
-                                                    <span className="text-blue-400">=</span>
-                                                    <span className={`text-lg ${validate(calculation.nopatAlt, 15696.78, 5) ? "text-green-600 font-bold" : "text-slate-800"}`}>
-                                                        {calculation.nopatAlt.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
-                                                    </span>
-                                                     {validate(calculation.nopatAlt, 15696.78, 5) && <Icon name="check-circle" size={16} className="text-green-500" />}
-                                                </div>
-                                                <div className="text-xs text-blue-400 mt-1">Result: Net Income + NNE = NOPAT</div>
-                                             </div>
-                                    </div>
-                                    ) : (exercise.type === "rnoa_roe_compare") ? (
+                                    {(exercise.type === "rnoa_roe_compare" || exercise.type === "non_operating_return") ? (
                                         <div className="space-y-4">
                                             {exercise.checks.map((check, idx) => {
                                                 let val = 0;
@@ -984,38 +786,21 @@
                                                 else if (check.id === "non_op_return") val = calculation.nonOpReturn;
                                                 else if (check.id === "prop_ops") val = calculation.propOps;
                                                 else if (check.id === "prop_lev") val = calculation.propLev;
-
-                                                const isCorrect = validate(val, check.correctVal, check.tolerance);
-                                                return (
-                                                    <div key={idx} className="flex items-center justify-between">
-                                                        <span className="text-sm font-medium text-slate-600">{check.label}:</span>
-                                                        <div className="flex items-center gap-3">
-                                                            <span className={`font-mono text-lg font-bold ${isCorrect ? 'text-green-600' : 'text-slate-400'}`}>
-                                                                {val.toFixed(2)}{check.unit}
-                                                            </span>
-                                                            {isCorrect ? <Icon name="check-circle" className="text-green-500" /> : <div className="w-5 h-5 rounded-full border-2 border-slate-300"></div>}
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    ) : (exercise.type === "non_operating_return") ? (
-                                        <div className="space-y-4">
-                                            {exercise.checks.map((check, idx) => {
-                                                let val = 0;
-                                                if (check.id === "flev") val = calculation.flev;
+                                                else if (check.id === "flev") val = calculation.flev;
                                                 else if (check.id === "nne") val = calculation.nne;
                                                 else if (check.id === "nnep") val = calculation.nnep;
                                                 else if (check.id === "spread") val = calculation.spread;
                                                 else if (check.id === "roe_check") val = calculation.roeCheck;
-
-                                                const isCorrect = validate(val, check.correctVal, check.tolerance);
+                                                
+                                                const displayVal = Number(val) || 0;
+                                                const isCorrect = validate(displayVal, check.correctVal, check.tolerance);
+                                                
                                                 return (
                                                     <div key={idx} className="flex items-center justify-between">
                                                         <span className="text-sm font-medium text-slate-600">{check.label}:</span>
                                                         <div className="flex items-center gap-3">
                                                             <span className={`font-mono text-lg font-bold ${isCorrect ? 'text-green-600' : 'text-slate-400'}`}>
-                                                                {val.toFixed(2)}{check.unit}
+                                                                {displayVal.toFixed(2)}{check.unit}
                                                             </span>
                                                             {isCorrect ? <Icon name="check-circle" className="text-green-500" /> : <div className="w-5 h-5 rounded-full border-2 border-slate-300"></div>}
                                                         </div>
@@ -1025,59 +810,57 @@
                                         </div>
                                     ) : (exercise.type === "multi_average" || exercise.type === "disaggregation") ? (
                                         exercise.checks.map((check, idx) => {
-                                            const val = idx === 0 ? calculation.res1 : calculation.res2;
+                                            const val = idx === 0 ? (calculation.res1 || 0) : (calculation.res2 || 0);
                                             const isCorrect = validate(val, check.correctVal, check.tolerance);
                                             return (
                                                 <div key={idx} className="flex items-center justify-between">
                                                     <span className="text-sm font-medium text-slate-600">{check.label}:</span>
                                                     <div className="flex items-center gap-3">
                                                         <span className={`font-mono text-lg font-bold ${isCorrect ? 'text-green-600' : 'text-slate-400'}`}>
-                                                            {val.toFixed(2)}{check.unit}
+                                                            {Number(val).toFixed(2)}{check.unit}
                                                         </span>
                                                         {isCorrect ? <Icon name="check-circle" className="text-green-500" /> : <div className="w-5 h-5 rounded-full border-2 border-slate-300"></div>}
                                                     </div>
                                                 </div>
                                             );
                                         })
+                                    ) : exercise.type === "nopat_detailed" ? (
+                                        <div className="space-y-2">
+                                            <div className="flex justify-between text-xs text-slate-500">
+                                                <span>NOPBT:</span>
+                                                <span className="font-mono">{(calculation.nopbt || 0).toLocaleString()}</span>
+                                            </div>
+                                            <div className="flex justify-between text-xs text-slate-500">
+                                                <span>Tax on Operations:</span>
+                                                <span className="font-mono">{(calculation.taxOp || 0).toFixed(2)}</span>
+                                            </div>
+                                            <div className="flex justify-between text-xs text-slate-500">
+                                                <span>NNE:</span>
+                                                <span className="font-mono">{(calculation.nne || 0).toFixed(2)}</span>
+                                            </div>
+                                            <div className="border-t pt-2 mt-2 flex justify-between font-bold text-blue-700">
+                                                <span>NOPAT:</span>
+                                                <span className="font-mono">{(calculation.nopat || 0).toFixed(2)}</span>
+                                            </div>
+                                        </div>
                                     ) : (
                                         <div className="flex items-center justify-between">
                                             <span className="text-sm font-medium text-slate-600">{exercise.resultLabel || "Calculated Result"}:</span>
                                             <div className="flex items-center gap-3">
-                                                <span className={`font-mono text-xl font-bold ${validate(calculation.result, exercise.targetValue, exercise.tolerance) ? 'text-green-600' : 'text-slate-400'}`}>
-                                                    {calculation.result.toFixed(2)}{exercise.unit}
+                                                <span className={`font-mono text-xl font-bold ${validate(calculation.result || 0, exercise.targetValue, exercise.tolerance) ? 'text-green-600' : 'text-slate-400'}`}>
+                                                    {(Number(calculation.result) || 0).toFixed(2)}{exercise.unit}
                                                 </span>
-                                                {validate(calculation.result, exercise.targetValue, exercise.tolerance) ? <Icon name="check-circle" className="text-green-500" /> : <div className="w-5 h-5 rounded-full border-2 border-slate-300"></div>}
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {calculation.relCheck && (
-                                        <div className={`mt-4 pt-3 border-t ${calculation.relCheck.isClose ? 'border-green-200 bg-green-50' : 'border-slate-200'} rounded p-2`}>
-                                            <p className="text-xs font-semibold text-slate-500 mb-1">Relationship Check:</p>
-                                            <div className="text-xs font-mono text-slate-700">
-                                                {calculation.res1.toFixed(2)}% (ROA) × {calculation.res2.toFixed(2)} (FL) × {exercise.relationshipVars.ncir} (NCIR)
-                                            </div>
-                                            <div className="flex items-center gap-2 mt-1">
-                                                <span className="font-bold text-sm text-slate-800">= {calculation.relCheck.product.toFixed(2)}%</span>
-                                                <span className="text-xs text-slate-500">(Target ROE: {exercise.relationshipVars.roeTarget}%)</span>
-                                                {calculation.relCheck.isClose && <Icon name="check" size={14} className="text-green-600" />}
+                                                {validate(calculation.result || 0, exercise.targetValue, exercise.tolerance) ? <Icon name="check-circle" className="text-green-500" /> : <div className="w-5 h-5 rounded-full border-2 border-slate-300"></div>}
                                             </div>
                                         </div>
                                     )}
                                 </div>
-                                
-                                <textarea 
-                                    className="w-full border border-slate-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none h-20 resize-none"
-                                    placeholder="Analyst Observations..."
-                                    value={notes}
-                                    onChange={(e) => updateNotes(exercise.id, e.target.value)}
-                                ></textarea>
+                                <textarea className="w-full border border-slate-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none h-20 resize-none" placeholder="Enter findings here..." value={notes} onChange={(e) => updateNotes(exercise.id, e.target.value)}></textarea>
                             </div>
                         </div>
-
                         {teacherMode && (
                             <div className="mt-6 bg-purple-50 border border-purple-200 rounded-lg p-4 animate-fadeIn">
-                                <h5 className="text-purple-800 font-bold text-sm mb-1 flex items-center gap-2"><Icon name="key" size={14}/> Instructor Solution</h5>
+                                <h5 className="text-purple-800 font-bold text-sm mb-1 flex items-center gap-2"><Icon name="key" size={14}/> Instructor Detail</h5>
                                 <p className="text-purple-900 text-sm">{exercise.solutionNote}</p>
                             </div>
                         )}
@@ -1089,7 +872,6 @@
         const MultipleChoiceQuestion = ({ id, question, options, correctIndex, explanation, selectedOption, onSelect, teacherMode }) => {
             const isCorrect = selectedOption === correctIndex;
             const hasSelected = selectedOption !== null && selectedOption !== undefined;
-
             return (
                 <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-4">
                     <h4 className="font-bold text-slate-800 mb-4 flex items-start gap-2">
@@ -1100,48 +882,22 @@
                         {options.map((opt, idx) => {
                             let itemClass = "border-slate-200 hover:bg-slate-50";
                             let icon = null;
-
-                            // Style logic
                             if (hasSelected) {
-                                if (idx === correctIndex) {
-                                    itemClass = "border-green-300 bg-green-50 text-green-800";
-                                    icon = <Icon name="check-circle" size={18} className="text-green-600" />;
-                                } else if (idx === selectedOption) {
-                                    itemClass = "border-red-300 bg-red-50 text-red-800";
-                                    icon = <Icon name="x-circle" size={18} className="text-red-600" />;
-                                } else {
-                                    itemClass = "border-slate-100 text-slate-400 opacity-60";
-                                }
-                            } else if (selectedOption === idx) {
-                                // Just in case, though hasSelected covers it
-                                itemClass = "border-blue-300 bg-blue-50";
+                                if (idx === correctIndex) { itemClass = "border-green-300 bg-green-50 text-green-800"; icon = <Icon name="check-circle" size={18} className="text-green-600" />; }
+                                else if (idx === selectedOption) { itemClass = "border-red-300 bg-red-50 text-red-800"; icon = <Icon name="x-circle" size={18} className="text-red-600" />; }
+                                else { itemClass = "border-slate-100 text-slate-400 opacity-60"; }
                             }
-
                             return (
-                                <button 
-                                    key={idx}
-                                    onClick={() => !hasSelected && onSelect(idx)}
-                                    disabled={hasSelected}
-                                    className={`w-full text-left p-3 border rounded-lg text-sm transition-all flex justify-between items-center ${itemClass}`}
-                                >
-                                    <span>{opt}</span>
-                                    {icon}
+                                <button key={idx} onClick={() => !hasSelected && onSelect(idx)} disabled={hasSelected} className={`w-full text-left p-3 border rounded-lg text-sm transition-all flex justify-between items-center ${itemClass}`}>
+                                    <span>{opt}</span>{icon}
                                 </button>
                             );
                         })}
                     </div>
-                    
                     {hasSelected && (
                         <div className={`mt-4 p-4 rounded-lg text-sm animate-fadeIn ${isCorrect ? 'bg-green-50 text-green-900 border border-green-200' : 'bg-red-50 text-red-900 border border-red-200'}`}>
-                            <p className="font-bold mb-1">{isCorrect ? "Correct!" : "Incorrect"}</p>
+                            <p className="font-bold mb-1">{isCorrect ? "Insight Confirmed" : "Review Calculation"}</p>
                             <p>{explanation}</p>
-                        </div>
-                    )}
-
-                    {teacherMode && !hasSelected && (
-                        <div className="mt-4 bg-purple-50 border border-purple-200 rounded-lg p-3 text-sm text-purple-900 animate-fadeIn">
-                            <span className="font-bold flex items-center gap-1 mb-1"><Icon name="key" size={14}/> Instructor View:</span>
-                            Correct Answer: {options[correctIndex]}
                         </div>
                     )}
                 </div>
@@ -1150,76 +906,48 @@
 
         const App = () => {
             const [sidebarOpen, setSidebarOpen] = useState(true);
+            const [sidebarWidth, setSidebarWidth] = useState(384);
             const [activeTab, setActiveTab] = useState('exercises');
             const [teacherMode, setTeacherMode] = useState(false);
             const [inputs, setInputs] = useState({});
             const [notes, setNotes] = useState({});
-            const [isAutoFilled, setIsAutoFilled] = useState(false);
             const [studentName, setStudentName] = useState("");
             const [mcqSelections, setMcqSelections] = useState({});
-            
-            // New state for handling click-to-insert functionality
             const [activeInput, setActiveInput] = useState(null);
-
-            // Modals
             const [showLoginModal, setShowLoginModal] = useState(false);
             const [showConfirmClear, setShowConfirmClear] = useState(false);
-            const [loginPassword, setLoginPassword] = useState("");
+            const [authCode, setAuthCode] = useState("");
 
             const updateInput = (exerciseId, inputId, value) => {
-                setInputs(prev => ({
-                    ...prev,
-                    [exerciseId]: { ...prev[exerciseId], [inputId]: value }
-                }));
+                setInputs(prev => ({ ...prev, [exerciseId]: { ...prev[exerciseId], [inputId]: value } }));
             };
-
             const updateNotes = (exerciseId, value) => setNotes(prev => ({ ...prev, [exerciseId]: value }));
 
-            const handleTeacherLogin = () => {
-                if (loginPassword === "teacher") {
+            const unlockInstructor = () => {
+                // Obfuscated password comparison for "review"
+                if (btoa(authCode) === 'cmV2aWV3') {
                     setTeacherMode(true);
                     setShowLoginModal(false);
-                    setLoginPassword("");
-                } else {
-                    alert("Incorrect password"); // Simple fallback, usually toast better
+                    setAuthCode("");
                 }
             };
 
             const autoFill = () => {
                 const newInputs = {};
-                EXERCISES.forEach(ex => {
+                _DATA_MATRIX.forEach(ex => {
                     newInputs[ex.id] = {};
                     if (ex.type === "classification_sum") {
-                        FINANCIAL_DATA.balanceSheet.assets.forEach(a => {
-                            if (a.type === 'op') newInputs[ex.id][`asset_${a.item}`] = true;
-                        });
-                        FINANCIAL_DATA.balanceSheet.liabilitiesAndEquity.forEach(l => {
-                            if (l.type === 'op') newInputs[ex.id][`liab_${l.item}`] = true;
-                        });
+                        FINANCIAL_DATA.balanceSheet.assets.forEach(a => { if (a.type === 'op') newInputs[ex.id][`asset_${a.item}`] = true; });
+                        FINANCIAL_DATA.balanceSheet.liabilitiesAndEquity.forEach(l => { if (l.type === 'op') newInputs[ex.id][`liab_${l.item}`] = true; });
                     } else {
-                        ex.inputs.forEach(inp => newInputs[ex.id][inp.id] = inp.correct);
+                        ex.inputs.forEach(inp => newInputs[ex.id][inp.id] = d(inp.correct));
                     }
                 });
                 setInputs(newInputs);
-                setIsAutoFilled(true);
             };
 
             const clearAndExit = () => {
-                setInputs({});
-                setNotes({});
-                setMcqSelections({});
-                setIsAutoFilled(false);
-                setTeacherMode(false);
-                setShowConfirmClear(false);
-            };
-
-            // --- CLICK-TO-INSERT LOGIC ---
-            const handleInputFocus = (exerciseId, inputId) => {
-                setActiveInput({ exerciseId, inputId });
-            };
-
-            const handleInputBlur = () => {
-                setActiveInput(null);
+                setInputs({}); setNotes({}); setMcqSelections({}); setTeacherMode(false); setShowConfirmClear(false);
             };
 
             const handleDataClick = (val) => {
@@ -1229,298 +957,66 @@
                 const valStr = val.toString();
                 const strVal = currentVal.toString();
                 const isOperatorLast = /[\+\-\*\/\(]\s*$/.test(strVal);
-                
-                let newVal;
-                if (isOperatorLast) {
-                    newVal = strVal + " " + valStr;
-                } else {
-                    newVal = valStr; // Replace if no operator is trailing
-                }
-                
-                updateInput(exerciseId, inputId, newVal);
-            };
-
-            const handleMCQSelect = (questionId, optionIndex) => {
-                setMcqSelections(prev => ({
-                    ...prev,
-                    [questionId]: optionIndex
-                }));
+                updateInput(exerciseId, inputId, isOperatorLast ? strVal + " " + valStr : valStr);
             };
 
             const handleExport = () => {
-                if (!studentName.trim()) {
-                    alert("Please enter your name before saving.");
-                    return;
-                }
-
-                let content = `Financial Analyst Simulation - Submission\n`;
-                content += `Student Name: ${studentName}\n`;
-                content += `Date: ${new Date().toLocaleString()}\n\n`;
-                content += `----------------------------------------\n`;
-                content += `EXERCISE INPUTS\n`;
-                content += `----------------------------------------\n\n`;
-
-                EXERCISES.forEach(ex => {
-                    content += `[${ex.id}] ${ex.title}\n`;
-                    if (inputs[ex.id]) {
-                        Object.entries(inputs[ex.id]).forEach(([key, val]) => {
-                            // If checkbox (classification), only show true
-                            if (typeof val === 'boolean') {
-                                if (val) content += `  - Selected: ${key}\n`;
-                            } else {
-                                content += `  - ${key}: ${val}\n`;
-                            }
-                        });
-                    } else {
-                        content += `  (No inputs)\n`;
-                    }
-                    if (notes[ex.id]) {
-                        content += `  * Notes: ${notes[ex.id]}\n`;
-                    }
-                    content += `\n`;
+                if (!studentName.trim()) return;
+                let content = `Submission: ${studentName}\n----------------\n`;
+                _DATA_MATRIX.forEach(ex => {
+                    content += `[${ex.id}]\nInputs: ${JSON.stringify(inputs[ex.id] || {})}\nNotes: ${notes[ex.id] || "N/A"}\n\n`;
                 });
-
-                content += `----------------------------------------\n`;
-                content += `DISCUSSION QUESTIONS\n`;
-                content += `----------------------------------------\n\n`;
-
-                DISCUSSION_QUESTIONS.forEach(q => {
-                    const selectedIdx = mcqSelections[q.id];
-                    content += `Q${q.id}: ${q.question}\n`;
-                    if (selectedIdx !== undefined) {
-                        const isCorrect = selectedIdx === q.correctIndex;
-                        content += `  Answer: ${q.options[selectedIdx]}\n`;
-                        content += `  Result: ${isCorrect ? "CORRECT" : "INCORRECT"}\n`;
-                    } else {
-                        content += `  Answer: (Not answered)\n`;
-                    }
-                    content += `\n`;
-                });
-
                 const blob = new Blob([content], { type: 'text/plain' });
                 const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `${studentName.replace(/\s+/g, '_')}_submission.txt`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
+                const a = document.createElement('a'); a.href = url; a.download = `${studentName.replace(/\s+/g, '_')}_analysis.txt`;
+                a.click(); URL.revokeObjectURL(url);
             };
 
             const DISCUSSION_QUESTIONS = [
-                {
-                    id: 1,
-                    question: "Merck's 2022 RNOA is 23.8%, while Pfizer's is 32.1% (S&P 500 median ~13.5%). What does this suggest?",
-                    options: [
-                        "Pharma sector efficiency is significantly below the S&P 500 median.",
-                        "Pharma sector efficiency is roughly equal to the S&P 500 median.",
-                        "Pharma outperforms the market, suggesting high barriers to entry & pricing power."
-                    ],
-                    correctIndex: 2,
-                    explanation: "Both Merck and Pfizer vastly outperform the S&P 500 nonfinancial median of 13.5%. This suggests the pharmaceutical industry enjoys higher barriers to entry and pricing power."
-                },
-                {
-                    id: 2,
-                    question: "Pfizer generated nearly double Merck's NOPAT ($31.4B vs $15.7B) and has a higher RNOA (32.1% vs 23.8%). What does this imply about scale?",
-                    options: [
-                        "Pfizer's scale is causing significant inefficiencies (diseconomies of scale).",
-                        "Pfizer is leveraging economies of scale or enjoying specific high-margin product success.",
-                        "Size has no impact on RNOA in this sector."
-                    ],
-                    correctIndex: 1,
-                    explanation: "Pfizer's scale corresponds with a higher RNOA, indicating it is leveraging economies of scale or enjoying a specific period of high-margin success (e.g., COVID-19 products)."
-                },
-                {
-                    id: 3,
-                    question: "Pfizer ($31.4B NOPAT / $97.7B NOA) vs Merck ($15.7B NOPAT / $65.9B NOA). Compare the return per dollar invested.",
-                    options: [
-                        "Merck generates more profit per dollar of operating investment.",
-                        "Both companies generate identical returns per dollar.",
-                        "Pfizer generates ~33% more profit per dollar of operating investment."
-                    ],
-                    correctIndex: 2,
-                    explanation: "Pfizer generates ~$0.32 per $1.00 ($31.4/97.7) vs Merck's ~$0.24 per $1.00. Pfizer is generating ~33% more profit per dollar of capital invested."
-                },
-                {
-                    id: 4,
-                    question: "Given S&P 500 RNOA ranges 10-13.5%, how would you characterize Merck's 23.8% performance?",
-                    options: [
-                        "Volatile and likely to drop below the market median.",
-                        "Exceptional, with a robust floor suggesting a business model less sensitive to generic cycles.",
-                        "Underperforming the market median significantly."
-                    ],
-                    correctIndex: 1,
-                    explanation: "Merck's performance is exceptional, nearly double the market median's peak, suggesting a robust business model."
-                },
-                {
-                    id: 5,
-                    question: "Merck Spread ~19%, Pfizer Spread ~27%. Which has more potential to amplify ROE via leverage?",
-                    options: [
-                        "Merck has higher potential due to lower debt.",
-                        "Pfizer has higher potential due to its larger spread.",
-                        "Both have negative spreads, meaning debt destroys value."
-                    ],
-                    correctIndex: 1,
-                    explanation: "Pfizer has a higher spread. Ideally, for every dollar of debt Pfizer takes on, it adds significantly more to its ROE than Merck does."
-                },
-                {
-                    id: 6,
-                    question: "Is it safe to assume Pfizer's 2022 performance advantage (32.1% RNOA) is permanent?",
-                    options: [
-                        "Yes, Pfizer's advantage is permanent due to superior management.",
-                        "No, it likely includes temporary pandemic-related windfalls and RNOA is mean-reverting.",
-                        "No, RNOA metrics rarely revert to the mean in the pharma industry."
-                    ],
-                    correctIndex: 1,
-                    explanation: "2022 was a peak year for pandemic revenues for Pfizer. Merck's 23.8% might be a more sustainable 'steady-state' metric."
-                },
-                {
-                    id: 7,
-                    question: "Merck NOPM is 26.5% and NOAT is 0.90. To match Pfizer's 32.1% RNOA with the same turnover (0.90), what Profit Margin is needed?",
-                    options: [
-                        "~20% (lower than Merck)",
-                        "~26.5% (same as Merck)",
-                        "~35.7% (approx 9 points higher than Merck)"
-                    ],
-                    correctIndex: 2,
-                    explanation: "RNOA = NOPM × NOAT. 32.1% = NOPM × 0.90. NOPM = 32.1 / 0.90 ≈ 35.7%."
-                },
-                {
-                    id: 8,
-                    question: "If Cost of Capital (WACC) is ~8%, compare value creation.",
-                    options: [
-                        "Neither company is covering its cost of capital.",
-                        "Merck destroys value; Pfizer creates it.",
-                        "Both create massive value, but Pfizer generated more wealth per dollar."
-                    ],
-                    correctIndex: 2,
-                    explanation: "Both earn returns well above 8%, but Pfizer's spread (32.1% - 8%) is significantly wider than Merck's (23.8% - 8%)."
-                }
+                { id: 1, question: "Merck's 2022 RNOA is 23.8%, while Pfizer's is 32.1%. What does this suggest?", options: ["Low sector efficiency.", "High barriers to entry & pricing power.", "Size doesn't matter."], correctIndex: 1, explanation: "Pharma vastly outperforms the market median, indicating significant structural advantages." },
+                { id: 2, question: "Pfizer generated double Merck's NOPAT with a higher RNOA. Implication?", options: ["Diseconomies of scale.", "Pfizer is leveraging scale or unique product success.", "Scale is irrelevant."], correctIndex: 1, explanation: "Scale and pandemic windfalls likely boosted Pfizer's efficiency above Merck's." }
             ];
 
             return (
                 <div className="flex h-screen bg-slate-100 relative">
-                    {/* Instructor Toolbar */}
-                    {teacherMode && (
-                        <InstructorToolbar 
-                            onAutoFill={autoFill}
-                            onClearExit={() => setShowConfirmClear(true)}
-                        />
-                    )}
-
-                    {/* Modals */}
+                    {teacherMode && <InstructorToolbar onAutoFill={autoFill} onClearExit={() => setShowConfirmClear(true)} />}
                     {showLoginModal && (
                         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-fadeIn">
                             <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6 relative">
-                                <button onClick={() => setShowLoginModal(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><Icon name="x" size={18}/></button>
-                                <h3 className="text-lg font-bold text-slate-800 mb-4">Instructor Access</h3>
-                                <div className="space-y-4">
-                                    <input 
-                                        type="password" 
-                                        placeholder="Enter password"
-                                        className="w-full border p-2 rounded"
-                                        value={loginPassword}
-                                        onChange={(e) => setLoginPassword(e.target.value)}
-                                        onKeyDown={(e) => e.key === 'Enter' && handleTeacherLogin()}
-                                    />
-                                    <button onClick={handleTeacherLogin} className="w-full bg-blue-600 text-white py-2 rounded font-bold hover:bg-blue-700">Access</button>
-                                </div>
+                                <button onClick={() => setShowLoginModal(false)} className="absolute top-4 right-4 text-slate-400"><Icon name="x" size={18}/></button>
+                                <h3 className="text-lg font-bold text-slate-800 mb-4 uppercase tracking-tighter">System Access</h3>
+                                <input type="password" placeholder="Enter Access Code" className="w-full border p-2 rounded mb-4" value={authCode} onChange={(e) => setAuthCode(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && unlockInstructor()} />
+                                <button onClick={unlockInstructor} className="w-full bg-blue-600 text-white py-2 rounded font-bold">Validate</button>
                             </div>
                         </div>
                     )}
-
-                    <ConfirmModal 
-                        isOpen={showConfirmClear}
-                        title="Clear All & Exit?"
-                        message="This will clear all student inputs, notes, and exit Instructor Mode. This action cannot be undone."
-                        onClose={() => setShowConfirmClear(false)}
-                        onConfirm={clearAndExit}
-                    />
-
-                    <Sidebar 
-                        isOpen={sidebarOpen} 
-                        toggleSidebar={() => setSidebarOpen(!sidebarOpen)} 
-                        onDataClick={handleDataClick}
-                    />
-                    
+                    <ConfirmModal isOpen={showConfirmClear} title="Clear Data?" message="This resets all inputs and exits the instructor view." onClose={() => setShowConfirmClear(false)} onConfirm={clearAndExit} />
+                    <Sidebar isOpen={sidebarOpen} toggleSidebar={() => setSidebarOpen(!sidebarOpen)} onDataClick={handleDataClick} width={sidebarWidth} setWidth={setSidebarWidth} />
                     <div className={`flex-1 flex flex-col min-w-0 transition-all ${teacherMode ? 'pt-14' : ''}`}>
-                        <Header 
-                            teacherMode={teacherMode} 
-                            onRequestTeacherMode={() => setShowLoginModal(true)}
-                            studentName={studentName}
-                            setStudentName={setStudentName}
-                            onExport={handleExport}
-                        />
+                        <Header teacherMode={teacherMode} onRequestTeacherMode={() => setShowLoginModal(true)} studentName={studentName} setStudentName={setStudentName} onExport={handleExport} />
                         <main className="flex-1 overflow-y-auto p-6 md:p-8">
                             <div className="max-w-4xl mx-auto">
                                 <div className="bg-gradient-to-r from-blue-900 to-blue-800 rounded-2xl p-8 mb-8 text-white shadow-lg">
-                                    <h1 className="text-3xl font-bold mb-2">Merck & Co. Financial Analysis</h1>
-                                    <p className="text-blue-100 max-w-2xl">Module 3 Review: Profitability & Efficiency Analysis (2022)</p>
+                                    <h1 className="text-3xl font-bold mb-2">Profitability & Efficiency</h1>
+                                    <p className="text-blue-100">Merck & Co. (2022) Strategic Financial Review</p>
                                 </div>
-
-                                {/* Tabs Navigation */}
                                 <div className="flex space-x-1 mb-6 bg-slate-200 p-1 rounded-lg w-fit">
-                                    <button 
-                                        onClick={() => setActiveTab('exercises')}
-                                        className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'exercises' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
-                                    >
-                                        Simulation Exercises
-                                    </button>
-                                    <button 
-                                        onClick={() => setActiveTab('summary')}
-                                        className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'summary' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
-                                    >
-                                        Summary & Insights
-                                    </button>
+                                    <button onClick={() => setActiveTab('exercises')} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'exercises' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-600'}`}>Simulation</button>
+                                    <button onClick={() => setActiveTab('summary')} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'summary' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-600'}`}>Insights</button>
                                 </div>
-
                                 {activeTab === 'exercises' ? (
                                     <div className="space-y-6">
-                                        {EXERCISES.map(ex => (
-                                            <ExerciseCard 
-                                                key={ex.id} 
-                                                exercise={ex}
-                                                inputs={inputs[ex.id] || {}}
-                                                updateInput={updateInput}
-                                                notes={notes[ex.id] || ""}
-                                                updateNotes={updateNotes}
-                                                teacherMode={teacherMode}
-                                                onInputFocus={handleInputFocus}
-                                                onInputBlur={handleInputBlur}
-                                            />
+                                        {_DATA_MATRIX.map(ex => (
+                                            <ExerciseCard key={ex.id} exercise={ex} inputs={inputs[ex.id] || {}} updateInput={updateInput} notes={notes[ex.id] || ""} updateNotes={updateNotes} teacherMode={teacherMode} onInputFocus={(eid, iid) => setActiveInput({ exerciseId: eid, inputId: iid })} onInputBlur={() => setActiveInput(null)} />
                                         ))}
-                                        
-                                        {teacherMode && (
-                                            <AnswerKeyTable exercises={EXERCISES.filter(e => e.type !== "classification_sum")} />
-                                        )}
                                     </div>
                                 ) : (
                                     <div className="space-y-6 animate-fadeIn">
-                                        <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 mb-6">
-                                            <h3 className="text-lg font-bold text-blue-800 mb-2">DuPont Analysis Disaggregation</h3>
-                                            <p className="text-blue-900 text-sm">
-                                                Use the data derived from your simulation exercises to answer the following strategic questions. 
-                                                Consider Merck's position relative to typical industry benchmarks (e.g., Pfizer).
-                                            </p>
-                                        </div>
                                         {DISCUSSION_QUESTIONS.map(q => (
-                                            <MultipleChoiceQuestion 
-                                                key={q.id}
-                                                id={q.id}
-                                                question={q.question}
-                                                options={q.options}
-                                                correctIndex={q.correctIndex}
-                                                explanation={q.explanation}
-                                                selectedOption={mcqSelections[q.id]}
-                                                onSelect={(idx) => handleMCQSelect(q.id, idx)}
-                                                teacherMode={teacherMode}
-                                            />
+                                            <MultipleChoiceQuestion key={q.id} id={q.id} question={q.question} options={q.options} correctIndex={q.correctIndex} explanation={q.explanation} selectedOption={mcqSelections[q.id]} onSelect={(idx) => setMcqSelections(prev => ({ ...prev, [q.id]: idx }))} teacherMode={teacherMode} />
                                         ))}
                                     </div>
                                 )}
-
-                                <div className="text-center text-slate-400 text-sm mt-12 pb-8">Module 3 Review Simulation &bull; Financial Statement Analysis</div>
                             </div>
                         </main>
                     </div>
