@@ -717,33 +717,11 @@
                 <h3 class="text-lg font-bold text-emerald-900">Instructor Answer Key Summary</h3>
                 <button onclick="hideTeacherKey()" class="text-xs bg-emerald-200 px-2 py-1 rounded">Close</button>
             </div>
-            <div id="key-level1" class="key-content">
-                <h4 class="font-bold underline mb-2">Version 1 Answers:</h4>
-                <ul class="list-disc pl-5 text-sm text-emerald-900">
-                    <li>(1) Operating CF: <strong>15,000</strong> (Change in Cash 20k = Ops + 5k Net Inv/Fin)</li>
-                    <li>(2) Dividends: <strong>15,000</strong> (NI 20k + Beg RE 10k - End RE 15k)</li>
-                    <li>(3) End CC: <strong>25,000</strong> (Beg 10k + Issued 15k)</li>
-                    <li>(4) End RE: <strong>15,000</strong> (Assets 65k - Liab 25k - CC 25k)</li>
-                </ul>
-            </div>
-            <div id="key-level2" class="key-content hidden">
-                <h4 class="font-bold underline mb-2">Version 2 Answers:</h4>
-                <ul class="list-disc pl-5 text-sm text-emerald-900">
-                    <li>(1) Net Income: <strong>20,000</strong> (Rev 70k - Exp 50k)</li>
-                    <li>(2) End RE: <strong>30,000</strong> (Beg 15k + NI 20k - Div 5k)</li>
-                    <li>(3) End Cash: <strong>45,000</strong> (Beg 30k + 15k Net Change [25k Ops - 10k Inv + 0 Fin])</li>
-                    <li>(4) End Liab: <strong>30,000</strong> (Assets 90k - Equity 60k [CC 30k + RE 30k])</li>
-                </ul>
-            </div>
-            <div id="key-level3" class="key-content hidden">
-                <h4 class="font-bold underline mb-2">Version 3 Answers:</h4>
-                <ul class="list-disc pl-5 text-sm text-emerald-900">
-                    <li>(1) Stock Issued: <strong>15,000</strong> (End CC 45k - Beg CC 30k)</li>
-                    <li>(2) Net Income: <strong>25,000</strong> (End RE 45k - Beg RE 30k + Div 10k)</li>
-                    <li>(3) Investing CF: <strong>(35,000)</strong> (Increase in NCA from 45k to 80k is a cash outflow)</li>
-                    <li>(4) Beg Cash: <strong>45,000</strong> (End Cash 60k - [Ops 45k + Inv -35k + Fin 5k] = 60k - 15k)</li>
-                </ul>
-            </div>
+            
+            <!-- KEY CONTENT PLACEHOLDERS (Populated by JS to prevent view-source cheating) -->
+            <div id="key-level1" class="key-content"></div>
+            <div id="key-level2" class="key-content hidden"></div>
+            <div id="key-level3" class="key-content hidden"></div>
         </div>
     </main>
 
@@ -861,22 +839,22 @@
         // --- Data & Config ---
         // Values are Base64 encoded for security
         const ANSWER_KEY = {
-            'l1q1': 'MTUwMDA=',
-            'l1q2': 'MTUwMDA=',
-            'l1q3': 'MjUwMDA=',
-            'l1q4': 'MTUwMDA=',
-            'l2q1': 'MjAwMDA=',
-            'l2q2': 'MzAwMDA=',
-            'l2q3': 'NDUwMDA=',
-            'l2q4': 'MzAwMDA=',
-            'l3q1': 'MTUwMDA=',
-            'l3q2': 'MjUwMDA=',
-            'l3q3': 'LTM1MDAw',
-            'l3q4': 'NDUwMDA=',
+            'l1q1': 'MTUwMDA=', // 15000
+            'l1q2': 'MTUwMDA=', // 15000
+            'l1q3': 'MjUwMDA=', // 25000
+            'l1q4': 'MTUwMDA=', // 15000
+            'l2q1': 'MjAwMDA=', // 20000
+            'l2q2': 'MzAwMDA=', // 30000
+            'l2q3': 'NDUwMDA=', // 45000
+            'l2q4': 'MzAwMDA=', // 30000
+            'l3q1': 'MTUwMDA=', // 15000
+            'l3q2': 'MjUwMDA=', // 25000
+            'l3q3': 'LTM1MDAw', // -35000
+            'l3q4': 'NDUwMDA=', // 45000
             // Equity Table Extras
-            'l2_se_stock': 'NTAwMA==',
-            'l2_se_ni': 'MjAwMDA=',
-            'l2_se_div': 'NTAwMA=='
+            'l2_se_stock': 'NTAwMA==', // 5000
+            'l2_se_ni': 'MjAwMDA=', // 20000
+            'l2_se_div': 'NTAwMA=='  // 5000
         };
 
         const AUTO_UPDATE_CELLS = {
@@ -1100,8 +1078,48 @@
             });
             document.body.classList.add('instructor-active');
             
+            // Render the full answer key summary dynamically
+            renderInstructorKeys();
+            
             // Reveal Summary Key as well
             document.getElementById('teacherKey').classList.remove('hidden');
+        }
+
+        function renderInstructorKeys() {
+            const k = (id) => parseFloat(d(ANSWER_KEY[id])).toLocaleString();
+            
+            // Level 1 Key
+            document.getElementById('key-level1').innerHTML = `
+                <h4 class="font-bold underline mb-2">Version 1 Answers:</h4>
+                <ul class="list-disc pl-5 text-sm text-emerald-900">
+                    <li>(1) Operating CF: <strong>${k('l1q1')}</strong> (Change in Cash 20k = Ops + 5k Net Inv/Fin)</li>
+                    <li>(2) Dividends: <strong>${k('l1q2')}</strong> (NI 20k + Beg RE 10k - End RE 15k)</li>
+                    <li>(3) End CC: <strong>${k('l1q3')}</strong> (Beg 10k + Issued 15k)</li>
+                    <li>(4) End RE: <strong>${k('l1q4')}</strong> (Assets 65k - Liab 25k - CC 25k)</li>
+                </ul>
+            `;
+
+            // Level 2 Key
+            document.getElementById('key-level2').innerHTML = `
+                <h4 class="font-bold underline mb-2">Version 2 Answers:</h4>
+                <ul class="list-disc pl-5 text-sm text-emerald-900">
+                    <li>(1) Net Income: <strong>${k('l2q1')}</strong> (Rev 70k - Exp 50k)</li>
+                    <li>(2) End RE: <strong>${k('l2q2')}</strong> (Beg 15k + NI 20k - Div 5k)</li>
+                    <li>(3) End Cash: <strong>${k('l2q3')}</strong> (Beg 30k + 15k Net Change [25k Ops - 10k Inv + 0 Fin])</li>
+                    <li>(4) End Liab: <strong>${k('l2q4')}</strong> (Assets 90k - Equity 60k [CC 30k + RE 30k])</li>
+                </ul>
+            `;
+
+            // Level 3 Key
+            document.getElementById('key-level3').innerHTML = `
+                <h4 class="font-bold underline mb-2">Version 3 Answers:</h4>
+                <ul class="list-disc pl-5 text-sm text-emerald-900">
+                    <li>(1) Stock Issued: <strong>${k('l3q1')}</strong> (End CC 45k - Beg CC 30k)</li>
+                    <li>(2) Net Income: <strong>${k('l3q2')}</strong> (End RE 45k - Beg RE 30k + Div 10k)</li>
+                    <li>(3) Investing CF: <strong>(${Math.abs(d(ANSWER_KEY['l3q3'])).toLocaleString()})</strong> (Increase in NCA from 45k to 80k is a cash outflow)</li>
+                    <li>(4) Beg Cash: <strong>${k('l3q4')}</strong> (End Cash 60k - [Ops 45k + Inv -35k + Fin 5k] = 60k - 15k)</li>
+                </ul>
+            `;
         }
 
         function instructorAutoFill() {
@@ -1175,6 +1193,9 @@
             document.getElementById('tabNav').classList.remove('top-[108px]');
             document.body.classList.remove('instructor-active');
             document.getElementById('teacherKey').classList.add('hidden');
+            
+            // Clear Key Content
+            document.querySelectorAll('.key-content').forEach(el => el.innerHTML = '');
         }
 
         function hideTeacherKey() { document.getElementById('teacherKey').classList.add('hidden'); }
