@@ -76,6 +76,19 @@
     <script type="text/babel">
         const { useState, useEffect, useMemo, useRef, useCallback } = React;
 
+        // --- SECURITY UTILS ---
+        
+        // Helper to decode Base64 strings
+        const d = (str) => {
+            try {
+                if (!str) return "";
+                return atob(str);
+            } catch (e) {
+                console.error("Decoding error", e);
+                return str;
+            }
+        };
+
         // --- MATH EVALUATION LOGIC ---
         const evaluateMath = (expr) => {
             if (!expr) return { valid: true, val: "" };
@@ -117,15 +130,23 @@
 
         const WEISS_ANSWER_KEY = {
             // Req (a)
-            "w_bd_exp_y1": "7330", "w_bd_exp_y2": "8570", "w_bd_exp_y3": "9450",
+            "w_bd_exp_y1": "NzMzMA==", // 7330
+            "w_bd_exp_y2": "ODU3MA==", // 8570
+            "w_bd_exp_y3": "OTQ1MA==", // 9450
             // Req (b) - Gross AR
-            "w_gross_y1": "11700", "w_gross_y2": "20900", "w_gross_y3": "31400",
+            "w_gross_y1": "MTE3MDA=", // 11700
+            "w_gross_y2": "MjA5MDA=", // 20900
+            "w_gross_y3": "MzE0MDA=", // 31400
             // Req (b) - Allowance
-            "w_allow_y1": "2030", "w_allow_y2": "4800", "w_allow_y3": "7750",
+            "w_allow_y1": "MjAzMA==", // 2030
+            "w_allow_y2": "NDgwMA==", // 4800
+            "w_allow_y3": "Nzc1MA==", // 7750
             // Req (b) - Net AR
-            "w_net_y1": "9670", "w_net_y2": "16100", "w_net_y3": "23650",
+            "w_net_y1": "OTY3MA==", // 9670
+            "w_net_y2": "MTYxMDA=", // 16100
+            "w_net_y3": "MjM2NTA=", // 23650
             // Req (c)
-            "w_concl": "high" // Matches option value
+            "w_concl": "aGlnaA==" // high
         };
 
         const WEISS_QUESTIONS = [
@@ -220,17 +241,22 @@
 
         const LOLLAR_ANSWER_KEY = {
             // Req (a)
-            "l_gross_fy3": "350", "l_gross_fy2": "320", "l_gross_fy1": "280",
+            "l_gross_fy3": "MzUw", // 350
+            "l_gross_fy2": "MzIw", // 320
+            "l_gross_fy1": "Mjgw", // 280
             // Req (b)
-            "l_allow_pct_fy3": "20", "l_allow_pct_fy2": "10", "l_allow_pct_fy1": "10",
-            "l_obs": "increased",
+            "l_allow_pct_fy3": "MjA=", // 20
+            "l_allow_pct_fy2": "MTA=", // 10
+            "l_allow_pct_fy1": "MTA=", // 10
+            "l_obs": "aW5jcmVhc2Vk", // increased
             // Req (c)
-            "l_dso_fy3": "41", "l_dso_fy2": "43",
-            "l_concl": "improved",
+            "l_dso_fy3": "NDE=", // 41
+            "l_dso_fy2": "NDM=", // 43
+            "l_concl": "aW1wcm92ZWQ=", // improved
             // Req (d)
-            "l_restated_net": "315",
-            "l_restated_dso": "44",
-            "l_effect": "improved_dso"
+            "l_restated_net": "MzE1", // 315
+            "l_restated_dso": "NDQ=", // 44
+            "l_effect": "aW1wcm92ZWRfZHNv" // improved_dso
         };
 
         const LOLLAR_QUESTIONS = [
@@ -372,7 +398,10 @@
         };
 
         const MultipleChoice = ({ id, value, onChange, options, correctValue, readOnly }) => {
-            const isCorrect = value === correctValue;
+            // Decode correctness check
+            const decodedKey = d(correctValue);
+            const isCorrect = value === decodedKey;
+            
             return (
                 <div className="space-y-2">
                     {options.map((opt) => (
@@ -406,11 +435,14 @@
 
         const CalculatorInput = ({ id, value, onChange, correctValue, type, readOnly, activeInput, setActiveInput }) => {
             const isCorrect = useMemo(() => {
-                if (!value || !correctValue) return false;
+                // Decode logic here
+                const decodedKey = d(correctValue);
+                if (!value || !decodedKey) return false;
+                
                 const { valid, val } = evaluateMath(value);
                 if (!valid) return false;
                 
-                const target = parseFloat(correctValue.replace(/,/g, ''));
+                const target = parseFloat(decodedKey.replace(/,/g, ''));
                 let inputNum = parseFloat(val);
                 const tolerance = type === 'percent' ? 0.1 : Math.max(Math.abs(target * 0.02), 0.5); 
 
@@ -426,11 +458,14 @@
             const handleBlur = () => {
                 if (readOnly) return;
                 const { valid, val } = evaluateMath(value);
+                // Decode for formatting check
+                const decodedKey = d(correctValue);
+                
                 if (valid && value !== "") {
                      const numVal = Number(val);
                      let displayVal = numVal;
                      if (type === 'percent') {
-                        if (Math.abs(numVal) < 1 && parseFloat(correctValue) > 1) { displayVal = (numVal * 100).toFixed(2); } 
+                        if (Math.abs(numVal) < 1 && parseFloat(decodedKey) > 1) { displayVal = (numVal * 100).toFixed(2); } 
                         else { displayVal = numVal.toFixed(2); }
                      } else {
                         displayVal = Number.isInteger(numVal) ? numVal.toString() : numVal.toFixed(2);
@@ -659,7 +694,9 @@
             };
 
             const unlockInstructor = () => {
-                if (password.toLowerCase() === "teacher") {
+                // Security: Password Hashing (Base64)
+                // "teacher" -> dGVhY2hlcg==
+                if (btoa(password) === 'dGVhY2hlcg==') {
                     setInstructorMode(true);
                     setShowLogin(false);
                     setPassword("");
@@ -669,7 +706,12 @@
             };
 
             const handleAutoFill = () => {
-                setInputs(prev => ({ ...prev, ...activeKey }));
+                // Decode keys before filling
+                const decodedKey = {};
+                Object.keys(activeKey).forEach(k => {
+                    decodedKey[k] = d(activeKey[k]);
+                });
+                setInputs(prev => ({ ...prev, ...decodedKey }));
             };
 
             const handleClearConfirm = () => {
@@ -696,7 +738,8 @@
                 Object.keys(activeKey).forEach(key => {
                     totalCount++;
                     const userVal = (inputs[key] || "").toString().trim().toLowerCase();
-                    const keyVal = (activeKey[key] || "").toString().trim().toLowerCase();
+                    // Decode key for comparison
+                    const keyVal = d(activeKey[key] || "").toString().trim().toLowerCase();
                     let isCorrect = false;
                     
                     if(!isNaN(parseFloat(keyVal)) && !isNaN(parseFloat(userVal.replace(/,/g,'')))) {
