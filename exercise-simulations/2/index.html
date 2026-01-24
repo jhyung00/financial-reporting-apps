@@ -35,6 +35,8 @@
         ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #64748b; }
         
+        body { user-select: none; } /* Prevent text selection to make copying harder */
+
         .input-correct {
             border-color: #10b981 !important;
             color: #065f46 !important;
@@ -72,9 +74,22 @@
             cursor: not-allowed;
             border-color: #cbd5e1;
         }
+
+        /* Resize Handle */
+        .resizer {
+            width: 5px;
+            cursor: col-resize;
+            background-color: #e2e8f0;
+            transition: background-color 0.2s;
+            z-index: 50;
+        }
+        .resizer:hover, .resizer.active {
+            background-color: #3b82f6;
+        }
     </style>
 </head>
-<body class="bg-slate-100 text-slate-800 antialiased h-screen flex flex-col overflow-hidden">
+<!-- Right click disabled on body -->
+<body class="bg-slate-100 text-slate-800 antialiased h-screen flex flex-col overflow-hidden" oncontextmenu="return false;">
 
     <div id="root" class="h-full flex flex-col"></div>
 
@@ -82,74 +97,46 @@
         const { useState, useEffect, useMemo, useRef } = React;
 
         // --- SECURITY UTILS ---
-        // Decodes Base64 strings to plain text (e.g. "MjU=" -> "25")
-        // Returns empty string on error to prevent crashes
+        // Decodes Base64 strings
         const d = (str) => {
             try { return atob(str); } catch(e) { return ""; }
         };
 
-        // --- OBFUSCATED DATA & KEYS ---
-        // All answers are now encoded in Base64 so they are not readable in "View Source"
-        const ANSWER_KEYS = {
+        // --- OBFUSCATED DATA & CONFIG ---
+        // Renamed from ANSWER_KEYS to SYS_CONFIG to hide intent
+        const SYS_CONFIG = {
             P1: {
-                // Target: "25", "3", "25", "3.75"
+                // Target
                 "t_gp": "MjU=", "t_pm": "Mw==", "t_roe": "MjU=", "t_lev": "My43NQ==",
-                // Nike: "46", "13", "40", "1.64"
+                // Nike
                 "n_gp": "NDY=", "n_pm": "MTM=", "n_roe": "NDA=", "n_lev": "MS42NA==",
-                // Harley: "37", "13", "25", "2.96"
+                // Harley
                 "h_gp": "Mzc=", "h_pm": "MTM=", "h_roe": "MjU=", "h_lev": "Mi45Ng==",
-                // Abbott: "56", "16", "19", "1.02"
+                // Abbott
                 "a_gp": "NTY=", "a_pm": "MTY=", "a_roe": "MTk=", "a_lev": "MS4wMg=="
             },
             P2: {
-                // Transaction 1: Adv Exp
-                "adj1_cash": "MA==",
-                "adj1_nca_acct": "UHJlcGFpZCBBZHZlcnRpc2luZw==", "adj1_nca": "LTE1NDA=",
-                "adj1_liab_acct": "", "adj1_liab": "MA==",
-                "adj1_cc": "MA==",
-                "adj1_rev": "MA==", "adj1_exp": "MTU0MA==",
-
-                // Transaction 2: Depreciation
-                "adj2_cash": "MA==",
-                "adj2_nca_acct": "QWNjdW11bGF0ZWQgRGVwcmVjaWF0aW9u", "adj2_nca": "LTUyODA=",
-                "adj2_liab_acct": "", "adj2_liab": "MA==",
-                "adj2_cc": "MA==",
-                "adj2_rev": "MA==", "adj2_exp": "NTI4MA==",
-
-                // Transaction 3: Utilities
-                "adj3_cash": "MA==",
-                "adj3_nca_acct": "", "adj3_nca": "MA==",
-                "adj3_liab_acct": "VXRpbGl0aWVzIFBheWFibGU=", "adj3_liab": "MzI1",
-                "adj3_cc": "MA==",
-                "adj3_rev": "MA==", "adj3_exp": "MzI1",
-
-                // Transaction 4: Wages
-                "adj4_cash": "MA==",
-                "adj4_nca_acct": "", "adj4_nca": "MA==",
-                "adj4_liab_acct": "V2FnZXMgUGF5YWJsZQ==", "adj4_liab": "MjQwMA==",
-                "adj4_cc": "MA==",
-                "adj4_rev": "MA==", "adj4_exp": "MjQwMA==",
-
-                // Transaction 5: Supplies
-                "adj5_cash": "MA==",
-                "adj5_nca_acct": "U3VwcGxpZXM=", "adj5_nca": "LTQ3NTA=",
-                "adj5_liab_acct": "", "adj5_liab": "MA==",
-                "adj5_cc": "MA==",
-                "adj5_rev": "MA==", "adj5_exp": "NDc1MA==",
-
-                // Transaction 6: Interest
-                "adj6_cash": "MA==",
-                "adj6_nca_acct": "", "adj6_nca": "MA==",
-                "adj6_liab_acct": "SW50ZXJlc3QgUGF5YWJsZQ==", "adj6_liab": "NDUw",
-                "adj6_cc": "MA==",
-                "adj6_rev": "MA==", "adj6_exp": "NDUw",
-
-                // Transaction 7: Rent
-                "adj7_cash": "MA==",
-                "adj7_nca_acct": "", "adj7_nca": "MA==",
-                "adj7_liab_acct": "UmVudCBQYXlhYmxl", "adj7_liab": "NjQ1",
-                "adj7_cc": "MA==",
-                "adj7_rev": "MA==", "adj7_exp": "NjQ1",
+                // Transaction 1
+                "adj1_cash": "MA==", "adj1_nca_acct": "UHJlcGFpZCBBZHZlcnRpc2luZw==", "adj1_nca": "LTE1NDA=",
+                "adj1_liab_acct": "", "adj1_liab": "MA==", "adj1_cc": "MA==", "adj1_rev": "MA==", "adj1_exp": "MTU0MA==",
+                // Transaction 2
+                "adj2_cash": "MA==", "adj2_nca_acct": "QWNjdW11bGF0ZWQgRGVwcmVjaWF0aW9u", "adj2_nca": "LTUyODA=",
+                "adj2_liab_acct": "", "adj2_liab": "MA==", "adj2_cc": "MA==", "adj2_rev": "MA==", "adj2_exp": "NTI4MA==",
+                // Transaction 3
+                "adj3_cash": "MA==", "adj3_nca_acct": "", "adj3_nca": "MA==",
+                "adj3_liab_acct": "VXRpbGl0aWVzIFBheWFibGU=", "adj3_liab": "MzI1", "adj3_cc": "MA==", "adj3_rev": "MA==", "adj3_exp": "MzI1",
+                // Transaction 4
+                "adj4_cash": "MA==", "adj4_nca_acct": "", "adj4_nca": "MA==",
+                "adj4_liab_acct": "V2FnZXMgUGF5YWJsZQ==", "adj4_liab": "MjQwMA==", "adj4_cc": "MA==", "adj4_rev": "MA==", "adj4_exp": "MjQwMA==",
+                // Transaction 5
+                "adj5_cash": "MA==", "adj5_nca_acct": "U3VwcGxpZXM=", "adj5_nca": "LTQ3NTA=",
+                "adj5_liab_acct": "", "adj5_liab": "MA==", "adj5_cc": "MA==", "adj5_rev": "MA==", "adj5_exp": "NDc1MA==",
+                // Transaction 6
+                "adj6_cash": "MA==", "adj6_nca_acct": "", "adj6_nca": "MA==",
+                "adj6_liab_acct": "SW50ZXJlc3QgUGF5YWJsZQ==", "adj6_liab": "NDUw", "adj6_cc": "MA==", "adj6_rev": "MA==", "adj6_exp": "NDUw",
+                // Transaction 7
+                "adj7_cash": "MA==", "adj7_nca_acct": "", "adj7_nca": "MA==",
+                "adj7_liab_acct": "UmVudCBQYXlhYmxl", "adj7_liab": "NjQ1", "adj7_cc": "MA==", "adj7_rev": "MA==", "adj7_exp": "NjQ1",
             }
         };
 
@@ -343,7 +330,7 @@
             };
 
             const isCorrect = useMemo(() => {
-                if(locked) return true; // Locked fields considered always correct (or ignored)
+                if(locked) return true; 
                 if (!value || !correctValue) return false;
                 if (typeof value === 'string' && value.trim() === '') return false;
 
@@ -431,7 +418,7 @@
                     </div>
                     {instructorMode && !locked && (
                         <div className="mt-1 text-[10px] text-purple-700 bg-purple-50 px-2 py-1 rounded inline-block font-bold border border-purple-200 shadow-sm animate-fade-in w-full text-center">
-                            Key: {correctValue}
+                            Ref: {correctValue}
                         </div>
                     )}
                 </div>
@@ -515,37 +502,37 @@
                         {/* Target */}
                         <div className="grid grid-cols-5 gap-4 items-center mb-4 text-sm">
                             <div className="font-bold text-slate-700">Target</div>
-                            <SmartInput id="t_gp" value={inputs.t_gp} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(ANSWER_KEYS.P1.t_gp)} instructorMode={teacherMode} isPercentage={true} hint="(Sales-COGS)/Sales" />
-                            <SmartInput id="t_pm" value={inputs.t_pm} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(ANSWER_KEYS.P1.t_pm)} instructorMode={teacherMode} isPercentage={true} hint="NI / Sales" />
-                            <SmartInput id="t_roe" value={inputs.t_roe} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(ANSWER_KEYS.P1.t_roe)} instructorMode={teacherMode} isPercentage={true} hint="NI / Equity" />
-                            <SmartInput id="t_lev" value={inputs.t_lev} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(ANSWER_KEYS.P1.t_lev)} instructorMode={teacherMode} hint="Liab / Equity" />
+                            <SmartInput id="t_gp" value={inputs.t_gp} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(SYS_CONFIG.P1.t_gp)} instructorMode={teacherMode} isPercentage={true} hint="(Sales-COGS)/Sales" />
+                            <SmartInput id="t_pm" value={inputs.t_pm} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(SYS_CONFIG.P1.t_pm)} instructorMode={teacherMode} isPercentage={true} hint="NI / Sales" />
+                            <SmartInput id="t_roe" value={inputs.t_roe} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(SYS_CONFIG.P1.t_roe)} instructorMode={teacherMode} isPercentage={true} hint="NI / Equity" />
+                            <SmartInput id="t_lev" value={inputs.t_lev} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(SYS_CONFIG.P1.t_lev)} instructorMode={teacherMode} hint="Liab / Equity" />
                         </div>
 
                         {/* Nike */}
                         <div className="grid grid-cols-5 gap-4 items-center mb-4 text-sm">
                             <div className="font-bold text-slate-700">Nike</div>
-                            <SmartInput id="n_gp" value={inputs.n_gp} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(ANSWER_KEYS.P1.n_gp)} instructorMode={teacherMode} isPercentage={true} hint="(Sales-COGS)/Sales" />
-                            <SmartInput id="n_pm" value={inputs.n_pm} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(ANSWER_KEYS.P1.n_pm)} instructorMode={teacherMode} isPercentage={true} hint="NI / Sales" />
-                            <SmartInput id="n_roe" value={inputs.n_roe} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(ANSWER_KEYS.P1.n_roe)} instructorMode={teacherMode} isPercentage={true} hint="NI / Equity" />
-                            <SmartInput id="n_lev" value={inputs.n_lev} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(ANSWER_KEYS.P1.n_lev)} instructorMode={teacherMode} hint="Liab / Equity" />
+                            <SmartInput id="n_gp" value={inputs.n_gp} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(SYS_CONFIG.P1.n_gp)} instructorMode={teacherMode} isPercentage={true} hint="(Sales-COGS)/Sales" />
+                            <SmartInput id="n_pm" value={inputs.n_pm} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(SYS_CONFIG.P1.n_pm)} instructorMode={teacherMode} isPercentage={true} hint="NI / Sales" />
+                            <SmartInput id="n_roe" value={inputs.n_roe} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(SYS_CONFIG.P1.n_roe)} instructorMode={teacherMode} isPercentage={true} hint="NI / Equity" />
+                            <SmartInput id="n_lev" value={inputs.n_lev} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(SYS_CONFIG.P1.n_lev)} instructorMode={teacherMode} hint="Liab / Equity" />
                         </div>
 
                         {/* Harley */}
                         <div className="grid grid-cols-5 gap-4 items-center mb-4 text-sm">
                             <div className="font-bold text-slate-700">Harley-Davidson</div>
-                            <SmartInput id="h_gp" value={inputs.h_gp} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(ANSWER_KEYS.P1.h_gp)} instructorMode={teacherMode} isPercentage={true} hint="(Sales-COGS)/Sales" />
-                            <SmartInput id="h_pm" value={inputs.h_pm} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(ANSWER_KEYS.P1.h_pm)} instructorMode={teacherMode} isPercentage={true} hint="NI / Sales" />
-                            <SmartInput id="h_roe" value={inputs.h_roe} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(ANSWER_KEYS.P1.h_roe)} instructorMode={teacherMode} isPercentage={true} hint="NI / Equity" />
-                            <SmartInput id="h_lev" value={inputs.h_lev} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(ANSWER_KEYS.P1.h_lev)} instructorMode={teacherMode} hint="Liab / Equity" />
+                            <SmartInput id="h_gp" value={inputs.h_gp} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(SYS_CONFIG.P1.h_gp)} instructorMode={teacherMode} isPercentage={true} hint="(Sales-COGS)/Sales" />
+                            <SmartInput id="h_pm" value={inputs.h_pm} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(SYS_CONFIG.P1.h_pm)} instructorMode={teacherMode} isPercentage={true} hint="NI / Sales" />
+                            <SmartInput id="h_roe" value={inputs.h_roe} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(SYS_CONFIG.P1.h_roe)} instructorMode={teacherMode} isPercentage={true} hint="NI / Equity" />
+                            <SmartInput id="h_lev" value={inputs.h_lev} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(SYS_CONFIG.P1.h_lev)} instructorMode={teacherMode} hint="Liab / Equity" />
                         </div>
 
                         {/* Abbott */}
                         <div className="grid grid-cols-5 gap-4 items-center mb-4 text-sm">
                             <div className="font-bold text-slate-700">Abbott Labs</div>
-                            <SmartInput id="a_gp" value={inputs.a_gp} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(ANSWER_KEYS.P1.a_gp)} instructorMode={teacherMode} isPercentage={true} hint="(Sales-COGS)/Sales" />
-                            <SmartInput id="a_pm" value={inputs.a_pm} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(ANSWER_KEYS.P1.a_pm)} instructorMode={teacherMode} isPercentage={true} hint="NI / Sales" />
-                            <SmartInput id="a_roe" value={inputs.a_roe} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(ANSWER_KEYS.P1.a_roe)} instructorMode={teacherMode} isPercentage={true} hint="NI / Equity" />
-                            <SmartInput id="a_lev" value={inputs.a_lev} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(ANSWER_KEYS.P1.a_lev)} instructorMode={teacherMode} hint="Liab / Equity" />
+                            <SmartInput id="a_gp" value={inputs.a_gp} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(SYS_CONFIG.P1.a_gp)} instructorMode={teacherMode} isPercentage={true} hint="(Sales-COGS)/Sales" />
+                            <SmartInput id="a_pm" value={inputs.a_pm} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(SYS_CONFIG.P1.a_pm)} instructorMode={teacherMode} isPercentage={true} hint="NI / Sales" />
+                            <SmartInput id="a_roe" value={inputs.a_roe} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(SYS_CONFIG.P1.a_roe)} instructorMode={teacherMode} isPercentage={true} hint="NI / Equity" />
+                            <SmartInput id="a_lev" value={inputs.a_lev} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(SYS_CONFIG.P1.a_lev)} instructorMode={teacherMode} hint="Liab / Equity" />
                         </div>
                     </div>
 
@@ -614,36 +601,36 @@
                                             
                                             {/* Cash */}
                                             <td className="p-2">
-                                                <SmartInput id={`${row.id}_cash`} value={inputs[`${row.id}_cash`]} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(ANSWER_KEYS.P2[`${row.id}_cash`])} instructorMode={teacherMode} />
+                                                <SmartInput id={`${row.id}_cash`} value={inputs[`${row.id}_cash`]} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(SYS_CONFIG.P2[`${row.id}_cash`])} instructorMode={teacherMode} />
                                             </td>
                                             
                                             {/* Noncash Assets (Dropdown + Input) */}
                                             <td className="p-2 space-y-1">
                                                 <select 
-                                                    className={`w-full text-[10px] p-1 rounded border outline-none ${inputs[`${row.id}_nca_acct`] === d(ANSWER_KEYS.P2[`${row.id}_nca_acct`]) ? 'bg-emerald-50 text-emerald-700 border-emerald-200 font-bold' : 'bg-slate-50 border-slate-200'}`}
+                                                    className={`w-full text-[10px] p-1 rounded border outline-none ${inputs[`${row.id}_nca_acct`] === d(SYS_CONFIG.P2[`${row.id}_nca_acct`]) ? 'bg-emerald-50 text-emerald-700 border-emerald-200 font-bold' : 'bg-slate-50 border-slate-200'}`}
                                                     value={inputs[`${row.id}_nca_acct`] || ""}
                                                     onChange={(e) => handleAccountChange(`${row.id}_nca_acct`, e.target.value)}
                                                 >
                                                     {ACCOUNT_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                                                 </select>
-                                                <SmartInput id={`${row.id}_nca`} value={inputs[`${row.id}_nca`]} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(ANSWER_KEYS.P2[`${row.id}_nca`])} instructorMode={teacherMode} />
+                                                <SmartInput id={`${row.id}_nca`} value={inputs[`${row.id}_nca`]} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(SYS_CONFIG.P2[`${row.id}_nca`])} instructorMode={teacherMode} />
                                             </td>
 
                                             {/* Liabilities (Dropdown + Input) */}
                                             <td className="p-2 space-y-1 border-l border-slate-100">
                                                 <select 
-                                                    className={`w-full text-[10px] p-1 rounded border outline-none ${inputs[`${row.id}_liab_acct`] === d(ANSWER_KEYS.P2[`${row.id}_liab_acct`]) ? 'bg-emerald-50 text-emerald-700 border-emerald-200 font-bold' : 'bg-slate-50 border-slate-200'}`}
+                                                    className={`w-full text-[10px] p-1 rounded border outline-none ${inputs[`${row.id}_liab_acct`] === d(SYS_CONFIG.P2[`${row.id}_liab_acct`]) ? 'bg-emerald-50 text-emerald-700 border-emerald-200 font-bold' : 'bg-slate-50 border-slate-200'}`}
                                                     value={inputs[`${row.id}_liab_acct`] || ""}
                                                     onChange={(e) => handleAccountChange(`${row.id}_liab_acct`, e.target.value)}
                                                 >
                                                     {ACCOUNT_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                                                 </select>
-                                                <SmartInput id={`${row.id}_liab`} value={inputs[`${row.id}_liab`]} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(ANSWER_KEYS.P2[`${row.id}_liab`])} instructorMode={teacherMode} />
+                                                <SmartInput id={`${row.id}_liab`} value={inputs[`${row.id}_liab`]} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(SYS_CONFIG.P2[`${row.id}_liab`])} instructorMode={teacherMode} />
                                             </td>
 
                                             {/* Contributed Capital */}
                                             <td className="p-2 border-l border-slate-100">
-                                                <SmartInput id={`${row.id}_cc`} value={inputs[`${row.id}_cc`]} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(ANSWER_KEYS.P2[`${row.id}_cc`])} instructorMode={teacherMode} />
+                                                <SmartInput id={`${row.id}_cc`} value={inputs[`${row.id}_cc`]} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(SYS_CONFIG.P2[`${row.id}_cc`])} instructorMode={teacherMode} />
                                             </td>
 
                                             {/* Earned Capital (Auto calculated from NI) */}
@@ -659,12 +646,12 @@
 
                                             {/* Revenue */}
                                             <td className="p-2">
-                                                <SmartInput id={`${row.id}_rev`} value={inputs[`${row.id}_rev`]} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(ANSWER_KEYS.P2[`${row.id}_rev`])} instructorMode={teacherMode} />
+                                                <SmartInput id={`${row.id}_rev`} value={inputs[`${row.id}_rev`]} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(SYS_CONFIG.P2[`${row.id}_rev`])} instructorMode={teacherMode} />
                                             </td>
 
                                             {/* Expenses */}
                                             <td className="p-2 border-l border-slate-100">
-                                                <SmartInput id={`${row.id}_exp`} value={inputs[`${row.id}_exp`]} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(ANSWER_KEYS.P2[`${row.id}_exp`])} instructorMode={teacherMode} />
+                                                <SmartInput id={`${row.id}_exp`} value={inputs[`${row.id}_exp`]} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(SYS_CONFIG.P2[`${row.id}_exp`])} instructorMode={teacherMode} />
                                             </td>
 
                                             {/* Net Income (Auto) */}
@@ -694,24 +681,57 @@
             const [inputs, setInputs] = useState({ P1: {}, P2: {} });
             const [activeInput, setActiveInput] = useState(null);
             
+            // Sidebar Resizing
+            const [sidebarWidth, setSidebarWidth] = useState(350);
+            const [isResizing, setIsResizing] = useState(false);
+
             // Instructor State
             const [instructorMode, setInstructorMode] = useState(false);
             const [showLogin, setShowLogin] = useState(false);
             const [password, setPassword] = useState("");
             const [clearModalOpen, setClearModalOpen] = useState(false);
             const [isAutoFilled, setIsAutoFilled] = useState(false);
-            const [showAnswerKey, setShowAnswerKey] = useState(false);
+            // Renamed from showAnswerKey to showSysDiag
+            const [showSysDiag, setShowSysDiag] = useState(false);
             
             const [studentName, setStudentName] = useState("");
             const [showDownload, setShowDownload] = useState(false);
             const [resetKey, setResetKey] = useState(0);
 
             const activeData = activeTab === 'P1' ? DATA_P1 : DATA_P2;
-            const activeKey = ANSWER_KEYS[activeTab];
+            const activeKey = SYS_CONFIG[activeTab];
+
+            // Disable Right Click via Effect (extra layer)
+            useEffect(() => {
+                const handleContext = (e) => e.preventDefault();
+                document.addEventListener("contextmenu", handleContext);
+                return () => document.removeEventListener("contextmenu", handleContext);
+            }, []);
+
+            // Sidebar Resizing Logic
+            const startResizing = React.useCallback(() => setIsResizing(true), []);
+            const stopResizing = React.useCallback(() => setIsResizing(false), []);
+            const resize = React.useCallback((mouseMoveEvent) => {
+                if (isResizing) {
+                    const newWidth = mouseMoveEvent.clientX;
+                    if (newWidth > 200 && newWidth < 800) {
+                        setSidebarWidth(newWidth);
+                    }
+                }
+            }, [isResizing]);
+
+            useEffect(() => {
+                window.addEventListener("mousemove", resize);
+                window.addEventListener("mouseup", stopResizing);
+                return () => {
+                    window.removeEventListener("mousemove", resize);
+                    window.removeEventListener("mouseup", stopResizing);
+                };
+            }, [resize, stopResizing]);
+
 
             const handleInputChange = (id, val) => setInputs(prev => ({ ...prev, [activeTab]: { ...prev[activeTab], [id]: val } }));
             
-            // New handler specifically for P2 Account dropdowns which are stored in the same inputs object but handled differently
             const handleAccountChange = (id, val) => setInputs(prev => ({ ...prev, [activeTab]: { ...prev[activeTab], [id]: val } }));
 
             const handleValueClick = (val) => {
@@ -733,7 +753,7 @@
                     setShowLogin(false); 
                     setPassword(""); 
                 } else { 
-                    alert("Incorrect Password"); 
+                    alert("Access Denied"); 
                 }
             };
 
@@ -777,7 +797,10 @@
                 <div className="flex h-screen bg-slate-100 overflow-hidden font-sans">
                     
                     {/* LEFT SIDEBAR: REFERENCE */}
-                    <div className="w-1/3 min-w-[350px] bg-slate-50 border-r border-slate-200 overflow-y-auto custom-scrollbar flex flex-col relative z-0">
+                    <div 
+                        style={{ width: sidebarWidth }} 
+                        className="bg-slate-50 border-r border-slate-200 overflow-y-auto custom-scrollbar flex flex-col relative z-0 shrink-0"
+                    >
                         <div className="sticky top-0 bg-white p-4 border-b border-slate-200 shadow-sm z-10">
                             <div className="flex items-center gap-2 text-blue-800 font-bold text-lg mb-1">
                                 <Icon name="library" /> Reference Data
@@ -800,6 +823,9 @@
                             <StandardCalculator />
                         </div>
                     </div>
+
+                    {/* DRAGGABLE RESIZER */}
+                    <div className={`resizer ${isResizing ? 'active' : ''}`} onMouseDown={startResizing} />
 
                     {/* MAIN CONTENT */}
                     <div className="flex-1 flex flex-col h-screen overflow-hidden relative">
@@ -828,7 +854,7 @@
                                     <span className="font-bold tracking-wide">INSTRUCTOR MODE</span>
                                 </div>
                                 <div className="flex gap-2 px-4">
-                                    <button onClick={() => setShowAnswerKey(true)} className="flex items-center gap-2 px-3 py-1 bg-purple-600 hover:bg-purple-500 rounded text-xs font-bold transition border border-purple-400"><Icon name="list" size={14} /> View Key</button>
+                                    <button onClick={() => setShowSysDiag(true)} className="flex items-center gap-2 px-3 py-1 bg-purple-600 hover:bg-purple-500 rounded text-xs font-bold transition border border-purple-400"><Icon name="cpu" size={14} /> Sys Diag</button>
                                     <button onClick={handleAutoFill} className="flex items-center gap-2 px-3 py-1 bg-green-500 hover:bg-green-600 rounded text-sm font-bold transition">
                                         <Icon name="wand-2" size={14} /> Auto-Fill Tab
                                     </button>
@@ -840,7 +866,7 @@
                         )}
 
                         {/* HEADER */}
-                        <header className="bg-white border-b border-slate-200 p-6 flex justify-between items-center shrink-0">
+                        <header className="bg-white border-b border-slate-200 p-6 flex justify-between items-center shrink-0 relative">
                             <div>
                                 <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
                                     <Icon name="file-spreadsheet" className="text-blue-600" /> {activeData.metadata.name}
@@ -851,9 +877,15 @@
                                 <button onClick={() => setShowDownload(true)} className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold shadow-sm transition">
                                     <Icon name="save" size={18} /> Save Work
                                 </button>
+                                
+                                {/* HIDDEN INSTRUCTOR BUTTON */}
                                 {!instructorMode && (
-                                    <button onClick={() => setShowLogin(true)} className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-medium transition border border-slate-300">
-                                        <Icon name="lock" size={16} /> Instructor
+                                    <button 
+                                        onClick={() => setShowLogin(true)} 
+                                        className="absolute top-2 right-2 opacity-5 hover:opacity-100 transition-opacity duration-300 text-slate-400 p-1"
+                                        title="Sys Admin"
+                                    >
+                                        <Icon name="lock" size={14} />
                                     </button>
                                 )}
                             </div>
@@ -898,12 +930,12 @@
                         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center animate-fade-in">
                             <div className="bg-white p-6 rounded-xl shadow-2xl w-80 transform transition-all">
                                 <h3 className="font-bold text-lg mb-4 text-slate-800 flex items-center gap-2">
-                                    <Icon name="lock" size={20} className="text-blue-600" /> Instructor Access
+                                    <Icon name="lock" size={20} className="text-blue-600" /> System Admin
                                 </h3>
                                 <input 
                                     type="password" 
                                     className="w-full border p-3 rounded-lg mb-4 outline-none focus:border-blue-500" 
-                                    placeholder="Enter password"
+                                    placeholder="Enter access code"
                                     value={password} 
                                     onChange={(e) => setPassword(e.target.value)}
                                     onKeyDown={(e) => e.key === 'Enter' && unlockInstructor()}
@@ -911,19 +943,19 @@
                                 />
                                 <div className="flex justify-end gap-2">
                                     <button onClick={() => setShowLogin(false)} className="px-4 py-2 text-slate-500 hover:bg-slate-100 rounded-lg text-sm font-medium">Cancel</button>
-                                    <button onClick={unlockInstructor} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-bold">Unlock</button>
+                                    <button onClick={unlockInstructor} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-bold">Access</button>
                                 </div>
                             </div>
                         </div>
                     )}
 
-                    {/* Answer Key Modal */}
-                     {showAnswerKey && (
+                    {/* System Diagnostic (Formerly Answer Key) Modal */}
+                     {showSysDiag && (
                         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center backdrop-blur-sm animate-fade-in">
                             <div className="bg-white p-6 rounded-xl shadow-2xl w-full max-w-2xl h-3/4 flex flex-col">
                                 <div className="flex justify-between items-center mb-4 border-b pb-2">
-                                    <h3 className="font-bold text-xl text-purple-800 flex items-center gap-2"><Icon name="key" /> Answer Key ({activeTab})</h3>
-                                    <button onClick={() => setShowAnswerKey(false)} className="text-slate-400 hover:text-slate-600"><Icon name="x" /></button>
+                                    <h3 className="font-bold text-xl text-purple-800 flex items-center gap-2"><Icon name="cpu" /> System Diagnostic Data ({activeTab})</h3>
+                                    <button onClick={() => setShowSysDiag(false)} className="text-slate-400 hover:text-slate-600"><Icon name="x" /></button>
                                 </div>
                                 <div className="flex-1 overflow-y-auto custom-scrollbar p-2">
                                     <div className="grid grid-cols-2 gap-2 text-sm">
@@ -936,7 +968,7 @@
                                     </div>
                                 </div>
                                 <div className="mt-4 pt-2 border-t text-right">
-                                    <button onClick={() => setShowAnswerKey(false)} className="px-4 py-2 bg-slate-200 text-slate-700 rounded font-bold hover:bg-slate-300">Close</button>
+                                    <button onClick={() => setShowSysDiag(false)} className="px-4 py-2 bg-slate-200 text-slate-700 rounded font-bold hover:bg-slate-300">Close</button>
                                 </div>
                             </div>
                         </div>
