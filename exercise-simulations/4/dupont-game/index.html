@@ -30,6 +30,8 @@
             line-height: 1.6;
             padding-bottom: 80px; /* Space for fixed footer */
             padding-top: 20px; /* Default top padding */
+            user-select: none; /* Prevent text selection */
+            -webkit-user-select: none;
         }
 
         body.instructor-active {
@@ -69,28 +71,24 @@
             border: 1px solid rgba(255, 255, 255, 0.4);
         }
 
-        /* Instructor Header Button */
-        .header-teacher-btn {
+        /* STEALTH INSTRUCTOR BUTTON */
+        .stealth-lock {
             position: absolute;
             top: 20px;
             right: 20px;
-            background: rgba(255, 255, 255, 0.2);
+            background: none;
+            border: none;
             color: white;
-            border: 1px solid rgba(255, 255, 255, 0.4);
-            padding: 8px 16px;
-            border-radius: 20px;
+            opacity: 0.1; /* Almost invisible */
             cursor: pointer;
-            font-size: 14px;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            transition: background 0.2s;
+            padding: 8px;
+            transition: all 0.3s ease;
             z-index: 10;
         }
 
-        .header-teacher-btn:hover {
-            background: rgba(255, 255, 255, 0.3);
+        .stealth-lock:hover {
+            opacity: 1;
+            transform: scale(1.1);
         }
 
         /* STICKY INSTRUCTOR TOOLBAR */
@@ -595,7 +593,7 @@
         .auth-input { padding: 10px; border: 2px solid #ddd; border-radius: 6px; width: 200px; margin-right: 10px; }
         .error-msg { color: #C00F2F; margin-top: 10px; display: none; font-weight: bold; }
 
-        /* Custom Confirmation Modal */
+        /* Custom Confirmation Modal for Clear & Exit */
         .confirm-modal-content {
             background: white;
             padding: 30px;
@@ -637,13 +635,13 @@
             .section { padding: 20px; }
             .guess-button { font-size: 11px; padding: 8px 4px; }
             .action-bar { flex-direction: column; bottom: 10px; right: 10px; align-items: flex-end; }
-            .header-teacher-btn { top: 10px; right: 10px; padding: 6px 12px; font-size: 12px; }
+            .stealth-lock { top: 10px; right: 10px; }
             .instructor-toolbar { flex-direction: column; height: auto; padding: 10px; gap: 10px; }
             body.instructor-active { padding-top: 110px; }
         }
     </style>
 </head>
-<body>
+<body oncontextmenu="return false;">
 
     <!-- INSTRUCTOR TOOLBAR -->
     <div class="instructor-toolbar" id="instructorToolbar">
@@ -666,13 +664,12 @@
                 Current Points: <span id="headerScore">100</span>
             </div>
 
-            <!-- Header Instructor Button with Robust SVG -->
-            <button class="header-teacher-btn" onclick="openTeacherModal()">
+            <!-- Stealth Instructor Button -->
+            <button class="stealth-lock" onclick="openTeacherModal()" title="System">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
                     <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
                 </svg>
-                Instructor Access
             </button>
         </header>
 
@@ -761,7 +758,8 @@
             try { return atob(str); } catch(e) { return ""; }
         };
 
-        const gameData = {
+        // RENAMED: Obfuscated Data Matrix
+        const _DATA_MATRIX = {
             companies: [
                 {
                     id: "A",
@@ -906,21 +904,19 @@
             ]
         };
 
-        const realCompanies = [
-            "Best Buy Co.",
-            "The Coca-Cola Company",
-            "Costco Wholesale",
-            "Nike Inc.",
-            "ConocoPhillips",
-            "JPMorgan Chase"
+        // Obfuscated Reference List (Base64) to hide plain text answers
+        const _REF_LIST = [
+            "QmVzdCBCdXkgQ28u",              // Best Buy Co.
+            "VGhlIENvY2EtQ29sYSBDb21wYW55", // The Coca-Cola Company
+            "Q29zdGNvIFdob2xlc2FsZQ==",      // Costco Wholesale
+            "TmlrZSBJbmMu",                 // Nike Inc.
+            "Q29ub2NvUGhpbGxpcHM=",         // ConocoPhillips
+            "SlBNb3JnYW4gQ2hhc2U="          // JPMorgan Chase
         ];
         
-        // Human-readable names for buttons
+        // Human-readable names for buttons (UI Only)
         const buttonLabels = ["Best Buy", "Coca-Cola", "Costco", "Nike", "ConocoPhillips", "JPMorgan"];
         
-        // Tickers for logic mapping (must match order of realCompanies)
-        const tickers = ["BBY", "KO", "COST", "NKE", "COP", "JPM"];
-
         let userGuesses = {};
         let answersSubmitted = false;
         let answersReleased = false;   
@@ -954,7 +950,7 @@
 
         function renderCompanyCards() {
             const grid = document.getElementById("gameGrid");
-            grid.innerHTML = gameData.companies.map(company => `
+            grid.innerHTML = _DATA_MATRIX.companies.map(company => `
                 <div class="company-card" id="card-${company.id}">
                     <div class="card-header">
                         <div class="card-title">${company.name}</div>
@@ -993,8 +989,8 @@
                     </div>
 
                     <div class="button-group">
-                        ${realCompanies.map((name, idx) => `
-                            <button class="guess-button guess-btn-${company.id}" title="${name}" onclick="makeGuess('${company.id}', '${name}', this)">
+                        ${_REF_LIST.map((b64Name, idx) => `
+                            <button class="guess-button guess-btn-${company.id}" title="${buttonLabels[idx]}" onclick="makeGuess('${company.id}', '${d(b64Name)}', this)">
                                 ${buttonLabels[idx]}
                             </button>
                         `).join("")}
@@ -1041,7 +1037,7 @@
         }
 
         function checkIfAllGuessed() {
-            const allGuessed = Object.keys(userGuesses).length === gameData.companies.length;
+            const allGuessed = Object.keys(userGuesses).length === _DATA_MATRIX.companies.length;
             // Only show submit if not already submitted
             if (!answersSubmitted) {
                 document.getElementById("submitContainer").classList.toggle("show", allGuessed);
@@ -1061,7 +1057,7 @@
 
         function renderTasks() {
             const section = document.getElementById("tasksSection");
-            section.innerHTML = gameData.tasks.map((task, idx) => `
+            section.innerHTML = _DATA_MATRIX.tasks.map((task, idx) => `
                 <div class="task-item">
                     <div class="task-question">Task ${idx + 1}: ${task.question}</div>
 
@@ -1146,7 +1142,7 @@
 
         function autoFillAll() {
             // Populate all guesses
-            gameData.companies.forEach(company => {
+            _DATA_MATRIX.companies.forEach(company => {
                 const realName = d(company.real); // DECODE
                 userGuesses[company.id] = realName;
                 
@@ -1155,8 +1151,10 @@
                 const buttons = document.querySelectorAll(`#card-${company.id} .guess-button`);
                 buttons.forEach(btn => {
                     const btnText = btn.innerText.trim();
-                    // Match human label
-                    const realIndex = realCompanies.indexOf(realName);
+                    // Match human label via index
+                    // Decoded list
+                    const decodedList = _REF_LIST.map(x => d(x));
+                    const realIndex = decodedList.indexOf(realName);
                     const targetLabel = buttonLabels[realIndex];
                     
                     if(btnText === targetLabel) {
@@ -1201,7 +1199,7 @@
             keyContainer.innerHTML = `
                 <h3>Answer Key & Strategic Analysis</h3>
                 <div style="margin: 15px 0;">
-                    ${gameData.companies.map(c => `
+                    ${_DATA_MATRIX.companies.map(c => `
                         <div class="answer-key-item">
                             <span class="company-name">${c.name}</span>
                             <span class="real-company">${d(c.real)}</span>
@@ -1232,24 +1230,24 @@
             document.getElementById("waitingMessage").classList.remove("show");
 
             correctCount = Object.keys(userGuesses).filter(id => {
-                const company = gameData.companies.find(c => c.id === id);
+                const company = _DATA_MATRIX.companies.find(c => c.id === id);
                 return userGuesses[id] === d(company.real); // DECODE for check
             }).length;
             
             const scoreDisplay = document.getElementById("scoreDisplay");
-            document.getElementById("scoreNumber").textContent = `${correctCount}/${gameData.companies.length} Correct`;
+            document.getElementById("scoreNumber").textContent = `${correctCount}/${_DATA_MATRIX.companies.length} Correct`;
             document.getElementById("finalScoreDisplay").textContent = currentPoints;
             
             let message = "";
-            if (correctCount === gameData.companies.length) message = "Perfect match!";
-            else if (correctCount >= gameData.companies.length - 2) message = "Great job!";
+            if (correctCount === _DATA_MATRIX.companies.length) message = "Perfect match!";
+            else if (correctCount >= _DATA_MATRIX.companies.length - 2) message = "Great job!";
             else message = "Use the analysis below to refine your intuition.";
             
             document.getElementById("scoreText").textContent = message;
 
             scoreDisplay.classList.add("show");
 
-            gameData.companies.forEach(company => {
+            _DATA_MATRIX.companies.forEach(company => {
                 const card = document.getElementById(`card-${company.id}`);
                 const feedback = document.getElementById(`feedback-${company.id}`);
                 const isCorrect = userGuesses[company.id] === d(company.real); // DECODE for check
@@ -1273,13 +1271,13 @@
             report += `==========================================\n`;
             report += `Student Name: ${name}\n`;
             report += `Date: ${new Date().toLocaleString()}\n`;
-            report += `Correct Guesses: ${correctCount}/${gameData.companies.length}\n`;
+            report += `Correct Guesses: ${correctCount}/${_DATA_MATRIX.companies.length}\n`;
             report += `Points Score: ${currentPoints}/100\n`;
             report += `Hints Used: ${revealedHints.size}\n`;
             report += `==========================================\n\n`;
 
             report += `[COMPANY IDENTIFICATION]\n`;
-            gameData.companies.forEach(c => {
+            _DATA_MATRIX.companies.forEach(c => {
                 const guess = userGuesses[c.id] || "No Guess";
                 const realName = d(c.real);
                 const status = answersReleased ? (guess === realName ? "CORRECT" : "INCORRECT") : "SUBMITTED";
@@ -1287,7 +1285,7 @@
             });
 
             report += `\n[REFLECTION TASKS]\n`;
-            gameData.tasks.forEach((t, i) => {
+            _DATA_MATRIX.tasks.forEach((t, i) => {
                 const ans = document.getElementById(`task-input-${i}`).value || "(No answer provided)";
                 report += `Q${i+1}: ${t.question}\nAnswer: ${ans.replace(/\n/g, " ")}\n\n`;
             });
