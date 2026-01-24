@@ -22,7 +22,7 @@
         /* Custom scrollbar for sidebar */
         .scrollbar-thin::-webkit-scrollbar {
             width: 6px;
-            height: 6px; /* Height for horizontal scrollbar */
+            height: 6px;
         }
         .scrollbar-thin::-webkit-scrollbar-track {
             background: #f1f1f1;
@@ -36,6 +36,7 @@
         }
         body {
             background-color: #f3f4f6;
+            user-select: none; /* Light deterrence for selection */
         }
         .math-font {
             font-family: 'Courier New', Courier, monospace;
@@ -55,40 +56,97 @@
         }
         .fade-in { animation: fadeIn 0.2s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        
+        /* Resizer Handle */
+        .resizer {
+            width: 5px;
+            cursor: col-resize;
+            background-color: #e5e7eb;
+            transition: background-color 0.2s;
+            z-index: 20;
+        }
+        .resizer:hover, .resizer.active {
+            background-color: #3b82f6;
+        }
     </style>
 </head>
-<body>
+<body oncontextmenu="return false;"> <!-- Anti-Tampering: Disable Right Click -->
     <div id="root"></div>
 
     <script type="text/babel">
+        // --- SECURITY & HELPERS ---
+
+        // Helper to decode Base64 values
+        const d = (str) => {
+            try {
+                if (Array.isArray(str)) return str.map(s => d(s));
+                return atob(str);
+            } catch (e) {
+                return str;
+            }
+        };
+
         // --- CONSTANTS & DATA ---
 
-        // Reference Data: PH First, ITW Second. Years: 2022, 2021.
+        // Reference Data
         const RAW_DATA = {
             PH: {
                 "Balance Sheet": [
                     { account: "Cash and cash equivalents", 2022: 535799, 2021: 733117 },
-                    { account: "Trade accounts receivable net", 2022: 2341504, 2021: 2183594 },
+                    { account: "Marketable securities", 2022: 27862, 2021: 39116 },
+                    { account: "Trade accounts receivable", 2022: 2341504, 2021: 2183594 },
+                    { account: "Non-trade/notes receivable", 2022: 543757, 2021: 326315 },
                     { account: "Inventories", 2022: 2214553, 2021: 2090642 },
+                    { account: "Prepaid expenses/other", 2022: 6383169, 2021: 243966 },
                     { account: "Total current assets", 2022: 12046644, 2021: 5616750 },
+                    { account: "PPE Gross", 2022: 5897955, 2021: 6040220 },
+                    { account: "Accumulated depreciation", 2022: 3775197, 2021: 3773744 },
+                    { account: "PPE Net", 2022: 2122758, 2021: 2266476 },
+                    { account: "Deferred income taxes", 2022: 110585, 2021: 104251 },
+                    { account: "Investments/other assets", 2022: 788057, 2021: 774239 },
+                    { account: "Intangible assets, net", 2022: 3135817, 2021: 3519797 },
                     { account: "Goodwill", 2022: 7740082, 2021: 8059687 },
-                    { account: "Total assets", 2022: 25943943, 2021: 20341200 },
-                    { account: "Deferred revenue (Current)", 2022: 60472, 2021: 51211 },
-                    { account: "Deferred revenue (Noncurrent)", 2022: 2225, 2021: 3080 },
-                    { account: "Total liabilities", 2022: 17084023, 2021: 11927530 },
-                    { account: "Total equity", 2022: 8859920, 2021: 8413670 }
+                    { account: "Total Assets", 2022: 25943943, 2021: 20341200 },
+                    { account: "Notes payable/ST debt", 2022: 1724310, 2021: 2824 },
+                    { account: "Accounts payable, trade", 2022: 1731925, 2021: 1667878 },
+                    { account: "Accrued payrolls", 2022: 470132, 2021: 507027 },
+                    { account: "Accrued taxes", 2022: 250292, 2021: 236384 },
+                    { account: "Current op. lease liab", 2022: 36023, 2021: 40193 },
+                    { account: "Other accrued liabilities", 2022: 1646636, 2021: 642197 },
+                    { account: "Total current liabilities", 2022: 5859318, 2021: 3096503 },
+                    { account: "Long-term debt", 2022: 9755825, 2021: 6582053 },
+                    { account: "Pensions/postretirement", 2022: 639939, 2021: 1055638 },
+                    { account: "Deferred income taxes (Liab)", 2022: 307044, 2021: 553981 },
+                    { account: "Long-term op. lease liab", 2022: 100337, 2021: 93904 },
+                    { account: "Other liabilities", 2022: 421560, 2021: 545451 },
+                    { account: "Total Liabilities", 2022: 17084023, 2021: 11927530 },
+                    { account: "Total Shareholders' Equity", 2022: 8848011, 2021: 8398307 },
+                    { account: "Total Equity", 2022: 8859920, 2021: 8413670 }
                 ],
                 "Income Statement": [
-                    { account: "Net sales", 2022: 15861608, 2021: 14347640 },
-                    { account: "Cost of sales", 2022: 11387267, 2021: 10449680 },
-                    { account: "Gross profit", 2022: 4474341, 2021: 3897960 },
-                    { account: "Operating income", 2022: 2854346, 2021: 2479990 },
-                    { account: "Net income", 2022: 1315605, 2021: 1746100 }
+                    { account: "Net Sales", 2022: 15861608, 2021: 14347640, 2020: 13695520 },
+                    { account: "Cost of sales", 2022: 11387267, 2021: 10449680, 2020: 10292291 },
+                    { account: "Gross profit", 2022: 4474341, 2021: 3897960, 2020: 3403229 },
+                    { account: "SG&A expenses", 2022: 1627116, 2021: 1527302, 2020: 1656553 },
+                    { account: "Gain on disposal", 2022: -7121, 2021: -109332, 2020: -1227 },
+                    { account: "Operating income", 2022: 2854346, 2021: 2479990, 2020: 1747903 },
+                    { account: "Interest expense", 2022: 255252, 2021: 250036, 2020: 308161 },
+                    { account: "Loss on forward contracts", 2022: 1015426, 2021: 0, 2020: 0 },
+                    { account: "Other expense (income)", 2022: -30558, 2021: -17003, 2020: -67112 },
+                    { account: "Income before taxes", 2022: 1614226, 2021: 2246957, 2020: 1506854 },
+                    { account: "Income taxes", 2022: 298040, 2021: 500096, 2020: 304522 },
+                    { account: "Net Income", 2022: 1316186, 2021: 1746861, 2020: 1202332 },
+                    { account: "Net Income (Common)", 2022: 1315605, 2021: 1746100, 2020: 1201970 }
                 ],
                 "Cash Flow": [
                     { account: "Net cash from operating", 2022: 2441730, 2021: 2575001 },
                     { account: "Capital expenditures", 2022: -230044, 2021: -209957 },
-                    { account: "Dividends paid", 2022: -569855, 2021: -475174 }
+                    { account: "Sale of PPE", 2022: 39353, 2021: 140590 },
+                    { account: "Sale of businesses", 2022: 3366, 2021: 0 },
+                    { account: "Net cash from investing", 2022: -418837, 2021: -13 },
+                    { account: "Payments for common shares", 2022: -460056, 2021: -218818 },
+                    { account: "Dividends paid", 2022: -569855, 2021: -475174 },
+                    { account: "Net cash from financing", 2022: 3915636, 2021: -2623339 }
                 ]
             },
             ITW: {
@@ -96,31 +154,60 @@
                     { account: "Cash and equivalents", 2022: 708, 2021: 1527 },
                     { account: "Trade receivables", 2022: 3171, 2021: 2840 },
                     { account: "Inventories", 2022: 2054, 2021: 1694 },
+                    { account: "Prepaid expenses and other", 2022: 329, 2021: 313 },
+                    { account: "Assets held for sale", 2022: 8, 2021: 0 },
                     { account: "Total current assets", 2022: 6270, 2021: 6374 },
                     { account: "Net plant and equipment", 2022: 1848, 2021: 1809 },
                     { account: "Goodwill", 2022: 4864, 2021: 4965 },
-                    { account: "Total assets", 2022: 15422, 2021: 16077 },
-                    { account: "Deferred revenue", 2022: 427, 2021: 394 },
+                    { account: "Intangible assets", 2022: 768, 2021: 972 },
+                    { account: "Deferred income taxes", 2022: 494, 2021: 552 },
+                    { account: "Other assets", 2022: 1178, 2021: 1405 },
+                    { account: "Total Assets", 2022: 15422, 2021: 16077 },
+                    { account: "Short-term debt", 2022: 1590, 2021: 778 },
+                    { account: "Accounts payable", 2022: 594, 2021: 585 },
+                    { account: "Current portion op. lease", 2022: 55, 2021: 61 },
+                    { account: "Accrued expenses", 2022: 1673, 2021: 1587 },
+                    { account: "Cash dividends payable", 2022: 400, 2021: 382 },
+                    { account: "Income taxes payable", 2022: 147, 2021: 77 },
+                    { account: "Liabilities held for sale", 2022: 1, 2021: 0 },
                     { account: "Total current liabilities", 2022: 4460, 2021: 3470 },
                     { account: "Long-term debt", 2022: 6173, 2021: 6909 },
+                    { account: "Deferred income taxes (Liab)", 2022: 484, 2021: 654 },
+                    { account: "Noncurrent income taxes", 2022: 273, 2021: 365 },
+                    { account: "Long-term op. lease liab", 2022: 131, 2021: 133 },
+                    { account: "Other liabilities", 2022: 812, 2021: 920 },
+                    { account: "Total noncurrent liabilities", 2022: 7873, 2021: 8981 },
                     { account: "Total stockholders' equity", 2022: 3089, 2021: 3626 }
                 ],
                 "Income Statement": [
-                    { account: "Operating revenue", 2022: 15932, 2021: 14455 },
-                    { account: "Cost of revenue", 2022: 9429, 2021: 8489 },
-                    { account: "Gross profit", 2022: 6503, 2021: 5966 },
-                    { account: "Operating income", 2022: 3790, 2021: 3477 },
-                    { account: "Net income", 2022: 3034, 2021: 2694 }
+                    { account: "Operating revenue", 2022: 15932, 2021: 14455, 2020: 12574 },
+                    { account: "Cost of revenue", 2022: 9429, 2021: 8489, 2020: 7375 },
+                    { account: "Gross profit", 2022: 6503, 2021: 5966, 2020: 5199 },
+                    { account: "Selling, admin, R&D", 2022: 2579, 2021: 2356, 2020: 2163 },
+                    { account: "Amortization/Impairment", 2022: 134, 2021: 133, 2020: 154 },
+                    { account: "Operating Income", 2022: 3790, 2021: 3477, 2020: 2882 },
+                    { account: "Interest expense", 2022: 203, 2021: 202, 2020: 206 },
+                    { account: "Other (income) expense", 2022: -255, 2021: -51, 2020: -28 },
+                    { account: "Income Before Taxes", 2022: 3842, 2021: 3326, 2020: 2704 },
+                    { account: "Income taxes", 2022: 808, 2021: 632, 2020: 595 },
+                    { account: "Net Income", 2022: 3034, 2021: 2694, 2020: 2109 }
                 ],
                 "Cash Flow": [
                     { account: "Net cash from operating", 2022: 2348, 2021: 2557 },
-                    { account: "Capital expenditures", 2022: -412, 2021: -296 },
-                    { account: "Dividends paid", 2022: -1542, 2021: -1463 }
+                    { account: "Acquisition of businesses", 2022: -2, 2021: -731 },
+                    { account: "Additions to plant/equip", 2022: -412, 2021: -296 },
+                    { account: "Proceeds from investments", 2022: 12, 2021: 38 },
+                    { account: "Proceeds sale plant/equip", 2022: 15, 2021: 8 },
+                    { account: "Net cash from investing", 2022: -110, 2021: -984 },
+                    { account: "Cash dividends paid", 2022: -1542, 2021: -1463 },
+                    { account: "Repurchases of stock", 2022: -1750, 2021: -1000 },
+                    { account: "Net cash from financing", 2022: -3000, 2021: -2564 }
                 ]
             }
         };
 
-        const SECTIONS = [
+        // Obfuscated Answer Matrix
+        const _DATA_MATRIX = [
             {
                 id: 'income_revenue',
                 title: '1. Income Statement & Revenue',
@@ -133,10 +220,10 @@
                             source: `Consolidated Income Statement in the Form 10-K (2022 vs 2021).`
                         },
                         questions: [
-                            { id: '2b_ph_2022', label: 'PH Net Sales Growth 2022', correct: 10.6, isPct: true, suffix: '%' },
-                            { id: '2b_ph_2021', label: 'PH Net Sales Growth 2021', correct: 4.8, isPct: true, suffix: '%' },
-                            { id: '2b_itw_2022', label: 'ITW Operating Revenue Growth 2022', correct: 10.2, isPct: true, suffix: '%' },
-                            { id: '2b_itw_2021', label: 'ITW Operating Revenue Growth 2021', correct: 15.0, isPct: true, suffix: '%' }
+                            { id: '2b_ph_2022', label: 'PH Net Sales Growth 2022', correct: 'MTAuNg==', isPct: true, suffix: '%' },
+                            { id: '2b_ph_2021', label: 'PH Net Sales Growth 2021', correct: 'NC44', isPct: true, suffix: '%' },
+                            { id: '2b_itw_2022', label: 'ITW Operating Revenue Growth 2022', correct: 'MTAuMg==', isPct: true, suffix: '%' },
+                            { id: '2b_itw_2021', label: 'ITW Operating Revenue Growth 2021', correct: 'MTUuMA==', isPct: true, suffix: '%' }
                         ]
                     }
                 ]
@@ -153,8 +240,8 @@
                             source: `Form 10-K → Notes: "Revenue Recognition". Segment details in MD&A.`
                         },
                         questions: [
-                            { id: '2a_ph_policy', label: 'Does PH recognize revenue for both products and services?', correct: 'Yes' },
-                            { id: '2a_itw_policy', label: 'Does ITW recognize revenue for both products and services?', correct: 'Yes' }
+                            { id: '2a_ph_policy', label: 'Does PH recognize revenue for both products and services?', correct: 'WWVz', type: 'choice' },
+                            { id: '2a_itw_policy', label: 'Does ITW recognize revenue for both products and services?', correct: 'WWVz', type: 'choice' }
                         ]
                     },
                     {
@@ -170,13 +257,13 @@
                                     rows: [
                                         [
                                             { type: 'text', value: 'Diversified Industrial' },
-                                            { type: 'input', id: '2c_ph_div_rev', correct: 13342046 },
+                                            { type: 'input', id: '2c_ph_div_rev', correct: 'MTMzNDIwNDY=' },
                                             { type: 'static', value: '11,960,159' },
                                             { type: 'static', value: '10,960,885' }
                                         ],
                                         [
                                             { type: 'text', value: 'Aerospace Systems' },
-                                            { type: 'input', id: '2c_ph_aero_rev', correct: 2519562 },
+                                            { type: 'input', id: '2c_ph_aero_rev', correct: 'MjUxOTU2Mg==' },
                                             { type: 'static', value: '2,387,481' },
                                             { type: 'static', value: '2,734,635' }
                                         ],
@@ -193,43 +280,43 @@
                                     rows: [
                                         [
                                             { type: 'text', value: 'Automotive OEM' },
-                                            { type: 'input', id: '2c_itw_auto_rev', correct: 2969 },
+                                            { type: 'input', id: '2c_itw_auto_rev', correct: 'Mjk2OQ==' },
                                             { type: 'static', value: '2,800' },
                                             { type: 'static', value: '2,571' }
                                         ],
                                         [
                                             { type: 'text', value: 'Food Equipment' },
-                                            { type: 'input', id: '2c_itw_food_rev', correct: 2444 },
+                                            { type: 'input', id: '2c_itw_food_rev', correct: 'MjQ0NA==' },
                                             { type: 'static', value: '2,078' },
                                             { type: 'static', value: '1,739' }
                                         ],
                                         [
                                             { type: 'text', value: 'Test & Measurement' },
-                                            { type: 'input', id: '2c_itw_test_rev', correct: 2828 },
+                                            { type: 'input', id: '2c_itw_test_rev', correct: 'MjgyOA==' },
                                             { type: 'static', value: '2,346' },
                                             { type: 'static', value: '1,963' }
                                         ],
                                         [
                                             { type: 'text', value: 'Welding' },
-                                            { type: 'input', id: '2c_itw_weld_rev', correct: 1894 },
+                                            { type: 'input', id: '2c_itw_weld_rev', correct: 'MTg5NA==' },
                                             { type: 'static', value: '1,650' },
                                             { type: 'static', value: '1,384' }
                                         ],
                                         [
                                             { type: 'text', value: 'Polymers & Fluids' },
-                                            { type: 'input', id: '2c_itw_poly_rev', correct: 1905 },
+                                            { type: 'input', id: '2c_itw_poly_rev', correct: 'MTkwNQ==' },
                                             { type: 'static', value: '1,804' },
                                             { type: 'static', value: '1,622' }
                                         ],
                                         [
                                             { type: 'text', value: 'Construction Products' },
-                                            { type: 'input', id: '2c_itw_cons_rev', correct: 2113 },
+                                            { type: 'input', id: '2c_itw_cons_rev', correct: 'MjExMw==' },
                                             { type: 'static', value: '1,945' },
                                             { type: 'static', value: '1,652' }
                                         ],
                                         [
                                             { type: 'text', value: 'Specialty Products' },
-                                            { type: 'input', id: '2c_itw_spec_rev', correct: 1799 },
+                                            { type: 'input', id: '2c_itw_spec_rev', correct: 'MTc5OQ==' },
                                             { type: 'static', value: '1,854' },
                                             { type: 'static', value: '1,660' }
                                         ],
@@ -348,12 +435,12 @@
                                     rows: [
                                         [
                                             { type: 'text', value: 'PH Diversified Industrial' },
-                                            { type: 'input', id: '2d_ph_div_growth', correct: 11.6, isPct: true, suffix: '%' },
+                                            { type: 'input', id: '2d_ph_div_growth', correct: 'MTEuNg==', isPct: true, suffix: '%' },
                                             { type: 'static', value: '9.1%' }
                                         ],
                                         [
                                             { type: 'text', value: 'PH Aerospace Systems' },
-                                            { type: 'input', id: '2d_ph_aero_growth', correct: 5.5, isPct: true, suffix: '%' },
+                                            { type: 'input', id: '2d_ph_aero_growth', correct: 'NS41', isPct: true, suffix: '%' },
                                             { type: 'static', value: '-12.7%' }
                                         ]
                                     ]
@@ -363,7 +450,7 @@
                                     rows: [
                                         [
                                             { type: 'text', value: 'ITW Automotive OEM' },
-                                            { type: 'input', id: '2d_itw_auto_growth', correct: 6.0, isPct: true, suffix: '%' },
+                                            { type: 'input', id: '2d_itw_auto_growth', correct: 'Ni4w', isPct: true, suffix: '%' },
                                             { type: 'static', value: '8.9%' }
                                         ],
                                         [
@@ -414,37 +501,37 @@
                                     rows: [
                                         [
                                             { type: 'text', value: 'PH Div. Ind. - North America' },
-                                            { type: 'input', id: '2e_ph_div_na', correct: 7703150 },
+                                            { type: 'input', id: '2e_ph_div_na', correct: 'NzcwMzE1MA==', },
                                             { type: 'static', value: '6,676,449' },
                                             { type: 'static', value: '6,456,298' }
                                         ],
                                         [
                                             { type: 'text', value: 'PH Aerospace Systems (All NA)' },
-                                            { type: 'input', id: '2e_ph_aero_na', correct: 2519562 },
+                                            { type: 'input', id: '2e_ph_aero_na', correct: 'MjUxOTU2Mg==' },
                                             { type: 'static', value: '2,387,481' },
                                             { type: 'static', value: '2,734,635' }
                                         ],
                                         [
                                             { type: 'text', value: 'PH Total North America' },
-                                            { type: 'input', id: '2e_ph_total_na', correct: 10222712 },
+                                            { type: 'input', id: '2e_ph_total_na', correct: 'MTAyMjI3MTI=' },
                                             { type: 'static', value: '9,063,930' },
                                             { type: 'static', value: '9,190,933' }
                                         ],
                                         [
                                             { type: 'text', value: 'PH Div. Ind. - International' },
-                                            { type: 'input', id: '2e_ph_div_int', correct: 5638896 },
+                                            { type: 'input', id: '2e_ph_div_int', correct: 'NTYzODg5Ng==' },
                                             { type: 'static', value: '5,283,710' },
                                             { type: 'static', value: '4,504,587' }
                                         ],
                                         [
                                             { type: 'text', value: 'PH Total Revenue' },
-                                            { type: 'input', id: '2e_ph_total_geo', correct: 15861608 },
+                                            { type: 'input', id: '2e_ph_total_geo', correct: 'MTU4NjE2MDg=' },
                                             { type: 'static', value: '14,347,640' },
                                             { type: 'static', value: '13,695,520' }
                                         ],
                                         [
                                             { type: 'text', value: 'PH % International' },
-                                            { type: 'input', id: '2e_ph_pct_int', correct: 35.6, isPct: true, suffix: '%' },
+                                            { type: 'input', id: '2e_ph_pct_int', correct: 'MzUuNg==', isPct: true, suffix: '%' },
                                             { type: 'static', value: '36.8%' },
                                             { type: 'static', value: '32.9%' }
                                         ]
@@ -455,43 +542,43 @@
                                     rows: [
                                         [
                                             { type: 'text', value: 'ITW United States' },
-                                            { type: 'input', id: '2e_itw_us', correct: 7609 },
+                                            { type: 'input', id: '2e_itw_us', correct: 'NzYwOQ==' },
                                             { type: 'static', value: '6,578' },
                                             { type: 'static', value: '5,834' }
                                         ],
                                         [
                                             { type: 'text', value: 'ITW Canada / Mexico' },
-                                            { type: 'input', id: '2e_itw_can_mex', correct: 1095 },
+                                            { type: 'input', id: '2e_itw_can_mex', correct: 'MTA5NQ==' },
                                             { type: 'static', value: '940' },
                                             { type: 'static', value: '778' }
                                         ],
                                         [
                                             { type: 'text', value: 'ITW EMEA' },
-                                            { type: 'input', id: '2e_itw_emea', correct: 3913 },
+                                            { type: 'input', id: '2e_itw_emea', correct: 'MzkxMw==' },
                                             { type: 'static', value: '3,870' },
                                             { type: 'static', value: '3,447' }
                                         ],
                                         [
                                             { type: 'text', value: 'ITW Asia Pacific' },
-                                            { type: 'input', id: '2e_itw_asia', correct: 2991 },
+                                            { type: 'input', id: '2e_itw_asia', correct: 'Mjk5MQ==' },
                                             { type: 'static', value: '2,802' },
                                             { type: 'static', value: '2,291' }
                                         ],
                                         [
                                             { type: 'text', value: 'ITW South America' },
-                                            { type: 'input', id: '2e_itw_sa', correct: 324 },
+                                            { type: 'input', id: '2e_itw_sa', correct: 'MzI0' },
                                             { type: 'static', value: '265' },
                                             { type: 'static', value: '224' }
                                         ],
                                         [
                                             { type: 'text', value: 'ITW Total Revenue' },
-                                            { type: 'input', id: '2e_itw_total_geo', correct: 15932 },
+                                            { type: 'input', id: '2e_itw_total_geo', correct: 'MTU5MzI=' },
                                             { type: 'static', value: '14,455' },
                                             { type: 'static', value: '12,574' }
                                         ],
                                         [
                                             { type: 'text', value: 'ITW % International' },
-                                            { type: 'input', id: '2e_itw_pct_int', correct: 52.2, isPct: true, suffix: '%' },
+                                            { type: 'input', id: '2e_itw_pct_int', correct: 'NTIuMg==', isPct: true, suffix: '%' },
                                             { type: 'static', value: '54.5%' },
                                             { type: 'static', value: '53.6%' }
                                         ]
@@ -525,10 +612,10 @@
                                     'Sale of scrap material'
                                 ],
                                 correct: [
-                                    'Customer receives control as work is performed',
-                                    'Customer controls the asset being produced',
-                                    'Contracts with multiple performance obligations',
-                                    'Product has no alternative use & right to payment exists'
+                                    'Q3VzdG9tZXIgcmVjZWl2ZXMgY29udHJvbCBhcyB3b3JrIGlzIHBlcmZvcm1lZA==',
+                                    'Q3VzdG9tZXIgY29udHJvbHMgdGhlIGFzc2V0IGJlaW5nIHByb2R1Y2Vk',
+                                    'Q29udHJhY3RzIHdpdGggbXVsdGlwbGUgcGVyZm9ybWFuY2Ugb2JsaWdhdGlvbnM=',
+                                    'UHJvZHVjdCBoYXMgbm8gYWx0ZXJuYXRpdmUgdXNlICYgcmlnaHQgdG8gcGF5bWVudCBleGlzdHM='
                                 ] 
                             },
                             { 
@@ -542,8 +629,8 @@
                                     'Sale of scrap material'
                                 ],
                                 correct: [
-                                    'Installation, acceptance, or service obligations remain after shipment',
-                                    'Revenue recognized over time based on costs incurred'
+                                    'SW5zdGFsbGF0aW9uLCBhY2NlcHRhbmNlLCBvciBzZXJ2aWNlIG9ibGlnYXRpb25zIHJlbWFpbiBhZnRlciBzaGlwbWVudA==',
+                                    'UmV2ZW51ZSByZWNvZ25pemVkIG92ZXIgdGltZSBiYXNlZCBvbiBjb3N0cyBpbmN1cnJlZA=='
                                 ] 
                             }
                         ]
@@ -570,12 +657,12 @@
                                     rows: [
                                         [
                                             { type: 'text', value: 'PH Current (in Other accrued liabilities)' },
-                                            { type: 'input', id: '3b_ph_curr_22', correct: 60472 },
+                                            { type: 'input', id: '3b_ph_curr_22', correct: 'NjA0NzI=' },
                                             { type: 'static', value: '51,211' }
                                         ],
                                         [
                                             { type: 'text', value: 'PH Noncurrent (in Other liabilities)' },
-                                            { type: 'input', id: '3b_ph_non_22', correct: 2225 },
+                                            { type: 'input', id: '3b_ph_non_22', correct: 'MjIyNQ==' },
                                             { type: 'static', value: '3,080' }
                                         ],
                                         [
@@ -595,12 +682,12 @@
                                     rows: [
                                         [
                                             { type: 'text', value: 'ITW Total Deferred Revenue' },
-                                            { type: 'input', id: '3b_itw_tot_22', correct: 427 },
+                                            { type: 'input', id: '3b_itw_tot_22', correct: 'NDI3' },
                                             { type: 'static', value: '394' }
                                         ],
                                         [
                                             { type: 'text', value: 'ITW Common Size (%)' },
-                                            { type: 'input', id: '3b_itw_common_22', correct: 2.7, isPct: true, suffix: '%' },
+                                            { type: 'input', id: '3b_itw_common_22', correct: 'Mi43', isPct: true, suffix: '%' },
                                             { type: 'static', value: '2.5%' }
                                         ]
                                     ]
@@ -622,8 +709,8 @@
                             source: `Balance Sheet and Notes.`
                         },
                         questions: [
-                            { id: '5a_ph_pct', label: 'PH A/R as % of Total Assets 2022', correct: 9.0, isPct: true, suffix: '%' },
-                            { id: '5a_itw_pct', label: 'ITW A/R as % of Total Assets 2022', correct: 20.6, isPct: true, suffix: '%' }
+                            { id: '5a_ph_pct', label: 'PH A/R as % of Total Assets 2022', correct: 'OS4w', isPct: true, suffix: '%' },
+                            { id: '5a_itw_pct', label: 'ITW A/R as % of Total Assets 2022', correct: 'MjAuNg==', isPct: true, suffix: '%' }
                         ]
                     },
                     {
@@ -634,8 +721,8 @@
                             source: `Balance Sheet (A/R) and Income Statement (Total Revenue).`
                         },
                         questions: [
-                            { id: '5d_ph_dso', label: 'PH DSO 2022 (Days)', correct: 52.06, isPct: false, suffix: 'days' },
-                            { id: '5d_itw_dso', label: 'ITW DSO 2022 (Days)', correct: 68.86, isPct: false, suffix: 'days' }
+                            { id: '5d_ph_dso', label: 'PH DSO 2022 (Days)', correct: 'NTIuMDY=', isPct: false, suffix: 'days' },
+                            { id: '5d_itw_dso', label: 'ITW DSO 2022 (Days)', correct: 'NjguODY=', isPct: false, suffix: 'days' }
                         ]
                     },
                     {
@@ -648,29 +735,29 @@
                             headers: ["Metric", "Parker Hannifin", "Illinois Tool Works"],
                             rows: [
                                 [
-                                    { type: 'text', value: 'DSO 2021 (Given)' },
+                                    { type: 'text', value: 'DSO 2021 (Ref)' },
                                     { type: 'static', value: '51.36 days' },
                                     { type: 'static', value: '67.50 days' }
                                 ],
                                 [
                                     { type: 'text', value: 'DSO 2022 (Calculated in 4.d)' },
-                                    { type: 'input', id: '5e_ph_dso_22', correct: 52.06 },
-                                    { type: 'input', id: '5e_itw_dso_22', correct: 68.86 }
+                                    { type: 'input', id: '5e_ph_dso_22', correct: 'NTIuMDY=' },
+                                    { type: 'input', id: '5e_itw_dso_22', correct: 'NjguODY=' }
                                 ],
                                 [
                                     { type: 'text', value: 'Change in DSO (Prior - Current)' },
-                                    { type: 'input', id: '5e_ph_dso_change', correct: -0.70 },
-                                    { type: 'input', id: '5e_itw_dso_change', correct: -1.36 }
+                                    { type: 'input', id: '5e_ph_dso_change', correct: 'LTAuNzA=' },
+                                    { type: 'input', id: '5e_itw_dso_change', correct: 'LTEuMzY=' }
                                 ],
                                 [
                                     { type: 'text', value: 'Revenue per Day (Net Sales / 365)' },
-                                    { type: 'input', id: '5e_ph_rev_day', correct: 43456 },
-                                    { type: 'input', id: '5e_itw_rev_day', correct: 44 }
+                                    { type: 'input', id: '5e_ph_rev_day', correct: 'NDM0NTY=' },
+                                    { type: 'input', id: '5e_itw_rev_day', correct: 'NDQ=' }
                                 ],
                                 [
                                     { type: 'text', value: 'Cash Flow Impact ($)' },
-                                    { type: 'input', id: '5e_ph_impact', correct: -30508 },
-                                    { type: 'input', id: '5e_itw_impact', correct: -59 }
+                                    { type: 'input', id: '5e_ph_impact', correct: 'LTMwNDE5' },
+                                    { type: 'input', id: '5e_itw_impact', correct: 'LTU5' }
                                 ]
                             ]
                         }
@@ -694,14 +781,14 @@
                                 type: 'multiselect', 
                                 label: 'Select PH Non-Persistent Items:', 
                                 options: ['Gain on disposal', 'Loss on forward contracts', 'Other expense (income)', 'Restructuring charges', 'Inventory write-down'],
-                                correct: ['Gain on disposal', 'Loss on forward contracts', 'Other expense (income)'] 
+                                correct: ['R2FpbiBvbiBkaXNwb3NhbA==', 'TG9zcyBvbiBmb3J3YXJkIGNvbnRyYWN0cw==', 'T3RoZXIgZXhwZW5zZSAoaW5jb21lKQ=='] 
                             },
                             { 
                                 id: '6a_itw_items', 
                                 type: 'multiselect', 
                                 label: 'Select ITW Non-Persistent Items:', 
                                 options: ['Gain on sale of operations', 'Asset impairment', 'Legal settlement', 'Restructuring charges'],
-                                correct: ['Gain on sale of operations'] 
+                                correct: ['R2FpbiBvbiBzYWxlIG9mIG9wZXJhdGlvbnM='] 
                             }
                         ]
                     }
@@ -790,9 +877,50 @@
             );
         };
 
+        // Component for Yes/No Questions
+        const ChoiceInput = ({ id, label, correct, value, onChange, showKey }) => {
+            const decodedCorrect = d(correct);
+            const isCorrect = value === decodedCorrect;
+
+            return (
+                <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">{label}</label>
+                    <div className="flex gap-4">
+                        {['Yes', 'No'].map((opt) => (
+                            <label key={opt} className="flex items-center gap-2 cursor-pointer">
+                                <input
+                                    type="radio"
+                                    name={id}
+                                    value={opt}
+                                    checked={value === opt}
+                                    onChange={(e) => onChange(id, e.target.value)}
+                                    className="text-blue-600 focus:ring-blue-500"
+                                />
+                                {opt}
+                            </label>
+                        ))}
+                    </div>
+                    {value && (
+                        <div className="mt-1">
+                            {isCorrect ? <span className="text-green-600 text-sm font-bold flex items-center gap-1"><Icon name="check" size={14}/> Correct</span> :
+                            <span className="text-red-500 text-sm font-bold flex items-center gap-1"><Icon name="x" size={14}/> Incorrect</span>}
+                        </div>
+                    )}
+                    {showKey && (
+                         <div className="mt-1 text-sm font-bold text-purple-700 bg-purple-100 p-1 rounded inline-block">
+                            Key: {decodedCorrect}
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
         const SmartInput = ({ id, label, correct, isPct, suffix, value, onChange, onFocus, showKey, compact }) => {
             const [localValue, setLocalValue] = React.useState(value || '');
             const [isValid, setIsValid] = React.useState(null);
+
+            // Decode the correct answer on render
+            const decodedCorrect = parseFloat(d(correct));
 
             React.useEffect(() => {
                 setLocalValue(value || '');
@@ -806,7 +934,9 @@
 
             const evaluateExpression = (expression) => {
                 try {
-                    const sanitized = expression.replace(/[^0-9+\-*/().]/g, '');
+                    // Handle percentage inputs like "10%" -> 0.1 or "100 * 5%" -> 5
+                    const withPercent = expression.replace(/(\d+(\.\d+)?)%/g, '($1/100)');
+                    const sanitized = withPercent.replace(/[^0-9+\-*/().]/g, '');
                     if (!sanitized) return null;
                     // eslint-disable-next-line no-new-func
                     return Function('"use strict";return (' + sanitized + ')')();
@@ -833,19 +963,23 @@
                 }
 
                 let userVal = numVal;
-                let targetVal = correct;
+                let targetVal = decodedCorrect;
 
                 // Percent Tolerance Logic
                 if (isPct) {
+                     // If user enters 0.106 and target is 10.6 -> Multiply user by 100
                      if (Math.abs(userVal) < 1 && Math.abs(targetVal) > 1) {
                          userVal = userVal * 100;
-                     } else if (Math.abs(userVal) > 1 && Math.abs(targetVal) < 1) {
+                     } 
+                     // If user enters 10.6 and target is 0.106 -> Multiply target by 100
+                     else if (Math.abs(userVal) > 1 && Math.abs(targetVal) < 1) {
                          targetVal = targetVal * 100;
                      }
                 }
 
                 const diff = Math.abs(userVal - targetVal);
-                const tolerance = Math.abs(targetVal * 0.02); 
+                // Updated Tolerance: 5% of the target value (increased from 2% to accept 0.11 for 10.6)
+                const tolerance = Math.abs(targetVal * 0.05); 
                 
                 if (diff <= tolerance || (targetVal === 0 && Math.abs(userVal) < 0.001)) {
                     setIsValid(true);
@@ -859,7 +993,8 @@
                 const evaluated = evaluateExpression(val);
                 
                 if (evaluated !== null && evaluated !== parseFloat(val)) {
-                    const displayVal = Number.isInteger(evaluated) ? evaluated : evaluated.toFixed(2);
+                    // Increased precision from 2 to 4 decimal places to prevent rounding errors on percentage calc
+                    const displayVal = Number.isInteger(evaluated) ? evaluated : parseFloat(evaluated.toFixed(4));
                     onChange(id, displayVal.toString());
                 } else {
                     validate(val);
@@ -925,7 +1060,7 @@
                     {showKey && (
                         <div className="mt-1 text-sm font-bold text-purple-700 flex items-center gap-1 bg-purple-100 p-1 rounded inline-block">
                             <Icon name="key" size={14} />
-                            Key: {correct} {suffix}
+                            Key: {decodedCorrect} {suffix}
                         </div>
                     )}
                 </div>
@@ -934,14 +1069,15 @@
 
         const MultiSelect = ({ id, label, options, correct, value, onChange, showKey }) => {
              const selected = Array.isArray(value) ? value : [];
+             const decodedCorrect = d(correct); // Decode array of strings
              
              const isCorrect = React.useMemo(() => {
                  if (selected.length === 0) return null;
-                 if (selected.length !== correct.length) return false;
+                 if (selected.length !== decodedCorrect.length) return false;
                  const sortedSelected = [...selected].sort();
-                 const sortedCorrect = [...correct].sort();
+                 const sortedCorrect = [...decodedCorrect].sort();
                  return sortedSelected.every((val, index) => val === sortedCorrect[index]);
-             }, [selected, correct]);
+             }, [selected, decodedCorrect]);
 
              const toggleOption = (opt) => {
                  let newSelected;
@@ -975,7 +1111,7 @@
                     </div>
                     {showKey && (
                         <div className="mt-1 text-sm text-purple-700 bg-purple-100 p-2 rounded">
-                            <span className="font-bold">Key:</span> {correct.join(", ")}
+                            <span className="font-bold">Key:</span> {decodedCorrect.join(", ")}
                         </div>
                     )}
                 </div>
@@ -985,12 +1121,22 @@
         const ComputedCell = ({ dependsOn, operation, answers }) => {
             const clean = (val) => {
                 if(!val && val !== 0) return 0;
-                // Hack: If a key starts with '3b_ph_tot_22' (which is the Computed Sum ID), re-calculate it here.
+                
+                // Logic for aggregating totals that might not be in 'answers' directly if they are computed rows
+                // Section 2.c: PH Total Revenue
+                if (val === '2c_ph_total_rev') {
+                    // dependsOn: ['2c_ph_div_rev', '2c_ph_aero_rev']
+                    const sum = clean('2c_ph_div_rev') + clean('2c_ph_aero_rev');
+                    return sum;
+                }
+                // Section 2.c: ITW Total Revenue
+                if (val === '2c_itw_total_rev') {
+                     const itwSegs = ['2c_itw_auto_rev', '2c_itw_food_rev', '2c_itw_test_rev', '2c_itw_weld_rev', '2c_itw_poly_rev', '2c_itw_cons_rev', '2c_itw_spec_rev'];
+                     return itwSegs.reduce((acc, key) => acc + clean(key), 0);
+                }
+                // Section 3.b: PH Total Deferred Revenue
                 if (val === '3b_ph_tot_22') {
-                     // Recalculate Sum for dependency
-                     const v1 = clean(answers['3b_ph_curr_22']);
-                     const v2 = clean(answers['3b_ph_non_22']);
-                     return v1 + v2;
+                     return clean('3b_ph_curr_22') + clean('3b_ph_non_22');
                 }
                 
                 // If it's a standard input key
@@ -998,16 +1144,13 @@
                     return parseFloat(answers[val].toString().replace(/,/g, ''));
                 }
                 
-                // Fallback for direct values passed (unlikely in this design)
                 return 0;
             };
 
-            // Fix for Dependency Chaining (Computed -> Computed)
-            // Ideally we'd have a true dependency graph, but for this specific layout:
             let computedValue = 0;
 
             if (operation === 'sum') {
-                const sum = dependsOn.reduce((acc, key) => acc + clean(answers[key]), 0);
+                const sum = dependsOn.reduce((acc, key) => acc + clean(key), 0);
                 computedValue = sum;
                 return (
                     <div className="p-2 text-sm font-bold text-blue-700 bg-blue-50 border border-blue-100 rounded text-center">
@@ -1017,30 +1160,11 @@
             }
 
             // Default: Percentage (Div)
-            // Special handling for PH Common Size which depends on a Sum
-            let val1, val2;
-            
-            // Check if first dependency is our specific computed row
-            if(dependsOn[0] === '3b_ph_tot_22') {
-                 val1 = clean(answers['3b_ph_curr_22']) + clean(answers['3b_ph_non_22']);
-            } else {
-                 val1 = clean(answers[dependsOn[0]]);
-            }
-            
-            // Check if second dependency is the Total Revenue Sum from 2.c
-            // 2c_ph_total_rev is computed. We need to re-sum 2c_ph_div_rev + 2c_ph_aero_rev
-            if(dependsOn[1] === '2c_ph_total_rev') {
-                val2 = clean(answers['2c_ph_div_rev']) + clean(answers['2c_ph_aero_rev']);
-            } else if (dependsOn[1] === '2c_itw_total_rev') {
-                 // Sum of all ITW segments
-                 const itwSegs = ['2c_itw_auto_rev', '2c_itw_food_rev', '2c_itw_test_rev', '2c_itw_weld_rev', '2c_itw_poly_rev', '2c_itw_cons_rev', '2c_itw_spec_rev'];
-                 val2 = itwSegs.reduce((acc, key) => acc + clean(answers[key]), 0);
-            } else {
-                val2 = clean(answers[dependsOn[1]]);
-            }
+            let val1 = clean(dependsOn[0]);
+            let val2 = clean(dependsOn[1]);
             
             let display = "—";
-            if (val1 && val2 && val2 !== 0) {
+            if (val2 !== 0) {
                 const pct = (val1 / val2) * 100;
                 display = pct.toFixed(1) + "%";
             }
@@ -1124,7 +1248,7 @@
                                                         />
                                                         {showKey && (
                                                             <div className="text-xs text-purple-700 font-bold mt-1 text-center">
-                                                                {cell.correct}{cell.suffix || ''}
+                                                                {d(cell.correct)}{cell.suffix || ''}
                                                             </div>
                                                         )}
                                                     </div>
@@ -1143,11 +1267,20 @@
             );
         };
 
-        const Sidebar = ({ onDataClick }) => {
-            const [openCompany, setOpenCompany] = React.useState('ITW');
+        const Sidebar = ({ onDataClick, width }) => {
+            const [openCompany, setOpenCompany] = React.useState('PH');
+
+            // Generate header years dynamically based on the first row of data
+            const getYears = (rows) => {
+                if (!rows || rows.length === 0) return ['2022', '2021'];
+                return Object.keys(rows[0]).filter(k => k !== 'account').sort().reverse();
+            };
 
             return (
-                <div className="w-full md:w-1/3 bg-white border-r border-gray-200 h-full flex flex-col overflow-hidden shadow-lg z-10">
+                <div 
+                    style={{ width: width }}
+                    className="bg-white border-r border-gray-200 h-full flex flex-col overflow-hidden shadow-lg z-10 shrink-0"
+                >
                     <div className="p-4 bg-gray-800 text-white flex items-center gap-2">
                         <Icon name="database" size={20} />
                         <h2 className="font-bold">Reference Data</h2>
@@ -1171,38 +1304,42 @@
                                 
                                 {openCompany === company && (
                                     <div className="bg-white">
-                                        {Object.entries(statements).map(([stmtName, rows]) => (
-                                            <div key={stmtName} className="border-b last:border-0">
-                                                <div className="px-3 py-2 bg-gray-50 text-xs font-bold text-gray-500 uppercase tracking-wider">
-                                                    {stmtName}
-                                                </div>
-                                                {/* Header Row for Years */}
-                                                <div className="flex justify-between px-3 py-1 bg-gray-100 text-[10px] font-bold text-gray-500 border-b border-gray-200">
-                                                    <div className="w-1/2">Account</div>
-                                                    <div className="flex gap-2">
-                                                        <div className="w-16 text-center">2022</div>
-                                                        <div className="w-16 text-center">2021</div>
+                                        {Object.entries(statements).map(([stmtName, rows]) => {
+                                            const years = getYears(rows);
+                                            return (
+                                                <div key={stmtName} className="border-b last:border-0">
+                                                    <div className="px-3 py-2 bg-gray-50 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                                                        {stmtName}
                                                     </div>
-                                                </div>
-                                                {rows.map((row, idx) => (
-                                                    <div key={idx} className="flex justify-between items-center px-3 py-2 border-b last:border-0 hover:bg-yellow-50 text-xs group cursor-pointer transition-colors">
-                                                        <span className="text-gray-700 whitespace-nowrap mr-4 font-medium" title={row.account}>{row.account}</span>
-                                                        <div className="flex gap-2 shrink-0">
-                                                            {['2022', '2021'].map(year => (
-                                                                <button
-                                                                    key={year}
-                                                                    onClick={() => onDataClick(row[year])}
-                                                                    className="w-16 text-right text-blue-600 hover:text-blue-800 font-mono text-xs p-1"
-                                                                    title={`Insert ${year} value`}
-                                                                >
-                                                                    {row[year] ? row[year].toLocaleString() : '-'}
-                                                                </button>
+                                                    {/* Header Row for Years */}
+                                                    <div className="flex justify-between px-3 py-1 bg-gray-100 text-[10px] font-bold text-gray-500 border-b border-gray-200">
+                                                        <div className="flex-1 min-w-[120px]">Account</div>
+                                                        <div className="flex gap-4">
+                                                            {years.map(year => (
+                                                                <div key={year} className="w-24 text-center">{year}</div>
                                                             ))}
                                                         </div>
                                                     </div>
-                                                ))}
-                                            </div>
-                                        ))}
+                                                    {rows.map((row, idx) => (
+                                                        <div key={idx} className="flex justify-between items-center px-3 py-2 border-b last:border-0 hover:bg-yellow-50 text-xs group cursor-pointer transition-colors">
+                                                            <span className="text-gray-700 whitespace-nowrap mr-4 font-medium flex-1 min-w-[120px]" title={row.account}>{row.account}</span>
+                                                            <div className="flex gap-4 shrink-0">
+                                                                {years.map(year => (
+                                                                    <button
+                                                                        key={year}
+                                                                        onClick={() => onDataClick(row[year])}
+                                                                        className="w-24 text-right text-blue-600 hover:text-blue-800 font-mono text-xs p-1"
+                                                                        title={`Insert ${year} value`}
+                                                                    >
+                                                                        {row[year] !== undefined ? row[year].toLocaleString() : '-'}
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            );
+                                        })}
                                     </div>
                                 )}
                             </div>
@@ -1219,6 +1356,33 @@
             const [showLogin, setShowLogin] = React.useState(false);
             const [password, setPassword] = React.useState('');
             const [confirmation, setConfirmation] = React.useState({ isOpen: false, message: '', onConfirm: null });
+            
+            // Resizing State
+            const [sidebarWidth, setSidebarWidth] = React.useState(420); // Default wider
+            const [isResizing, setIsResizing] = React.useState(false);
+
+            React.useEffect(() => {
+                const handleMouseMove = (e) => {
+                    if (isResizing) {
+                        const newWidth = Math.max(200, Math.min(e.clientX, 800)); // Constraints
+                        setSidebarWidth(newWidth);
+                    }
+                };
+
+                const handleMouseUp = () => {
+                    setIsResizing(false);
+                };
+
+                if (isResizing) {
+                    window.addEventListener('mousemove', handleMouseMove);
+                    window.addEventListener('mouseup', handleMouseUp);
+                }
+
+                return () => {
+                    window.removeEventListener('mousemove', handleMouseMove);
+                    window.removeEventListener('mouseup', handleMouseUp);
+                };
+            }, [isResizing]);
 
             const handleDataClick = (value) => {
                 if (!focusedInput) return;
@@ -1254,7 +1418,8 @@
             };
 
             const login = () => {
-                if (password.toLowerCase() === 'teacher') {
+                // Password: OAP5-Key9R (Base64: T0FQNS1LZXk5Ug==)
+                if (btoa(password) === 'T0FQNS1LZXk5Ug==') {
                     setInstructorMode(true);
                     setShowLogin(false);
                     setPassword('');
@@ -1265,27 +1430,29 @@
 
             const autoFill = () => {
                 const newAnswers = { ...answers };
-                SECTIONS.forEach(sec => {
+                _DATA_MATRIX.forEach(sec => {
                     sec.subsections.forEach(sub => {
                         if (sub.flexibleTable) {
                             if(sub.flexibleTable.rows) {
                                 sub.flexibleTable.rows.forEach(row => {
-                                    row.forEach(cell => { if(cell.type === 'input') newAnswers[cell.id] = cell.correct; });
+                                    row.forEach(cell => { if(cell.type === 'input') newAnswers[cell.id] = d(cell.correct); });
                                 });
                             }
                             if(sub.flexibleTable.views) {
                                 Object.values(sub.flexibleTable.views).forEach(view => {
                                     view.rows.forEach(row => {
-                                        row.forEach(cell => { if(cell.type === 'input') newAnswers[cell.id] = cell.correct; });
+                                        row.forEach(cell => { if(cell.type === 'input') newAnswers[cell.id] = d(cell.correct); });
                                     });
                                 });
                             }
                         } else if (sub.questions) {
                             sub.questions.forEach(q => {
                                 if (q.type === 'multiselect') {
-                                    newAnswers[q.id] = q.correct;
+                                    newAnswers[q.id] = d(q.correct);
+                                } else if (q.type === 'choice') {
+                                    newAnswers[q.id] = d(q.correct);
                                 } else {
-                                    newAnswers[q.id] = q.correct;
+                                    newAnswers[q.id] = d(q.correct);
                                 }
                             });
                         }
@@ -1294,7 +1461,6 @@
                 setAnswers(newAnswers);
             };
 
-            // Fix: Define handlers for modal actions
             const performClear = () => {
                  setAnswers({}); 
                  setInstructorMode(false);
@@ -1311,7 +1477,7 @@
 
             const downloadWork = () => {
                 let content = "Financial Reporting Simulation - Student Work\n\n";
-                SECTIONS.forEach(sec => {
+                _DATA_MATRIX.forEach(sec => {
                     content += `--- ${sec.title} ---\n`;
                     sec.subsections.forEach(sub => {
                         content += `  [${sub.title}]\n`;
@@ -1355,12 +1521,18 @@
             };
 
             return (
-                <div className="flex h-screen flex-col md:flex-row overflow-hidden font-sans text-gray-800">
+                <div className="flex h-screen flex-row overflow-hidden font-sans text-gray-800">
                     {/* Sidebar */}
-                    <Sidebar onDataClick={handleDataClick} />
+                    <Sidebar onDataClick={handleDataClick} width={sidebarWidth} />
+
+                    {/* Resizer Handle */}
+                    <div 
+                        className={`resizer ${isResizing ? 'active' : ''}`} 
+                        onMouseDown={() => setIsResizing(true)}
+                    ></div>
 
                     {/* Main Content */}
-                    <div className="flex-1 flex flex-col h-full bg-white relative">
+                    <div className="flex-1 flex flex-col h-full bg-white relative min-w-0">
                         {/* Instructor Toolbar */}
                         {instructorMode && (
                             <div className="bg-purple-600 text-white p-2 flex justify-between items-center shadow-md z-20 sticky top-0">
@@ -1399,9 +1571,10 @@
                             <div className="flex gap-2">
                                 <button 
                                     onClick={() => setShowLogin(true)}
-                                    className="px-4 py-2 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200 border border-gray-300 flex items-center gap-2"
+                                    className="px-2 py-2 text-gray-400 hover:text-gray-600 rounded flex items-center gap-2 opacity-50 hover:opacity-100"
+                                    title="Instructor Access"
                                 >
-                                    <Icon name="lock" size={16} /> Instructor
+                                    <Icon name="lock" size={16} />
                                 </button>
                                 <button 
                                     onClick={downloadWork}
@@ -1415,7 +1588,7 @@
                         {/* Content Area */}
                         <div className="flex-1 overflow-y-auto p-6 scrollbar-thin bg-gray-50">
                             <div className="max-w-5xl mx-auto space-y-8 pb-12">
-                                {SECTIONS.map((sec) => (
+                                {_DATA_MATRIX.map((sec) => (
                                     <div key={sec.id} className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
                                         <h2 className="text-xl font-bold text-gray-800 mb-6 border-b pb-3 flex items-center gap-2">
                                             <Icon name="hash" size={24} className="text-blue-500" />
@@ -1458,6 +1631,15 @@
                                                                             id={q.id}
                                                                             label={q.label}
                                                                             options={q.options}
+                                                                            correct={q.correct}
+                                                                            value={answers[q.id]}
+                                                                            onChange={handleInputChange}
+                                                                            showKey={instructorMode}
+                                                                        />
+                                                                    ) : q.type === 'choice' ? (
+                                                                        <ChoiceInput
+                                                                            id={q.id}
+                                                                            label={q.label}
                                                                             correct={q.correct}
                                                                             value={answers[q.id]}
                                                                             onChange={handleInputChange}
