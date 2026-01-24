@@ -110,9 +110,22 @@
                 p3_cash: "MTQwMDA=", p3_int: "MTU2MDM=", p3_amort: "MTYwMw==", p3_cv: "MzEzNjcw",
                 p4_cash: "MTQwMDA=", p4_int: "MTU2ODQ=", p4_amort: "MTY4NA==", p4_cv: "MzE1MzU0",
                 
+                // Financial Statements
                 iss_cash: "MzA5MDg2", iss_liab: "MzA5MDg2", iss_rev: "MA==", iss_exp: "MA==", iss_ni: "MA==",
-                jun_cash: "LTE0MDAw", jun_liab: "MTQ1NA==", jun_rev: "MA==", jun_exp: "MTU0NTQ=", jun_ni: "LTE1NDU0",
-                dec_cash: "LTE0MDAw", dec_liab: "MTUyNw==", dec_rev: "MA==", dec_exp: "MTU1Mjc=", dec_ni: "LTE1NTI3"
+                
+                // June 30 Pmt
+                jun_cash: "LTE0MDAw", jun_liab: "MTQ1NA==", 
+                jun_exp: "LTE1NDU0", // Equity Decrease (Negative)
+                jun_rev: "MA==", 
+                jun_exp_col: "MTU0NTQ=", // Expense Column (Positive)
+                jun_ni: "LTE1NDU0",
+
+                // Dec 31 Pmt
+                dec_cash: "LTE0MDAw", dec_liab: "MTUyNw==", 
+                dec_exp: "LTE1NTI3", // Equity Decrease (Negative)
+                dec_rev: "MA==", 
+                dec_exp_col: "MTU1Mjc=", // Expense Column (Positive)
+                dec_ni: "LTE1NTI3"
             },
             ASSESSMENT: {
                 finalCV: "MzE1MzU0", 
@@ -243,39 +256,63 @@
         const SmartInput = ({ id, value, onChange, correctValue, label, hint, instructorMode, activeInput, setActiveInput, tolerance = 1, className="", readOnly=false }) => {
             const [localError, setLocalError] = useState(null);
             
-            const evaluateMath = (expr) => {
-                if (!expr) return { valid: true, val: "" };
+            // --- UPDATED VALIDATION LOGIC ---
+            const validateInput = (userVal, targetVal) => {
+                if (userVal === undefined || userVal === null || userVal === "" || targetVal === undefined) return false;
+                
+                // Decode target if it's not a number yet
+                const targetStr = targetVal.toString();
+                const targetNum = parseFloat(targetStr.replace(/,/g, ''));
+                if (isNaN(targetNum)) return false;
+
+                // Process User Input
+                let cleanVal = userVal.toString().replace(/,/g, '').replace(/[^\d\.\+\-\*\/\(\)]/g, '');
+                let finalVal = 0;
+                
                 try {
-                    const sanitized = expr.toString().replace(/,/g, '').replace(/%/g, '').replace(/[^\d\.\+\-\*\/\(\)]/g, '');
-                    if (!/^[\d\.\+\-\*\/\(\)\s]+$/.test(sanitized)) return { valid: false, msg: "Invalid" };
-                    const res = eval(sanitized);
-                    if (!isFinite(res) || isNaN(res)) return { valid: false, msg: "Error" };
-                    return { valid: true, val: res };
-                } catch (e) { return { valid: false, msg: "Error" }; }
+                    // Safety check for evaluation
+                    if (/^[0-9+\-*/.() ]+$/.test(cleanVal)) {
+                        finalVal = Function('"use strict";return (' + cleanVal + ')')();
+                    } else {
+                        return false;
+                    }
+                } catch(e) { return false; }
+
+                if (isNaN(finalVal)) return false;
+
+                // Dynamic Tolerance: 1.0 or 0.1% of target, whichever is larger
+                const effectiveTolerance = Math.max(tolerance, Math.abs(targetNum * 0.001));
+
+                const diff = Math.abs(finalVal - targetNum);
+                const sum = Math.abs(finalVal + targetNum); // Check absolute value match
+
+                return diff <= effectiveTolerance || sum <= effectiveTolerance;
             };
 
             const isCorrect = useMemo(() => {
-                if (!value || correctValue === undefined) return false;
-                const { valid, val } = evaluateMath(value);
-                if (!valid) return false;
-                const target = parseFloat(correctValue.toString().replace(/,/g, ''));
-                
-                // Allow absolute matching to handle sign discrepancies (e.g. 15454 vs -15454)
-                return Math.abs(val - target) <= tolerance || Math.abs(val + target) <= tolerance;
+                return validateInput(value, correctValue);
             }, [value, correctValue, tolerance]);
 
             const handleBlur = (e) => {
-                const { valid, val } = evaluateMath(value);
-                if (!valid) { setLocalError("Invalid"); return; }
-                setLocalError(null);
-                if (valid && value !== "") {
-                     const numVal = Number(val);
-                     const displayVal = Number.isInteger(numVal) ? numVal.toString() : numVal.toFixed(0);
-                     onChange(id, displayVal.toString()); 
+                const curVal = value === undefined || value === null ? "" : value;
+                let cleanVal = curVal.toString().replace(/,/g, '').replace(/[^\d\.\+\-\*\/\(\)]/g, '');
+                let evaluated = "";
+                try {
+                    if (/^[0-9+\-*/.() ]+$/.test(cleanVal)) {
+                        const res = Function('"use strict";return (' + cleanVal + ')')();
+                        if (isFinite(res) && !isNaN(res)) {
+                            evaluated = Number.isInteger(res) ? res.toString() : res.toFixed(0);
+                        }
+                    }
+                } catch (e) {}
+
+                if (evaluated) {
+                    onChange(id, evaluated);
+                    setLocalError(null);
+                } else if (value && value.trim() !== "") {
+                    // setLocalError("Invalid"); 
                 }
             };
-
-            const isActive = activeInput === id;
 
             return (
                 <div className="w-full relative">
@@ -290,7 +327,7 @@
                         onKeyDown={(e) => e.key === 'Enter' && e.target.blur()}
                         readOnly={readOnly}
                         className={`w-full p-2 text-right border rounded text-sm font-mono shadow-sm transition-all outline-none focus:ring-2 focus:ring-blue-500 ${
-                            isCorrect ? "input-correct" : (value && !isActive && !isCorrect) ? "bg-white border-slate-300" : "bg-white border-slate-300"
+                            isCorrect ? "input-correct" : (value && activeInput !== id) ? "bg-white border-slate-300" : "bg-white border-slate-300"
                         } ${readOnly ? "bg-slate-50 text-slate-500" : ""} ${className}`}
                         placeholder={hint ? hint : "Calc..."}
                     />
@@ -389,7 +426,7 @@
                                     type="text" 
                                     value={studentFormula}
                                     onChange={(e) => setStudentFormula(e.target.value)}
-                                    placeholder="=PV(...)"
+                                    placeholder="=PV(rate, nper, pmt, [fv], [type])"
                                     className={`w-full font-mono text-sm p-3 border rounded focus:ring-2 outline-none ${
                                         calculatedPrice === 309086 
                                         ? 'border-emerald-500 bg-emerald-50 text-emerald-800' 
@@ -510,11 +547,11 @@
                                         <td>=</td>
                                         <td className="p-2"><SmartInput id="jun_liab" value={inputs.jun_liab} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(_DATA_MATRIX.ANALYSIS.jun_liab)} tolerance={2} instructorMode={teacherMode} hint="Amortization" /></td>
                                         <td>+</td>
-                                        <td className="p-2"><SmartInput id="jun_exp" value={inputs.jun_exp} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(_DATA_MATRIX.ANALYSIS.jun_ni)} tolerance={2} instructorMode={teacherMode} hint="Eq. Change" /></td>
+                                        <td className="p-2"><SmartInput id="jun_exp" value={inputs.jun_exp} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(_DATA_MATRIX.ANALYSIS.jun_exp)} tolerance={2} instructorMode={teacherMode} hint="Eq. Change" /></td>
                                         <td className="text-slate-300">|</td>
-                                        <td className="p-2"><SmartInput id="jun_rev" value={inputs.jun_rev} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={0} instructorMode={teacherMode} hint="If no effect, enter 0" /></td>
+                                        <td className="p-2"><SmartInput id="jun_rev" value={inputs.jun_rev} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(_DATA_MATRIX.ANALYSIS.jun_rev)} instructorMode={teacherMode} hint="If no effect, enter 0" /></td>
                                         <td>-</td>
-                                        <td className="p-2"><SmartInput id="jun_exp_col" value={inputs.jun_exp_col} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(_DATA_MATRIX.ANALYSIS.jun_exp)} tolerance={2} instructorMode={teacherMode} hint="Int. Expense" /></td>
+                                        <td className="p-2"><SmartInput id="jun_exp_col" value={inputs.jun_exp_col} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(_DATA_MATRIX.ANALYSIS.jun_exp_col)} tolerance={2} instructorMode={teacherMode} hint="Int. Expense" /></td>
                                         <td>=</td>
                                         <td className="p-2"><SmartInput id="jun_ni" value={inputs.jun_ni} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(_DATA_MATRIX.ANALYSIS.jun_ni)} tolerance={2} instructorMode={teacherMode} /></td>
                                     </tr>
@@ -524,11 +561,11 @@
                                         <td>=</td>
                                         <td className="p-2"><SmartInput id="dec_liab" value={inputs.dec_liab} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(_DATA_MATRIX.ANALYSIS.dec_liab)} tolerance={2} instructorMode={teacherMode} hint="Amortization" /></td>
                                         <td>+</td>
-                                        <td className="p-2"><SmartInput id="dec_exp" value={inputs.dec_exp} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(_DATA_MATRIX.ANALYSIS.dec_ni)} tolerance={2} instructorMode={teacherMode} hint="Eq. Change" /></td>
+                                        <td className="p-2"><SmartInput id="dec_exp" value={inputs.dec_exp} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(_DATA_MATRIX.ANALYSIS.dec_exp)} tolerance={2} instructorMode={teacherMode} hint="Eq. Change" /></td>
                                         <td className="text-slate-300">|</td>
-                                        <td className="p-2"><SmartInput id="dec_rev" value={inputs.dec_rev} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={0} instructorMode={teacherMode} hint="If no effect, enter 0" /></td>
+                                        <td className="p-2"><SmartInput id="dec_rev" value={inputs.dec_rev} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(_DATA_MATRIX.ANALYSIS.dec_rev)} instructorMode={teacherMode} hint="If no effect, enter 0" /></td>
                                         <td>-</td>
-                                        <td className="p-2"><SmartInput id="dec_exp_col" value={inputs.dec_exp_col} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(_DATA_MATRIX.ANALYSIS.dec_exp)} tolerance={2} instructorMode={teacherMode} hint="Int. Expense" /></td>
+                                        <td className="p-2"><SmartInput id="dec_exp_col" value={inputs.dec_exp_col} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(_DATA_MATRIX.ANALYSIS.dec_exp_col)} tolerance={2} instructorMode={teacherMode} hint="Int. Expense" /></td>
                                         <td>=</td>
                                         <td className="p-2"><SmartInput id="dec_ni" value={inputs.dec_ni} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(_DATA_MATRIX.ANALYSIS.dec_ni)} tolerance={2} instructorMode={teacherMode} /></td>
                                     </tr>
@@ -726,16 +763,35 @@
             };
 
             const handleAutoFill = () => {
-                if (activeTab === 'ASSESSMENT') {
-                    // Handled inside module
-                    setIsAutoFilled(true);
-                } else {
-                    const activeKey = _DATA_MATRIX[activeTab];
+                const activeMatrix = _DATA_MATRIX[activeTab];
+                if (activeMatrix) {
                     const decodedInputs = {};
-                    Object.keys(activeKey).forEach(k => decodedInputs[k] = d(activeKey[k]));
-                    setInputs(prev => ({ ...prev, [activeTab]: decodedInputs }));
-                    setIsAutoFilled(true);
+                    Object.keys(activeMatrix).forEach(k => {
+                        // Decode keys for current tab
+                        if (k !== 'q1' && k !== 'q2' && k !== 'q3') { // Skip quiz keys if mixed
+                             decodedInputs[k] = d(activeMatrix[k]);
+                        }
+                    });
+                    
+                    // Special case for Assessment to ensure finalCV is set if we are on Analysis tab but want to fill assessment too? 
+                    // No, usually auto-fill is per tab. But if user wants to fill ALL...
+                    // Current behavior: Fill active tab.
+                    
+                    // IF active tab is ANALYSIS, we might want to fill ASSESSMENT too or keep them separate.
+                    // The prompt asked for specific inputs to be filled. 
+                    // Let's ensure if we are on ASSESSMENT tab, finalCV is filled.
+                    if (activeTab === 'ASSESSMENT') {
+                         decodedInputs['finalCV'] = d(_DATA_MATRIX.ASSESSMENT.finalCV);
+                    }
+
+                    setInputs(prev => ({ 
+                        ...prev, 
+                        [activeTab]: { ...prev[activeTab], ...decodedInputs } 
+                    }));
                 }
+                
+                // Also trigger quiz fill if on assessment
+                setIsAutoFilled(true);
             };
 
             const performClear = () => {
