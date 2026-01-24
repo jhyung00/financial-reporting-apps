@@ -23,6 +23,9 @@
                         blue: { 950: '#172554' },
                         emerald: { 450: '#10b981' },
                         excel: { green: '#217346', header: '#e6f2ea' }
+                    },
+                    cursor: {
+                        'col-resize': 'col-resize',
                     }
                 }
             }
@@ -62,36 +65,58 @@
         .calc-btn.eq { background-color: #059669; }
         .calc-btn.clear { background-color: #991b1b; }
         
+        /* Drag Handle */
+        .resizer {
+            width: 5px;
+            cursor: col-resize;
+            background-color: #cbd5e1;
+            transition: background-color 0.2s;
+            z-index: 50;
+        }
+        .resizer:hover, .resizer.active {
+            background-color: #3b82f6;
+        }
+
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
         .animate-fade-in { animation: fadeIn 0.3s ease-out; }
+
+        /* Anti-Tamper Styles */
+        .no-select {
+            user-select: none;
+            -webkit-user-select: none;
+        }
     </style>
 </head>
-<body class="bg-slate-100 text-slate-800 antialiased h-screen flex flex-col overflow-hidden">
+<body class="bg-slate-100 text-slate-800 antialiased h-screen flex flex-col overflow-hidden no-select" oncontextmenu="return false;">
 
     <div id="root" class="h-full flex flex-col"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useMemo, useRef } = React;
+        const { useState, useEffect, useMemo, useRef, useCallback } = React;
 
-        // --- DATA & KEYS ---
-        const ANSWER_KEYS = {
+        // --- SECURITY & OBFUSCATION ---
+        const d = (str) => {
+            try { return atob(str); } catch (e) { return str; }
+        };
+
+        const _DATA_MATRIX = {
             ANALYSIS: {
-                periods: "18", rate: "5", pmt: "-14000", fv: "-350000",
-                p0_cv: "309086", 
+                periods: "MTg=", rate: "NQ==", pmt: "LTE0MDAw", fv: "LTM1MDAwMA==",
+                p0_cv: "MzA5MDg2", 
                 // Year 1
-                p1_cash: "14000", p1_int: "15454", p1_amort: "1454", p1_cv: "310540",
-                p2_cash: "14000", p2_int: "15527", p2_amort: "1527", p2_cv: "312067",
+                p1_cash: "MTQwMDA=", p1_int: "MTU0NTQ=", p1_amort: "MTQ1NA==", p1_cv: "MzEwNTQw",
+                p2_cash: "MTQwMDA=", p2_int: "MTU1Mjc=", p2_amort: "MTUyNw==", p2_cv: "MzEyMDY3",
                 // Year 2
-                p3_cash: "14000", p3_int: "15603", p3_amort: "1603", p3_cv: "313670",
-                p4_cash: "14000", p4_int: "15684", p4_amort: "1684", p4_cv: "315354",
+                p3_cash: "MTQwMDA=", p3_int: "MTU2MDM=", p3_amort: "MTYwMw==", p3_cv: "MzEzNjcw",
+                p4_cash: "MTQwMDA=", p4_int: "MTU2ODQ=", p4_amort: "MTY4NA==", p4_cv: "MzE1MzU0",
                 
-                iss_cash: "309086", iss_liab: "309086", iss_rev: "0", iss_exp: "0", iss_ni: "0",
-                jun_cash: "-14000", jun_liab: "1454", jun_rev: "0", jun_exp: "15454", jun_ni: "-15454",
-                dec_cash: "-14000", dec_liab: "1527", dec_rev: "0", dec_exp: "15527", dec_ni: "-15527"
+                iss_cash: "MzA5MDg2", iss_liab: "MzA5MDg2", iss_rev: "MA==", iss_exp: "MA==", iss_ni: "MA==",
+                jun_cash: "LTE0MDAw", jun_liab: "MTQ1NA==", jun_rev: "MA==", jun_exp: "MTU0NTQ=", jun_ni: "LTE1NDU0",
+                dec_cash: "LTE0MDAw", dec_liab: "MTUyNw==", dec_rev: "MA==", dec_exp: "MTU1Mjc=", dec_ni: "LTE1NTI3"
             },
             ASSESSMENT: {
-                finalCV: "315354", // Updated to end of Year 2
-                q1: "c", q2: "c", q3: "a" 
+                finalCV: "MzE1MzU0", 
+                q1: "Yw==", q2: "Yw==", q3: "YQ==" 
             }
         };
 
@@ -136,7 +161,7 @@
         const ConfirmationModal = ({ isOpen, title, message, onConfirm, onCancel }) => {
             if (!isOpen) return null;
             return (
-                <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center backdrop-blur-sm animate-fade-in">
+                <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center backdrop-blur-sm animate-fade-in no-select">
                     <div className="bg-white rounded-lg shadow-2xl max-w-sm w-full p-6 m-4 border-l-4 border-red-500">
                         <div className="flex items-center gap-3 text-red-600 mb-4">
                             <Icon name="alert-triangle" size={24} />
@@ -215,7 +240,7 @@
             );
         };
 
-        const SmartInput = ({ id, value, onChange, correctValue, label, hint, instructorMode, activeInput, setActiveInput, tolerance = 1, className="", isCurrency=false, readOnly=false }) => {
+        const SmartInput = ({ id, value, onChange, correctValue, label, hint, instructorMode, activeInput, setActiveInput, tolerance = 1, className="", readOnly=false }) => {
             const [localError, setLocalError] = useState(null);
             
             const evaluateMath = (expr) => {
@@ -230,12 +255,14 @@
             };
 
             const isCorrect = useMemo(() => {
-                if (!value || !correctValue) return false;
+                if (!value || correctValue === undefined) return false;
                 const { valid, val } = evaluateMath(value);
                 if (!valid) return false;
                 const target = parseFloat(correctValue.toString().replace(/,/g, ''));
-                return Math.abs(val - target) <= tolerance;
-            }, [value, correctValue]);
+                
+                // Allow absolute matching to handle sign discrepancies (e.g. 15454 vs -15454)
+                return Math.abs(val - target) <= tolerance || Math.abs(val + target) <= tolerance;
+            }, [value, correctValue, tolerance]);
 
             const handleBlur = (e) => {
                 const { valid, val } = evaluateMath(value);
@@ -265,7 +292,7 @@
                         className={`w-full p-2 text-right border rounded text-sm font-mono shadow-sm transition-all outline-none focus:ring-2 focus:ring-blue-500 ${
                             isCorrect ? "input-correct" : (value && !isActive && !isCorrect) ? "bg-white border-slate-300" : "bg-white border-slate-300"
                         } ${readOnly ? "bg-slate-50 text-slate-500" : ""} ${className}`}
-                        placeholder={hint ? "Calc..." : "-"}
+                        placeholder={hint ? hint : "Calc..."}
                     />
                     <div className="absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none transform mt-0.5">
                         {isCorrect ? <span className="text-emerald-600"><Icon name="check" size={14} /></span> : 
@@ -283,7 +310,7 @@
         const ReferenceTable = ({ title, headers, rows, onValueClick }) => {
             const [isOpen, setIsOpen] = useState(true);
             return (
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mb-4">
+                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mb-4 select-none">
                     <button onClick={() => setIsOpen(!isOpen)} className="w-full flex items-center justify-between p-3 bg-slate-50 border-b border-slate-100 hover:bg-slate-100 transition">
                         <h4 className="font-bold text-slate-700 text-sm flex items-center gap-2">
                             <Icon name="table" size={16} /> {title}
@@ -313,41 +340,17 @@
             );
         };
 
-        const QuestionBox = ({ q, hint, teacherAns, teacherMode }) => {
-            const [showHint, setShowHint] = useState(false);
-            return (
-                <div className="bg-white border border-slate-200 rounded-lg p-5 shadow-sm mb-4">
-                    <p className="font-bold text-slate-800 mb-3 text-sm">{q}</p>
-                    <textarea className="w-full border border-slate-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-200 outline-none mb-2 bg-slate-50 min-h-[80px]" placeholder="Type analysis..."></textarea>
-                    <div className="flex justify-between items-center">
-                        <button onClick={() => setShowHint(!showHint)} className="text-xs text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1">
-                            <Icon name="help-circle" size={12} /> {showHint ? "Hide Hint" : "Show Hint"}
-                        </button>
-                    </div>
-                    {showHint && <p className="mt-2 text-xs text-blue-700 bg-blue-50 p-2 rounded border border-blue-100">{hint}</p>}
-                    {teacherMode && (
-                        <div className="mt-3 pt-3 border-t border-slate-100 bg-purple-50 p-3 rounded">
-                            <span className="text-[10px] font-bold text-purple-700 uppercase tracking-wider block mb-1">Instructor Note</span>
-                            <p className="text-xs text-slate-700">{teacherAns}</p>
-                        </div>
-                    )}
-                </div>
-            );
-        };
-
         // --- MODULES ---
 
         const ModuleAnalysis = ({ teacherMode, isAutoFilled, handleInputChange, inputs, activeInput, setActiveInput, setInputs }) => {
             const [studentFormula, setStudentFormula] = useState("");
             const [calculatedPrice, setCalculatedPrice] = useState(null);
 
-            // Effect to clear local state when global state is cleared via Clear & Exit
             useEffect(() => {
                 if (isAutoFilled) {
                     setStudentFormula("=PV(0.05, 18, -14000, -350000)");
                     setCalculatedPrice(309086);
                 } else if (!inputs.periods) {
-                    // Assuming if 'periods' input is cleared, everything should be reset
                     setStudentFormula("");
                     setCalculatedPrice(null);
                 }
@@ -356,7 +359,6 @@
             useEffect(() => {
                 if (!studentFormula) return;
                 const clean = studentFormula.toUpperCase().replace(/\s/g, '');
-                // Regex check for correct Excel PV syntax for this problem
                 const regex = /=PV\((0?\.05|5%),18,-14000,-350000(,0)?\)/;
                 if (regex.test(clean)) {
                     setCalculatedPrice(309086);
@@ -376,10 +378,10 @@
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-4">
                                 <h5 className="text-xs font-bold text-slate-500 uppercase">Identify Excel Inputs</h5>
-                                <SmartInput id="periods" label="NPER (Periods)" value={inputs.periods} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={18} instructorMode={teacherMode} hint="9 yrs * 2" />
-                                <SmartInput id="rate" label="RATE (Period Rate)" value={inputs.rate} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={5} instructorMode={teacherMode} hint="10% / 2" />
-                                <SmartInput id="pmt" label="PMT (Coupon Paid)" value={inputs.pmt} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={-14000} instructorMode={teacherMode} hint="$350k * 4%" />
-                                <SmartInput id="fv" label="FV (Face Value)" value={inputs.fv} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={-350000} instructorMode={teacherMode} hint="Outflow at end" />
+                                <SmartInput id="periods" label="NPER (Periods)" value={inputs.periods} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(_DATA_MATRIX.ANALYSIS.periods)} instructorMode={teacherMode} hint="9 yrs * 2" />
+                                <SmartInput id="rate" label="RATE (Period Rate)" value={inputs.rate} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(_DATA_MATRIX.ANALYSIS.rate)} instructorMode={teacherMode} hint="10% / 2" />
+                                <SmartInput id="pmt" label="PMT (Coupon Paid)" value={inputs.pmt} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(_DATA_MATRIX.ANALYSIS.pmt)} instructorMode={teacherMode} hint="$350k * 4%" />
+                                <SmartInput id="fv" label="FV (Face Value)" value={inputs.fv} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(_DATA_MATRIX.ANALYSIS.fv)} instructorMode={teacherMode} hint="Outflow at end" />
                             </div>
                             <div className="space-y-4">
                                 <h5 className="text-xs font-bold text-slate-500 uppercase">Enter Excel Formula</h5>
@@ -426,37 +428,37 @@
                                     <tr>
                                         <td className="p-2 text-slate-700 font-bold">Jan 1, Year 1</td>
                                         <td colSpan="3"></td>
-                                        <td className="p-2"><SmartInput id="p0_cv" value={inputs.p0_cv} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={309086} instructorMode={teacherMode} /></td>
+                                        <td className="p-2"><SmartInput id="p0_cv" value={inputs.p0_cv} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(_DATA_MATRIX.ANALYSIS.p0_cv)} instructorMode={teacherMode} /></td>
                                     </tr>
                                     {/* Year 1 */}
                                     <tr>
                                         <td className="p-2 text-slate-700">Jun 30, Year 1</td>
-                                        <td className="p-2"><SmartInput id="p1_cash" value={inputs.p1_cash} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={14000} instructorMode={teacherMode} /></td>
-                                        <td className="p-2"><SmartInput id="p1_int" value={inputs.p1_int} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={15454} tolerance={2} instructorMode={teacherMode} /></td>
-                                        <td className="p-2"><SmartInput id="p1_amort" value={inputs.p1_amort} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={1454} tolerance={2} instructorMode={teacherMode} /></td>
-                                        <td className="p-2"><SmartInput id="p1_cv" value={inputs.p1_cv} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={310540} tolerance={2} instructorMode={teacherMode} /></td>
+                                        <td className="p-2"><SmartInput id="p1_cash" value={inputs.p1_cash} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(_DATA_MATRIX.ANALYSIS.p1_cash)} instructorMode={teacherMode} /></td>
+                                        <td className="p-2"><SmartInput id="p1_int" value={inputs.p1_int} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(_DATA_MATRIX.ANALYSIS.p1_int)} tolerance={2} instructorMode={teacherMode} /></td>
+                                        <td className="p-2"><SmartInput id="p1_amort" value={inputs.p1_amort} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(_DATA_MATRIX.ANALYSIS.p1_amort)} tolerance={2} instructorMode={teacherMode} /></td>
+                                        <td className="p-2"><SmartInput id="p1_cv" value={inputs.p1_cv} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(_DATA_MATRIX.ANALYSIS.p1_cv)} tolerance={2} instructorMode={teacherMode} /></td>
                                     </tr>
                                     <tr>
                                         <td className="p-2 text-slate-700 border-b-2 border-slate-100">Dec 31, Year 1</td>
-                                        <td className="p-2 border-b-2 border-slate-100"><SmartInput id="p2_cash" value={inputs.p2_cash} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={14000} instructorMode={teacherMode} /></td>
-                                        <td className="p-2 border-b-2 border-slate-100"><SmartInput id="p2_int" value={inputs.p2_int} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={15527} tolerance={2} instructorMode={teacherMode} /></td>
-                                        <td className="p-2 border-b-2 border-slate-100"><SmartInput id="p2_amort" value={inputs.p2_amort} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={1527} tolerance={2} instructorMode={teacherMode} /></td>
-                                        <td className="p-2 border-b-2 border-slate-100"><SmartInput id="p2_cv" value={inputs.p2_cv} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={312067} tolerance={2} instructorMode={teacherMode} /></td>
+                                        <td className="p-2 border-b-2 border-slate-100"><SmartInput id="p2_cash" value={inputs.p2_cash} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(_DATA_MATRIX.ANALYSIS.p2_cash)} instructorMode={teacherMode} /></td>
+                                        <td className="p-2 border-b-2 border-slate-100"><SmartInput id="p2_int" value={inputs.p2_int} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(_DATA_MATRIX.ANALYSIS.p2_int)} tolerance={2} instructorMode={teacherMode} /></td>
+                                        <td className="p-2 border-b-2 border-slate-100"><SmartInput id="p2_amort" value={inputs.p2_amort} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(_DATA_MATRIX.ANALYSIS.p2_amort)} tolerance={2} instructorMode={teacherMode} /></td>
+                                        <td className="p-2 border-b-2 border-slate-100"><SmartInput id="p2_cv" value={inputs.p2_cv} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(_DATA_MATRIX.ANALYSIS.p2_cv)} tolerance={2} instructorMode={teacherMode} /></td>
                                     </tr>
                                     {/* Year 2 */}
                                     <tr>
                                         <td className="p-2 text-slate-700 bg-slate-50/50">Jun 30, Year 2</td>
-                                        <td className="p-2 bg-slate-50/50"><SmartInput id="p3_cash" value={inputs.p3_cash} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={14000} instructorMode={teacherMode} /></td>
-                                        <td className="p-2 bg-slate-50/50"><SmartInput id="p3_int" value={inputs.p3_int} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={15603} tolerance={2} instructorMode={teacherMode} /></td>
-                                        <td className="p-2 bg-slate-50/50"><SmartInput id="p3_amort" value={inputs.p3_amort} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={1603} tolerance={2} instructorMode={teacherMode} /></td>
-                                        <td className="p-2 bg-slate-50/50"><SmartInput id="p3_cv" value={inputs.p3_cv} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={313670} tolerance={2} instructorMode={teacherMode} /></td>
+                                        <td className="p-2 bg-slate-50/50"><SmartInput id="p3_cash" value={inputs.p3_cash} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(_DATA_MATRIX.ANALYSIS.p3_cash)} instructorMode={teacherMode} /></td>
+                                        <td className="p-2 bg-slate-50/50"><SmartInput id="p3_int" value={inputs.p3_int} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(_DATA_MATRIX.ANALYSIS.p3_int)} tolerance={2} instructorMode={teacherMode} /></td>
+                                        <td className="p-2 bg-slate-50/50"><SmartInput id="p3_amort" value={inputs.p3_amort} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(_DATA_MATRIX.ANALYSIS.p3_amort)} tolerance={2} instructorMode={teacherMode} /></td>
+                                        <td className="p-2 bg-slate-50/50"><SmartInput id="p3_cv" value={inputs.p3_cv} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(_DATA_MATRIX.ANALYSIS.p3_cv)} tolerance={2} instructorMode={teacherMode} /></td>
                                     </tr>
                                     <tr>
                                         <td className="p-2 text-slate-700 bg-slate-50/50">Dec 31, Year 2</td>
-                                        <td className="p-2 bg-slate-50/50"><SmartInput id="p4_cash" value={inputs.p4_cash} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={14000} instructorMode={teacherMode} /></td>
-                                        <td className="p-2 bg-slate-50/50"><SmartInput id="p4_int" value={inputs.p4_int} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={15684} tolerance={2} instructorMode={teacherMode} /></td>
-                                        <td className="p-2 bg-slate-50/50"><SmartInput id="p4_amort" value={inputs.p4_amort} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={1684} tolerance={2} instructorMode={teacherMode} /></td>
-                                        <td className="p-2 bg-slate-50/50"><SmartInput id="p4_cv" value={inputs.p4_cv} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={315354} tolerance={2} instructorMode={teacherMode} /></td>
+                                        <td className="p-2 bg-slate-50/50"><SmartInput id="p4_cash" value={inputs.p4_cash} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(_DATA_MATRIX.ANALYSIS.p4_cash)} instructorMode={teacherMode} /></td>
+                                        <td className="p-2 bg-slate-50/50"><SmartInput id="p4_int" value={inputs.p4_int} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(_DATA_MATRIX.ANALYSIS.p4_int)} tolerance={2} instructorMode={teacherMode} /></td>
+                                        <td className="p-2 bg-slate-50/50"><SmartInput id="p4_amort" value={inputs.p4_amort} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(_DATA_MATRIX.ANALYSIS.p4_amort)} tolerance={2} instructorMode={teacherMode} /></td>
+                                        <td className="p-2 bg-slate-50/50"><SmartInput id="p4_cv" value={inputs.p4_cv} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(_DATA_MATRIX.ANALYSIS.p4_cv)} tolerance={2} instructorMode={teacherMode} /></td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -490,45 +492,45 @@
                                 <tbody className="divide-y divide-slate-100">
                                     <tr>
                                         <td className="p-2 text-left font-medium">1. Issuance</td>
-                                        <td className="p-2"><SmartInput id="iss_cash" value={inputs.iss_cash} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={309086} instructorMode={teacherMode} /></td>
+                                        <td className="p-2"><SmartInput id="iss_cash" value={inputs.iss_cash} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(_DATA_MATRIX.ANALYSIS.iss_cash)} instructorMode={teacherMode} /></td>
                                         <td>=</td>
-                                        <td className="p-2"><SmartInput id="iss_liab" value={inputs.iss_liab} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={309086} instructorMode={teacherMode} /></td>
+                                        <td className="p-2"><SmartInput id="iss_liab" value={inputs.iss_liab} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(_DATA_MATRIX.ANALYSIS.iss_liab)} instructorMode={teacherMode} /></td>
                                         <td>+</td>
                                         <td className="p-2"><span className="text-slate-300">0</span></td>
                                         <td className="text-slate-300">|</td>
-                                        <td className="p-2"><SmartInput id="iss_rev" value={inputs.iss_rev} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={0} instructorMode={teacherMode} hint="0" /></td>
+                                        <td className="p-2"><SmartInput id="iss_rev" value={inputs.iss_rev} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={0} instructorMode={teacherMode} hint="If no effect, enter 0" /></td>
                                         <td>-</td>
-                                        <td className="p-2"><SmartInput id="iss_exp" value={inputs.iss_exp} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={0} instructorMode={teacherMode} hint="0" /></td>
+                                        <td className="p-2"><SmartInput id="iss_exp" value={inputs.iss_exp} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={0} instructorMode={teacherMode} hint="If no effect, enter 0" /></td>
                                         <td>=</td>
-                                        <td className="p-2"><SmartInput id="iss_ni" value={inputs.iss_ni} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={0} instructorMode={teacherMode} hint="0" /></td>
+                                        <td className="p-2"><SmartInput id="iss_ni" value={inputs.iss_ni} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={0} instructorMode={teacherMode} hint="If no effect, enter 0" /></td>
                                     </tr>
                                     <tr>
                                         <td className="p-2 text-left font-medium">2. Jun 30 Pmt</td>
-                                        <td className="p-2"><SmartInput id="jun_cash" value={inputs.jun_cash} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={-14000} instructorMode={teacherMode} /></td>
+                                        <td className="p-2"><SmartInput id="jun_cash" value={inputs.jun_cash} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(_DATA_MATRIX.ANALYSIS.jun_cash)} instructorMode={teacherMode} /></td>
                                         <td>=</td>
-                                        <td className="p-2"><SmartInput id="jun_liab" value={inputs.jun_liab} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={1454} tolerance={2} instructorMode={teacherMode} hint="Amortization" /></td>
+                                        <td className="p-2"><SmartInput id="jun_liab" value={inputs.jun_liab} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(_DATA_MATRIX.ANALYSIS.jun_liab)} tolerance={2} instructorMode={teacherMode} hint="Amortization" /></td>
                                         <td>+</td>
-                                        <td className="p-2"><SmartInput id="jun_exp" value={inputs.jun_exp} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={-15454} tolerance={2} instructorMode={teacherMode} hint="Int. Expense" /></td>
+                                        <td className="p-2"><SmartInput id="jun_exp" value={inputs.jun_exp} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(_DATA_MATRIX.ANALYSIS.jun_ni)} tolerance={2} instructorMode={teacherMode} hint="Eq. Change" /></td>
                                         <td className="text-slate-300">|</td>
-                                        <td className="p-2"><SmartInput id="jun_rev" value={inputs.jun_rev} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={0} instructorMode={teacherMode} hint="0" /></td>
+                                        <td className="p-2"><SmartInput id="jun_rev" value={inputs.jun_rev} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={0} instructorMode={teacherMode} hint="If no effect, enter 0" /></td>
                                         <td>-</td>
-                                        <td className="p-2"><SmartInput id="jun_exp_col" value={inputs.jun_exp} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={15454} tolerance={2} instructorMode={teacherMode} hint="Int. Expense" /></td>
+                                        <td className="p-2"><SmartInput id="jun_exp_col" value={inputs.jun_exp_col} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(_DATA_MATRIX.ANALYSIS.jun_exp)} tolerance={2} instructorMode={teacherMode} hint="Int. Expense" /></td>
                                         <td>=</td>
-                                        <td className="p-2"><SmartInput id="jun_ni" value={inputs.jun_ni} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={-15454} tolerance={2} instructorMode={teacherMode} /></td>
+                                        <td className="p-2"><SmartInput id="jun_ni" value={inputs.jun_ni} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(_DATA_MATRIX.ANALYSIS.jun_ni)} tolerance={2} instructorMode={teacherMode} /></td>
                                     </tr>
                                     <tr>
                                         <td className="p-2 text-left font-medium">3. Dec 31 Pmt</td>
-                                        <td className="p-2"><SmartInput id="dec_cash" value={inputs.dec_cash} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={-14000} instructorMode={teacherMode} /></td>
+                                        <td className="p-2"><SmartInput id="dec_cash" value={inputs.dec_cash} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(_DATA_MATRIX.ANALYSIS.dec_cash)} instructorMode={teacherMode} /></td>
                                         <td>=</td>
-                                        <td className="p-2"><SmartInput id="dec_liab" value={inputs.dec_liab} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={1527} tolerance={2} instructorMode={teacherMode} hint="Amortization" /></td>
+                                        <td className="p-2"><SmartInput id="dec_liab" value={inputs.dec_liab} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(_DATA_MATRIX.ANALYSIS.dec_liab)} tolerance={2} instructorMode={teacherMode} hint="Amortization" /></td>
                                         <td>+</td>
-                                        <td className="p-2"><SmartInput id="dec_exp" value={inputs.dec_exp} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={-15527} tolerance={2} instructorMode={teacherMode} hint="Int. Expense" /></td>
+                                        <td className="p-2"><SmartInput id="dec_exp" value={inputs.dec_exp} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(_DATA_MATRIX.ANALYSIS.dec_ni)} tolerance={2} instructorMode={teacherMode} hint="Eq. Change" /></td>
                                         <td className="text-slate-300">|</td>
-                                        <td className="p-2"><SmartInput id="dec_rev" value={inputs.dec_rev} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={0} instructorMode={teacherMode} hint="0" /></td>
+                                        <td className="p-2"><SmartInput id="dec_rev" value={inputs.dec_rev} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={0} instructorMode={teacherMode} hint="If no effect, enter 0" /></td>
                                         <td>-</td>
-                                        <td className="p-2"><SmartInput id="dec_exp_col" value={inputs.dec_exp_col} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={15527} tolerance={2} instructorMode={teacherMode} hint="Int. Expense" /></td>
+                                        <td className="p-2"><SmartInput id="dec_exp_col" value={inputs.dec_exp_col} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(_DATA_MATRIX.ANALYSIS.dec_exp)} tolerance={2} instructorMode={teacherMode} hint="Int. Expense" /></td>
                                         <td>=</td>
-                                        <td className="p-2"><SmartInput id="dec_ni" value={inputs.dec_ni} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={-15527} tolerance={2} instructorMode={teacherMode} /></td>
+                                        <td className="p-2"><SmartInput id="dec_ni" value={inputs.dec_ni} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(_DATA_MATRIX.ANALYSIS.dec_ni)} tolerance={2} instructorMode={teacherMode} /></td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -549,7 +551,6 @@
             const price = (pmt * ((1 - Math.pow(1+r, -n))/r)) + (fv / Math.pow(1+r, n));
             
             const isPremium = price > fv;
-            const isDiscount = price < fv;
             
             // Bar heights
             const maxHeight = 200;
@@ -607,13 +608,19 @@
              const [answers, setAnswers] = useState({});
             
             useEffect(() => {
-                if (isAutoFilled) setAnswers({ q1: 'c', q2: 'c', q3: 'a' });
+                if (isAutoFilled) {
+                    const decodedAnswers = {};
+                    Object.keys(_DATA_MATRIX.ASSESSMENT).forEach(k => {
+                        if (k.startsWith('q')) decodedAnswers[k] = d(_DATA_MATRIX.ASSESSMENT[k]);
+                    });
+                    setAnswers(decodedAnswers);
+                }
                 else if (!isAutoFilled && teacherMode) setAnswers({});
             }, [isAutoFilled, teacherMode]);
 
             const questions = [
-                { id: 'q1', text: "1. Why did the bonds issue at a discount ($309,086 < $350,000)?", options: [{id:'a', text:"Market Rate < Coupon Rate"}, {id:'b', text:"Coupon Rate (8%) = Market Rate (10%)"}, {id:'c', text:"Market Rate (10%) > Coupon Rate (8%)", correct:true}] },
-                { id: 'q2', text: "2. What happens to Interest Expense over the life of the bond?", options: [{id:'a', text:"It decreases"}, {id:'b', text:"It stays constant"}, {id:'c', text:"It increases as carrying value accretes up", correct:true}] },
+                { id: 'q1', text: "1. Why did the bonds issue at a discount ($309,086 < $350,000)?", options: [{id:'a', text:"Market Rate < Coupon Rate"}, {id:'b', text:"Coupon Rate (8%) = Market Rate (10%)"}, {id:'c', text:"Market Rate (10%) > Coupon Rate (8%)"}] },
+                { id: 'q2', text: "2. What happens to Interest Expense over the life of the bond?", options: [{id:'a', text:"It decreases"}, {id:'b', text:"It stays constant"}, {id:'c', text:"It increases as carrying value accretes up"}] },
                 { id: 'q3', text: "3. Impact on Net Income vs. paying cash interest only?", options: [{id:'a', text:"Lower NI (Amortization increases Expense)"}, {id:'b', text:"Higher NI"}, {id:'c', text:"No Impact"}] }
             ];
 
@@ -623,27 +630,30 @@
                         <h4 className="text-sm font-bold text-slate-700 mb-4">Task 4: Carrying Value Check</h4>
                         <div className="flex justify-between items-center text-sm">
                             <label>Carrying Value at end of Year 2 ($):</label>
-                            <div className="w-32"><SmartInput id="finalCV" value={inputs.finalCV} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={315354} tolerance={5} instructorMode={teacherMode} /></div>
+                            <div className="w-32"><SmartInput id="finalCV" value={inputs.finalCV} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(_DATA_MATRIX.ASSESSMENT.finalCV)} tolerance={5} instructorMode={teacherMode} /></div>
                         </div>
                     </div>
                     
                      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
                         <h2 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2"><Icon name="check-square" className="text-emerald-600"/> Strategic Assessment</h2>
                         <div className="space-y-6">
-                            {questions.map(q => (
-                                <div key={q.id} className="border-b border-slate-100 pb-4 last:border-0">
-                                    <p className="text-sm font-medium text-slate-800 mb-3">{q.text}</p>
-                                    <div className="space-y-2">
-                                        {q.options.map(opt => (
-                                            <button key={opt.id} onClick={() => setAnswers({...answers, [q.id]: opt.id})} 
-                                                className={`w-full text-left p-2 rounded border text-xs flex items-center gap-2 ${answers[q.id]===opt.id ? (opt.correct ? "bg-emerald-50 border-emerald-500 text-emerald-800" : "bg-red-50 border-red-500 text-red-800") : "hover:bg-slate-50 border-slate-200"}`}>
-                                                <div className={`w-3 h-3 rounded-full border flex items-center justify-center ${answers[q.id]===opt.id ? (opt.correct?"bg-emerald-600 border-emerald-600":"bg-red-600 border-red-600") : "border-slate-300"}`}></div>
-                                                {opt.text}
-                                            </button>
-                                        ))}
+                            {questions.map(q => {
+                                const correctId = d(_DATA_MATRIX.ASSESSMENT[q.id]);
+                                return (
+                                    <div key={q.id} className="border-b border-slate-100 pb-4 last:border-0">
+                                        <p className="text-sm font-medium text-slate-800 mb-3">{q.text}</p>
+                                        <div className="space-y-2">
+                                            {q.options.map(opt => (
+                                                <button key={opt.id} onClick={() => setAnswers({...answers, [q.id]: opt.id})} 
+                                                    className={`w-full text-left p-2 rounded border text-xs flex items-center gap-2 ${answers[q.id]===opt.id ? (opt.id === correctId ? "bg-emerald-50 border-emerald-500 text-emerald-800" : "bg-red-50 border-red-500 text-red-800") : "hover:bg-slate-50 border-slate-200"}`}>
+                                                    <div className={`w-3 h-3 rounded-full border flex items-center justify-center ${answers[q.id]===opt.id ? (opt.id === correctId ?"bg-emerald-600 border-emerald-600":"bg-red-600 border-red-600") : "border-slate-300"}`}></div>
+                                                    {opt.text}
+                                                </button>
+                                            ))}
+                                        </div>
                                     </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     </div>
                 </div>
@@ -657,6 +667,10 @@
             const [inputs, setInputs] = useState({ ANALYSIS: {}, ASSESSMENT: {} });
             const [activeInput, setActiveInput] = useState(null);
             
+            // Sidebar State
+            const [sidebarWidth, setSidebarWidth] = useState(350);
+            const [isDragging, setIsDragging] = useState(false);
+
             const [instructorMode, setInstructorMode] = useState(false);
             const [showLogin, setShowLogin] = useState(false);
             const [password, setPassword] = useState("");
@@ -671,7 +685,26 @@
             const [resetKey, setResetKey] = useState(0);
 
             const activeData = BANEK_DATA;
-            const activeKey = ANSWER_KEYS[activeTab];
+            const activeKey = _DATA_MATRIX[activeTab];
+
+            // --- Sidebar Resize Logic ---
+            const startResizing = useCallback(() => setIsDragging(true), []);
+            const stopResizing = useCallback(() => setIsDragging(false), []);
+            const resize = useCallback((mouseMoveEvent) => {
+                if (isDragging) {
+                    const newWidth = mouseMoveEvent.clientX;
+                    if (newWidth > 200 && newWidth < 600) setSidebarWidth(newWidth);
+                }
+            }, [isDragging]);
+
+            useEffect(() => {
+                window.addEventListener("mousemove", resize);
+                window.addEventListener("mouseup", stopResizing);
+                return () => {
+                    window.removeEventListener("mousemove", resize);
+                    window.removeEventListener("mouseup", stopResizing);
+                };
+            }, [resize, stopResizing]);
 
             const handleInputChange = (id, val) => setInputs(prev => ({ ...prev, [activeTab]: { ...prev[activeTab], [id]: val } }));
 
@@ -688,17 +721,21 @@
             };
 
             const unlockInstructor = () => {
-                if (password.toLowerCase() === "teacher") { setInstructorMode(true); setShowLogin(false); setPassword(""); } else { alert("Incorrect"); }
-            };
-
-            const toggleTeacherMode = () => {
-                if(instructorMode) setInstructorMode(false);
-                else setShowLogin(true);
+                // Base64 for "teacher"
+                if (btoa(password.toLowerCase()) === 'dGVhY2hlcg==') { setInstructorMode(true); setShowLogin(false); setPassword(""); } else { alert("Incorrect"); }
             };
 
             const handleAutoFill = () => {
-                setInputs(prev => ({ ...prev, [activeTab]: { ...activeKey } }));
-                setIsAutoFilled(true);
+                if (activeTab === 'ASSESSMENT') {
+                    // Handled inside module
+                    setIsAutoFilled(true);
+                } else {
+                    const activeKey = _DATA_MATRIX[activeTab];
+                    const decodedInputs = {};
+                    Object.keys(activeKey).forEach(k => decodedInputs[k] = d(activeKey[k]));
+                    setInputs(prev => ({ ...prev, [activeTab]: decodedInputs }));
+                    setIsAutoFilled(true);
+                }
             };
 
             const performClear = () => {
@@ -727,7 +764,10 @@
                 <div className="flex h-screen bg-slate-100 overflow-hidden font-sans">
                     
                     {/* LEFT SIDEBAR: REFERENCE */}
-                    <div className="w-1/3 min-w-[350px] bg-slate-50 border-r border-slate-200 overflow-y-auto custom-scrollbar flex flex-col relative z-0">
+                    <div 
+                        className="bg-slate-50 border-r border-slate-200 overflow-y-auto custom-scrollbar flex flex-col relative shrink-0"
+                        style={{ width: sidebarWidth }}
+                    >
                         <div className="sticky top-0 bg-white p-4 border-b border-slate-200 shadow-sm z-10">
                             <div className="flex items-center gap-2 text-blue-800 font-bold text-lg mb-1">
                                 <Icon name="library" /> Reference Data
@@ -738,12 +778,12 @@
                             </p>
                         </div>
                         <div className="p-4 space-y-2">
-                             <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mb-4">
+                             <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mb-4 select-none">
                                 <div className="bg-slate-100 px-4 py-2 border-b border-slate-200 font-bold text-xs text-slate-600 uppercase">Bond Term Sheet</div>
                                 <table className="w-full text-xs text-left">
                                     <tbody className="divide-y divide-slate-100">
                                         {activeData.tables[0].rows.map((row, i) => (
-                                            <tr key={i}><td className="p-2 font-medium text-slate-600">{row[0]}</td><td className="p-2 text-right font-mono text-slate-800">{row[1]}</td></tr>
+                                            <tr key={i}><td className="p-2 font-medium text-slate-600">{row[0]}</td><td className="p-2 text-right font-mono text-slate-800" onClick={() => handleValueClick(row[1])} style={{cursor: 'pointer'}}>{row[1]}</td></tr>
                                         ))}
                                     </tbody>
                                 </table>
@@ -751,6 +791,12 @@
                             <StandardCalculator />
                         </div>
                     </div>
+
+                    {/* DRAG HANDLE */}
+                    <div 
+                        className={`resizer ${isDragging ? 'active' : ''}`}
+                        onMouseDown={startResizing}
+                    ></div>
 
                     {/* MAIN CONTENT */}
                     <div className="flex-1 flex flex-col h-screen overflow-hidden relative">
@@ -797,22 +843,29 @@
                         )}
 
                         {/* HEADER */}
-                        <header className="bg-white border-b border-slate-200 p-6 flex justify-between items-center shrink-0">
+                        <header className="bg-white border-b border-slate-200 p-6 flex justify-between items-center shrink-0 relative">
                             <div>
                                 <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
                                     <Icon name="file-spreadsheet" className="text-blue-600" /> {activeData.metadata.name}
                                 </h1>
                                 <p className="text-slate-500 text-sm mt-1">{activeData.metadata.year} Simulation</p>
                             </div>
+                            
+                            {/* STEALTH BUTTON CONTAINER - Fixed position to top right corner */}
+                            <div className="absolute top-0 right-0"> 
+                                 <button 
+                                    onClick={() => setShowLogin(true)} 
+                                    className="p-2 opacity-5 hover:opacity-100 text-slate-400 hover:text-purple-600 transition-all"
+                                    title="Instructor Access"
+                                >
+                                    <Icon name="lock" size={14} />
+                                </button>
+                            </div>
+
                             <div className="flex gap-3">
                                 <button onClick={() => setShowDownload(true)} className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold shadow-sm transition">
                                     <Icon name="save" size={18} /> Save Work
                                 </button>
-                                {!instructorMode && (
-                                    <button onClick={() => setShowLogin(true)} className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-medium transition border border-slate-300">
-                                        <Icon name="lock" size={16} /> Instructor
-                                    </button>
-                                )}
                             </div>
                         </header>
 
@@ -890,10 +943,10 @@
                                 </div>
                                 <div className="flex-1 overflow-y-auto custom-scrollbar p-2">
                                     <div className="grid grid-cols-2 gap-2 text-sm">
-                                        {Object.entries(activeKey || {}).map(([k, v]) => (
+                                        {Object.entries(_DATA_MATRIX[activeTab] || {}).map(([k, v]) => (
                                             <div key={k} className="flex justify-between border-b border-slate-100 py-1">
                                                 <span className="text-slate-500">{k}:</span>
-                                                <span className="font-mono font-bold text-purple-700">{v}</span>
+                                                <span className="font-mono font-bold text-purple-700">{d(v)}</span>
                                             </div>
                                         ))}
                                     </div>
