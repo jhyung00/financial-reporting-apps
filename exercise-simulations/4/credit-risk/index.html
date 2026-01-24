@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Financial Analysis Simulation: Spirit AeroSystems (P4-34)</title>
+    <title>Financial Analysis Simulation</title>
     
     <!-- Dependencies -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -14,7 +14,7 @@
     <script src="https://unpkg.com/lucide@latest"></script>
 
     <style>
-        body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+        body { font-family: 'Inter', system-ui, -apple-system, sans-serif; user-select: none; -webkit-user-select: none; }
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
@@ -36,13 +36,15 @@
             width: 4px;
             cursor: col-resize;
             transition: background 0.2s;
+            position: relative;
+            z-index: 50;
         }
         .resize-handle:hover, .resize-handle.active {
             background-color: #3b82f6;
         }
     </style>
 </head>
-<body class="bg-slate-100 text-slate-800 h-screen overflow-hidden">
+<body class="bg-slate-100 text-slate-800 h-screen overflow-hidden" oncontextmenu="return false;">
     <div id="root"></div>
 
     <script type="text/babel">
@@ -53,16 +55,16 @@
         // Helper to decode Base64 strings
         const d = (str) => {
             try {
+                if (!str) return "";
                 return atob(str);
             } catch (e) {
                 console.error("Decoding error", e);
-                return str;
+                return "";
             }
         };
 
         // --- DATA: AMAZON ---
         const AMAZON_DATA = {
-            // Obfuscated Name: Amazon
             metadata: { name: d("QW1hem9u"), year: "Current Year" },
             tables: [
                 {
@@ -92,19 +94,20 @@
             ]
         };
 
-        const AMAZON_ANSWER_KEY = {
-            "rnoa_curr": "48.5", "rnoa_prior": "27.5",
-            "roe_curr": "28.3", "roe_prior": "12.9",
-            "prof_stronger": "Current year", "prof_improved": "ROE",
-            "tie_curr": "9.14", "tie_prior": "4.64",
-            "cfo_debt_curr": "1.31", "cfo_debt_prior": "0.74",
-            "cov_interp": "Both coverage ratios approximately doubled over the two years.",
-            "curr_ratio_curr": "3.66", "curr_ratio_prior": "1.09",
-            "quick_ratio_curr": "0.82", "quick_ratio_prior": "0.79",
-            "liq_info": "Liquidity ratios of other online retail companies",
-            "liab_eq_curr": "2.62", "liab_eq_prior": "3.90",
-            "debt_eq_curr": "0.54", "debt_eq_prior": "0.89",
-            "cap_interp": "Both liabilities-to-equity and debt-to-equity ratios decreased, indicating an improvement in Amazon’s solvency."
+        // Obfuscated Answer Matrix (Amazon)
+        const _DATA_MATRIX_A = {
+            "rnoa_curr": "NDguNQ==", "rnoa_prior": "MjcuNQ==",
+            "roe_curr": "MjguMw==", "roe_prior": "MTIuOQ==",
+            "prof_stronger": "Q3VycmVudCB5ZWFy", "prof_improved": "Uk9F",
+            "tie_curr": "OS4xNA==", "tie_prior": "NC42NA==",
+            "cfo_debt_curr": "MS4zMQ==", "cfo_debt_prior": "MC43NA==",
+            "cov_interp": "Qm90aCBjb3ZlcmFnZSByYXRpb3MgYXBwcm94aW1hdGVseSBkb3VibGVkIG92ZXIgdGhlIHR3byB5ZWFycy4=",
+            "curr_ratio_curr": "My42Ng==", "curr_ratio_prior": "MS4wOQ==",
+            "quick_ratio_curr": "MC44Mg==", "quick_ratio_prior": "MC43OQ==",
+            "liq_info": "TGlxdWlkaXR5IHJhdGlvcyBvZiBvdGhlciBvbmxpbmUgcmV0YWlsIGNvbXBhbmllcw==",
+            "liab_eq_curr": "Mi42Mg==", "liab_eq_prior": "My45MA==",
+            "debt_eq_curr": "MC41NA==", "debt_eq_prior": "MC44OQ==",
+            "cap_interp": "Qm90aCBsaWFiaWxpdGllcy10by1lcXVpdHkgYW5kIGRlYnQtdG8tZXF1aXR5IHJhdGlvcyBkZWNyZWFzZWQsIGluZGljYXRpbmcgYW4gaW1wcm92ZW1lbnQgaW4gQW1hem9u4oCZcyBzb2x2ZW5jeS4="
         };
 
         const AMAZON_QUESTIONS = [
@@ -144,7 +147,6 @@
 
         // --- DATA: SPIRIT AEROSYSTEMS ---
         const SPIRIT_DATA = {
-            // Obfuscated Name: Spirit AeroSystems (P4-34)
             metadata: { name: d("U3Bpcml0IEFlcm9TeXN0ZW1zIChQNC0zNCk="), year: "Current Year" },
             tables: [
                 {
@@ -213,21 +215,20 @@
             ]
         };
 
-        const SPIRIT_ANSWER_KEY = {
-            "s_liab_eq_curr": "Negative", "s_liab_eq_prior": "16.258",
-            "s_debt_eq_curr": "Negative", "s_debt_eq_prior": "8.653",
-            "s_cap_interp": "Because the company has negative equity in the current fiscal year and very low equity in the prior year, we cannot interpret these two capital structure ratios. We can observe that the level of debt is very significant and the capital structure is weak.",
-            
-            "s_tie_curr": "-1.152", "s_tie_prior": "-1.893",
-            "s_ebitda_calc_curr": "55.9", "s_ebitda_calc_prior": "-131.6",
-            "s_ebitda_curr": "0.229", "s_ebitda_prior": "-0.542",
-            "s_cfo_debt_curr": "-0.100", "s_cfo_debt_prior": "-0.016",
-            "s_focf_debt_curr": "-0.130", "s_focf_debt_prior": "-0.055",
-            "s_cov_drivers": "Improvement in TIE/EBITDA driven by GAAP earnings. Worsening cash coverage driven by decrease in CFO.",
-            
-            "s_curr_ratio_curr": "1.618", "s_curr_ratio_prior": "2.029",
-            "s_quick_ratio_curr": "0.588", "s_quick_ratio_prior": "1.034",
-            "s_liq_concl": "Spirit AeroSystems has high levels of credit risk. All of the metrics are weak and most have weakened during the recent fiscal year."
+        // Obfuscated Answer Matrix (Spirit)
+        const _DATA_MATRIX_S = {
+            "s_liab_eq_curr": "TmVnYXRpdmU=", "s_liab_eq_prior": "MTYuMjU4",
+            "s_debt_eq_curr": "TmVnYXRpdmU=", "s_debt_eq_prior": "OC42NTM=",
+            "s_cap_interp": "QmVjYXVzZSB0aGUgY29tcGFueSBoYXMgbmVnYXRpdmUgZXF1aXR5IGluIHRoZSBjdXJyZW50IGZpc2NhbCB5ZWFyIGFuZCB2ZXJ5IGxvdyBlcXVpdHkgaW4gdGhlIHByaW9yIHllYXIsIHdlIGNhbm5vdCBpbnRlcnByZXQgdGhlc2UgdHdvIGNhcGl0YWwgc3RydWN0dXJlIHJhdGlvcy4gV2UgY2FuIG9ic2VydmUgdGhhdCB0aGUgbGV2ZWwgb2YgZGVidCBpcyB2ZXJ5IHNpZ25pZmljYW50IGFuZCB0aGUgY2FwaXRhbCBzdHJ1Y3R1cmUgaXMgd2Vhay4=",
+            "s_tie_curr": "LTEuMTUy", "s_tie_prior": "LTEuODkz",
+            "s_ebitda_calc_curr": "NTUuOQ==", "s_ebitda_calc_prior": "LTEzMS42",
+            "s_ebitda_curr": "MC4yMjk=", "s_ebitda_prior": "LTAuNTQy",
+            "s_cfo_debt_curr": "LTAuMTAw", "s_cfo_debt_prior": "LTAuMDE2",
+            "s_focf_debt_curr": "LTAuMTMw", "s_focf_debt_prior": "LTAuMDU1",
+            "s_cov_drivers": "SW1wcm92ZW1lbnQgaW4gVElFL0VCSVREQSBkcml2ZW4gYnkgR0FBUCBlYXJuaW5ncy4gV29yc2VuaW5nIGNhc2ggY292ZXJhZ2UgZHJpdmVuIGJ5IGRlY3JlYXNlIGluIENGTy4=",
+            "s_curr_ratio_curr": "MS42MTg=", "s_curr_ratio_prior": "Mi4wMjk=",
+            "s_quick_ratio_curr": "MC41ODg=", "s_quick_ratio_prior": "MS4wMzQ=",
+            "s_liq_concl": "U3Bpcml0IEFlcm9TeXN0ZW1zIGhhcyBoaWdoIGxldmVscyBvZiBjcmVkaXQgcmlzay4gQWxsIG9mIHRoZSBtZXRyaWNzIGFyZSB3ZWFrIGFuZCBtb3N0IGhhdmUgd2Vha2VuZWQgZHVyaW5nIHRoZSByZWNlbnQgZmlzY2FsIHllYXIu"
         };
 
         const SPIRIT_QUESTIONS = [
@@ -302,11 +303,13 @@
         const SmartInput = ({ id, value, onChange, correctValue, label, type, hint, instructorMode, activeInput, setActiveInput }) => {
             const [localError, setLocalError] = useState(null);
             
+            // Decoded validation logic
+            const decodedKey = useMemo(() => d(correctValue), [correctValue]);
+
             const evaluateMath = (expr) => {
                 if (!expr) return { valid: true, val: "" };
                 try {
                     let sanitized = expr.toString().replace(/,/g, '').replace(/%/g, '/100');
-                    // Handle accounting parens: (123) -> -123
                     sanitized = sanitized.replace(/\(([\d\.]+)\)/g, '-$1');
                     
                     if (!/^[\d\.\+\-\*\/\(\)\s]+$/.test(sanitized)) return { valid: false, msg: "Invalid characters" };
@@ -319,16 +322,16 @@
             };
 
             const isCorrect = useMemo(() => {
-                if (!value || !correctValue) return false;
+                if (!value || !decodedKey) return false;
                 if (type === 'text') {
                     const cleanVal = value.toString().trim().toLowerCase().replace(/[.,]$/, ""); 
-                    const cleanKey = correctValue.toString().trim().toLowerCase().replace(/[.,]$/, "");
+                    const cleanKey = decodedKey.toString().trim().toLowerCase().replace(/[.,]$/, "");
                     return cleanVal === cleanKey || cleanVal.includes(cleanKey) || cleanKey.includes(cleanVal);
                 }
                 const { valid, val } = evaluateMath(value);
                 if (!valid) return false;
                 
-                const target = parseFloat(correctValue.replace(/,/g, ''));
+                const target = parseFloat(decodedKey.replace(/,/g, ''));
                 let inputNum = parseFloat(val);
                 const tolerance = Math.max(Math.abs(target * 0.02), 0.05); 
 
@@ -339,7 +342,7 @@
                 } else {
                     return Math.abs(inputNum - target) <= tolerance;
                 }
-            }, [value, correctValue, type]);
+            }, [value, decodedKey, type]);
 
             const handleBlur = (e) => {
                 const { valid, val } = evaluateMath(value);
@@ -349,26 +352,26 @@
                      const numVal = Number(val);
                      let displayVal = numVal;
                      if (type === 'percent') {
-                        if (Math.abs(numVal) < 1 && parseFloat(correctValue) > 1) { displayVal = (numVal * 100).toFixed(2); } 
+                        if (Math.abs(numVal) < 1 && parseFloat(decodedKey) > 1) { displayVal = (numVal * 100).toFixed(2); } 
                         else { displayVal = numVal.toFixed(2); }
                      } else {
                         displayVal = Number.isInteger(numVal) ? numVal.toString() : numVal.toFixed(3);
                      }
                      onChange(id, displayVal.toString()); 
                 } else if (!valid && type !== 'text') {
-                     // Only show invalid math error if we were expecting a number
                      setLocalError("Invalid Math");
                 }
             };
 
             const isActive = activeInput === id;
+            const placeholderText = type === 'text' ? (decodedKey === "Negative" ? "Enter answer..." : "Type answer...") : "Calculate...";
 
             return (
                 <div className="mb-4 w-full">
                     <label className="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">{label}</label>
                     <div className="flex gap-2 items-start">
                         <div className="relative flex-grow">
-                            {type === 'text' && correctValue.length > 50 ? (
+                            {type === 'text' && decodedKey.length > 50 ? (
                                 <textarea 
                                     id={id}
                                     value={value || ""}
@@ -391,7 +394,7 @@
                                     className={`w-full p-3 pr-10 border rounded-lg font-mono text-sm shadow-sm transition-all ${
                                         isCorrect ? "input-correct" : (value && !isActive && !isCorrect) ? "input-incorrect" : "input-neutral"
                                     }`}
-                                    placeholder={type === 'text' ? (correctValue === "Negative" ? "Enter answer..." : "Type answer...") : "Calculate..."}
+                                    placeholder={placeholderText}
                                 />
                             )}
                             <div className="absolute right-3 top-3 text-slate-400 pointer-events-none">
@@ -411,7 +414,7 @@
                     {instructorMode && (
                         <div className="mt-1 bg-purple-100 border border-purple-200 text-purple-800 text-xs p-1 rounded font-mono animate-fade-in flex items-start gap-2">
                             <span className="mt-0.5"><Icon name="key" size={12} /></span> 
-                            <span className="break-words w-full">Key: {correctValue}</span>
+                            <span className="break-words w-full">Key: {decodedKey}</span>
                         </div>
                     )}
                 </div>
@@ -475,7 +478,7 @@
 
             const activeData = activeTab === 'amazon' ? AMAZON_DATA : SPIRIT_DATA;
             const activeQuestions = activeTab === 'amazon' ? AMAZON_QUESTIONS : SPIRIT_QUESTIONS;
-            const activeKey = activeTab === 'amazon' ? AMAZON_ANSWER_KEY : SPIRIT_ANSWER_KEY;
+            const activeKey = activeTab === 'amazon' ? _DATA_MATRIX_A : _DATA_MATRIX_S;
 
             // --- LAYOUT HANDLERS ---
             const startResizing = useCallback((mouseDownEvent) => {
@@ -505,6 +508,13 @@
                 };
             }, [resize, stopResizing]);
 
+            // Disable Right Click
+            useEffect(() => {
+                const handleContext = (e) => { e.preventDefault(); return false; };
+                document.addEventListener("contextmenu", handleContext);
+                return () => document.removeEventListener("contextmenu", handleContext);
+            }, []);
+
             const handleInputChange = (id, val) => setInputs(prev => ({ ...prev, [id]: val }));
 
             const handleValueClick = (val) => {
@@ -532,7 +542,12 @@
             };
 
             const handleAutoFill = () => {
-                setInputs(prev => ({ ...prev, ...activeKey }));
+                // Decrypt matrix for autofill
+                const updates = {};
+                Object.keys(activeKey).forEach(key => {
+                    updates[key] = d(activeKey[key]);
+                });
+                setInputs(prev => ({ ...prev, ...updates }));
             };
 
             const handleClearConfirm = () => {
@@ -559,7 +574,7 @@
                 Object.keys(activeKey).forEach(key => {
                     totalCount++;
                     const userVal = (inputs[key] || "").toString().trim().toLowerCase();
-                    const keyVal = (activeKey[key] || "").toString().trim().toLowerCase();
+                    const keyVal = d(activeKey[key] || "").toString().trim().toLowerCase(); // Decode on fly
                     let isCorrect = false;
                     
                     if(!isNaN(parseFloat(keyVal)) && !isNaN(parseFloat(userVal.replace(/,/g,'')))) {
@@ -683,13 +698,19 @@ ${Object.keys(activeKey).map(k => `${k}: ${inputs[k] || "[Empty]"}`).join('\n')}
                                 </h1>
                                 <p className="text-slate-500 text-sm mt-1">Financial Statement Analysis & Ratio Calculation</p>
                             </div>
-                            <div className="flex gap-3">
+                            <div className="flex gap-3 items-center">
                                 <button onClick={() => setShowDownload(true)} className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold shadow-sm transition">
                                     <Icon name="save" size={18} /> Save Work
                                 </button>
+                                
+                                {/* Hidden Instructor Button */}
                                 {!instructorMode && (
-                                    <button onClick={() => setShowLogin(true)} className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-medium transition border border-slate-300">
-                                        <Icon name="lock" size={16} /> Instructor
+                                    <button 
+                                        onClick={() => setShowLogin(true)} 
+                                        className="p-2 opacity-10 hover:opacity-80 transition-opacity text-slate-400"
+                                        title="System"
+                                    >
+                                        <Icon name="lock" size={14} />
                                     </button>
                                 )}
                             </div>
