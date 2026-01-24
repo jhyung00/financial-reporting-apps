@@ -6,8 +6,8 @@
 <title>Financial Reporting and Analysis Simulation</title>
 
 <!-- React & ReactDOM -->
-<script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
 
 <!-- Babel -->
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -19,6 +19,13 @@
 <script src="https://unpkg.com/lucide@latest"></script>
 
 <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap');
+    
+    body {
+        font-family: 'Inter', sans-serif;
+        user-select: none; /* Anti-copy */
+    }
+    
     /* Custom scrollbar */
     .custom-scrollbar::-webkit-scrollbar {
         width: 8px;
@@ -66,12 +73,38 @@
     .instructor-toolbar {
         animation: slideDown 0.3s ease-out;
     }
+
+    /* Resizer Handle Styling */
+    .resizer-handle {
+        width: 4px;
+        cursor: col-resize;
+        transition: background-color 0.2s;
+        z-index: 30;
+        position: absolute;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        height: 100%;
+    }
+    .resizer-handle:hover, .resizer-handle:active {
+        background-color: #3b82f6;
+    }
 </style>
 </head>
-<body class="bg-gray-50 text-slate-900 h-screen overflow-hidden">
+<body class="bg-gray-50 text-slate-900 h-screen overflow-hidden" oncontextmenu="return false">
 <div id="root" class="h-full"></div>
 
 <script type="text/babel">
+
+// --- SECURITY UTILS ---
+const d = (s) => {
+    try {
+        const decoded = atob(s);
+        return isNaN(parseFloat(decoded)) ? decoded : parseFloat(decoded);
+    } catch (e) {
+        return 0;
+    }
+};
 
 // --- 1. CONFIGURATION & DATA ---
 
@@ -333,67 +366,68 @@ const CONCEPT_QUESTIONS = {
     ]
 };
 
-const ANSWER_KEY = {
+// --- OBFUSCATED DATA MATRIX (formerly ANSWER_KEY) ---
+const _DATA_MATRIX = {
     // Module 1 (FIFO/LIFO/Avg)
-    "m1_fifo_cogs": { val: 50850, label: "FIFO COGS", hint: "Oldest costs first: Beg Inv + Purch 1 + part of Purch 2." },
-    "m1_fifo_end": { val: 37600, label: "FIFO Ending Inv", hint: "Newest costs remain: Purch 3 + part of Purch 2." },
-    "m1_lifo_cogs": { val: 52200, label: "LIFO COGS", hint: "Newest costs first: Purch 3 + Purch 2 + part of Purch 1." },
-    "m1_lifo_end": { val: 36250, label: "LIFO Ending Inv", hint: "Oldest costs remain: Beg Inv + part of Purch 1." },
-    "m1_avg_cogs": { val: 51596, label: "Avg Cost COGS", hint: "Total Cost ($88,450) / Total Units (4,800) * Sales (2,800)." },
-    "m1_avg_end": { val: 36854, label: "Avg Cost Ending Inv", hint: "Total Cost ($88,450) / Total Units (4,800) * End Units (2,000)." },
-    "m1_fifo_layer1": { val: 18000, label: "FIFO Layer 1", hint: "1,000 units * $18.00" },
-    "m1_fifo_layer2": { val: 32850, label: "FIFO Layer 2", hint: "1,800 units * $18.25" },
-    "m1_lifo_layer1": { val: 22800, label: "LIFO Layer 1", hint: "1,200 units * $19.00" },
-    "m1_lifo_layer2": { val: 14800, label: "LIFO Layer 2", hint: "800 units * $18.50" },
-    "m1_lifo_layer3": { val: 14600, label: "LIFO Layer 3", hint: "800 units * $18.25" },
-    "m1_avg_unit": { val: 18.427, label: "Avg Unit Cost", hint: "$88,450 / 4,800 units (approx $18.43)" },
+    "m1_fifo_cogs": { val: "NTA4NTA=", label: "FIFO COGS", hint: "Oldest costs first: Beg Inv + Purch 1 + part of Purch 2." },
+    "m1_fifo_end": { val: "Mzc2MDA=", label: "FIFO Ending Inv", hint: "Newest costs remain: Purch 3 + part of Purch 2." },
+    "m1_lifo_cogs": { val: "NTIyMDA=", label: "LIFO COGS", hint: "Newest costs first: Purch 3 + Purch 2 + part of Purch 1." },
+    "m1_lifo_end": { val: "MzYyNTA=", label: "LIFO Ending Inv", hint: "Oldest costs remain: Beg Inv + part of Purch 1." },
+    "m1_avg_cogs": { val: "NTE1OTY=", label: "Avg Cost COGS", hint: "Total Cost ($88,450) / Total Units (4,800) * Sales (2,800)." },
+    "m1_avg_end": { val: "MzY4NTQ=", label: "Avg Cost Ending Inv", hint: "Total Cost ($88,450) / Total Units (4,800) * End Units (2,000)." },
+    "m1_fifo_layer1": { val: "MTgwMDA=", label: "FIFO Layer 1", hint: "1,000 units * $18.00" },
+    "m1_fifo_layer2": { val: "MzI4NTA=", label: "FIFO Layer 2", hint: "1,800 units * $18.25" },
+    "m1_lifo_layer1": { val: "MjI4MDA=", label: "LIFO Layer 1", hint: "1,200 units * $19.00" },
+    "m1_lifo_layer2": { val: "MTQ4MDA=", label: "LIFO Layer 2", hint: "800 units * $18.50" },
+    "m1_lifo_layer3": { val: "MTQ2MDA=", label: "LIFO Layer 3", hint: "800 units * $18.25" },
+    "m1_avg_unit": { val: "MTguNDI3", label: "Avg Unit Cost", hint: "$88,450 / 4,800 units (approx $18.43)" },
 
     // Module 2 (Review 6-2)
-    "m2_q1_inv": { val: 30000, label: "6-2.1 Inventory BS", hint: "Lower of Cost (from 6-1) or Market (30,000)" },
-    "m2_q2_s1_cogs": { val: 52200, label: "6-2.2 Scen 1 COGS", hint: "Linked from 6-1 LIFO COGS" },
-    "m2_q2_s1_inv": { val: 36250, label: "6-2.2 Scen 1 Inv", hint: "Linked from 6-1 LIFO End Inv" },
-    "m2_q2_s2_cogs": { val: 51250, label: "6-2.2 Scen 2 COGS", hint: "Skip Purch 3. Use Purch 2, then Purch 1 layers." },
-    "m2_q2_s2_inv": { val: 14400, label: "6-2.2 Scen 2 Inv", hint: "Remaining Units * Cost" }, 
-    "m2_q2_profit_diff": { val: 950, label: "6-2.2 Profit Diff", hint: "Difference between Scenario 1 and 2 COGS (52,200 - 51,250)" },
-    "m2_q3_fifo_inv": { val: 37600, label: "6-2.3 FIFO Inv", hint: "Linked from 6-1" },
-    "m2_q3_lifo_inv": { val: 36250, label: "6-2.3 LIFO Inv", hint: "Linked from 6-1" },
-    "m2_q3_reserve": { val: 1350, label: "6-2.3 LIFO Reserve", hint: "FIFO Inventory - LIFO Inventory" },
-    "m2_q3_tax": { val: 284, label: "6-2.3 Tax Savings", hint: "LIFO Reserve * 21% (rounded)" },
+    "m2_q1_inv": { val: "MzAwMDA=", label: "6-2.1 Inventory BS", hint: "Lower of Cost (from 6-1) or Market (30,000)" },
+    "m2_q2_s1_cogs": { val: "NTIyMDA=", label: "6-2.2 Scen 1 COGS", hint: "Linked from 6-1 LIFO COGS" },
+    "m2_q2_s1_inv": { val: "MzYyNTA=", label: "6-2.2 Scen 1 Inv", hint: "Linked from 6-1 LIFO End Inv" },
+    "m2_q2_s2_cogs": { val: "NTEyNTA=", label: "6-2.2 Scen 2 COGS", hint: "Skip Purch 3. Use Purch 2, then Purch 1 layers." },
+    "m2_q2_s2_inv": { val: "MTQ0MDA=", label: "6-2.2 Scen 2 Inv", hint: "Remaining Units * Cost" }, 
+    "m2_q2_profit_diff": { val: "OTUw", label: "6-2.2 Profit Diff", hint: "Difference between Scenario 1 and 2 COGS (52,200 - 51,250)" },
+    "m2_q3_fifo_inv": { val: "Mzc2MDA=", label: "6-2.3 FIFO Inv", hint: "Linked from 6-1" },
+    "m2_q3_lifo_inv": { val: "MzYyNTA=", label: "6-2.3 LIFO Inv", hint: "Linked from 6-1" },
+    "m2_q3_reserve": { val: "MTM1MA==", label: "6-2.3 LIFO Reserve", hint: "FIFO Inventory - LIFO Inventory" },
+    "m2_q3_tax": { val: "Mjg0", label: "6-2.3 Tax Savings", hint: "LIFO Reserve * 21% (rounded)" },
 
     // Module 3
-    "m3_gp_2022": { val: 0.3323, isPct: true, label: "Gross Profit Margin 2022", hint: "(Rev - COGS) / Rev" },
-    "m3_gp_2021": { val: 0.3330, isPct: true, label: "Gross Profit Margin 2021", hint: "(Rev - COGS) / Rev" },
-    "m3_dio_2022": { val: 101.8, label: "Days Inventory Outstanding 2022", hint: "(Avg Inv / COGS) * 365" },
-    "m3_dio_2021": { val: 96.1, label: "Days Inventory Outstanding 2021", hint: "(Avg Inv / COGS) * 365" },
-    "m3_dpo_2022": { val: 61.6, label: "Days Payable Outstanding 2022", hint: "(Avg AP / COGS) * 365" },
-    "m3_dpo_2021": { val: 63.2, label: "Days Payable Outstanding 2021", hint: "(Avg AP / COGS) * 365" },
-    "m3_ccc_2022": { val: 40.2, label: "Cash Conversion Cycle 2022", hint: "DIO + DSO - DPO (DSO=0)" },
-    "m3_ccc_2021": { val: 32.9, label: "Cash Conversion Cycle 2021", hint: "DIO + DSO - DPO (DSO=0)" },
-    "m3_ccc_impact": { val: 1296, label: "Cash Impact", hint: "= Change in CCC × Average daily COGS" },
+    "m3_gp_2022": { val: "MC4zMzIz", isPct: true, label: "Gross Profit Margin 2022", hint: "(Rev - COGS) / Rev" },
+    "m3_gp_2021": { val: "MC4zMzMw", isPct: true, label: "Gross Profit Margin 2021", hint: "(Rev - COGS) / Rev" },
+    "m3_dio_2022": { val: "MTAxLjg=", label: "Days Inventory Outstanding 2022", hint: "(Avg Inv / COGS) * 365" },
+    "m3_dio_2021": { val: "OTYuMQ==", label: "Days Inventory Outstanding 2021", hint: "(Avg Inv / COGS) * 365" },
+    "m3_dpo_2022": { val: "NjEuNg==", label: "Days Payable Outstanding 2022", hint: "(Avg AP / COGS) * 365" },
+    "m3_dpo_2021": { val: "NjMuMg==", label: "Days Payable Outstanding 2021", hint: "(Avg AP / COGS) * 365" },
+    "m3_ccc_2022": { val: "NDAuMg==", label: "Cash Conversion Cycle 2022", hint: "DIO + DSO - DPO (DSO=0)" },
+    "m3_ccc_2021": { val: "MzIuOQ==", label: "Cash Conversion Cycle 2021", hint: "DIO + DSO - DPO (DSO=0)" },
+    "m3_ccc_impact": { val: "MTI5Ng==", label: "Cash Impact", hint: "= Change in CCC × Average daily COGS" },
 
     // Module 4
-    "m4_dep_exp": { val: 17000, label: "Annual Dep Exp", hint: "(Cost - Salvage) / Life" },
-    "m4_bv_y3": { val: 44000, label: "Book Value Y3", hint: "Cost - (Dep Exp * 3)" },
+    "m4_dep_exp": { val: "MTcwMDA=", label: "Annual Dep Exp", hint: "(Cost - Salvage) / Life" },
+    "m4_bv_y3": { val: "NDQwMDA=", label: "Book Value Y3", hint: "Cost - (Dep Exp * 3)" },
 
     // Module 5
-    "m5_cv_y3": { val: 44000, label: "Carrying Value (Year 3)", hint: "Cost - Accumulated Depreciation (Yr 3)" },
-    "m5_imp_loss": { val: 8000, label: "Impairment Loss", hint: "Carrying Value - Fair Value (since CV > Undisc CF)" },
+    "m5_cv_y3": { val: "NDQwMDA=", label: "Carrying Value (Year 3)", hint: "Cost - Accumulated Depreciation (Yr 3)" },
+    "m5_imp_loss": { val: "ODAwMA==", label: "Impairment Loss", hint: "Carrying Value - Fair Value (since CV > Undisc CF)" },
 
     // Module 6
-    "m6_avg_ppe_2022": { val: 18319, label: "Average PPE, net (2022)", hint: "(Net PPE 2022 + Net PPE 2021) / 2" },
-    "m6_turn_2022": { val: 5.3, label: "PPE Turnover (2022)", hint: "Revenue / Average PPE, net" },
-    "m6_dep_base_2022": { val: 27325, label: "Depreciable Base (2022)", hint: "Gross PPE - Land - CIP (2022)" },
-    "m6_dep_base_2021": { val: 28966, label: "Depreciable Base (2021)", hint: "Gross PPE - Land - CIP (2021)" },
-    "m6_avg_dep_base_2022": { val: 28146, label: "Avg Depreciable Base", hint: "(Depreciable Base 2022 + Depreciable Base 2021) / 2" },
-    "m6_life_2022": { val: 14.2, label: "Average Useful Life", hint: "Average Depreciable Base / Depreciation Expense" },
-    "m6_used_2022": { val: 0.635, isPct: true, label: "Percent Used Up (2022)", hint: "Accumulated Depreciation / Depreciable Base (2022)" },
+    "m6_avg_ppe_2022": { val: "MTgzMTk=", label: "Average PPE, net (2022)", hint: "(Net PPE 2022 + Net PPE 2021) / 2" },
+    "m6_turn_2022": { val: "NS4z", label: "PPE Turnover (2022)", hint: "Revenue / Average PPE, net" },
+    "m6_dep_base_2022": { val: "MjczMjU=", label: "Depreciable Base (2022)", hint: "Gross PPE - Land - CIP (2022)" },
+    "m6_dep_base_2021": { val: "Mjg5NjY=", label: "Depreciable Base (2021)", hint: "Gross PPE - Land - CIP (2021)" },
+    "m6_avg_dep_base_2022": { val: "MjgxNDY=", label: "Avg Depreciable Base", hint: "(Depreciable Base 2022 + Depreciable Base 2021) / 2" },
+    "m6_life_2022": { val: "MTQuMg==", label: "Average Useful Life", hint: "Average Depreciable Base / Depreciation Expense" },
+    "m6_used_2022": { val: "MC42MzU=", isPct: true, label: "Percent Used Up (2022)", hint: "Accumulated Depreciation / Depreciable Base (2022)" },
 
     // Module 7 - AMD Impairment
-    "m7_imp_dev_tech": { val: 958, label: "Imp: Developed Tech", hint: "CV (10,758) - FV (9,800)" },
-    "m7_imp_cust_rel": { val: 0, label: "Imp: Cust Relations", hint: "FV (11,900) > CV (10,534). No impairment." },
-    "m7_imp_trademarks": { val: 0, label: "Imp: Trademarks", hint: "FV (1,300) > CV (746). No impairment." },
-    "m7_imp_iprd": { val: 470, label: "Imp: IPR&D", hint: "CV (970) - FV (500)" },
-    "m7_imp_total": { val: 1428, label: "Total Impairment", hint: "Sum of impairment losses" }
+    "m7_imp_dev_tech": { val: "OTU4", label: "Imp: Developed Tech", hint: "CV (10,758) - FV (9,800)" },
+    "m7_imp_cust_rel": { val: "MA==", label: "Imp: Cust Relations", hint: "FV (11,900) > CV (10,534). No impairment." },
+    "m7_imp_trademarks": { val: "MA==", label: "Imp: Trademarks", hint: "FV (1,300) > CV (746). No impairment." },
+    "m7_imp_iprd": { val: "NDcw", label: "Imp: IPR&D", hint: "CV (970) - FV (500)" },
+    "m7_imp_total": { val: "MTQyOA==", label: "Total Impairment", hint: "Sum of impairment losses" }
 };
 
 // --- 2. COMPONENTS ---
@@ -429,8 +463,117 @@ const Modal = ({ isOpen, title, children, onClose }) => {
         </div>
     );
 };
+/* =========================================================
+   ✅ CALCULATOR COMPONENT (ADDED)
+========================================================= */
+const Calculator = ({ isOpen, onClose }) => {
+    const [input, setInput] = React.useState("");
+    const [result, setResult] = React.useState("");
 
-const SmartInput = ({ id, value, onChange, isPct, correctValue, instructorMode, onFocus, isFocused }) => {
+    React.useEffect(() => {
+        if (!isOpen) {
+            setInput("");
+            setResult("");
+        }
+    }, [isOpen]);
+
+    if (!isOpen) return null;
+
+    const safeEval = (exp) => {
+        if (!exp) return null;
+        const clean = exp.toString().replace(/,/g, "");
+        if (!/^[0-9+\-*/().\s]+$/.test(clean)) return null;
+        try {
+            const res = new Function("return " + clean)();
+            if (typeof res !== "number" || !isFinite(res)) return null;
+            return res;
+        } catch (e) {
+            return null;
+        }
+    };
+
+    const handleClick = (val) => {
+        if (val === "=") {
+            const res = safeEval(input);
+            if (res === null) {
+                setResult("Error");
+                return;
+            }
+            setResult(Number(res).toLocaleString(undefined, { maximumFractionDigits: 8 }));
+            setInput(String(res));
+            return;
+        }
+
+        if (val === "C") {
+            setInput("");
+            setResult("");
+            return;
+        }
+
+        if (val === "⌫") {
+            setInput((prev) => prev.slice(0, -1));
+            return;
+        }
+
+        setInput((prev) => prev + val);
+    };
+
+    const buttons = [
+        "C","⌫","(",")",
+        "7","8","9","/",
+        "4","5","6","*",
+        "1","2","3","-",
+        "0",".","=","+"
+    ];
+
+    return (
+        <div className="fixed top-20 right-4 z-[250] w-64 bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden instructor-toolbar">
+            <div className="bg-slate-50 p-2 border-b flex justify-between items-center">
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-2">
+                    Calculator
+                </span>
+                <button
+                    onClick={onClose}
+                    className="p-1 hover:bg-slate-200 rounded text-slate-500"
+                    title="Close"
+                >
+                    <Icon name="x" className="w-4 h-4" />
+                </button>
+            </div>
+
+            <div className="p-4 bg-slate-900 text-right">
+                <div className="text-slate-400 text-xs h-4 mb-1 truncate">
+                    {result !== "" ? input : ""}
+                </div>
+                <div className="text-white text-2xl font-mono font-bold truncate">
+                    {result !== "" ? result : (input || "0")}
+                </div>
+            </div>
+
+            <div className="grid grid-cols-4 gap-px bg-slate-200 border-t border-slate-200">
+                {buttons.map((btn) => (
+                    <button
+                        key={btn}
+                        onClick={() => handleClick(btn)}
+                        className={`p-3 text-sm font-bold transition-colors ${
+                            btn === "="
+                                ? "bg-blue-600 text-white hover:bg-blue-700"
+                                : ["C","⌫"].includes(btn)
+                                ? "bg-red-50 text-red-600 hover:bg-red-100"
+                                : ["/","*","-","+"].includes(btn)
+                                ? "bg-slate-100 text-slate-800 hover:bg-slate-200"
+                                : "bg-white text-slate-700 hover:bg-slate-50"
+                        }`}
+                    >
+                        {btn}
+                    </button>
+                ))}
+            </div>
+        </div>
+    );
+};
+
+const SmartInput = ({ id, value, onChange, isPct, correctValueEncoded, instructorMode, onFocus, isFocused }) => {
     const evaluateExpression = (expression) => {
         if (!expression) return { val: "", valid: false };
         let cleanExp = expression.toString().replace(/,/g, '');
@@ -456,6 +599,8 @@ const SmartInput = ({ id, value, onChange, isPct, correctValue, instructorMode, 
     };
 
     let status = "neutral";
+    const correctValue = d(correctValueEncoded);
+
     if (value !== "" && value !== undefined && correctValue !== undefined) {
         const numVal = parseFloat(value);
         if (!isNaN(numVal)) {
@@ -503,9 +648,9 @@ const SmartInput = ({ id, value, onChange, isPct, correctValue, instructorMode, 
     );
 };
 
-const FieldWithHint = ({ id, label, isPct, answers, updateAnswer, correctValue, instructorMode, onFocus, isFocused, linkedValue, className = "mb-4" }) => {
+const FieldWithHint = ({ id, label, isPct, answers, updateAnswer, correctValueEncoded, instructorMode, onFocus, isFocused, linkedValue, className = "mb-4" }) => {
     const [showHint, setShowHint] = React.useState(false);
-    const hint = ANSWER_KEY[id]?.hint;
+    const hint = _DATA_MATRIX[id]?.hint;
     const displayValue = answers[id] !== undefined ? answers[id] : (linkedValue || "");
     const handleChange = (fieldId, val) => { updateAnswer(fieldId, val); };
 
@@ -532,7 +677,7 @@ const FieldWithHint = ({ id, label, isPct, answers, updateAnswer, correctValue, 
                 id={id}
                 value={displayValue}
                 onChange={handleChange}
-                correctValue={correctValue}
+                correctValueEncoded={correctValueEncoded}
                 isPct={isPct}
                 instructorMode={instructorMode}
                 onFocus={onFocus}
@@ -700,9 +845,42 @@ const App = () => {
     const [showAuthModal, setShowAuthModal] = React.useState(false);
     const [showClearModal, setShowClearModal] = React.useState(false);
     const [passwordInput, setPasswordInput] = React.useState("");
+    const [navWidth, setNavWidth] = React.useState(256); // 64 * 4 = 256px default
+    const [showCalculator, setShowCalculator] = React.useState(false);
+
+    const isResizing = React.useRef(false);
 
     const updateAnswer = (id, val) => { setAnswers(prev => ({ ...prev, [id]: val })); };
     const handleInputFocus = (id) => { setActiveInputId(id); };
+
+    // --- SIDEBAR RESIZING ---
+    const startResizing = React.useCallback(() => {
+        isResizing.current = true;
+        document.body.style.cursor = 'col-resize';
+    }, []);
+
+    const stopResizing = React.useCallback(() => {
+        isResizing.current = false;
+        document.body.style.cursor = 'default';
+    }, []);
+
+    const resize = React.useCallback((e) => {
+        if (!isResizing.current) return;
+        const newWidth = e.clientX;
+        if (newWidth > 150 && newWidth < 500) {
+            setNavWidth(newWidth);
+        }
+    }, []);
+
+    React.useEffect(() => {
+        window.addEventListener('mousemove', resize);
+        window.addEventListener('mouseup', stopResizing);
+        return () => {
+            window.removeEventListener('mousemove', resize);
+            window.removeEventListener('mouseup', stopResizing);
+        };
+    }, [resize, stopResizing]);
+
 
     const handleNumberClick = (val) => {
         if (!activeInputId) return;
@@ -724,7 +902,8 @@ const App = () => {
     };
 
     const handleAuth = () => {
-        if (passwordInput === "teacher") {
+        // Obfuscated: "review" in Base64
+        if (btoa(passwordInput) === "cmV2aWV3") {
             setInstructorMode(true);
             setShowAuthModal(false);
             setPasswordInput("");
@@ -733,7 +912,7 @@ const App = () => {
 
     const autoFillAll = () => {
         const filled = {};
-        Object.keys(ANSWER_KEY).forEach(key => { filled[key] = ANSWER_KEY[key].val; });
+        Object.keys(_DATA_MATRIX).forEach(key => { filled[key] = d(_DATA_MATRIX[key].val); });
         setAnswers(filled);
     };
 
@@ -1123,11 +1302,11 @@ const App = () => {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {Object.entries(ANSWER_KEY).map(([key, data]) => (
+                                        {Object.entries(_DATA_MATRIX).map(([key, data]) => (
                                             <tr key={key} className="border-b hover:bg-purple-50">
                                                 <td className="p-3 font-medium">{data.label}</td>
                                                 <td className="p-3 font-mono font-bold text-purple-700">
-                                                    {data.isPct ? (data.val * 100).toFixed(2) + "%" : data.val}
+                                                    {data.isPct ? (d(data.val) * 100).toFixed(2) + "%" : d(data.val)}
                                                 </td>
                                             </tr>
                                         ))}
@@ -1161,7 +1340,7 @@ const App = () => {
         <FieldWithHint 
             key={id} id={id} label={label} isPct={isPct} 
             answers={answers} updateAnswer={updateAnswer} 
-            correctValue={ANSWER_KEY[id]?.val} instructorMode={instructorMode}
+            correctValueEncoded={_DATA_MATRIX[id]?.val} instructorMode={instructorMode}
             onFocus={handleInputFocus} isFocused={activeInputId === id}
             linkedValue={linkedValue ? answers[linkedValue] : null}
             className={customClass}
@@ -1179,12 +1358,20 @@ const App = () => {
                 </div>
                 <div className="flex items-center gap-3">
                     <input type="text" placeholder="Student Name" className="bg-slate-800 border-slate-700 px-3 py-1 rounded text-sm text-white" />
-                     <button 
+                    <button
+    onClick={() => setShowCalculator(prev => !prev)}
+    className="bg-white/10 hover:bg-white/20 text-white px-3 py-2 rounded text-sm font-medium flex items-center gap-2 transition"
+    title="Open Calculator"
+>
+    <Icon name="calculator" className="w-4 h-4" />
+    Calc
+</button>
+ 
+                    <button 
                         onClick={() => instructorMode ? setInstructorMode(false) : setShowAuthModal(true)}
-                        className={`flex items-center gap-2 px-3 py-2 rounded text-sm font-medium transition-colors border ${instructorMode ? 'bg-purple-600 border-purple-500 text-white' : 'bg-transparent border-slate-700 text-white'}`}
+                        className={`opacity-20 hover:opacity-100 flex items-center gap-2 px-3 py-2 rounded text-sm font-medium transition-all ${instructorMode ? 'bg-purple-600 text-white opacity-100' : 'text-white'}`}
                     >
                         <Icon name={instructorMode ? "unlock" : "lock"} className="w-4 h-4" />
-                        {instructorMode ? "Instructor" : "Login"}
                     </button>
                 </div>
             </header>
@@ -1207,8 +1394,11 @@ const App = () => {
                 </div>
             )}
 
-            <div className="flex flex-1 overflow-hidden">
-                <nav className="w-64 bg-white border-r border-gray-200 overflow-y-auto custom-scrollbar flex-shrink-0 hidden md:block">
+            <div className="flex flex-1 overflow-hidden relative">
+                <nav 
+                    className="bg-white border-r border-gray-200 overflow-y-auto custom-scrollbar flex-shrink-0 hidden md:block relative"
+                    style={{ width: navWidth }}
+                >
                     <div className="p-4 border-b bg-gray-50 text-xs font-bold text-gray-500 uppercase">Progression</div>
                     <div className="p-2 space-y-1">
                         {MODULES.map(mod => (
@@ -1228,6 +1418,8 @@ const App = () => {
                             </button>
                         ))}
                     </div>
+                    {/* Resizer Handle */}
+                    <div className="resizer-handle" onMouseDown={startResizing}></div>
                 </nav>
 
                 <main className="flex-1 overflow-hidden relative bg-gray-50 p-6">
@@ -1244,23 +1436,28 @@ const App = () => {
                     {renderModuleContent()}
                 </main>
             </div>
-            
+            {/* Calculator Widget */}
+<Calculator
+    isOpen={showCalculator}
+    onClose={() => setShowCalculator(false)}
+/>
+
             {/* Login Modal */}
-            <Modal isOpen={showAuthModal} title="Instructor Access" onClose={() => setShowAuthModal(false)}>
+            <Modal isOpen={showAuthModal} title="System Access" onClose={() => setShowAuthModal(false)}>
                 <div className="space-y-4">
-                    <p className="text-sm text-gray-600">Enter the instructor password to access answer keys and grading tools.</p>
                     <input 
                         type="password" 
                         className="w-full border p-2 rounded outline-none focus:border-purple-500"
-                        placeholder="Password"
+                        placeholder="Access Code"
                         value={passwordInput}
                         onChange={(e) => setPasswordInput(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleAuth()}
                     />
                     <button 
                         onClick={handleAuth}
                         className="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 rounded font-medium"
                     >
-                        Unlock Mode
+                        Unlock
                     </button>
                 </div>
             </Modal>
