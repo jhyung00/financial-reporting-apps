@@ -14,7 +14,11 @@
     <script src="https://unpkg.com/lucide@latest"></script>
 
     <style>
-        body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+        body { 
+            font-family: 'Inter', system-ui, -apple-system, sans-serif; 
+            user-select: none; /* Prevent text selection */
+            -webkit-user-select: none;
+        }
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
@@ -68,9 +72,30 @@
             border-bottom: 1px solid #2563eb;
             font-weight: 600;
         }
+
+        /* STEALTH INSTRUCTOR BUTTON */
+        .stealth-lock {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            background: none;
+            border: none;
+            color: #94a3b8; /* subtle slate */
+            opacity: 0.1; /* Almost invisible */
+            cursor: pointer;
+            padding: 8px;
+            transition: all 0.3s ease;
+            z-index: 100;
+        }
+
+        .stealth-lock:hover {
+            opacity: 1;
+            transform: scale(1.1);
+            color: #334155;
+        }
     </style>
 </head>
-<body class="bg-slate-100 text-slate-800 h-screen overflow-hidden">
+<body class="bg-slate-100 text-slate-800 h-screen overflow-hidden" oncontextmenu="return false;">
     <div id="root"></div>
 
     <script type="text/babel">
@@ -104,8 +129,9 @@
             }
         };
 
-        // --- DATA: WEISS COMPANY (E5.49) ---
-        const WEISS_DATA = {
+        // --- DATA MATRIX (OBFUSCATED) ---
+        // Originally WEISS_DATA
+        const _DM_W = {
             metadata: { name: "Weiss Company", year: "Years 1-3" },
             tables: [
                 {
@@ -128,7 +154,8 @@
             ]
         };
 
-        const WEISS_ANSWER_KEY = {
+        // Originally WEISS_ANSWER_KEY
+        const _KM_W = {
             // Req (a)
             "w_bd_exp_y1": "NzMzMA==", // 7330
             "w_bd_exp_y2": "ODU3MA==", // 8570
@@ -149,7 +176,8 @@
             "w_concl": "aGlnaA==" // high
         };
 
-        const WEISS_QUESTIONS = [
+        // Originally WEISS_QUESTIONS
+        const _QM_W = [
             {
                 id: "wq1", title: "Requirement (a): Bad Debt Expense", desc: "Calculate expense recognized each year (1% of sales).",
                 sections: [
@@ -223,8 +251,9 @@
             }
         ];
 
-        // --- DATA: LOLLAR INC (P5.53) ---
-        const LOLLAR_DATA = {
+        // --- DATA MATRIX (OBFUSCATED) ---
+        // Originally LOLLAR_DATA
+        const _DM_L = {
             metadata: { name: "Lollar Inc.", year: "FY1 - FY3" },
             tables: [
                 {
@@ -239,7 +268,8 @@
             ]
         };
 
-        const LOLLAR_ANSWER_KEY = {
+        // Originally LOLLAR_ANSWER_KEY
+        const _KM_L = {
             // Req (a)
             "l_gross_fy3": "MzUw", // 350
             "l_gross_fy2": "MzIw", // 320
@@ -259,7 +289,8 @@
             "l_effect": "aW1wcm92ZWRfZHNv" // improved_dso
         };
 
-        const LOLLAR_QUESTIONS = [
+        // Originally LOLLAR_QUESTIONS
+        const _QM_L = [
             {
                 id: "lq1", title: "Req (a): Compute AR Gross", desc: "AR (gross) = AR (net) + Allowance",
                 sections: [
@@ -616,9 +647,10 @@
             const [studentName, setStudentName] = useState("");
             const [showDownload, setShowDownload] = useState(false);
 
-            const activeData = activeTab === 'weiss' ? WEISS_DATA : LOLLAR_DATA;
-            const activeQuestions = activeTab === 'weiss' ? WEISS_QUESTIONS : LOLLAR_QUESTIONS;
-            const activeKey = activeTab === 'weiss' ? WEISS_ANSWER_KEY : LOLLAR_ANSWER_KEY;
+            // UPDATED: Obfuscated References
+            const activeData = activeTab === 'weiss' ? _DM_W : _DM_L;
+            const activeQuestions = activeTab === 'weiss' ? _QM_W : _QM_L;
+            const activeKey = activeTab === 'weiss' ? _KM_W : _KM_L;
 
             // Resize Logic
             const startResizing = useCallback(() => setIsResizing(true), []);
@@ -850,7 +882,7 @@ ${Object.keys(activeKey).map(k => `${k}: ${inputs[k] || "[Empty]"}`).join('\n')}
                         )}
 
                         {/* HEADER */}
-                        <header className="bg-white border-b border-slate-200 p-6 flex justify-between items-center shrink-0">
+                        <header className="bg-white border-b border-slate-200 p-6 flex justify-between items-center shrink-0 relative">
                             <div>
                                 <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
                                     <Icon name="file-spreadsheet" className="text-blue-600" /> {activeData.metadata.name}
@@ -861,11 +893,14 @@ ${Object.keys(activeKey).map(k => `${k}: ${inputs[k] || "[Empty]"}`).join('\n')}
                                 <button onClick={() => setShowDownload(true)} className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold shadow-sm transition">
                                     <Icon name="save" size={18} /> Save Work
                                 </button>
-                                {!instructorMode && (
-                                    <button onClick={() => setShowLogin(true)} className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-medium transition border border-slate-300">
-                                        <Icon name="lock" size={16} /> Instructor
-                                    </button>
-                                )}
+                                {/* STEALTH BUTTON HERE */}
+                                <button 
+                                    className="stealth-lock" 
+                                    onClick={() => setShowLogin(true)} 
+                                    title="System"
+                                >
+                                    <Icon name="lock" size={14} />
+                                </button>
                             </div>
                         </header>
 
