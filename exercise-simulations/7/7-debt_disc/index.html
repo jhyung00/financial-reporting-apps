@@ -62,34 +62,47 @@
 
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
         .animate-fade-in { animation: fadeIn 0.3s ease-out; }
+
+        /* Anti-Tamper Styles */
+        .no-select {
+            user-select: none;
+            -webkit-user-select: none;
+        }
     </style>
 </head>
-<body class="bg-slate-100 text-slate-800 antialiased h-screen flex flex-col overflow-hidden">
+<body class="bg-slate-100 text-slate-800 antialiased h-screen flex flex-col overflow-hidden no-select" oncontextmenu="return false;">
 
     <div id="root" class="h-full flex flex-col"></div>
 
     <script type="text/babel">
         const { useState, useEffect, useMemo, useRef, useCallback } = React;
 
-        // --- DATA & KEYS ---
-        const ANSWER_KEYS = {
+        // --- SECURITY & OBFUSCATION ---
+        
+        // Helper to decode Base64
+        const d = (str) => {
+            try { return atob(str); } catch (e) { return str; }
+        };
+
+        // Obfuscated Data Matrix (Answers & Keys)
+        const _DATA_MATRIX = {
             A: {
-                "a_cv1": "12844", "a_cv2": "12857",
-                "a_fv1": "12400", "a_fv2": "9900",
-                "a_trend": "increase"
+                "a_cv1": "MTI4NDQ=", "a_cv2": "MTI4NTc=",
+                "a_fv1": "MTI0MDA=", "a_fv2": "OTkwMA==",
+                "a_trend": "aW5jcmVhc2U="
             },
             B: {
-                "b_step1": "5",
-                "b_n": "8", "b_pmt": "-5", "b_pv": "497.67", "b_fv": "-500",
-                "b_rate": "1.061", "b_intexp": "3.52",
-                "b_c_proceeds": "497.67", "b_c_rate": "1.06107", "b_c_months": "8", "b_c_calc": "3.52"
+                "b_step1": "NQ==",
+                "b_n": "OA==", "b_pmt": "LTU=", "b_pv": "NDk3LjY3", "b_fv": "LTUwMA==",
+                "b_rate": "MS4wNjE=", "b_intexp": "My41Mg==",
+                "b_c_proceeds": "NDk3LjY3", "b_c_rate": "MS4wNjEwNw==", "b_c_months": "OA==", "b_c_calc": "My41Mg=="
             },
             Q: {
-                "q1": "a", "q2": "c", "q3": "a", "q4": "b", "q5": "c", "q6": "b"
+                "q1": "YQ==", "q2": "Yw==", "q3": "YQ==", "q4": "Yg==", "q5": "Yw==", "q6": "Yg=="
             }
         };
 
-        const ALPHABET_DATA = {
+        const _D_ALPHA = {
             metadata: { name: "Alphabet Inc. (E7-34)", year: "Debt Disclosures" },
             tables: [
                 {
@@ -114,7 +127,7 @@
             ]
         };
 
-        const CARREFOUR_DATA = {
+        const _D_CARR = {
             metadata: { name: "Carrefour SA (E7-37)", year: "Bond Valuation" },
             tables: [
                 {
@@ -155,7 +168,7 @@
         const ConfirmationModal = ({ isOpen, title, message, onConfirm, onCancel }) => {
             if (!isOpen) return null;
             return (
-                <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center backdrop-blur-sm animate-fade-in">
+                <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center backdrop-blur-sm animate-fade-in no-select">
                     <div className="bg-white rounded-lg shadow-2xl max-w-sm w-full p-6 m-4 border-l-4 border-red-500">
                         <div className="flex items-center gap-3 text-red-600 mb-4">
                             <Icon name="alert-triangle" size={24} />
@@ -221,15 +234,12 @@
             }, [value, correctValue, tolerance]);
 
             const handleBlur = (e) => {
-                // Focus retention is handled by parent or ref, but here we process the calculation
                 const { valid, val } = evaluateMath(value);
                 if (!valid) { setLocalError("Invalid"); return; }
                 setLocalError(null);
                 
                 if (valid && value !== "") {
                      const numVal = Number(val);
-                     // Display formatting: if it was a percent calc, maybe keep it? 
-                     // Requirement: "formula is replaced by the calculated result"
                      const displayVal = Number.isInteger(numVal) ? numVal.toString() : numVal.toFixed(4).replace(/\.?0+$/, '');
                      onChange(id, displayVal.toString()); 
                 }
@@ -385,22 +395,22 @@
                                 <h5 className="text-xs font-bold text-slate-500 uppercase">FY1 Calculations ($M)</h5>
                                 <div className="flex justify-between items-center text-sm">
                                     <span>Net Carrying Value</span>
-                                    <div className="w-24"><SmartInput id="a_cv1" value={inputs.A.a_cv1} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEYS.A.a_cv1} instructorMode={teacherMode} hint="Face - Unamortized Discount" /></div>
+                                    <div className="w-24"><SmartInput id="a_cv1" value={inputs.A.a_cv1} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(_DATA_MATRIX.A.a_cv1)} instructorMode={teacherMode} hint="Face - Unamortized Discount" /></div>
                                 </div>
                                 <div className="flex justify-between items-center text-sm">
                                     <span>Fair Value</span>
-                                    <div className="w-24"><SmartInput id="a_fv1" value={inputs.A.a_fv1} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEYS.A.a_fv1} instructorMode={teacherMode} hint="Given" /></div>
+                                    <div className="w-24"><SmartInput id="a_fv1" value={inputs.A.a_fv1} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(_DATA_MATRIX.A.a_fv1)} instructorMode={teacherMode} hint="Given" /></div>
                                 </div>
                             </div>
                             <div className="space-y-3">
                                 <h5 className="text-xs font-bold text-slate-500 uppercase">FY2 Calculations ($M)</h5>
                                 <div className="flex justify-between items-center text-sm">
                                     <span>Net Carrying Value</span>
-                                    <div className="w-24"><SmartInput id="a_cv2" value={inputs.A.a_cv2} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEYS.A.a_cv2} instructorMode={teacherMode} hint="Face - Unamortized Discount" /></div>
+                                    <div className="w-24"><SmartInput id="a_cv2" value={inputs.A.a_cv2} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(_DATA_MATRIX.A.a_cv2)} instructorMode={teacherMode} hint="Face - Unamortized Discount" /></div>
                                 </div>
                                 <div className="flex justify-between items-center text-sm">
                                     <span>Fair Value</span>
-                                    <div className="w-24"><SmartInput id="a_fv2" value={inputs.A.a_fv2} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEYS.A.a_fv2} instructorMode={teacherMode} hint="Given" /></div>
+                                    <div className="w-24"><SmartInput id="a_fv2" value={inputs.A.a_fv2} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(_DATA_MATRIX.A.a_fv2)} instructorMode={teacherMode} hint="Given" /></div>
                                 </div>
                             </div>
                         </div>
@@ -448,7 +458,7 @@
                         <div className="flex items-center gap-4 text-sm text-slate-600 bg-slate-50 p-4 rounded-lg border border-slate-100">
                             <p>Face Value (€500M) × Coupon Rate (1%) = </p>
                             <div className="w-24">
-                                <SmartInput id="b_step1" value={inputs.B.b_step1} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEYS.B.b_step1} instructorMode={teacherMode} placeholder="Amount" />
+                                <SmartInput id="b_step1" value={inputs.B.b_step1} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(_DATA_MATRIX.B.b_step1)} instructorMode={teacherMode} placeholder="Amount" />
                             </div>
                             <span className="font-medium">€ Million</span>
                         </div>
@@ -463,30 +473,21 @@
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                             <div>
                                 <label className="text-[10px] uppercase font-bold text-slate-400">NPER</label>
-                                <SmartInput id="b_n" value={inputs.B.b_n} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEYS.B.b_n} instructorMode={teacherMode} hint="Years" />
+                                <SmartInput id="b_n" value={inputs.B.b_n} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(_DATA_MATRIX.B.b_n)} instructorMode={teacherMode} hint="Years" />
                             </div>
                             <div>
                                 <label className="text-[10px] uppercase font-bold text-slate-400">PMT</label>
-                                <SmartInput id="b_pmt" value={inputs.B.b_pmt} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEYS.B.b_pmt} instructorMode={teacherMode} hint="Cash Out" />
+                                <SmartInput id="b_pmt" value={inputs.B.b_pmt} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(_DATA_MATRIX.B.b_pmt)} instructorMode={teacherMode} hint="Cash Out" />
                             </div>
                             <div>
                                 <label className="text-[10px] uppercase font-bold text-slate-400">PV</label>
-                                <SmartInput id="b_pv" value={inputs.B.b_pv} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEYS.B.b_pv} instructorMode={teacherMode} hint="Inflow" tolerance={0.1} />
+                                <SmartInput id="b_pv" value={inputs.B.b_pv} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(_DATA_MATRIX.B.b_pv)} instructorMode={teacherMode} hint="Inflow" tolerance={0.1} />
                             </div>
                             <div>
                                 <label className="text-[10px] uppercase font-bold text-slate-400">FV</label>
-                                <SmartInput id="b_fv" value={inputs.B.b_fv} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEYS.B.b_fv} instructorMode={teacherMode} hint="Face Out" />
+                                <SmartInput id="b_fv" value={inputs.B.b_fv} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(_DATA_MATRIX.B.b_fv)} instructorMode={teacherMode} hint="Face Out" />
                             </div>
                         </div>
-                    </div>
-
-                    {/* Step 3 (Original Summary) */}
-                    <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm opacity-50 pointer-events-none filter blur-[1px]">
-                         {/* Visual Placeholder for completed rate step from before, kept for structure but de-emphasized for new Part C focus */}
-                         <div className="flex justify-between">
-                            <span>Calculated Rate (From Solver)</span>
-                            <span className="font-mono font-bold">1.061%</span>
-                         </div>
                     </div>
 
                     {/* Step 3 (New Detailed Part C) */}
@@ -503,19 +504,19 @@
                                     <div className="flex items-center justify-between">
                                         <label className="text-xs text-slate-600 w-1/2">Issue Proceeds (Beginning CV)</label>
                                         <div className="w-32">
-                                            <SmartInput id="b_c_proceeds" value={inputs.B.b_c_proceeds} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEYS.B.b_c_proceeds} instructorMode={teacherMode} hint="€497.67" />
+                                            <SmartInput id="b_c_proceeds" value={inputs.B.b_c_proceeds} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(_DATA_MATRIX.B.b_c_proceeds)} instructorMode={teacherMode} hint="€497.67" />
                                         </div>
                                     </div>
                                     <div className="flex items-center justify-between">
                                         <label className="text-xs text-slate-600 w-1/2">Effective Interest Rate (Annual)</label>
                                         <div className="w-32">
-                                            <SmartInput id="b_c_rate" value={inputs.B.b_c_rate} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEYS.B.b_c_rate} instructorMode={teacherMode} hint="1.06107%" allowPercent={true} />
+                                            <SmartInput id="b_c_rate" value={inputs.B.b_c_rate} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(_DATA_MATRIX.B.b_c_rate)} instructorMode={teacherMode} hint="1.06107%" allowPercent={true} />
                                         </div>
                                     </div>
                                     <div className="flex items-center justify-between">
                                         <label className="text-xs text-slate-600 w-1/2">Months elapsed in FY1 (May–Dec)</label>
                                         <div className="w-32">
-                                            <SmartInput id="b_c_months" value={inputs.B.b_c_months} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEYS.B.b_c_months} instructorMode={teacherMode} hint="8" />
+                                            <SmartInput id="b_c_months" value={inputs.B.b_c_months} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(_DATA_MATRIX.B.b_c_months)} instructorMode={teacherMode} hint="8" />
                                         </div>
                                     </div>
                                 </div>
@@ -536,7 +537,7 @@
                                 <div className="flex items-center gap-4">
                                     <span className="text-sm font-bold text-slate-700">Interest Expense:</span>
                                     <div className="w-40">
-                                        <SmartInput id="b_c_calc" value={inputs.B.b_c_calc} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEYS.B.b_c_calc} instructorMode={teacherMode} hint="Result" tolerance={0.05} />
+                                        <SmartInput id="b_c_calc" value={inputs.B.b_c_calc} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(_DATA_MATRIX.B.b_c_calc)} instructorMode={teacherMode} hint="Result" tolerance={0.05} />
                                     </div>
                                     <span className="text-sm text-slate-500">€ Million</span>
                                 </div>
@@ -552,43 +553,51 @@
             const [answers, setAnswers] = useState({});
             
             useEffect(() => {
-                if (isAutoFilled) setAnswers(ANSWER_KEYS.Q);
-                else if (!isAutoFilled && teacherMode) setAnswers({});
+                if (isAutoFilled) {
+                    const decodedAnswers = {};
+                    Object.keys(_DATA_MATRIX.Q).forEach(k => decodedAnswers[k] = d(_DATA_MATRIX.Q[k]));
+                    setAnswers(decodedAnswers);
+                } else if (!isAutoFilled && teacherMode) {
+                    setAnswers({});
+                }
             }, [isAutoFilled, teacherMode]);
 
             const questions = [
-                { id: 'q1', text: "1. Generally, if the Fair Value of a company's fixed-rate debt falls significantly below its Carrying Value, what does this imply about the market interest rate environment since issuance?", options: [{id:'a', text:"Market interest rates have increased.", correct:true}, {id:'b', text:"Market interest rates have decreased."}, {id:'c', text:"The company's credit rating has improved significantly."}] },
-                { id: 'q2', text: "2. Carrefour's bond was issued at €497.67M with a face value of €500M. This is a:", options: [{id:'a', text:"Premium Bond"}, {id:'b', text:"Par Bond"}, {id:'c', text:"Discount Bond", correct:true}] },
-                { id: 'q3', text: "3. For a discount bond like Carrefour's, interest expense reported on the income statement is:", options: [{id:'a', text:"Greater than cash interest paid", correct:true}, {id:'b', text:"Less than cash interest paid"}, {id:'c', text:"Equal to cash interest paid"}] },
-                { id: 'q4', text: "4. What is the typical relationship between the Coupon Rate and the Effective Interest Rate (Yield at Issuance) for a Premium Bond?", options: [{id:'a', text:"Coupon Rate < Effective Rate"}, {id:'b', text:"Coupon Rate > Effective Rate", correct:true}, {id:'c', text:"Coupon Rate = Effective Rate"}] },
-                { id: 'q5', text: "5. When a bond is issued at a discount, how does the amortization of that discount affect the Carrying Value of the bond over time?", options: [{id:'a', text:"Carrying Value decreases towards Face Value."}, {id:'b', text:"Carrying Value remains constant."}, {id:'c', text:"Carrying Value increases towards Face Value.", correct:true}] },
-                { id: 'q6', text: "6. Which value represents the actual legal obligation to be repaid at maturity?", options: [{id:'a', text:"Carrying Value"}, {id:'b', text:"Face Value (Principal)", correct:true}, {id:'c', text:"Fair Value"}] }
+                { id: 'q1', text: "1. Generally, if the Fair Value of a company's fixed-rate debt falls significantly below its Carrying Value, what does this imply about the market interest rate environment since issuance?", options: [{id:'a', text:"Market interest rates have increased."}, {id:'b', text:"Market interest rates have decreased."}, {id:'c', text:"The company's credit rating has improved significantly."}] },
+                { id: 'q2', text: "2. Carrefour's bond was issued at €497.67M with a face value of €500M. This is a:", options: [{id:'a', text:"Premium Bond"}, {id:'b', text:"Par Bond"}, {id:'c', text:"Discount Bond"}] },
+                { id: 'q3', text: "3. For a discount bond like Carrefour's, interest expense reported on the income statement is:", options: [{id:'a', text:"Greater than cash interest paid"}, {id:'b', text:"Less than cash interest paid"}, {id:'c', text:"Equal to cash interest paid"}] },
+                { id: 'q4', text: "4. What is the typical relationship between the Coupon Rate and the Effective Interest Rate (Yield at Issuance) for a Premium Bond?", options: [{id:'a', text:"Coupon Rate < Effective Rate"}, {id:'b', text:"Coupon Rate > Effective Rate"}, {id:'c', text:"Coupon Rate = Effective Rate"}] },
+                { id: 'q5', text: "5. When a bond is issued at a discount, how does the amortization of that discount affect the Carrying Value of the bond over time?", options: [{id:'a', text:"Carrying Value decreases towards Face Value."}, {id:'b', text:"Carrying Value remains constant."}, {id:'c', text:"Carrying Value increases towards Face Value."}] },
+                { id: 'q6', text: "6. Which value represents the actual legal obligation to be repaid at maturity?", options: [{id:'a', text:"Carrying Value"}, {id:'b', text:"Face Value (Principal)"}, {id:'c', text:"Fair Value"}] }
             ];
 
             return (
                 <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 animate-fade-in">
                     <h2 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2"><Icon name="check-square" className="text-emerald-600"/> Concept Check: Debt Analysis</h2>
                     <div className="space-y-6">
-                        {questions.map(q => (
-                            <div key={q.id} className="border-b border-slate-100 pb-4 last:border-0">
-                                <p className="text-sm font-medium text-slate-800 mb-3">{q.text}</p>
-                                <div className="space-y-2">
-                                    {q.options.map(opt => (
-                                        <button key={opt.id} onClick={() => setAnswers({...answers, [q.id]: opt.id})} 
-                                            className={`w-full text-left p-3 rounded border text-xs flex items-center gap-3 transition-all ${
-                                                answers[q.id]===opt.id ? (opt.correct ? "bg-emerald-50 border-emerald-500 text-emerald-800 ring-1 ring-emerald-500" : "bg-red-50 border-red-500 text-red-800 ring-1 ring-red-500") : "hover:bg-slate-50 border-slate-200 bg-white"
-                                            }`}>
-                                            <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
-                                                answers[q.id]===opt.id ? (opt.correct ? "bg-emerald-600 border-emerald-600" : "bg-red-600 border-red-600") : "border-slate-300"
-                                            }`}>
-                                                {answers[q.id]===opt.id && <div className="w-1.5 h-1.5 bg-white rounded-full"></div>}
-                                            </div>
-                                            <span>{opt.text}</span>
-                                        </button>
-                                    ))}
+                        {questions.map(q => {
+                            const correctId = d(_DATA_MATRIX.Q[q.id]);
+                            return (
+                                <div key={q.id} className="border-b border-slate-100 pb-4 last:border-0">
+                                    <p className="text-sm font-medium text-slate-800 mb-3">{q.text}</p>
+                                    <div className="space-y-2">
+                                        {q.options.map(opt => (
+                                            <button key={opt.id} onClick={() => setAnswers({...answers, [q.id]: opt.id})} 
+                                                className={`w-full text-left p-3 rounded border text-xs flex items-center gap-3 transition-all ${
+                                                    answers[q.id]===opt.id ? (opt.id === correctId ? "bg-emerald-50 border-emerald-500 text-emerald-800 ring-1 ring-emerald-500" : "bg-red-50 border-red-500 text-red-800 ring-1 ring-red-500") : "hover:bg-slate-50 border-slate-200 bg-white"
+                                                }`}>
+                                                <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
+                                                    answers[q.id]===opt.id ? (opt.id === correctId ? "bg-emerald-600 border-emerald-600" : "bg-red-600 border-red-600") : "border-slate-300"
+                                                }`}>
+                                                    {answers[q.id]===opt.id && <div className="w-1.5 h-1.5 bg-white rounded-full"></div>}
+                                                </div>
+                                                <span>{opt.text}</span>
+                                            </button>
+                                        ))}
+                                    </div>
                                 </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 </div>
             );
@@ -614,8 +623,7 @@
             const [studentName, setStudentName] = useState("");
             const [showDownload, setShowDownload] = useState(false);
 
-            const activeData = activeTab === 'A' ? ALPHABET_DATA : CARREFOUR_DATA;
-            const activeKey = activeTab === 'A' ? ANSWER_KEYS.A : ANSWER_KEYS.B;
+            const activeData = activeTab === 'A' ? _D_ALPHA : _D_CARR;
 
             // --- Sidebar Resize Logic ---
             const startResizing = useCallback(() => setIsDragging(true), []);
@@ -680,13 +688,18 @@
             };
 
             const unlockInstructor = () => {
-                if (password.toLowerCase() === "teacher") { setInstructorMode(true); setShowLogin(false); setPassword(""); } else { alert("Incorrect"); }
+                // Base64 for "teacher"
+                if (btoa(password.toLowerCase()) === 'dGVhY2hlcg==') { setInstructorMode(true); setShowLogin(false); setPassword(""); } else { alert("Incorrect"); }
             };
 
             const handleAutoFill = () => {
-                if (activeTab === 'Q') setIsAutoFilled(true);
-                else {
-                    setInputs(prev => ({ ...prev, [activeTab]: { ...activeKey } }));
+                if (activeTab === 'Q') {
+                    setIsAutoFilled(true);
+                } else {
+                    const activeKey = activeTab === 'A' ? _DATA_MATRIX.A : _DATA_MATRIX.B;
+                    const decodedInputs = {};
+                    Object.keys(activeKey).forEach(k => decodedInputs[k] = d(activeKey[k]));
+                    setInputs(prev => ({ ...prev, [activeTab]: decodedInputs }));
                     setIsAutoFilled(true);
                 }
             };
@@ -778,22 +791,29 @@
                         )}
 
                         {/* HEADER */}
-                        <header className="bg-white border-b border-slate-200 p-6 flex justify-between items-center shrink-0">
+                        <header className="bg-white border-b border-slate-200 p-6 flex justify-between items-center shrink-0 relative">
                             <div>
                                 <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
                                     <Icon name="file-spreadsheet" className="text-blue-600" /> {activeData.metadata.name}
                                 </h1>
                                 <p className="text-slate-500 text-sm mt-1">{activeData.metadata.year} Simulation</p>
                             </div>
+                            
+                            {/* STEALTH BUTTON CONTAINER - Fixed position to top right corner */}
+                            <div className="absolute top-0 right-0"> 
+                                 <button 
+                                    onClick={() => setShowLogin(true)} 
+                                    className="p-2 opacity-5 hover:opacity-100 text-slate-400 hover:text-purple-600 transition-all"
+                                    title="Instructor Access"
+                                >
+                                    <Icon name="lock" size={14} />
+                                </button>
+                            </div>
+
                             <div className="flex gap-3">
                                 <button onClick={() => setShowDownload(true)} className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold shadow-sm transition">
                                     <Icon name="save" size={18} /> Save Work
                                 </button>
-                                {!instructorMode && (
-                                    <button onClick={() => setShowLogin(true)} className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-medium transition border border-slate-300">
-                                        <Icon name="lock" size={16} /> Instructor
-                                    </button>
-                                )}
                             </div>
                         </header>
 
