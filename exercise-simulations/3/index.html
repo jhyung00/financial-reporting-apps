@@ -47,6 +47,13 @@
     <script type="text/babel">
         const { useState, useEffect, useMemo, useRef } = React;
 
+        // --- SECURITY UTILS ---
+        // Decodes Base64 strings to plain text (e.g. "MjU=" -> "25")
+        // Returns empty string on error to prevent crashes
+        const d = (str) => {
+            try { return atob(str); } catch(e) { return ""; }
+        };
+
         // --- DATA ---
         const FB_DATA = {
             metadata: {
@@ -105,49 +112,51 @@
         const SELECTABLE_ASSETS = [0, 1, 2, 3, 5, 6, 7, 8];
         const SELECTABLE_LIABS = [11, 12, 13, 14, 16];
 
+        // --- OBFUSCATED ANSWER KEY ---
+        // Values are Base64 encoded
         const ANSWER_KEY = {
             // a. NOPAT - Approach 1 (Net Income)
-            "nopat_nonop_pretax": "-448",
-            "nopat_tax_shield": "-99",
-            "nopat_nonop_aftertax": "-349",
-            "nopat_net_income": "22112",
-            "nopat_2018": "21763",
+            "nopat_nonop_pretax": "LTQ0OA==",         // -448
+            "nopat_tax_shield": "LTk5",               // -99
+            "nopat_nonop_aftertax": "LTM0OQ==",       // -349
+            "nopat_net_income": "MjIxMTI=",           // 22112
+            "nopat_2018": "MjE3NjM=",                 // 21763
 
              // a. NOPAT - Approach 2 (Detailed Breakdown)
-            "nopat2_nopbt": "24913",
-            "nopat2_tax_expense": "3249",
-            "nopat2_pretax_nonop": "-448",
-            "nopat2_tax_rate": "22",
-            "nopat2_tax_shield": "-99",     // -98.56 rounded
-            "nopat2_tax_operating": "3150", // 3150.44 rounded
-            "nopat2_final": "21763",
+            "nopat2_nopbt": "MjQ5MTM=",               // 24913
+            "nopat2_tax_expense": "MzI0OQ==",         // 3249
+            "nopat2_pretax_nonop": "LTQ0OA==",        // -448
+            "nopat2_tax_rate": "MjI=",                // 22
+            "nopat2_tax_shield": "LTk5",              // -99
+            "nopat2_tax_operating": "MzE1MA==",       // 3150
+            "nopat2_final": "MjE3NjM=",               // 21763
 
             // b. NOA - Auto-calculated from selection
-            "noa_oa_2018": "56220",
-            "noa_ol_2018": "13207",
-            "noa_2018": "43013",
+            "noa_oa_2018": "NTYyMjA=",                // 56220
+            "noa_ol_2018": "MTMyMDc=",                // 13207
+            "noa_2018": "NDMwMTM=",                   // 43013
             
-            "noa_oa_2017": "42813",
-            "noa_ol_2017": "10177",
-            "noa_2017": "32636",
+            "noa_oa_2017": "NDI4MTM=",                // 42813
+            "noa_ol_2017": "MTAxNzc=",                // 10177
+            "noa_2017": "MzI2MzY=",                   // 32636
 
             // c. Ratios
-            "rnoa_num": "21763",
-            "rnoa_denom": "37825", // Avg NOA
-            "rnoa_final": "57.54",
+            "rnoa_num": "MjE3NjM=",                   // 21763
+            "rnoa_denom": "Mzc4MjU=",                 // 37825
+            "rnoa_final": "NTcuNTQ=",                 // 57.54
             
-            "nopm_num": "21763",
-            "nopm_denom": "55838",
-            "nopm_final": "38.97",
+            "nopm_num": "MjE3NjM=",                   // 21763
+            "nopm_denom": "NTU4Mzg=",                 // 55838
+            "nopm_final": "MzguOTc=",                 // 38.97
             
-            "noat_num": "55838",
-            "noat_denom": "37825",
-            "noat_final": "1.48", // 1.476 rounded
+            "noat_num": "NTU4Mzg=",                   // 55838
+            "noat_denom": "Mzc4MjU=",                 // 37825
+            "noat_final": "MS40OA==",                 // 1.48
 
             // d. ROE
-            "roe_num": "22112",
-            "roe_denom": "79237", // Avg Equity
-            "roe_final": "27.91"
+            "roe_num": "MjIxMTI=",                    // 22112
+            "roe_denom": "NzkyMzc=",                  // 79237
+            "roe_final": "MjcuOTE="                   // 27.91
         };
 
         const QUESTIONS = [
@@ -285,7 +294,8 @@
                 const { valid, val } = evaluateMath(value);
                 if (!valid) return false;
                 
-                const target = parseFloat(correctValue.replace(/,/g, ''));
+                // DECODE correct value for comparison
+                const target = parseFloat(d(correctValue).replace(/,/g, ''));
                 let inputNum = parseFloat(val);
                 
                 // 2% tolerance
@@ -314,7 +324,9 @@
                      let displayVal = numVal;
 
                      if (type === "percent") {
-                        if (Math.abs(numVal) < 1 && parseFloat(correctValue) > 1) {
+                        // DECODE correct value for logic
+                        const target = parseFloat(d(correctValue).replace(/,/g, ''));
+                        if (Math.abs(numVal) < 1 && target > 1) {
                             displayVal = (numVal * 100).toFixed(2);
                         } else {
                             displayVal = numVal.toFixed(2);
@@ -358,7 +370,7 @@
                     {localError && <p className="text-xs text-red-500 mt-1">{localError}</p>}
                     {instructorMode && (
                         <div className="mt-1 bg-purple-100 border border-purple-200 text-purple-800 text-xs p-1 rounded font-mono animate-fade-in flex items-center gap-2">
-                            <Icon name="key" size={12} /> Key: {correctValue}
+                            <Icon name="key" size={12} /> Key: {d(correctValue)}
                         </div>
                     )}
                 </div>
@@ -371,7 +383,9 @@
                 if (!value || !correctValue) return false;
                 const { valid, val } = evaluateMath(value);
                 if (!valid) return false;
-                const target = parseFloat(correctValue.replace(/,/g,''));
+                
+                // DECODE for check
+                const target = parseFloat(d(correctValue).replace(/,/g,''));
                 const tolerance = Math.max(Math.abs(target * 0.02), 0.1); 
                 return Math.abs(parseFloat(val) - target) <= tolerance;
             }, [value, correctValue]);
@@ -406,7 +420,7 @@
                             placeholder="0.00"
                         />
                          {instructorMode && (
-                            <span className="absolute right-1 top-1 text-[10px] text-purple-400 pointer-events-none">{correctValue}</span>
+                            <span className="absolute right-1 top-1 text-[10px] text-purple-400 pointer-events-none">{d(correctValue)}</span>
                         )}
                     </td>
                 </tr>
@@ -487,6 +501,10 @@
             const [inputs, setInputs] = useState({});
             const [activeInput, setActiveInput] = useState(null);
             
+            // Sidebar Resize
+            const [sidebarWidth, setSidebarWidth] = useState(350);
+            const isResizing = useRef(false);
+
             // Part B Selection State
             const [selectedRows, setSelectedRows] = useState(new Set());
 
@@ -502,6 +520,26 @@
             const [hashInput, setHashInput] = useState("");
             const [verifiedResult, setVerifiedResult] = useState(null);
 
+            useEffect(() => {
+                const handleMouseMove = (e) => {
+                    if (!isResizing.current) return;
+                    let newWidth = e.clientX;
+                    if (newWidth < 250) newWidth = 250;
+                    if (newWidth > 600) newWidth = 600;
+                    setSidebarWidth(newWidth);
+                };
+                const handleMouseUp = () => {
+                    isResizing.current = false;
+                    document.body.style.cursor = 'default';
+                };
+                document.addEventListener('mousemove', handleMouseMove);
+                document.addEventListener('mouseup', handleMouseUp);
+                return () => {
+                    document.removeEventListener('mousemove', handleMouseMove);
+                    document.removeEventListener('mouseup', handleMouseUp);
+                };
+            }, []);
+
             const handleInputChange = (id, val) => {
                 setInputs(prev => ({ ...prev, [id]: val }));
             };
@@ -515,9 +553,6 @@
                     const v18 = parseFloat(row[1].replace(/,/g, '').replace(/[()]/g, ''));
                     const v17 = parseFloat(row[2].replace(/,/g, '').replace(/[()]/g, ''));
                     
-                    // Simple logic: if selected, add to assets or liabilities based on known ranges
-                    // Assets: 0-8
-                    // Liabilities: 11-16
                     if (idx <= 8) {
                         oa18 += v18;
                         oa17 += v17;
@@ -558,11 +593,11 @@
                     const newVal = (cur === "" || isOperator) ? cur + cleanVal : cleanVal;
                     return { ...prev, [activeInput]: newVal };
                 });
-                // Attempt to focus back, but for ExcelRow this handles via state update
             };
 
             const unlockInstructor = () => {
-                if (password.toLowerCase() === "teacher") {
+                // Secure Password Check (Base64)
+                if (btoa(password.toLowerCase()) === "dGVhY2hlcg==") {
                     setInstructorMode(true);
                     setShowLogin(false);
                     setPassword("");
@@ -572,11 +607,12 @@
             };
 
             const handleAutoFill = () => {
-                setInputs(ANSWER_KEY);
+                // Decode keys for filling
+                const decodedKey = {};
+                Object.keys(ANSWER_KEY).forEach(k => decodedKey[k] = d(ANSWER_KEY[k]));
+                setInputs(decodedKey);
+                
                 // Auto-select based on standard definition for correctness visualization
-                // User defined operating items: 3, 5, 6, 7, 8, 11, 12, 13, 14, 16.
-                // Standard usually includes 2 (AR), but following user prompt strictness if needed.
-                // Let's include 2 (AR) as it is standard, otherwise values won't match NOA total of 43,013
                 const correctIndices = [2, 3, 5, 6, 7, 8, 11, 12, 13, 14, 16]; 
                 setSelectedRows(new Set(correctIndices));
             };
@@ -608,11 +644,11 @@
                 const timestamp = new Date().toLocaleString();
                 let correctCount = 0;
                 let totalCount = 0;
-                // Only grade inputs present in Answer Key
+                
                 Object.keys(ANSWER_KEY).forEach(key => {
                     totalCount++;
                     const userVal = parseFloat((inputs[key] || "0").replace(/,/g, ''));
-                    const keyVal = parseFloat(ANSWER_KEY[key]);
+                    const keyVal = parseFloat(d(ANSWER_KEY[key])); // DECODE key
                     const tol = Math.max(Math.abs(keyVal * 0.02), 0.1);
                     if (Math.abs(userVal - keyVal) <= tol) correctCount++;
                 });
@@ -644,8 +680,11 @@ ${Object.entries(inputs).map(([k, v]) => `${k}: ${v}`).join('\n')}
             return (
                 <div className="flex h-screen bg-slate-100 overflow-hidden font-sans">
                     
-                    {/* LEFT SIDEBAR: REFERENCE */}
-                    <div className="w-1/3 min-w-[350px] bg-slate-50 border-r border-slate-200 overflow-y-auto custom-scrollbar flex flex-col relative z-0">
+                    {/* LEFT SIDEBAR: REFERENCE (Resizable) */}
+                    <div 
+                        className="bg-slate-50 border-r border-slate-200 overflow-y-auto custom-scrollbar flex flex-col relative z-0 shrink-0"
+                        style={{ width: sidebarWidth }}
+                    >
                         <div className="sticky top-0 bg-white p-4 border-b border-slate-200 shadow-sm z-10">
                             <div className="flex items-center gap-2 text-blue-800 font-bold text-lg mb-1">
                                 <Icon name="library" /> Reference Data
@@ -671,8 +710,16 @@ ${Object.entries(inputs).map(([k, v]) => `${k}: ${v}`).join('\n')}
                         </div>
                     </div>
 
+                    {/* DRAG HANDLE */}
+                    <div 
+                        className="w-1 bg-slate-200 hover:bg-blue-400 cursor-col-resize transition-colors z-20 flex items-center justify-center group"
+                        onMouseDown={() => { isResizing.current = true; document.body.style.cursor = 'col-resize'; }}
+                    >
+                        <div className="w-0.5 h-8 bg-slate-300 group-hover:bg-white rounded"></div>
+                    </div>
+
                     {/* MAIN CONTENT */}
-                    <div className="flex-1 flex flex-col h-screen overflow-hidden relative">
+                    <div className="flex-1 flex flex-col h-screen overflow-hidden relative min-w-0">
                         
                         {/* INSTRUCTOR TOOLBAR */}
                         {instructorMode && (
