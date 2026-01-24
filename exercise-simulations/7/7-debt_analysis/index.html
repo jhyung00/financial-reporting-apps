@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Debt & Note Disclosure Simulation (P7-44 & P7-45)</title>
+    <title>Debt & Note Disclosure Simulation</title>
     
     <!-- Dependencies -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -63,18 +63,24 @@
         
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
         .animate-fade-in { animation: fadeIn 0.3s ease-out; }
+
+        /* Anti-Tamper Styles */
+        .no-select {
+            user-select: none;
+            -webkit-user-select: none;
+        }
     </style>
 </head>
-<body class="bg-slate-100 text-slate-800 antialiased h-screen flex flex-col overflow-hidden">
+<body class="bg-slate-100 text-slate-800 antialiased h-screen flex flex-col overflow-hidden no-select" oncontextmenu="return false;">
 
     <div id="root" class="h-full flex flex-col"></div>
 
     <script type="text/babel">
         const { useState, useEffect, useMemo, useRef } = React;
 
-        // --- DATA & ANSWER KEYS ---
+        // --- DATA & ANSWER KEYS (OBFUSCATED) ---
         
-        const ANSWER_KEYS = {
+        const _K_ANS = {
             P: {
                 "p_st": "4026", 
                 "p_lt": "28295", 
@@ -90,7 +96,7 @@
             }
         };
 
-        const MC_KEYS = {
+        const _K_MC = {
             P: {
                 "mc_p1": "b",
                 "mc_p2": "b",
@@ -104,7 +110,7 @@
             }
         };
 
-        const MC_METADATA = {
+        const _M_META = {
             P: {
                 "mc_p1": { label: "Q: Carrying Value Increase", text: "Amortization of discount" },
                 "mc_p2": { label: "Q: Current Maturities", text: "Due within 1 year" },
@@ -118,7 +124,7 @@
             }
         };
 
-        const EXPLANATIONS = {
+        const _X_EXPL = {
             P: {
                 "p_st": "Other borrowings (73) + Current maturities (3,953)", 
                 "p_lt": "Total LT obligations (32,248) - Current maturities (3,953)", 
@@ -134,7 +140,7 @@
             }
         };
 
-        const PEPSICO_DATA = {
+        const _D_PEP = {
             metadata: { name: "PepsiCo Inc.", code: "P7-44", year: "Debt Schedule" },
             tables: [
                 {
@@ -179,7 +185,7 @@
             ]
         };
 
-        const BOSTON_DATA = {
+        const _D_BOS = {
             metadata: { name: "Boston Scientific", code: "P7-45", year: "Debt Note" },
             tables: [
                 {
@@ -251,7 +257,7 @@
         const ConfirmationModal = ({ isOpen, title, message, onConfirm, onCancel }) => {
             if (!isOpen) return null;
             return (
-                <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center backdrop-blur-sm animate-fade-in">
+                <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center backdrop-blur-sm animate-fade-in no-select">
                     <div className="bg-white rounded-lg shadow-2xl max-w-sm w-full p-6 m-4 border-l-4 border-red-500">
                         <div className="flex items-center gap-3 text-red-600 mb-4">
                             <Icon name="alert-triangle" size={24} />
@@ -495,28 +501,6 @@
             );
         };
 
-        const QuestionBox = ({ q, hint, teacherAns, teacherMode }) => {
-            const [showHint, setShowHint] = useState(false);
-            return (
-                <div className="bg-white border border-slate-200 rounded-lg p-5 shadow-sm mb-4">
-                    <p className="font-bold text-slate-800 mb-3 text-sm">{q}</p>
-                    <textarea className="w-full border border-slate-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-200 outline-none mb-2 bg-slate-50 min-h-[80px]" placeholder="Type analysis..."></textarea>
-                    <div className="flex justify-between items-center">
-                        <button onClick={() => setShowHint(!showHint)} className="text-xs text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1">
-                            <Icon name="help-circle" size={12} /> {showHint ? "Hide Hint" : "Show Hint"}
-                        </button>
-                    </div>
-                    {showHint && <p className="mt-2 text-xs text-blue-700 bg-blue-50 p-2 rounded border border-blue-100">{hint}</p>}
-                    {teacherMode && (
-                        <div className="mt-3 pt-3 border-t border-slate-100 bg-purple-50 p-3 rounded">
-                            <span className="text-[10px] font-bold text-purple-700 uppercase tracking-wider block mb-1">Instructor Note</span>
-                            <p className="text-xs text-slate-700 whitespace-pre-wrap">{teacherAns}</p>
-                        </div>
-                    )}
-                </div>
-            );
-        };
-
         const App = () => {
             const [activeTab, setActiveTab] = useState('P'); // P, B
             const [inputs, setInputs] = useState({ P: {}, B: {} });
@@ -534,9 +518,9 @@
             const [studentName, setStudentName] = useState("");
             const [showDownload, setShowDownload] = useState(false);
 
-            const activeData = activeTab === 'P' ? PEPSICO_DATA : BOSTON_DATA;
-            const activeKey = activeTab === 'P' ? ANSWER_KEYS.P : ANSWER_KEYS.B;
-            const activeMcKey = activeTab === 'P' ? MC_KEYS.P : MC_KEYS.B;
+            const activeData = activeTab === 'P' ? _D_PEP : _D_BOS;
+            const activeKey = activeTab === 'P' ? _K_ANS.P : _K_ANS.B;
+            const activeMcKey = activeTab === 'P' ? _K_MC.P : _K_MC.B;
 
             const handleInputChange = (id, val) => setInputs(prev => ({ ...prev, [activeTab]: { ...prev[activeTab], [id]: val } }));
             
@@ -606,11 +590,8 @@
                             <StandardCalculator />
                         </div>
                         <div className="p-4 border-t border-slate-800">
-                            {!instructorMode ? (
-                                <button onClick={() => setShowLogin(true)} className="flex items-center justify-center gap-2 text-xs font-medium w-full px-3 py-2 rounded bg-slate-800 text-slate-400 hover:text-white transition-colors border border-slate-700">
-                                    <Icon name="lock" size={14} /> Instructor Access
-                                </button>
-                            ) : (
+                             {/* STEALTH INSTRUCTOR ACCESS REMOVED FROM HERE */}
+                             {instructorMode && (
                                 <div className="text-center">
                                     <p className="text-xs text-purple-400 font-bold mb-2 flex items-center justify-center gap-1"><Icon name="unlock" size={12}/> Mode Active</p>
                                 </div>
@@ -641,13 +622,25 @@
                             </div>
                         )}
 
-                        <header className="bg-white border-b border-slate-200 px-8 py-5 flex justify-between items-center shadow-sm z-10">
+                        <header className="bg-white border-b border-slate-200 px-8 py-5 flex justify-between items-center shadow-sm z-10 relative">
                             <div>
                                 <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
                                     {activeData.metadata.name} <span className="text-xs font-normal text-white bg-slate-400 px-2 py-0.5 rounded-full">{activeData.metadata.code}</span>
                                 </h2>
                                 <p className="text-xs text-slate-500 font-medium ml-0.5">{activeData.metadata.year}</p>
                             </div>
+                            
+                            {/* STEALTH BUTTON CONTAINER - Fixed position to top right corner */}
+                            <div className="absolute top-0 right-0"> 
+                                 <button 
+                                    onClick={() => setShowLogin(true)} 
+                                    className="p-2 opacity-5 hover:opacity-100 text-slate-400 hover:text-purple-600 transition-all"
+                                    title="Instructor Access"
+                                >
+                                    <Icon name="lock" size={14} />
+                                </button>
+                            </div>
+
                             <button onClick={() => setShowDownload(true)} className="px-4 py-2 bg-blue-600 text-white rounded text-sm font-bold flex items-center gap-2 hover:bg-blue-700 transition"><Icon name="download" size={16}/> Save Work</button>
                         </header>
 
@@ -655,7 +648,7 @@
                             <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8">
                                 {/* LEFT: Reference */}
                                 <div className="space-y-4">
-                                    <div className="bg-blue-900 text-white px-4 py-3 rounded-t-lg font-bold text-sm flex items-center justify-between shadow-sm">
+                                    <div className="bg-blue-900 text-white px-4 py-3 rounded-t-lg font-bold text-sm flex items-center justify-between shadow-sm no-select">
                                         <span>Financial Data</span>
                                         <span className="text-xs opacity-75 flex items-center gap-1"><Icon name="mouse-pointer-click" size={12}/> Click to insert</span>
                                     </div>
@@ -670,19 +663,19 @@
                                         <div className="space-y-6 animate-fade-in">
                                             {/* a. Debt Obligations */}
                                             <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                                                <h4 className="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2"><Icon name="file-text" className="text-blue-600"/> a. Debt Reporting on FY2 Balance Sheet ($M)</h4>
+                                                <h4 className="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2 no-select"><Icon name="file-text" className="text-blue-600"/> a. Debt Reporting on FY2 Balance Sheet ($M)</h4>
                                                 <div className="space-y-3">
-                                                    <SmartInput id="p_st" label="Short-term Debt" value={inputs.P.p_st} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEYS.P.p_st} instructorMode={instructorMode} />
-                                                    <SmartInput id="p_lt" label="Long-term Debt" value={inputs.P.p_lt} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEYS.P.p_lt} instructorMode={instructorMode} />
-                                                    <div className="pt-2 border-t"><SmartInput id="p_total" label="Total Debt Reported" value={inputs.P.p_total} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEYS.P.p_total} instructorMode={instructorMode} /></div>
+                                                    <SmartInput id="p_st" label="Short-term Debt" value={inputs.P.p_st} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={_K_ANS.P.p_st} instructorMode={instructorMode} />
+                                                    <SmartInput id="p_lt" label="Long-term Debt" value={inputs.P.p_lt} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={_K_ANS.P.p_lt} instructorMode={instructorMode} />
+                                                    <div className="pt-2 border-t"><SmartInput id="p_total" label="Total Debt Reported" value={inputs.P.p_total} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={_K_ANS.P.p_total} instructorMode={instructorMode} /></div>
                                                 </div>
                                             </div>
 
                                             {/* b. Notes Due Analysis */}
                                             <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                                                <h4 className="text-sm font-bold text-slate-700 mb-4">b. Analysis of Notes Due in FY3</h4>
+                                                <h4 className="text-sm font-bold text-slate-700 mb-4 no-select">b. Analysis of Notes Due in FY3</h4>
                                                 <div className="flex gap-4 items-end mb-4">
-                                                    <SmartInput id="p_change" label="Change in Balance ($M)" value={inputs.P.p_change} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEYS.P.p_change} instructorMode={instructorMode} hint="FY2 - FY1" />
+                                                    <SmartInput id="p_change" label="Change in Balance ($M)" value={inputs.P.p_change} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={_K_ANS.P.p_change} instructorMode={instructorMode} hint="FY2 - FY1" />
                                                 </div>
                                                 <MultipleChoiceQuestion 
                                                     id="mc_p1" 
@@ -701,7 +694,7 @@
 
                                             {/* c. Current Maturities */}
                                             <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                                                <h4 className="text-sm font-bold text-slate-700 mb-4">c. Debt Classification</h4>
+                                                <h4 className="text-sm font-bold text-slate-700 mb-4 no-select">c. Debt Classification</h4>
                                                 <MultipleChoiceQuestion 
                                                     id="mc_p2" 
                                                     selected={mcAnswers['mc_p2']} 
@@ -719,7 +712,7 @@
 
                                             {/* d. Bond Premium/Yield */}
                                             <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                                                <h4 className="text-sm font-bold text-slate-700 mb-4">d. Bond Pricing & Yields</h4>
+                                                <h4 className="text-sm font-bold text-slate-700 mb-4 no-select">d. Bond Pricing & Yields</h4>
                                                 <MultipleChoiceQuestion 
                                                     id="mc_p3" 
                                                     selected={mcAnswers['mc_p3']} 
@@ -737,16 +730,16 @@
 
                                             {/* e. Early Retirement */}
                                             <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                                                <h4 className="text-sm font-bold text-slate-700 mb-4">e. Early Retirement Analysis</h4>
+                                                <h4 className="text-sm font-bold text-slate-700 mb-4 no-select">e. Early Retirement Analysis</h4>
                                                 <div className="space-y-3">
-                                                    <SmartInput id="p_retired" label="Total Carrying Value Retired ($M)" value={inputs.P.p_retired} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEYS.P.p_retired} instructorMode={instructorMode} hint="Sum of notes" />
-                                                    <SmartInput id="p_loss" label="Loss on Retirement ($M)" value={inputs.P.p_loss} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEYS.P.p_loss} instructorMode={instructorMode} hint="Cash Paid - CV" />
+                                                    <SmartInput id="p_retired" label="Total Carrying Value Retired ($M)" value={inputs.P.p_retired} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={_K_ANS.P.p_retired} instructorMode={instructorMode} hint="Sum of notes" />
+                                                    <SmartInput id="p_loss" label="Loss on Retirement ($M)" value={inputs.P.p_loss} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={_K_ANS.P.p_loss} instructorMode={instructorMode} hint="Cash Paid - CV" />
                                                 </div>
                                             </div>
 
                                             {/* f. Credit Ratings */}
                                             <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                                                <h4 className="text-sm font-bold text-slate-700 mb-4">f. Credit Rating Factors</h4>
+                                                <h4 className="text-sm font-bold text-slate-700 mb-4 no-select">f. Credit Rating Factors</h4>
                                                 <MultipleChoiceQuestion 
                                                     id="mc_p4" 
                                                     selected={mcAnswers['mc_p4']} 
@@ -767,11 +760,11 @@
                                     {activeTab === 'B' && (
                                         <div className="space-y-6 animate-fade-in">
                                             <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                                                <h4 className="text-sm font-bold text-slate-700 mb-4">Debt Analysis</h4>
+                                                <h4 className="text-sm font-bold text-slate-700 mb-4 no-select">Debt Analysis</h4>
                                                 <div className="space-y-4">
-                                                    <SmartInput id="b_fy3Due" label="a. LT Debt due in FY3 ($M)" value={inputs.B.b_fy3Due} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEYS.B.b_fy3Due} instructorMode={instructorMode} />
-                                                    <SmartInput id="b_totalLt" label="b. Total LT Debt (incl. current) at FY2 ($M)" value={inputs.B.b_totalLt} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEYS.B.b_totalLt} instructorMode={instructorMode} hint="Reported LT + Current Mat." />
-                                                    <SmartInput id="b_avgRate" label="c. Effective Interest Rate (%)" value={inputs.B.b_avgRate} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEYS.B.b_avgRate} instructorMode={instructorMode} hint="Int Exp / Avg Debt" type="percent" />
+                                                    <SmartInput id="b_fy3Due" label="a. LT Debt due in FY3 ($M)" value={inputs.B.b_fy3Due} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={_K_ANS.B.b_fy3Due} instructorMode={instructorMode} />
+                                                    <SmartInput id="b_totalLt" label="b. Total LT Debt (incl. current) at FY2 ($M)" value={inputs.B.b_totalLt} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={_K_ANS.B.b_totalLt} instructorMode={instructorMode} hint="Reported LT + Current Mat." />
+                                                    <SmartInput id="b_avgRate" label="c. Effective Interest Rate (%)" value={inputs.B.b_avgRate} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={_K_ANS.B.b_avgRate} instructorMode={instructorMode} hint="Int Exp / Avg Debt" type="percent" />
                                                 </div>
                                                 {instructorMode && (
                                                     <div className="mt-3 p-3 bg-blue-50 text-xs text-blue-800 rounded border border-blue-100">
@@ -830,7 +823,7 @@
 
                     {/* MODALS */}
                     {showLogin && (
-                        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center backdrop-blur-sm animate-fade-in">
+                        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center backdrop-blur-sm animate-fade-in no-select">
                             <div className="bg-white p-6 rounded-lg shadow-xl w-80">
                                 <h3 className="font-bold text-lg mb-4 flex items-center gap-2"><Icon name="shield" className="text-blue-600"/> Instructor Login</h3>
                                 <input type="password" className="w-full border p-2 rounded mb-4" value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && unlockInstructor()} autoFocus placeholder="Enter Password" />
@@ -843,7 +836,7 @@
                     )}
                     
                     {showDownload && (
-                        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center backdrop-blur-sm animate-fade-in">
+                        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center backdrop-blur-sm animate-fade-in no-select">
                             <div className="bg-white p-6 rounded-lg shadow-xl w-80">
                                 <h3 className="font-bold text-lg mb-4 text-center">Save Work</h3>
                                 <input type="text" className="w-full border p-2 rounded mb-4 text-center" placeholder="Your Name" value={studentName} onChange={(e) => setStudentName(e.target.value)} autoFocus />
@@ -855,7 +848,7 @@
 
                     {/* Answer Key Table Modal */}
                     {showAnswerKey && (
-                        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center backdrop-blur-sm animate-fade-in">
+                        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center backdrop-blur-sm animate-fade-in no-select">
                             <div className="bg-white p-6 rounded-xl shadow-2xl w-full max-w-2xl h-3/4 flex flex-col">
                                 <div className="flex justify-between items-center mb-4 border-b pb-2">
                                     <h3 className="font-bold text-xl text-purple-800 flex items-center gap-2"><Icon name="key" /> Full Answer Key</h3>
@@ -869,26 +862,26 @@
                                                 {/* Numerical Answers */}
                                                 <div className="col-span-2 md:col-span-1">
                                                     <h5 className="font-bold text-slate-600 border-b mb-2 pb-1 text-xs uppercase tracking-wider">Calculations</h5>
-                                                    {Object.entries(ANSWER_KEYS.P).map(([k, v]) => (
+                                                    {Object.entries(_K_ANS.P).map(([k, v]) => (
                                                         <div key={k} className="flex flex-col border-b border-slate-100 py-2">
                                                             <div className="flex justify-between">
                                                                 <span className="text-slate-500 font-medium">{k}:</span>
                                                                 <span className="font-mono font-bold text-purple-700">{v}</span>
                                                             </div>
-                                                            <span className="text-xs text-slate-400 mt-1 italic">{EXPLANATIONS.P[k]}</span>
+                                                            <span className="text-xs text-slate-400 mt-1 italic">{_X_EXPL.P[k]}</span>
                                                         </div>
                                                     ))}
                                                 </div>
                                                 {/* MC Answers */}
                                                 <div className="col-span-2 md:col-span-1">
                                                     <h5 className="font-bold text-slate-600 border-b mb-2 pb-1 text-xs uppercase tracking-wider">Multiple Choice</h5>
-                                                    {Object.entries(MC_KEYS.P).map(([k, v]) => (
+                                                    {Object.entries(_K_MC.P).map(([k, v]) => (
                                                         <div key={k} className="flex flex-col border-b border-slate-100 py-2">
                                                             <div className="flex justify-between items-center">
-                                                                <span className="text-slate-500 font-medium text-xs truncate mr-2" title={MC_METADATA.P[k].label}>{MC_METADATA.P[k].label}</span>
+                                                                <span className="text-slate-500 font-medium text-xs truncate mr-2" title={_M_META.P[k].label}>{_M_META.P[k].label}</span>
                                                                 <span className="font-bold text-purple-700 bg-purple-50 px-1.5 rounded">{v.toUpperCase()}</span>
                                                             </div>
-                                                            <span className="text-xs text-slate-500 mt-1 leading-tight">{MC_METADATA.P[k].text}</span>
+                                                            <span className="text-xs text-slate-500 mt-1 leading-tight">{_M_META.P[k].text}</span>
                                                         </div>
                                                     ))}
                                                 </div>
@@ -901,26 +894,26 @@
                                                 {/* Numerical Answers */}
                                                 <div className="col-span-2 md:col-span-1">
                                                     <h5 className="font-bold text-slate-600 border-b mb-2 pb-1 text-xs uppercase tracking-wider">Calculations</h5>
-                                                    {Object.entries(ANSWER_KEYS.B).map(([k, v]) => (
+                                                    {Object.entries(_K_ANS.B).map(([k, v]) => (
                                                         <div key={k} className="flex flex-col border-b border-slate-100 py-2">
                                                             <div className="flex justify-between">
                                                                 <span className="text-slate-500 font-medium">{k}:</span>
                                                                 <span className="font-mono font-bold text-purple-700">{v}</span>
                                                             </div>
-                                                            <span className="text-xs text-slate-400 mt-1 italic">{EXPLANATIONS.B[k]}</span>
+                                                            <span className="text-xs text-slate-400 mt-1 italic">{_X_EXPL.B[k]}</span>
                                                         </div>
                                                     ))}
                                                 </div>
                                                 {/* MC Answers */}
                                                 <div className="col-span-2 md:col-span-1">
                                                     <h5 className="font-bold text-slate-600 border-b mb-2 pb-1 text-xs uppercase tracking-wider">Multiple Choice</h5>
-                                                    {Object.entries(MC_KEYS.B).map(([k, v]) => (
+                                                    {Object.entries(_K_MC.B).map(([k, v]) => (
                                                         <div key={k} className="flex flex-col border-b border-slate-100 py-2">
                                                             <div className="flex justify-between items-center">
-                                                                <span className="text-slate-500 font-medium text-xs truncate mr-2" title={MC_METADATA.B[k].label}>{MC_METADATA.B[k].label}</span>
+                                                                <span className="text-slate-500 font-medium text-xs truncate mr-2" title={_M_META.B[k].label}>{_M_META.B[k].label}</span>
                                                                 <span className="font-bold text-purple-700 bg-purple-50 px-1.5 rounded">{v.toUpperCase()}</span>
                                                             </div>
-                                                            <span className="text-xs text-slate-500 mt-1 leading-tight">{MC_METADATA.B[k].text}</span>
+                                                            <span className="text-xs text-slate-500 mt-1 leading-tight">{_M_META.B[k].text}</span>
                                                         </div>
                                                     ))}
                                                 </div>
