@@ -81,67 +81,75 @@
     <script type="text/babel">
         const { useState, useEffect, useMemo, useRef } = React;
 
-        // --- DATA & KEYS ---
+        // --- SECURITY UTILS ---
+        // Decodes Base64 strings to plain text (e.g. "MjU=" -> "25")
+        // Returns empty string on error to prevent crashes
+        const d = (str) => {
+            try { return atob(str); } catch(e) { return ""; }
+        };
+
+        // --- OBFUSCATED DATA & KEYS ---
+        // All answers are now encoded in Base64 so they are not readable in "View Source"
         const ANSWER_KEYS = {
             P1: {
-                // Target
-                "t_gp": "25", "t_pm": "3", "t_roe": "25", "t_lev": "3.75",
-                // Nike
-                "n_gp": "46", "n_pm": "13", "n_roe": "40", "n_lev": "1.64",
-                // Harley
-                "h_gp": "37", "h_pm": "13", "h_roe": "25", "h_lev": "2.96",
-                // Abbott
-                "a_gp": "56", "a_pm": "16", "a_roe": "19", "a_lev": "1.02"
+                // Target: "25", "3", "25", "3.75"
+                "t_gp": "MjU=", "t_pm": "Mw==", "t_roe": "MjU=", "t_lev": "My43NQ==",
+                // Nike: "46", "13", "40", "1.64"
+                "n_gp": "NDY=", "n_pm": "MTM=", "n_roe": "NDA=", "n_lev": "MS42NA==",
+                // Harley: "37", "13", "25", "2.96"
+                "h_gp": "Mzc=", "h_pm": "MTM=", "h_roe": "MjU=", "h_lev": "Mi45Ng==",
+                // Abbott: "56", "16", "19", "1.02"
+                "a_gp": "NTY=", "a_pm": "MTY=", "a_roe": "MTk=", "a_lev": "MS4wMg=="
             },
             P2: {
                 // Transaction 1: Adv Exp
-                "adj1_cash": "0",
-                "adj1_nca_acct": "Prepaid Advertising", "adj1_nca": "-1540",
-                "adj1_liab_acct": "", "adj1_liab": "0",
-                "adj1_cc": "0",
-                "adj1_rev": "0", "adj1_exp": "1540",
+                "adj1_cash": "MA==",
+                "adj1_nca_acct": "UHJlcGFpZCBBZHZlcnRpc2luZw==", "adj1_nca": "LTE1NDA=",
+                "adj1_liab_acct": "", "adj1_liab": "MA==",
+                "adj1_cc": "MA==",
+                "adj1_rev": "MA==", "adj1_exp": "MTU0MA==",
 
                 // Transaction 2: Depreciation
-                "adj2_cash": "0",
-                "adj2_nca_acct": "Accumulated Depreciation", "adj2_nca": "-5280",
-                "adj2_liab_acct": "", "adj2_liab": "0",
-                "adj2_cc": "0",
-                "adj2_rev": "0", "adj2_exp": "5280",
+                "adj2_cash": "MA==",
+                "adj2_nca_acct": "QWNjdW11bGF0ZWQgRGVwcmVjaWF0aW9u", "adj2_nca": "LTUyODA=",
+                "adj2_liab_acct": "", "adj2_liab": "MA==",
+                "adj2_cc": "MA==",
+                "adj2_rev": "MA==", "adj2_exp": "NTI4MA==",
 
                 // Transaction 3: Utilities
-                "adj3_cash": "0",
-                "adj3_nca_acct": "", "adj3_nca": "0",
-                "adj3_liab_acct": "Utilities Payable", "adj3_liab": "325",
-                "adj3_cc": "0",
-                "adj3_rev": "0", "adj3_exp": "325",
+                "adj3_cash": "MA==",
+                "adj3_nca_acct": "", "adj3_nca": "MA==",
+                "adj3_liab_acct": "VXRpbGl0aWVzIFBheWFibGU=", "adj3_liab": "MzI1",
+                "adj3_cc": "MA==",
+                "adj3_rev": "MA==", "adj3_exp": "MzI1",
 
                 // Transaction 4: Wages
-                "adj4_cash": "0",
-                "adj4_nca_acct": "", "adj4_nca": "0",
-                "adj4_liab_acct": "Wages Payable", "adj4_liab": "2400",
-                "adj4_cc": "0",
-                "adj4_rev": "0", "adj4_exp": "2400",
+                "adj4_cash": "MA==",
+                "adj4_nca_acct": "", "adj4_nca": "MA==",
+                "adj4_liab_acct": "V2FnZXMgUGF5YWJsZQ==", "adj4_liab": "MjQwMA==",
+                "adj4_cc": "MA==",
+                "adj4_rev": "MA==", "adj4_exp": "MjQwMA==",
 
                 // Transaction 5: Supplies
-                "adj5_cash": "0",
-                "adj5_nca_acct": "Supplies", "adj5_nca": "-4750",
-                "adj5_liab_acct": "", "adj5_liab": "0",
-                "adj5_cc": "0",
-                "adj5_rev": "0", "adj5_exp": "4750",
+                "adj5_cash": "MA==",
+                "adj5_nca_acct": "U3VwcGxpZXM=", "adj5_nca": "LTQ3NTA=",
+                "adj5_liab_acct": "", "adj5_liab": "MA==",
+                "adj5_cc": "MA==",
+                "adj5_rev": "MA==", "adj5_exp": "NDc1MA==",
 
                 // Transaction 6: Interest
-                "adj6_cash": "0",
-                "adj6_nca_acct": "", "adj6_nca": "0",
-                "adj6_liab_acct": "Interest Payable", "adj6_liab": "450",
-                "adj6_cc": "0",
-                "adj6_rev": "0", "adj6_exp": "450",
+                "adj6_cash": "MA==",
+                "adj6_nca_acct": "", "adj6_nca": "MA==",
+                "adj6_liab_acct": "SW50ZXJlc3QgUGF5YWJsZQ==", "adj6_liab": "NDUw",
+                "adj6_cc": "MA==",
+                "adj6_rev": "MA==", "adj6_exp": "NDUw",
 
                 // Transaction 7: Rent
-                "adj7_cash": "0",
-                "adj7_nca_acct": "", "adj7_nca": "0",
-                "adj7_liab_acct": "Rent Payable", "adj7_liab": "645",
-                "adj7_cc": "0",
-                "adj7_rev": "0", "adj7_exp": "645",
+                "adj7_cash": "MA==",
+                "adj7_nca_acct": "", "adj7_nca": "MA==",
+                "adj7_liab_acct": "UmVudCBQYXlhYmxl", "adj7_liab": "NjQ1",
+                "adj7_cc": "MA==",
+                "adj7_rev": "MA==", "adj7_exp": "NjQ1",
             }
         };
 
@@ -507,37 +515,37 @@
                         {/* Target */}
                         <div className="grid grid-cols-5 gap-4 items-center mb-4 text-sm">
                             <div className="font-bold text-slate-700">Target</div>
-                            <SmartInput id="t_gp" value={inputs.t_gp} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEYS.P1.t_gp} instructorMode={teacherMode} isPercentage={true} hint="(Sales-COGS)/Sales" />
-                            <SmartInput id="t_pm" value={inputs.t_pm} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEYS.P1.t_pm} instructorMode={teacherMode} isPercentage={true} hint="NI / Sales" />
-                            <SmartInput id="t_roe" value={inputs.t_roe} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEYS.P1.t_roe} instructorMode={teacherMode} isPercentage={true} hint="NI / Equity" />
-                            <SmartInput id="t_lev" value={inputs.t_lev} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEYS.P1.t_lev} instructorMode={teacherMode} hint="Liab / Equity" />
+                            <SmartInput id="t_gp" value={inputs.t_gp} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(ANSWER_KEYS.P1.t_gp)} instructorMode={teacherMode} isPercentage={true} hint="(Sales-COGS)/Sales" />
+                            <SmartInput id="t_pm" value={inputs.t_pm} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(ANSWER_KEYS.P1.t_pm)} instructorMode={teacherMode} isPercentage={true} hint="NI / Sales" />
+                            <SmartInput id="t_roe" value={inputs.t_roe} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(ANSWER_KEYS.P1.t_roe)} instructorMode={teacherMode} isPercentage={true} hint="NI / Equity" />
+                            <SmartInput id="t_lev" value={inputs.t_lev} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(ANSWER_KEYS.P1.t_lev)} instructorMode={teacherMode} hint="Liab / Equity" />
                         </div>
 
                         {/* Nike */}
                         <div className="grid grid-cols-5 gap-4 items-center mb-4 text-sm">
                             <div className="font-bold text-slate-700">Nike</div>
-                            <SmartInput id="n_gp" value={inputs.n_gp} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEYS.P1.n_gp} instructorMode={teacherMode} isPercentage={true} hint="(Sales-COGS)/Sales" />
-                            <SmartInput id="n_pm" value={inputs.n_pm} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEYS.P1.n_pm} instructorMode={teacherMode} isPercentage={true} hint="NI / Sales" />
-                            <SmartInput id="n_roe" value={inputs.n_roe} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEYS.P1.n_roe} instructorMode={teacherMode} isPercentage={true} hint="NI / Equity" />
-                            <SmartInput id="n_lev" value={inputs.n_lev} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEYS.P1.n_lev} instructorMode={teacherMode} hint="Liab / Equity" />
+                            <SmartInput id="n_gp" value={inputs.n_gp} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(ANSWER_KEYS.P1.n_gp)} instructorMode={teacherMode} isPercentage={true} hint="(Sales-COGS)/Sales" />
+                            <SmartInput id="n_pm" value={inputs.n_pm} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(ANSWER_KEYS.P1.n_pm)} instructorMode={teacherMode} isPercentage={true} hint="NI / Sales" />
+                            <SmartInput id="n_roe" value={inputs.n_roe} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(ANSWER_KEYS.P1.n_roe)} instructorMode={teacherMode} isPercentage={true} hint="NI / Equity" />
+                            <SmartInput id="n_lev" value={inputs.n_lev} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(ANSWER_KEYS.P1.n_lev)} instructorMode={teacherMode} hint="Liab / Equity" />
                         </div>
 
                         {/* Harley */}
                         <div className="grid grid-cols-5 gap-4 items-center mb-4 text-sm">
                             <div className="font-bold text-slate-700">Harley-Davidson</div>
-                            <SmartInput id="h_gp" value={inputs.h_gp} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEYS.P1.h_gp} instructorMode={teacherMode} isPercentage={true} hint="(Sales-COGS)/Sales" />
-                            <SmartInput id="h_pm" value={inputs.h_pm} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEYS.P1.h_pm} instructorMode={teacherMode} isPercentage={true} hint="NI / Sales" />
-                            <SmartInput id="h_roe" value={inputs.h_roe} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEYS.P1.h_roe} instructorMode={teacherMode} isPercentage={true} hint="NI / Equity" />
-                            <SmartInput id="h_lev" value={inputs.h_lev} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEYS.P1.h_lev} instructorMode={teacherMode} hint="Liab / Equity" />
+                            <SmartInput id="h_gp" value={inputs.h_gp} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(ANSWER_KEYS.P1.h_gp)} instructorMode={teacherMode} isPercentage={true} hint="(Sales-COGS)/Sales" />
+                            <SmartInput id="h_pm" value={inputs.h_pm} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(ANSWER_KEYS.P1.h_pm)} instructorMode={teacherMode} isPercentage={true} hint="NI / Sales" />
+                            <SmartInput id="h_roe" value={inputs.h_roe} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(ANSWER_KEYS.P1.h_roe)} instructorMode={teacherMode} isPercentage={true} hint="NI / Equity" />
+                            <SmartInput id="h_lev" value={inputs.h_lev} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(ANSWER_KEYS.P1.h_lev)} instructorMode={teacherMode} hint="Liab / Equity" />
                         </div>
 
                         {/* Abbott */}
                         <div className="grid grid-cols-5 gap-4 items-center mb-4 text-sm">
                             <div className="font-bold text-slate-700">Abbott Labs</div>
-                            <SmartInput id="a_gp" value={inputs.a_gp} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEYS.P1.a_gp} instructorMode={teacherMode} isPercentage={true} hint="(Sales-COGS)/Sales" />
-                            <SmartInput id="a_pm" value={inputs.a_pm} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEYS.P1.a_pm} instructorMode={teacherMode} isPercentage={true} hint="NI / Sales" />
-                            <SmartInput id="a_roe" value={inputs.a_roe} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEYS.P1.a_roe} instructorMode={teacherMode} isPercentage={true} hint="NI / Equity" />
-                            <SmartInput id="a_lev" value={inputs.a_lev} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEYS.P1.a_lev} instructorMode={teacherMode} hint="Liab / Equity" />
+                            <SmartInput id="a_gp" value={inputs.a_gp} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(ANSWER_KEYS.P1.a_gp)} instructorMode={teacherMode} isPercentage={true} hint="(Sales-COGS)/Sales" />
+                            <SmartInput id="a_pm" value={inputs.a_pm} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(ANSWER_KEYS.P1.a_pm)} instructorMode={teacherMode} isPercentage={true} hint="NI / Sales" />
+                            <SmartInput id="a_roe" value={inputs.a_roe} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(ANSWER_KEYS.P1.a_roe)} instructorMode={teacherMode} isPercentage={true} hint="NI / Equity" />
+                            <SmartInput id="a_lev" value={inputs.a_lev} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(ANSWER_KEYS.P1.a_lev)} instructorMode={teacherMode} hint="Liab / Equity" />
                         </div>
                     </div>
 
@@ -606,36 +614,36 @@
                                             
                                             {/* Cash */}
                                             <td className="p-2">
-                                                <SmartInput id={`${row.id}_cash`} value={inputs[`${row.id}_cash`]} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEYS.P2[`${row.id}_cash`]} instructorMode={teacherMode} />
+                                                <SmartInput id={`${row.id}_cash`} value={inputs[`${row.id}_cash`]} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(ANSWER_KEYS.P2[`${row.id}_cash`])} instructorMode={teacherMode} />
                                             </td>
                                             
                                             {/* Noncash Assets (Dropdown + Input) */}
                                             <td className="p-2 space-y-1">
                                                 <select 
-                                                    className={`w-full text-[10px] p-1 rounded border outline-none ${inputs[`${row.id}_nca_acct`] === ANSWER_KEYS.P2[`${row.id}_nca_acct`] ? 'bg-emerald-50 text-emerald-700 border-emerald-200 font-bold' : 'bg-slate-50 border-slate-200'}`}
+                                                    className={`w-full text-[10px] p-1 rounded border outline-none ${inputs[`${row.id}_nca_acct`] === d(ANSWER_KEYS.P2[`${row.id}_nca_acct`]) ? 'bg-emerald-50 text-emerald-700 border-emerald-200 font-bold' : 'bg-slate-50 border-slate-200'}`}
                                                     value={inputs[`${row.id}_nca_acct`] || ""}
                                                     onChange={(e) => handleAccountChange(`${row.id}_nca_acct`, e.target.value)}
                                                 >
                                                     {ACCOUNT_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                                                 </select>
-                                                <SmartInput id={`${row.id}_nca`} value={inputs[`${row.id}_nca`]} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEYS.P2[`${row.id}_nca`]} instructorMode={teacherMode} />
+                                                <SmartInput id={`${row.id}_nca`} value={inputs[`${row.id}_nca`]} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(ANSWER_KEYS.P2[`${row.id}_nca`])} instructorMode={teacherMode} />
                                             </td>
 
                                             {/* Liabilities (Dropdown + Input) */}
                                             <td className="p-2 space-y-1 border-l border-slate-100">
                                                 <select 
-                                                    className={`w-full text-[10px] p-1 rounded border outline-none ${inputs[`${row.id}_liab_acct`] === ANSWER_KEYS.P2[`${row.id}_liab_acct`] ? 'bg-emerald-50 text-emerald-700 border-emerald-200 font-bold' : 'bg-slate-50 border-slate-200'}`}
+                                                    className={`w-full text-[10px] p-1 rounded border outline-none ${inputs[`${row.id}_liab_acct`] === d(ANSWER_KEYS.P2[`${row.id}_liab_acct`]) ? 'bg-emerald-50 text-emerald-700 border-emerald-200 font-bold' : 'bg-slate-50 border-slate-200'}`}
                                                     value={inputs[`${row.id}_liab_acct`] || ""}
                                                     onChange={(e) => handleAccountChange(`${row.id}_liab_acct`, e.target.value)}
                                                 >
                                                     {ACCOUNT_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                                                 </select>
-                                                <SmartInput id={`${row.id}_liab`} value={inputs[`${row.id}_liab`]} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEYS.P2[`${row.id}_liab`]} instructorMode={teacherMode} />
+                                                <SmartInput id={`${row.id}_liab`} value={inputs[`${row.id}_liab`]} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(ANSWER_KEYS.P2[`${row.id}_liab`])} instructorMode={teacherMode} />
                                             </td>
 
                                             {/* Contributed Capital */}
                                             <td className="p-2 border-l border-slate-100">
-                                                <SmartInput id={`${row.id}_cc`} value={inputs[`${row.id}_cc`]} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEYS.P2[`${row.id}_cc`]} instructorMode={teacherMode} />
+                                                <SmartInput id={`${row.id}_cc`} value={inputs[`${row.id}_cc`]} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(ANSWER_KEYS.P2[`${row.id}_cc`])} instructorMode={teacherMode} />
                                             </td>
 
                                             {/* Earned Capital (Auto calculated from NI) */}
@@ -651,12 +659,12 @@
 
                                             {/* Revenue */}
                                             <td className="p-2">
-                                                <SmartInput id={`${row.id}_rev`} value={inputs[`${row.id}_rev`]} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEYS.P2[`${row.id}_rev`]} instructorMode={teacherMode} />
+                                                <SmartInput id={`${row.id}_rev`} value={inputs[`${row.id}_rev`]} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(ANSWER_KEYS.P2[`${row.id}_rev`])} instructorMode={teacherMode} />
                                             </td>
 
                                             {/* Expenses */}
                                             <td className="p-2 border-l border-slate-100">
-                                                <SmartInput id={`${row.id}_exp`} value={inputs[`${row.id}_exp`]} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={ANSWER_KEYS.P2[`${row.id}_exp`]} instructorMode={teacherMode} />
+                                                <SmartInput id={`${row.id}_exp`} value={inputs[`${row.id}_exp`]} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={d(ANSWER_KEYS.P2[`${row.id}_exp`])} instructorMode={teacherMode} />
                                             </td>
 
                                             {/* Net Income (Auto) */}
@@ -719,7 +727,14 @@
             };
 
             const unlockInstructor = () => {
-                if (password.toLowerCase() === "teacher") { setInstructorMode(true); setShowLogin(false); setPassword(""); } else { alert("Incorrect"); }
+                // Secure check: compare hash of input to hash of "teacher"
+                if (btoa(password.toLowerCase()) === "dGVhY2hlcg==") { 
+                    setInstructorMode(true); 
+                    setShowLogin(false); 
+                    setPassword(""); 
+                } else { 
+                    alert("Incorrect Password"); 
+                }
             };
 
             const toggleTeacherMode = () => {
@@ -728,7 +743,12 @@
             };
 
             const handleAutoFill = () => {
-                setInputs(prev => ({ ...prev, [activeTab]: { ...activeKey } }));
+                // Decode keys before filling inputs
+                const decodedKey = {};
+                Object.entries(activeKey).forEach(([k, v]) => {
+                    decodedKey[k] = d(v);
+                });
+                setInputs(prev => ({ ...prev, [activeTab]: { ...decodedKey } }));
                 setIsAutoFilled(true);
             };
 
@@ -910,7 +930,7 @@
                                         {Object.entries(activeKey || {}).map(([k, v]) => (
                                             <div key={k} className="flex justify-between border-b border-slate-100 py-1">
                                                 <span className="text-slate-500">{k}:</span>
-                                                <span className="font-mono font-bold text-purple-700">{v}</span>
+                                                <span className="font-mono font-bold text-purple-700">{d(v)}</span>
                                             </div>
                                         ))}
                                     </div>
