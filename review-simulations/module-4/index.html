@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Financial Analyst Simulation</title>
+    <title>Financial Analyst Simulation: T-Mobile US 2022</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -23,6 +23,7 @@
         
         body {
             font-family: 'Inter', sans-serif;
+            user-select: none; /* Anti-copy */
         }
         .font-mono {
             font-family: 'JetBrains Mono', monospace;
@@ -63,14 +64,40 @@
             border-color: #ef4444 !important; /* Red-500 */
             background-color: #fef2f2 !important; /* Red-50 */
         }
+
+        /* Resizer Handle Styling */
+        .resizer-handle {
+            width: 4px;
+            cursor: col-resize;
+            transition: background-color 0.2s;
+            z-index: 30;
+            position: absolute;
+            right: 0;
+            top: 0;
+            bottom: 0;
+        }
+        .resizer-handle:hover, .resizer-handle:active {
+            background-color: #3b82f6;
+        }
     </style>
 </head>
-<body class="bg-slate-100 text-slate-900 h-screen flex flex-col">
+<body class="bg-slate-100 text-slate-900 h-screen flex flex-col" oncontextmenu="return false">
 
     <div id="root" class="flex-1 flex flex-col h-full overflow-hidden"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
+        const { useState, useEffect, useRef, useCallback } = React;
+
+        // --- SECURITY UTILS ---
+        const d = (s) => {
+            try {
+                // Simple Base64 decode
+                const decoded = atob(s);
+                return isNaN(parseFloat(decoded)) ? decoded : parseFloat(decoded);
+            } catch (e) {
+                return 0;
+            }
+        };
 
         // --- ICON SHIM START ---
         const createLucideIcon = (iconName, iconNode) => {
@@ -109,10 +136,10 @@
         const { 
             Lock, Unlock, Calculator, BookOpen, TrendingUp, AlertTriangle, 
             CheckCircle, Info, LayoutGrid, ArrowRight, Menu, X, 
-            BarChart2, Scale, HelpCircle, Download, FileText, Eraser, List, RefreshCw
+            BarChart2, Scale, HelpCircle, Download, FileText, Eraser, List, RefreshCw, PanelLeftClose, PanelLeftOpen, Shield
         } = lucideReact;
 
-        // --- FINANCIAL DATA ---
+        // --- FINANCIAL DATA (Displayed in sidebar) ---
         const FINANCIAL_DATA = {
         incomeStatement: [
             { label: "Postpaid revenues", value: 45919 },
@@ -179,16 +206,69 @@
         ]
         };
 
-        const Z_SCORE_REF_DATA = [
-        { label: "Current assets", value: 19067, id: 'ca' },
-        { label: "Current liabilities", value: 24742, id: 'cl' },
-        { label: "Total assets", value: 211338, id: 'ta_a' },
-        { label: "Retained earnings", value: -223, id: 're' },
-        { label: "Shares outstanding", value: 1233960078, isRaw: true, id: 'shares' },
-        { label: "Stock price per share", value: 140, id: 'price' },
-        { label: "Total liabilities", value: 141682, id: 'tl' },
-        { label: "Operating income", value: 6543, id: 'ebit' },
-        { label: "Total revenues", value: 79571, id: 'sales' }
+        // --- OBFUSCATED DATA MATRICES ---
+        const _DATA_MATRIX_S = [
+        { id: 'liabEquity', title: '1. Liabilities to Equity', formula: 'Total Liabilities / Total Equity', numLabel: 'Total Liabilities', denomLabel: 'Total Equity', correctNum: "MTQxNjgy", correctDenom: "Njk2NTY=", displayFormat: '0.00x', verizonVal: '3.11x', hint: "Measures capital structure. Higher means more debt.", implication: 'T-Mobile (2.03x) is BETTER than Verizon (3.11x). It relies less on liabilities.' },
+        { 
+            id: 'debtEquity', 
+            title: '2. Debt to Equity', 
+            formula: 'Total Debt / Total Equity', 
+            numLabel: 'Total Debt', 
+            denomLabel: 'Total Equity', 
+            correctNum: "MTA3ODU4", 
+            correctDenom: "Njk2NTY=", 
+            displayFormat: '0.00x', 
+            verizonVal: '1.91x', 
+            calculationTip: "See Supplemental Data for pre-calculated Total Debt ($107,858)",
+            hint: "Total Debt = Short-term Debt + Long-term Debt + Affiliate Debt + Tower Obligations + Leases.", 
+            implication: 'T-Mobile (1.55x) is BETTER than Verizon (1.91x). Note: Total Debt ($107.9B) includes Lease Liabilities and Tower Obligations.' 
+        },
+        { id: 'tie', title: '3. Times Interest Earned', formula: 'Operating Income / Interest Expense', numLabel: 'Operating Income', denomLabel: 'Interest Expense', correctNum: "NjU0Mw==", correctDenom: "MzM2NA==", displayFormat: '0.00x', verizonVal: '8.43x', hint: "Ability to pay interest from operating profit.", implication: 'T-Mobile (1.94x) is WORSE than Verizon (8.43x).' },
+        { 
+            id: 'ebitdaCoverage', 
+            title: '4. EBITDA Coverage', 
+            formula: 'EBITDA / Interest Expense', 
+            numLabel: 'EBITDA', 
+            denomLabel: 'Interest Expense', 
+            calculationTip: "EBITDA = Op Income ($6,543) + D&A ($13,651) = $20,194", 
+            correctNum: "MjAxOTQ=", 
+            correctDenom: "MzM2NA==", 
+            displayFormat: '0.00x', 
+            verizonVal: '13.17x', 
+            hint: "EBITDA = Earnings Before Interest, Taxes, Depreciation, and Amortization. Measures core profitability.", 
+            implication: 'T-Mobile (6.00x) is WORSE than Verizon (13.17x).' 
+        },
+        { id: 'ocfDebt', title: '5. Operating Cash Flow to Debt', formula: 'Operating Cash Flow / Total Debt', numLabel: 'Operating Cash Flow', denomLabel: 'Total Debt', correctNum: "MTY3ODE=", correctDenom: "MTA3ODU4", displayFormat: '0.00%', verizonVal: '21.1%', isPct: true, hint: "Debt payoff capacity using cash flow.", implication: 'T-Mobile (15.6%) is WORSE than Verizon (21.1%).' },
+        { id: 'fcfDebt', title: '6. Free Operating Cash Flow to Debt', formula: '(Op Cash Flow - CAPEX) / Total Debt', numLabel: 'Free Operating Cash Flow', denomLabel: 'Total Debt', calculationTip: "Free Cash Flow = OCF ($16,781) - CAPEX ($13,970) = $2,811", correctNum: "MjgxMQ==", correctDenom: "MTA3ODU4", displayFormat: '0.00%', verizonVal: '8.0%', isPct: true, hint: "Ability to pay debt after CAPEX.", implication: 'T-Mobile (2.6%) is WORSE than Verizon (8.0%).' },
+        { id: 'currRatio', title: '7. Current Ratio', formula: 'Current Assets / Current Liabilities', numLabel: 'Current Assets', denomLabel: 'Current Liabilities', correctNum: "MTkwNjc=", correctDenom: "MjQ3NDI=", displayFormat: '0.00x', verizonVal: '0.75x', hint: "Short-term liquidity.", implication: 'T-Mobile (0.77x) is comparable to Verizon (0.75x).' },
+        { id: 'quickRatio', title: '8. Quick Ratio', formula: '(Current Assets - Inventory) / Current Liabilities', numLabel: 'Quick Assets', denomLabel: 'Current Liabilities', calculationTip: "Quick Assets = CA ($19,067) - Inventory ($1,884) = $17,183", correctNum: "MTcxODM=", correctDenom: "MjQ3NDI=", displayFormat: '0.00x', verizonVal: '0.54x', hint: "Strict liquidity excluding inventory.", implication: 'T-Mobile (0.69x) is BETTER than Verizon (0.54x).' }
+        ];
+
+        const _DATA_MATRIX_R = [
+        { id: 'debtEbitda', title: '1. Debt / EBITDA', formula: 'Total Debt / EBITDA', numLabel: 'Total Debt', denomLabel: 'EBITDA', correctNum: "MTA3ODU4", correctDenom: "MjAxOTQ=", displayFormat: '0.00x', gridKey: 'debtEbitda', lowerIsBetter: true, calculationTip: "EBITDA = $20,194", implication: '5.34x leverage is high. Supports Ba/B rating.', targetRating: 'Ba' },
+        { id: 'ebitaInterest', title: '2. EBITA / Interest Expense', formula: 'EBITA / Interest Expense', numLabel: 'EBITA', denomLabel: 'Interest Expense', correctNum: "Nzc0Mw==", correctDenom: "MzM2NA==", displayFormat: '0.00x', gridKey: 'ebitaInterest', lowerIsBetter: false, calculationTip: "EBITA = OpInc ($6,543) + Amort ($1,200) = $7,743", implication: '2.30x coverage is weak. Supports B rating.', targetRating: 'B' },
+        { id: 'revenue', title: '3. Revenue ($ Billions)', formula: 'Total Revenue (in Billions)', numLabel: 'Revenue', denomLabel: '1', correctNum: "NzkuNTc=", correctDenom: "MQ==", displayFormat: '0.00', gridKey: 'revenue', lowerIsBetter: false, implication: 'Massive scale ($79B) supports A rating.', targetRating: 'A' },
+        { id: 'ebitaMargin', title: '4. EBITA Margin', formula: 'EBITA / Revenue', numLabel: 'EBITA', denomLabel: 'Revenue', correctNum: "Nzc0Mw==", correctDenom: "Nzk1NzE=", displayFormat: '0.00%', gridKey: 'ebitaMargin', lowerIsBetter: false, isPct: true, implication: '9.7% margin is low (Caa range).', targetRating: 'Caa' },
+        { id: 'opMargin', title: '5. Operating Margin', formula: 'Operating Income / Revenue', numLabel: 'Operating Income', denomLabel: 'Revenue', correctNum: "NjU0Mw==", correctDenom: "Nzk1NzE=", displayFormat: '0.00%', gridKey: 'opMargin', lowerIsBetter: false, isPct: true, implication: '8.2% margin supports B rating.', targetRating: 'B' },
+        { id: 'ffoDebt', title: '6. FFO / Debt', formula: 'FFO / Total Debt', numLabel: 'FFO', denomLabel: 'Total Debt', correctNum: "MTk0MjI=", correctDenom: "MTA3ODU4", displayFormat: '0.00%', gridKey: 'ffoDebt', lowerIsBetter: false, isPct: true, implication: '18.0% is solid (B+/Ba- range).', targetRating: 'B' },
+        { id: 'fixedCharge', title: '7. (FFO + Int) / Interest', formula: '(FFO + Interest) / Interest', numLabel: 'FFO + Interest', denomLabel: 'Interest Expense', correctNum: "MjI3ODY=", correctDenom: "MzM2NA==", displayFormat: '0.00x', gridKey: 'fixedCharge', lowerIsBetter: false, implication: '6.77x coverage supports Ba rating.', targetRating: 'Ba' },
+        { id: 'ebitaAssets', title: '8. EBITA / Avg Assets', formula: 'EBITA / Average Assets', numLabel: 'EBITA', denomLabel: 'Average Assets', correctNum: "Nzc0Mw==", correctDenom: "MjA4OTUw", displayFormat: '0.00%', gridKey: 'ebitaAssets', lowerIsBetter: false, isPct: true, implication: '3.7% return on assets is low (Caa).', targetRating: 'Caa' },
+        { id: 'capexDeprec', title: '9. CAPEX / Depreciation', formula: 'Capital Expenditures / D&A', numLabel: 'CAPEX', denomLabel: 'D&A', correctNum: "MTM5NzA=", correctDenom: "MTM2NTE=", displayFormat: '0.00x', gridKey: 'capexDeprec', lowerIsBetter: false, implication: '1.02x reinvestment supports B rating.', targetRating: 'B' }
+        ];
+
+        const _DATA_MATRIX_Z = [
+        { label: "Current assets", value: 19067, id: 'ca', correct: "MTkwNjc=" },
+        { label: "Current liabilities", value: 24742, id: 'cl', correct: "MjQ3NDI=" },
+        { label: "Total assets", value: 211338, id: 'ta_a', correct: "MjExMzM4" },
+        { label: "Retained earnings", value: -223, id: 're', correct: "LTIyMw==" },
+        { label: "Shares outstanding", value: 1233960078, isRaw: true, id: 'shares', correct: "MTIzMzk2MDA3OA==" },
+        { label: "Stock price per share", value: 140, id: 'price', correct: "MTQw" },
+        { label: "Total liabilities", value: 141682, id: 'tl', correct: "MTQxNjgy" },
+        { label: "Operating income", value: 6543, id: 'ebit', correct: "NjU0Mw==" },
+        { label: "Total revenues", value: 79571, id: 'sales', correct: "Nzk1NzE=" },
+        { label: "Total assets (for ratios)", value: 211338, id: 'ta_b', correct: "MjExMzM4" },
+        { label: "Total assets (for ratios)", value: 211338, id: 'ta_c', correct: "MjExMzM4" },
+        { label: "Total assets (for ratios)", value: 211338, id: 'ta_e', correct: "MjExMzM4" }
         ];
 
         const RATING_GRID = [
@@ -199,55 +279,6 @@
         { grade: 'Ba',  debtEbitda: 3.3, ebitaInterest: 5.1,  revenue: 3.5,  ebitaMargin: 14.32, opMargin: 12.3, ffoDebt: 24.9, fixedCharge: 6.7,  ebitaAssets: 10.8, capexDeprec: 1.1 },
         { grade: 'B',   debtEbitda: 6.0, ebitaInterest: 2.1,  revenue: 0.9,  ebitaMargin: 12.28, opMargin: 7.4,  ffoDebt: 9.7,  fixedCharge: 2.7,  ebitaAssets: 7.2,  capexDeprec: 1.1 },
         { grade: 'Caa', debtEbitda: 9.5, ebitaInterest: 0.8,  revenue: 0.5,  ebitaMargin: 7.08,  opMargin: 2.2,  ffoDebt: 3.1,  fixedCharge: 1.4,  ebitaAssets: 4.4,  capexDeprec: 0.8 },
-        ];
-
-        const SOLVENCY_EXERCISES = [
-        { id: 'liabEquity', title: '1. Liabilities to Equity', formula: 'Total Liabilities / Total Equity', numLabel: 'Total Liabilities', denomLabel: 'Total Equity', correctNum: 141682, correctDenom: 69656, displayFormat: '0.00x', verizonVal: '3.11x', hint: "Measures capital structure. Higher means more debt.", implication: 'T-Mobile (2.03x) is BETTER than Verizon (3.11x). It relies less on liabilities.' },
-        { 
-            id: 'debtEquity', 
-            title: '2. Debt to Equity', 
-            formula: 'Total Debt / Total Equity', 
-            numLabel: 'Total Debt', 
-            denomLabel: 'Total Equity', 
-            correctNum: 107858, 
-            correctDenom: 69656, 
-            displayFormat: '0.00x', 
-            verizonVal: '1.91x', 
-            calculationTip: "See Supplemental Data for pre-calculated Total Debt ($107,858)",
-            hint: "Total Debt = Short-term Debt + Long-term Debt + Affiliate Debt + Tower Obligations + Leases.", 
-            implication: 'T-Mobile (1.55x) is BETTER than Verizon (1.91x). Note: Total Debt ($107.9B) includes Lease Liabilities and Tower Obligations.' 
-        },
-        { id: 'tie', title: '3. Times Interest Earned', formula: 'Operating Income / Interest Expense', numLabel: 'Operating Income', denomLabel: 'Interest Expense', correctNum: 6543, correctDenom: 3364, displayFormat: '0.00x', verizonVal: '8.43x', hint: "Ability to pay interest from operating profit.", implication: 'T-Mobile (1.94x) is WORSE than Verizon (8.43x).' },
-        { 
-            id: 'ebitdaCoverage', 
-            title: '4. EBITDA Coverage', 
-            formula: 'EBITDA / Interest Expense', 
-            numLabel: 'EBITDA', 
-            denomLabel: 'Interest Expense', 
-            calculationTip: "EBITDA = Op Income ($6,543) + D&A ($13,651) = $20,194", 
-            correctNum: 20194, 
-            correctDenom: 3364, 
-            displayFormat: '0.00x', 
-            verizonVal: '13.17x', 
-            hint: "EBITDA = Earnings Before Interest, Taxes, Depreciation, and Amortization. Measures core profitability.", 
-            implication: 'T-Mobile (6.00x) is WORSE than Verizon (13.17x).' 
-        },
-        { id: 'ocfDebt', title: '5. Operating Cash Flow to Debt', formula: 'Operating Cash Flow / Total Debt', numLabel: 'Operating Cash Flow', denomLabel: 'Total Debt', correctNum: 16781, correctDenom: 107858, displayFormat: '0.00%', verizonVal: '21.1%', isPct: true, hint: "Debt payoff capacity using cash flow.", implication: 'T-Mobile (15.6%) is WORSE than Verizon (21.1%).' },
-        { id: 'fcfDebt', title: '6. Free Operating Cash Flow to Debt', formula: '(Op Cash Flow - CAPEX) / Total Debt', numLabel: 'Free Operating Cash Flow', denomLabel: 'Total Debt', calculationTip: "Free Cash Flow = OCF ($16,781) - CAPEX ($13,970) = $2,811", correctNum: 2811, correctDenom: 107858, displayFormat: '0.00%', verizonVal: '8.0%', isPct: true, hint: "Ability to pay debt after CAPEX.", implication: 'T-Mobile (2.6%) is WORSE than Verizon (8.0%).' },
-        { id: 'currRatio', title: '7. Current Ratio', formula: 'Current Assets / Current Liabilities', numLabel: 'Current Assets', denomLabel: 'Current Liabilities', correctNum: 19067, correctDenom: 24742, displayFormat: '0.00x', verizonVal: '0.75x', hint: "Short-term liquidity.", implication: 'T-Mobile (0.77x) is comparable to Verizon (0.75x).' },
-        { id: 'quickRatio', title: '8. Quick Ratio', formula: '(Current Assets - Inventory) / Current Liabilities', numLabel: 'Quick Assets', denomLabel: 'Current Liabilities', calculationTip: "Quick Assets = CA ($19,067) - Inventory ($1,884) = $17,183", correctNum: 17183, correctDenom: 24742, displayFormat: '0.00x', verizonVal: '0.54x', hint: "Strict liquidity excluding inventory.", implication: 'T-Mobile (0.69x) is BETTER than Verizon (0.54x).' }
-        ];
-
-        const RATING_EXERCISES = [
-        { id: 'debtEbitda', title: '1. Debt / EBITDA', formula: 'Total Debt / EBITDA', numLabel: 'Total Debt', denomLabel: 'EBITDA', correctNum: 107858, correctDenom: 20194, displayFormat: '0.00x', gridKey: 'debtEbitda', lowerIsBetter: true, calculationTip: "EBITDA = $20,194", implication: '5.34x leverage is high. Supports Ba/B rating.', targetRating: 'Ba' },
-        { id: 'ebitaInterest', title: '2. EBITA / Interest Expense', formula: 'EBITA / Interest Expense', numLabel: 'EBITA', denomLabel: 'Interest Expense', correctNum: 7743, correctDenom: 3364, displayFormat: '0.00x', gridKey: 'ebitaInterest', lowerIsBetter: false, calculationTip: "EBITA = OpInc ($6,543) + Amort ($1,200) = $7,743", implication: '2.30x coverage is weak. Supports B rating.', targetRating: 'B' },
-        { id: 'revenue', title: '3. Revenue ($ Billions)', formula: 'Total Revenue (in Billions)', numLabel: 'Revenue', denomLabel: '1', correctNum: 79.57, correctDenom: 1, displayFormat: '0.00', gridKey: 'revenue', lowerIsBetter: false, implication: 'Massive scale ($79B) supports A rating.', targetRating: 'A' },
-        { id: 'ebitaMargin', title: '4. EBITA Margin', formula: 'EBITA / Revenue', numLabel: 'EBITA', denomLabel: 'Revenue', correctNum: 7743, correctDenom: 79571, displayFormat: '0.00%', gridKey: 'ebitaMargin', lowerIsBetter: false, isPct: true, implication: '9.7% margin is low (Caa range).', targetRating: 'Caa' },
-        { id: 'opMargin', title: '5. Operating Margin', formula: 'Operating Income / Revenue', numLabel: 'Operating Income', denomLabel: 'Revenue', correctNum: 6543, correctDenom: 79571, displayFormat: '0.00%', gridKey: 'opMargin', lowerIsBetter: false, isPct: true, implication: '8.2% margin supports B rating.', targetRating: 'B' },
-        { id: 'ffoDebt', title: '6. FFO / Debt', formula: 'FFO / Total Debt', numLabel: 'FFO', denomLabel: 'Total Debt', correctNum: 19422, correctDenom: 107858, displayFormat: '0.00%', gridKey: 'ffoDebt', lowerIsBetter: false, isPct: true, implication: '18.0% is solid (B+/Ba- range).', targetRating: 'B' },
-        { id: 'fixedCharge', title: '7. (FFO + Int) / Interest', formula: '(FFO + Interest) / Interest', numLabel: 'FFO + Interest', denomLabel: 'Interest Expense', correctNum: 22786, correctDenom: 3364, displayFormat: '0.00x', gridKey: 'fixedCharge', lowerIsBetter: false, implication: '6.77x coverage supports Ba rating.', targetRating: 'Ba' },
-        { id: 'ebitaAssets', title: '8. EBITA / Avg Assets', formula: 'EBITA / Average Assets', numLabel: 'EBITA', denomLabel: 'Average Assets', correctNum: 7743, correctDenom: 208950, displayFormat: '0.00%', gridKey: 'ebitaAssets', lowerIsBetter: false, isPct: true, implication: '3.7% return on assets is low (Caa).', targetRating: 'Caa' },
-        { id: 'capexDeprec', title: '9. CAPEX / Depreciation', formula: 'Capital Expenditures / D&A', numLabel: 'CAPEX', denomLabel: 'D&A', correctNum: 13970, correctDenom: 13651, displayFormat: '0.00x', gridKey: 'capexDeprec', lowerIsBetter: false, implication: '1.02x reinvestment supports B rating.', targetRating: 'B' }
         ];
 
         // --- MATH PARSING & UTILS ---
@@ -272,8 +303,9 @@
 
         // --- COMPONENTS ---
 
-        const SmartInput = ({ id, value, onChange, correctValue, isPct, onFocus, isInstructor, inputRef }) => {
+        const SmartInput = ({ id, value, onChange, correctValueEncoded, isPct, onFocus, isInstructor, inputRef }) => {
             const [status, setStatus] = useState('neutral');
+            const correctValue = d(correctValueEncoded);
 
             useEffect(() => {
                 validate(value);
@@ -423,6 +455,51 @@
         );
         };
 
+        const Sidebar = ({ isOpen, toggleSidebar, onDataClick, width, setWidth }) => {
+            const isResizing = useRef(false);
+
+            const startResizing = useCallback(() => {
+                isResizing.current = true;
+                document.body.style.cursor = 'col-resize';
+            }, []);
+
+            const stopResizing = useCallback(() => {
+                isResizing.current = false;
+                document.body.style.cursor = 'default';
+            }, []);
+
+            const resize = useCallback((e) => {
+                if (!isResizing.current) return;
+                const newWidth = e.clientX;
+                if (newWidth > 200 && newWidth < 600) {
+                    setWidth(newWidth);
+                }
+            }, [setWidth]);
+
+            useEffect(() => {
+                window.addEventListener('mousemove', resize);
+                window.addEventListener('mouseup', stopResizing);
+                return () => {
+                    window.removeEventListener('mousemove', resize);
+                    window.removeEventListener('mouseup', stopResizing);
+                };
+            }, [resize, stopResizing]);
+
+            return (
+                <div 
+                    className="relative flex h-full border-r border-slate-200 bg-white transition-all duration-300 ease-out shrink-0"
+                    style={{ width: isOpen ? `${width}px` : '0px', overflow: 'visible' }}
+                >
+                    <div className="w-full h-full overflow-hidden">
+                        <FinancialReferencePanel onClose={toggleSidebar} onDataClick={onDataClick} />
+                    </div>
+                    
+                    {/* Resizer Handle */}
+                    {isOpen && <div className="resizer-handle" onMouseDown={startResizing}></div>}
+                </div>
+            );
+        };
+
         function CreditSim() {
         const [activeTab, setActiveTab] = useState('solvency');
         const [studentName, setStudentName] = useState('');
@@ -435,6 +512,7 @@
         const [passwordInput, setPasswordInput] = useState('');
         const [showLogin, setShowLogin] = useState(false);
         const [showSidePanel, setShowSidePanel] = useState(true);
+        const [sidebarWidth, setSidebarWidth] = useState(320);
         const [feedbackVisible, setFeedbackVisible] = useState({});
         
         // Active Input State for Clickable Reference
@@ -499,31 +577,37 @@
             const userVals = inputs[exercise.id] || {};
             // Evaluate raw string
             const n = safeEvaluate(userVals.num);
-            const d = safeEvaluate(userVals.denom);
+            const dVal = safeEvaluate(userVals.denom);
             
-            if (!n || !d) return null;
-            return n / d;
+            if (!n || !dVal) return null;
+            return n / dVal;
         };
 
         const checkAnswer = (exercise) => {
             const userVals = inputs[exercise.id] || {};
             const n = safeEvaluate(userVals.num);
-            const d = safeEvaluate(userVals.denom);
-            // Tolerance logic
-            const tolN = exercise.correctNum * 0.02;
-            const tolD = exercise.correctDenom * 0.02;
+            const dVal = safeEvaluate(userVals.denom);
             
-            const nOk = Math.abs(n - exercise.correctNum) <= tolN;
-            const dOk = Math.abs(d - exercise.correctDenom) <= tolD;
+            const correctN = d(exercise.correctNum);
+            const correctD = d(exercise.correctDenom);
+
+            // Tolerance logic
+            const tolN = Math.abs(correctN * 0.02);
+            const tolD = Math.abs(correctD * 0.02);
+            
+            const nOk = Math.abs(n - correctN) <= tolN;
+            const dOk = Math.abs(dVal - correctD) <= tolD;
             return { nOk, dOk, correct: nOk && dOk };
         };
 
         const handleLogin = () => {
-            if (passwordInput === 'teacher') {
-            setIsTeacher(true);
-            setShowLogin(false);
+            // Obfuscated password check: 'review' in base64 is 'cmV2aWV3'
+            if (btoa(passwordInput) === 'cmV2aWV3') {
+                setIsTeacher(true);
+                setShowLogin(false);
+                setPasswordInput('');
             } else {
-            alert('Incorrect password');
+                alert('Access Denied');
             }
         };
 
@@ -538,21 +622,22 @@
 
         const autoFillAnswers = () => {
             const newInputs = {};
-            [...SOLVENCY_EXERCISES, ...RATING_EXERCISES].forEach(ex => {
-            newInputs[ex.id] = { num: ex.correctNum.toString(), denom: ex.correctDenom.toString() };
+            [..._DATA_MATRIX_S, ..._DATA_MATRIX_R].forEach(ex => {
+                newInputs[ex.id] = { num: d(ex.correctNum).toString(), denom: d(ex.correctDenom).toString() };
             });
             setInputs(newInputs);
             
             const newZInputs = {};
-            Z_SCORE_REF_DATA.forEach(item => {
-                newZInputs[item.id] = item.value.toString();
+            _DATA_MATRIX_Z.forEach(item => {
+                // If it's ta_b, ta_c etc, they map to the same correct value
+                newZInputs[item.id] = d(item.correct).toString();
             });
             setZInputs(newZInputs);
 
             const newImplications = { 
-            zScoreCalc: "Autofilled: Low Z-score is typical for capital intensive telecoms."
+                zScoreCalc: "Autofilled: Low Z-score is typical for capital intensive telecoms."
             };
-            [...SOLVENCY_EXERCISES, ...RATING_EXERCISES].forEach(ex => {
+            [..._DATA_MATRIX_S, ..._DATA_MATRIX_R].forEach(ex => {
                 newImplications[ex.id] = ex.implication;
             });
             setImplications(prev => ({...prev, ...newImplications}));
@@ -572,7 +657,7 @@
             content += `PART 1: SOLVENCY & LIQUIDITY\n`;
             content += `==================================\n\n`;
             
-            SOLVENCY_EXERCISES.forEach(ex => {
+            _DATA_MATRIX_S.forEach(ex => {
                 const userVals = inputs[ex.id] || {};
                 const reflection = implications[ex.id] || "No reflection provided.";
                 content += `${ex.title}\n`;
@@ -587,7 +672,7 @@
             content += `PART 2: RATING ANALYSIS\n`;
             content += `==================================\n\n`;
 
-            RATING_EXERCISES.forEach(ex => {
+            _DATA_MATRIX_R.forEach(ex => {
                 const userVals = inputs[ex.id] || {};
                 const reflection = implications[ex.id] || "No reflection provided.";
                 content += `${ex.title}\n`;
@@ -602,7 +687,7 @@
             content += `PART 3: ALTMAN Z-SCORE\n`;
             content += `==================================\n\n`;
             
-            Z_SCORE_REF_DATA.forEach(row => {
+            _DATA_MATRIX_Z.forEach(row => {
                 content += `${row.label}: ${zInputs[row.id] || 'Not entered'}\n`;
             });
 
@@ -669,7 +754,7 @@
                         inputRef={el => inputRefs.current[`${ex.id}-num`] = el}
                         value={inputs[ex.id]?.num}
                         onChange={(val) => handleInputChange(ex.id, 'num', val)}
-                        correctValue={ex.correctNum}
+                        correctValueEncoded={ex.correctNum}
                         onFocus={() => setActiveInput({ section: 'main', id: ex.id, field: 'num'})}
                         isInstructor={isTeacher}
                     />
@@ -681,7 +766,7 @@
                         inputRef={el => inputRefs.current[`${ex.id}-denom`] = el}
                         value={inputs[ex.id]?.denom}
                         onChange={(val) => handleInputChange(ex.id, 'denom', val)}
-                        correctValue={ex.correctDenom}
+                        correctValueEncoded={ex.correctDenom}
                         onFocus={() => setActiveInput({ section: 'main', id: ex.id, field: 'denom'})}
                         isInstructor={isTeacher}
                     />
@@ -727,9 +812,13 @@
         const renderRatingRow = (ex, i) => {
             const userVal = calculateRatio(ex);
             const status = checkAnswer(ex);
+            
+            const correctN = d(ex.correctNum);
+            const correctD = d(ex.correctDenom);
+
             let matchedGrade = null;
             if (userVal !== null) {
-            if (ex.targetRating && Math.abs(userVal - ex.correctNum/ex.correctDenom) < 0.1) {
+            if (ex.targetRating && Math.abs(userVal - correctN/correctD) < 0.1) {
                 matchedGrade = ex.targetRating;
             } else {
                 for (let j = 0; j < RATING_GRID.length; j++) {
@@ -786,7 +875,7 @@
                         inputRef={el => inputRefs.current[`${ex.id}-num`] = el}
                         value={inputs[ex.id]?.num}
                         onChange={(val) => handleInputChange(ex.id, 'num', val)}
-                        correctValue={ex.correctNum}
+                        correctValueEncoded={ex.correctNum}
                         onFocus={() => setActiveInput({ section: 'main', id: ex.id, field: 'num'})}
                         isInstructor={isTeacher}
                         isPct={ex.id === 'ebitaMargin' || ex.id === 'opMargin' || ex.id === 'ffoDebt' || ex.id === 'ebitaAssets'} // Manual override for known pct fields
@@ -799,7 +888,7 @@
                         inputRef={el => inputRefs.current[`${ex.id}-denom`] = el}
                         value={inputs[ex.id]?.denom}
                         onChange={(val) => handleInputChange(ex.id, 'denom', val)}
-                        correctValue={ex.correctDenom}
+                        correctValueEncoded={ex.correctDenom}
                         onFocus={() => setActiveInput({ section: 'main', id: ex.id, field: 'denom'})}
                         isInstructor={isTeacher}
                     />
@@ -905,7 +994,7 @@
                     </div>
                     <p className="text-xs text-blue-800 mb-3">Copy exact values.</p>
                     <div className="space-y-0 text-sm">
-                        {Z_SCORE_REF_DATA.map((row, idx) => (
+                        {_DATA_MATRIX_Z.map((row, idx) => (
                         <div key={idx} onClick={() => handleReferenceDataClick(row.value)} className="flex justify-between py-1 border-b border-slate-200 last:border-0 hover:bg-white px-1 rounded transition-colors cursor-pointer">
                             <span className="text-slate-600 text-xs font-medium">{row.label}</span>
                             <span className="font-mono text-slate-800 font-bold">
@@ -991,15 +1080,15 @@
                         <div className="flex flex-wrap items-center gap-2">
                         <span className="text-slate-400 text-sm">(</span>
                         <div className="w-24">
-                            <SmartInput inputRef={el => inputRefs.current['z-ca'] = el} value={zInputs.ca} onChange={v => handleZRawChange('ca', v)} correctValue={19067} onFocus={() => setActiveInput({section:'z', id:'ca'})} isInstructor={isTeacher} />
+                            <SmartInput inputRef={el => inputRefs.current['z-ca'] = el} value={zInputs.ca} onChange={v => handleZRawChange('ca', v)} correctValueEncoded={_DATA_MATRIX_Z.find(z=>z.id==='ca').correct} onFocus={() => setActiveInput({section:'z', id:'ca'})} isInstructor={isTeacher} />
                         </div>
                         <span className="text-slate-500 font-bold">-</span>
                         <div className="w-24">
-                            <SmartInput inputRef={el => inputRefs.current['z-cl'] = el} value={zInputs.cl} onChange={v => handleZRawChange('cl', v)} correctValue={24742} onFocus={() => setActiveInput({section:'z', id:'cl'})} isInstructor={isTeacher} />
+                            <SmartInput inputRef={el => inputRefs.current['z-cl'] = el} value={zInputs.cl} onChange={v => handleZRawChange('cl', v)} correctValueEncoded={_DATA_MATRIX_Z.find(z=>z.id==='cl').correct} onFocus={() => setActiveInput({section:'z', id:'cl'})} isInstructor={isTeacher} />
                         </div>
                         <span className="text-slate-400 text-sm">) /</span>
                         <div className="w-24">
-                            <SmartInput inputRef={el => inputRefs.current['z-ta_a'] = el} value={zInputs.ta_a} onChange={v => handleZRawChange('ta_a', v)} correctValue={211338} onFocus={() => setActiveInput({section:'z', id:'ta_a'})} isInstructor={isTeacher} />
+                            <SmartInput inputRef={el => inputRefs.current['z-ta_a'] = el} value={zInputs.ta_a} onChange={v => handleZRawChange('ta_a', v)} correctValueEncoded={_DATA_MATRIX_Z.find(z=>z.id==='ta_a').correct} onFocus={() => setActiveInput({section:'z', id:'ta_a'})} isInstructor={isTeacher} />
                         </div>
                         </div>
                         <div className="mt-2 flex items-center gap-4 text-xs font-mono text-slate-600 bg-white p-2 rounded border border-slate-100">
@@ -1015,11 +1104,11 @@
                         <div className="text-xs font-bold text-purple-700 mb-2 uppercase">B. Retained Earnings / Total Assets (Weight: 1.4)</div>
                         <div className="flex flex-wrap items-center gap-2">
                         <div className="w-32">
-                             <SmartInput inputRef={el => inputRefs.current['z-re'] = el} value={zInputs.re} onChange={v => handleZRawChange('re', v)} correctValue={-223} onFocus={() => setActiveInput({section:'z', id:'re'})} isInstructor={isTeacher} />
+                             <SmartInput inputRef={el => inputRefs.current['z-re'] = el} value={zInputs.re} onChange={v => handleZRawChange('re', v)} correctValueEncoded={_DATA_MATRIX_Z.find(z=>z.id==='re').correct} onFocus={() => setActiveInput({section:'z', id:'re'})} isInstructor={isTeacher} />
                         </div>
                         <span className="text-slate-400 text-sm">/</span>
                         <div className="w-24">
-                            <SmartInput inputRef={el => inputRefs.current['z-ta_b'] = el} value={zInputs.ta_b} onChange={v => handleZRawChange('ta_b', v)} correctValue={211338} onFocus={() => setActiveInput({section:'z', id:'ta_b'})} isInstructor={isTeacher} />
+                            <SmartInput inputRef={el => inputRefs.current['z-ta_b'] = el} value={zInputs.ta_b} onChange={v => handleZRawChange('ta_b', v)} correctValueEncoded={_DATA_MATRIX_Z.find(z=>z.id==='ta_b').correct} onFocus={() => setActiveInput({section:'z', id:'ta_b'})} isInstructor={isTeacher} />
                         </div>
                         </div>
                         <div className="mt-2 flex items-center gap-4 text-xs font-mono text-slate-600 bg-white p-2 rounded border border-slate-100">
@@ -1033,11 +1122,11 @@
                         <div className="text-xs font-bold text-purple-700 mb-2 uppercase">C. Earnings Before Interest & Taxes (Operating Income) / Total Assets (Weight: 3.3)</div>
                         <div className="flex flex-wrap items-center gap-2">
                         <div className="w-32">
-                             <SmartInput inputRef={el => inputRefs.current['z-ebit'] = el} value={zInputs.ebit} onChange={v => handleZRawChange('ebit', v)} correctValue={6543} onFocus={() => setActiveInput({section:'z', id:'ebit'})} isInstructor={isTeacher} />
+                             <SmartInput inputRef={el => inputRefs.current['z-ebit'] = el} value={zInputs.ebit} onChange={v => handleZRawChange('ebit', v)} correctValueEncoded={_DATA_MATRIX_Z.find(z=>z.id==='ebit').correct} onFocus={() => setActiveInput({section:'z', id:'ebit'})} isInstructor={isTeacher} />
                         </div>
                         <span className="text-slate-400 text-sm">/</span>
                         <div className="w-24">
-                            <SmartInput inputRef={el => inputRefs.current['z-ta_c'] = el} value={zInputs.ta_c} onChange={v => handleZRawChange('ta_c', v)} correctValue={211338} onFocus={() => setActiveInput({section:'z', id:'ta_c'})} isInstructor={isTeacher} />
+                            <SmartInput inputRef={el => inputRefs.current['z-ta_c'] = el} value={zInputs.ta_c} onChange={v => handleZRawChange('ta_c', v)} correctValueEncoded={_DATA_MATRIX_Z.find(z=>z.id==='ta_c').correct} onFocus={() => setActiveInput({section:'z', id:'ta_c'})} isInstructor={isTeacher} />
                         </div>
                         </div>
                         <div className="mt-2 flex items-center gap-4 text-xs font-mono text-slate-600 bg-white p-2 rounded border border-slate-100">
@@ -1052,15 +1141,15 @@
                         <div className="flex flex-wrap items-center gap-2">
                         <span className="text-slate-400 text-sm">(</span>
                         <div className="w-32">
-                            <SmartInput inputRef={el => inputRefs.current['z-shares'] = el} value={zInputs.shares} onChange={v => handleZRawChange('shares', v)} correctValue={1233960078} onFocus={() => setActiveInput({section:'z', id:'shares'})} isInstructor={isTeacher} />
+                            <SmartInput inputRef={el => inputRefs.current['z-shares'] = el} value={zInputs.shares} onChange={v => handleZRawChange('shares', v)} correctValueEncoded={_DATA_MATRIX_Z.find(z=>z.id==='shares').correct} onFocus={() => setActiveInput({section:'z', id:'shares'})} isInstructor={isTeacher} />
                         </div>
                         <span className="text-slate-500 font-bold">×</span>
                         <div className="w-20">
-                            <SmartInput inputRef={el => inputRefs.current['z-price'] = el} value={zInputs.price} onChange={v => handleZRawChange('price', v)} correctValue={140} onFocus={() => setActiveInput({section:'z', id:'price'})} isInstructor={isTeacher} />
+                            <SmartInput inputRef={el => inputRefs.current['z-price'] = el} value={zInputs.price} onChange={v => handleZRawChange('price', v)} correctValueEncoded={_DATA_MATRIX_Z.find(z=>z.id==='price').correct} onFocus={() => setActiveInput({section:'z', id:'price'})} isInstructor={isTeacher} />
                         </div>
                         <span className="text-slate-400 text-sm">) /</span>
                         <div className="w-32">
-                            <SmartInput inputRef={el => inputRefs.current['z-tl'] = el} value={zInputs.tl} onChange={v => handleZRawChange('tl', v)} correctValue={141682} onFocus={() => setActiveInput({section:'z', id:'tl'})} isInstructor={isTeacher} />
+                            <SmartInput inputRef={el => inputRefs.current['z-tl'] = el} value={zInputs.tl} onChange={v => handleZRawChange('tl', v)} correctValueEncoded={_DATA_MATRIX_Z.find(z=>z.id==='tl').correct} onFocus={() => setActiveInput({section:'z', id:'tl'})} isInstructor={isTeacher} />
                         </div>
                         </div>
                         <div className="mt-2 flex items-center gap-4 text-xs font-mono text-slate-600 bg-white p-2 rounded border border-slate-100">
@@ -1076,11 +1165,11 @@
                         <div className="text-xs font-bold text-purple-700 mb-2 uppercase">E. Sales / Total Assets (Weight: 1.0)</div>
                         <div className="flex flex-wrap items-center gap-2">
                         <div className="w-32">
-                            <SmartInput inputRef={el => inputRefs.current['z-sales'] = el} value={zInputs.sales} onChange={v => handleZRawChange('sales', v)} correctValue={79571} onFocus={() => setActiveInput({section:'z', id:'sales'})} isInstructor={isTeacher} />
+                            <SmartInput inputRef={el => inputRefs.current['z-sales'] = el} value={zInputs.sales} onChange={v => handleZRawChange('sales', v)} correctValueEncoded={_DATA_MATRIX_Z.find(z=>z.id==='sales').correct} onFocus={() => setActiveInput({section:'z', id:'sales'})} isInstructor={isTeacher} />
                         </div>
                         <span className="text-slate-400 text-sm">/</span>
                         <div className="w-24">
-                            <SmartInput inputRef={el => inputRefs.current['z-ta_e'] = el} value={zInputs.ta_e} onChange={v => handleZRawChange('ta_e', v)} correctValue={211338} onFocus={() => setActiveInput({section:'z', id:'ta_e'})} isInstructor={isTeacher} />
+                            <SmartInput inputRef={el => inputRefs.current['z-ta_e'] = el} value={zInputs.ta_e} onChange={v => handleZRawChange('ta_e', v)} correctValueEncoded={_DATA_MATRIX_Z.find(z=>z.id==='ta_e').correct} onFocus={() => setActiveInput({section:'z', id:'ta_e'})} isInstructor={isTeacher} />
                         </div>
                         </div>
                         <div className="mt-2 flex items-center gap-4 text-xs font-mono text-slate-600 bg-white p-2 rounded border border-slate-100">
@@ -1137,9 +1226,10 @@
                     {!isTeacher && (
                         <button 
                         onClick={() => setShowLogin(true)}
-                        className="flex items-center gap-2 px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-sm font-medium transition-colors"
+                        className="opacity-10 hover:opacity-100 transition-opacity p-2 text-white"
+                        title="Instructor Access"
                         >
-                        <Lock size={14} /> Teacher Login
+                        <Lock size={16} />
                         </button>
                     )}
                 </div>
@@ -1149,11 +1239,7 @@
             <div className="flex-1 overflow-hidden relative">
                 <div className="absolute inset-0 flex">
                 {/* Side Panel (Financial Data) */}
-                <div className={`${showSidePanel ? 'w-80' : 'w-0'} bg-white border-r border-slate-200 transition-all duration-300 ease-in-out overflow-hidden flex-shrink-0 relative`}>
-                    <div className="w-80 h-full">
-                    <FinancialReferencePanel onClose={() => setShowSidePanel(false)} onDataClick={handleReferenceDataClick} />
-                    </div>
-                </div>
+                <Sidebar isOpen={showSidePanel} toggleSidebar={() => setShowSidePanel(!showSidePanel)} onDataClick={handleReferenceDataClick} width={sidebarWidth} setWidth={setSidebarWidth} />
 
                 {/* Main Content Area */}
                 <main className="flex-1 overflow-y-auto bg-slate-100 p-6 relative">
@@ -1162,7 +1248,7 @@
                         onClick={() => setShowSidePanel(true)}
                         className="absolute left-0 top-6 bg-white p-2 rounded-r shadow border border-l-0 border-slate-200 hover:bg-slate-50 z-20 text-blue-600 flex items-center gap-1 text-xs font-bold"
                     >
-                        <Menu size={16} /> Data
+                        <PanelLeftOpen size={16} /> Data
                     </button>
                     )}
 
@@ -1196,7 +1282,7 @@
                         <Card className="p-6 border-t-4 border-t-blue-600">
                             <SectionHeader icon={Scale} title="Solvency & Liquidity Analysis" subtitle="Compare T-Mobile's ratios against Verizon (2022) to assess financial health." />
                             <div className="space-y-2">
-                            {SOLVENCY_EXERCISES.map((ex, i) => renderSolvencyRow(ex, i))}
+                            {_DATA_MATRIX_S.map((ex, i) => renderSolvencyRow(ex, i))}
                             </div>
                         </Card>
                         )}
@@ -1205,7 +1291,7 @@
                         <Card className="p-6 border-t-4 border-t-indigo-600">
                             <SectionHeader icon={BarChart2} title="Credit Rating Methodology" subtitle="Determine the implied rating based on Moody's standard adjustments." />
                             <div className="space-y-2">
-                            {RATING_EXERCISES.map((ex, i) => renderRatingRow(ex, i))}
+                            {_DATA_MATRIX_R.map((ex, i) => renderRatingRow(ex, i))}
                             </div>
                         </Card>
                         )}
@@ -1250,18 +1336,20 @@
             {showLogin && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 backdrop-blur-sm">
                 <div className="bg-white p-6 rounded-lg shadow-xl w-80">
-                    <h3 className="font-bold text-lg mb-4 text-slate-800">Instructor Login</h3>
+                    <h3 className="font-bold text-lg mb-4 text-slate-800 flex items-center gap-2">
+                        <Shield size={18} /> System Access
+                    </h3>
                     <input 
                     type="password" 
                     className="w-full border p-2 mb-4 rounded" 
-                    placeholder="Password" 
+                    placeholder="Access Code" 
                     value={passwordInput} 
                     onChange={e => setPasswordInput(e.target.value)} 
                     onKeyDown={e => e.key === 'Enter' && handleLogin()} 
                     />
                     <div className="flex justify-end gap-2">
                     <button onClick={() => setShowLogin(false)} className="px-3 py-1 text-sm text-slate-600">Cancel</button>
-                    <button onClick={handleLogin} className="px-3 py-1 text-sm bg-blue-700 text-white rounded">Unlock</button>
+                    <button onClick={handleLogin} className="px-3 py-1 text-sm bg-blue-700 text-white rounded">Validate</button>
                     </div>
                 </div>
                 </div>
@@ -1318,19 +1406,19 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {[...SOLVENCY_EXERCISES, ...RATING_EXERCISES].map(ex => (
+                                    {[..._DATA_MATRIX_S, ..._DATA_MATRIX_R].map(ex => (
                                         <tr key={ex.id} className="border-b">
                                             <td className="p-2 border font-mono text-xs text-slate-500">{ex.id}</td>
                                             <td className="p-2 border font-bold">{ex.title}</td>
-                                            <td className="p-2 border font-mono">{ex.correctNum.toLocaleString()}</td>
-                                            <td className="p-2 border font-mono">{ex.correctDenom.toLocaleString()}</td>
+                                            <td className="p-2 border font-mono">{d(ex.correctNum).toLocaleString()}</td>
+                                            <td className="p-2 border font-mono">{d(ex.correctDenom).toLocaleString()}</td>
                                         </tr>
                                     ))}
-                                    {Z_SCORE_REF_DATA.map(item => (
+                                    {_DATA_MATRIX_Z.map(item => (
                                          <tr key={item.id} className="border-b bg-purple-50">
                                             <td className="p-2 border font-mono text-xs text-slate-500">Z-{item.id}</td>
                                             <td className="p-2 border font-bold">{item.label}</td>
-                                            <td className="p-2 border font-mono" colSpan="2">{item.value.toLocaleString()}</td>
+                                            <td className="p-2 border font-mono" colSpan="2">{d(item.correct).toLocaleString()}</td>
                                         </tr>
                                     ))}
                                 </tbody>
