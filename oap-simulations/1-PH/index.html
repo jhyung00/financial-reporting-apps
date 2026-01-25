@@ -13,7 +13,7 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
     <style>
-        body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+        body { font-family: 'Inter', system-ui, -apple-system, sans-serif; user-select: none; }
         .input-correct { @apply bg-green-50 border-green-500 text-green-700; }
         .input-incorrect { @apply bg-white border-gray-300; }
         /* Calculator Glassmorphism */
@@ -55,13 +55,33 @@
         .active-input-ring {
             box-shadow: 0 0 0 2px #3b82f6; /* ring-blue-500 */
         }
+        /* Custom Radio Button */
+        input[type="radio"]:checked + span {
+            color: #2563eb;
+            font-weight: 600;
+        }
+        /* Resizer Handle */
+        .resizer {
+            width: 5px;
+            cursor: col-resize;
+            background: transparent;
+            transition: background 0.2s;
+            position: absolute;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            z-index: 50;
+        }
+        .resizer:hover, .resizer.active {
+            background: #3b82f6;
+        }
     </style>
 </head>
-<body class="bg-slate-100 text-slate-800 h-screen overflow-hidden">
+<body class="bg-slate-100 text-slate-800 h-screen overflow-hidden" oncontextmenu="return false;">
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useMemo, useRef } = React;
+        const { useState, useEffect, useMemo, useRef, useCallback } = React;
 
         // --- ICONS (Lucide Style SVGs) ---
         const Icons = {
@@ -80,7 +100,8 @@
             Database: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>,
             ExternalLink: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>,
             Link: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>,
-            Download: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Download: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>,
+            Trash2: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
         };
 
         // --- GLOBAL UTILS ---
@@ -97,7 +118,10 @@
         const evaluateMathExpression = (expression) => {
             try {
                 // Remove commas for calculation
-                const cleanExpr = expression.replace(/,/g, '');
+                let cleanExpr = expression.replace(/,/g, '');
+                // Handle percentage input: 20% -> (20/100)
+                cleanExpr = cleanExpr.replace(/(\d+(?:\.\d+)?)%/g, '($1/100)');
+                
                 // Check for allowed characters (numbers, operators, parens, spaces) to prevent injection
                 if (!/^[\d\.\+\-\*\/\(\)\s]+$/.test(cleanExpr)) {
                     return expression; // Return original if invalid chars found
@@ -205,7 +229,7 @@
                     ["Total Equity", "8,859,920", "8,413,670"],
                     ["Total Liabilities and Equity", "25,943,943", "20,341,200"],
                     ["", "", ""],
-                     
+                      
                 ]
             },
             ph_is: {
@@ -220,8 +244,7 @@
                     ["Gain on disposal of assets", "(7,121)", "(109,332)"],
                     ["Operating income", "2,854,346", "2,479,990"],
                     ["Interest expense", "255,252", "250,036"],
-                    ["Loss on forward contracts", "1,015,426", "0"],
-                    ["Other expense (income), net", "(30,558)", "(17,003)"],
+                    ["Other expense (income), net", "984,868", "(17,003)"],
                     ["Income before income taxes", "1,614,226", "2,246,957"],
                     ["Income taxes", "298,040", "500,096"],
                     ["Net Income", "1,316,186", "1,746,861"],
@@ -296,102 +319,100 @@
             }
         };
 
-        const ANSWER_KEY = {
-            // Intro Module
-            "intro_fiscal_end": "June 30",
-            "intro_auditor": "Deloitte",
-            "intro_opinion": "Unqualified",
+        // --- DATA OBFUSCATION ---
+        const d = (s) => { try { return atob(s); } catch (e) { return s; } };
 
-            // Module 1: Balance Sheet - Parker Hannifin
-            "m1_bs_ph_stl_22": "5,859,318", "m1_bs_ph_stl_21": "3,096,503",
-            "m1_bs_ph_ltl_22": "11,224,705", "m1_bs_ph_ltl_21": "8,831,027",
-            "m1_bs_ph_tl_22": "17,084,023", "m1_bs_ph_tl_21": "11,927,530",
-            "m1_bs_ph_cc_22": "417,830", "m1_bs_ph_cc_21": "420,142",
-            "m1_bs_ph_re_22": "15,661,808", "m1_bs_ph_re_21": "14,915,497",
-            "m1_bs_ph_ts_22": "-5,688,429", "m1_bs_ph_ts_21": "-5,370,605",
-            "m1_bs_ph_oe_22": "-1,543,198", "m1_bs_ph_oe_21": "-1,566,727",
-            "m1_bs_ph_tse_22": "8,848,011", "m1_bs_ph_tse_21": "8,398,307",
-            "m1_bs_ph_nci_22": "11,909", "m1_bs_ph_nci_21": "15,363",
-            "m1_bs_ph_te_22": "8,859,920", "m1_bs_ph_te_21": "8,413,670",
-            "m1_bs_ph_tle_22": "25,943,943", "m1_bs_ph_tle_21": "20,341,200",
+        // Construct _DATA_MATRIX at runtime to include all CASE_DATA values plus obfuscated specific answers
+        const _DATA_MATRIX = {
+            // Intro
+            "intro_fiscal_end": "SnVuZSAzMA==", "intro_auditor": "RGVsb2l0dGU=", "intro_opinion": "VW5xdWFsaWZpZWQ=",
+            // Ratios & Misc
+            "m3_cs_bs_sta_pct": "NDYuNA==", "m3_cs_bs_lta_pct": "NTMuNg==", "m3_cs_bs_ta_pct": "MTAwLjA=",
+            "m3_cs_bs_stl_pct": "MjIuNg==", "m3_cs_bs_ltl_pct": "NDMuMw==", "m3_cs_bs_te_pct": "MzQuMQ==",
+            "m3_cs_is_sales_22": "MTAwLjA=", "m3_cs_is_sales_21": "MTAwLjA=",
+            "m3_cs_is_cos_22": "NzEuOA==", "m3_cs_is_cos_21": "NzIuOA==",
+            "m3_cs_is_gp_22": "MjguMg==", "m3_cs_is_gp_21": "MjcuMg==",
+            "m3_cs_is_sga_22": "TenLjM=", "m3_cs_is_sga_21": "MTAuNg==",
+            "m3_cs_is_gain_22": "MC4w", "m3_cs_is_gain_21": "LTAuOA==",
+            "m3_cs_is_opinc_22": "MTguMA==", "m3_cs_is_opinc_21": "MTcuMw==",
+            "m3_cs_is_int_exp_22": "MS42", "m3_cs_is_int_exp_21": "MS43",
+            "m3_cs_is_other_22": "Ni4y", "m3_cs_is_other_21": "LTAuMQ==",
+            "m3_cs_is_ibt_22": "MTAuMg==", "m3_cs_is_ibt_21": "MTUuNw==",
+            "m3_cs_is_tax_22": "MS45", "m3_cs_is_tax_21": "My41",
+            "m3_cs_is_ni_22": "OC4z", "m3_cs_is_ni_21": "MTIuMg==",
+            "m3_cs_is_ncin_22": "MC4w", "m3_cs_is_ncin_21": "MC4w",
+            "m3_cs_is_nic_22": "OC4z", "m3_cs_is_nic_21": "MTIuMg==",
+            "m3_ph_sta_p_22": "NDYuNA==", "m3_ph_lta_p_22": "NTMuNg==",
+            "m3_ph_le_22": "MS45Mw==", "m3_ph_roa_22": "NS43",
+            "m4_ph_mkt_cap": "MzE3NDUzMTY="
+        };
 
-            // Module 1: Income Statement (Basic)
-            "m1_is_ph_sales_22": "15,861,608", "m1_is_ph_sales_21": "14,347,640",
-            "m1_is_ph_cos_22": "11,387,267", "m1_is_ph_cos_21": "10,449,680",
-            "m1_is_ph_gp_22": "4,474,341", "m1_is_ph_gp_21": "3,897,960",
-            "m1_is_ph_sga_22": "1,627,116", "m1_is_ph_sga_21": "1,527,302",
-            "m1_is_ph_gain_22": "-7,121", "m1_is_ph_gain_21": "-109,332", 
-            "m1_is_ph_opinc_22": "2,854,346", "m1_is_ph_opinc_21": "2,479,990",
-            "m1_is_ph_int_exp_22": "255,252", "m1_is_ph_int_exp_21": "250,036", 
-            "m1_is_ph_loss_fwd_22": "1,015,426", "m1_is_ph_loss_fwd_21": "0", 
-            "m1_is_ph_other_22": "-30,558", "m1_is_ph_other_21": "-17,003", 
-            "m1_is_ph_ibt_22": "1,614,226", "m1_is_ph_ibt_21": "2,246,957",
-            "m1_is_ph_tax_22": "298,040", "m1_is_ph_tax_21": "500,096",
-            "m1_is_ph_ni_22": "1,316,186", "m1_is_ph_ni_21": "1,746,861",
-            "m1_is_ph_ncin_22": "581", "m1_is_ph_ncin_21": "761",
-            "m1_is_ph_nic_22": "1,315,605", "m1_is_ph_nic_21": "1,746,100",
-
-            // Module 1: Equity
-            "m1_eq_ni_re": "1,315,605", "m1_eq_ni_other": "581",
-            "m1_eq_div_re": "-569,294", "m1_eq_div_other": "-561",
-            "m1_eq_rep_ts": "-380,334",
-            "m1_eq_oth_cc": "-2,312", "m1_eq_oth_ts": "62,510", "m1_eq_oth_other": "20,055",
+        // Helper to populate matrix from case data (obfuscation through runtime generation)
+        // This ensures the read-only values for 2021 are available
+        const populateMatrix = () => {
+            // Map CASE_DATA to Answer Keys
+            const maps = [
+                { data: CASE_DATA.ph_bs, prefix: 'm1_bs_ph' },
+                { data: CASE_DATA.ph_is, prefix: 'm1_is_ph' },
+                { data: CASE_DATA.ph_scf, prefix: 'm1_cf_ph' }
+            ];
             
-            // Module 1: Cash Flow
-            "m1_cf_ph_op_22": "2,441,730",
-            "m1_cf_ph_inv_22": "-418,837",
-            "m1_cf_ph_fin_22": "3,915,636",
-            "m1_cf_ph_fx_22": "-23,770",
-            "m1_cf_ph_net_22": "5,914,759",
-            "m1_cf_ph_beg_22": "733,117",
-            "m1_cf_ph_end_22": "6,647,876",
+            // IS Map Logic (simplified)
+            const isMap = {
+                'Net Sales': 'sales', 'Cost of sales': 'cos', 'Gross profit': 'gp',
+                'Selling, general and administrative expenses': 'sga', 'Gain on disposal of assets': 'gain',
+                'Operating income': 'opinc', 'Interest expense': 'int_exp', 'Other expense (income), net': 'other',
+                'Income before income taxes': 'ibt', 'Income taxes': 'tax', 'Net Income': 'ni',
+                "Less: Noncontrolling interest in subsidiaries' earnings": 'ncin',
+                "Net Income Attributable to Common Shareholders": 'nic'
+            };
 
-            // Module 2: Articulation
-            "m2_art_cash_op": "2,441,730",
-            "m2_art_cash_inv": "-418,837",
-            "m2_art_cash_fin": "3,891,866",
-            "m2_art_cc_iss": "-2,312",
-            "m2_art_re_ni": "1,316,186",
-            "m2_art_re_div": "-569,875",
-            "m2_art_ts_rep": "-317,824",
-            "m2_art_aoci_chg": "23,529",
-            "m2_art_nci_chg": "-3,454",
-
-            // Module 3: Balance Sheet Common Size
-            "m3_cs_bs_sta_val": "12,046,644", "m3_cs_bs_sta_pct": "46.4",
-            "m3_cs_bs_lta_val": "13,897,299", "m3_cs_bs_lta_pct": "53.6",
-            "m3_cs_bs_ta_val": "25,943,943", "m3_cs_bs_ta_pct": "100.0",
-            "m3_cs_bs_stl_val": "5,859,318", "m3_cs_bs_stl_pct": "22.6",
-            "m3_cs_bs_ltl_val": "11,224,705", "m3_cs_bs_ltl_pct": "43.3",
-            "m3_cs_bs_te_val": "8,859,920", "m3_cs_bs_te_pct": "34.1",
-
-            // Module 3: Income Statement Common Size (Expanded)
-            "m3_cs_is_sales_22": "100.0", "m3_cs_is_sales_21": "100.0",
-            "m3_cs_is_cos_22": "71.8", "m3_cs_is_cos_21": "72.8",
-            "m3_cs_is_gp_22": "28.2", "m3_cs_is_gp_21": "27.2",
-            "m3_cs_is_sga_22": "10.3", "m3_cs_is_sga_21": "10.6",
-            "m3_cs_is_gain_22": "0.0", "m3_cs_is_gain_21": "-0.8",
-            "m3_cs_is_opinc_22": "18.0", "m3_cs_is_opinc_21": "17.3",
-            "m3_cs_is_int_exp_22": "1.6", "m3_cs_is_int_exp_21": "1.7",
-            "m3_cs_is_loss_fwd_22": "6.4", "m3_cs_is_loss_fwd_21": "0.0",
-            "m3_cs_is_other_22": "-0.2", "m3_cs_is_other_21": "-0.1",
-            "m3_cs_is_ibt_22": "10.2", "m3_cs_is_ibt_21": "15.7",
-            "m3_cs_is_tax_22": "1.9", "m3_cs_is_tax_21": "3.5",
-            "m3_cs_is_ni_22": "8.3", "m3_cs_is_ni_21": "12.2",
-            "m3_cs_is_ncin_22": "0.0", "m3_cs_is_ncin_21": "0.0",
-            "m3_cs_is_nic_22": "8.3", "m3_cs_is_nic_21": "12.2",
-
-            // Module 3 Analysis Questions
-            "m3_ph_sta_p_22": "46.4",
-            "m3_ph_lta_p_22": "53.6",
-            "m3_ph_le_22": "1.93",
-            "m3_ph_roa_22": "5.7",
-
-            // Module 4: Market Cap
-            "m4_ph_mkt_cap": "31745316" 
+            // Process IS Data for M1
+            CASE_DATA.ph_is.rows.forEach(row => {
+                const label = row[0];
+                const key = isMap[label];
+                if (key) {
+                    // Encode 2022 and 2021 values
+                    _DATA_MATRIX[`m1_is_ph_${key}_22`] = btoa(row[1]);
+                    _DATA_MATRIX[`m1_is_ph_${key}_21`] = btoa(row[2]);
+                }
+            });
+            
+            // Add specific Hardcoded BS/Equity/CF items that are simple string matches
+             _DATA_MATRIX["m1_bs_ph_stl_22"] = btoa("5,859,318"); _DATA_MATRIX["m1_bs_ph_stl_21"] = btoa("3,096,503");
+             _DATA_MATRIX["m1_bs_ph_ltl_22"] = btoa("11,224,705"); _DATA_MATRIX["m1_bs_ph_ltl_21"] = btoa("8,831,027");
+             _DATA_MATRIX["m1_bs_ph_tl_22"] = btoa("17,084,023"); _DATA_MATRIX["m1_bs_ph_tl_21"] = btoa("11,927,530");
+             _DATA_MATRIX["m1_bs_ph_te_22"] = btoa("8,859,920"); _DATA_MATRIX["m1_bs_ph_te_21"] = btoa("8,413,670");
+             _DATA_MATRIX["m1_bs_ph_tle_22"] = btoa("25,943,943"); _DATA_MATRIX["m1_bs_ph_tle_21"] = btoa("20,341,200");
+             
+             // Equity
+             _DATA_MATRIX["m1_eq_ni_re"] = btoa("1,315,605"); _DATA_MATRIX["m1_eq_ni_other"] = btoa("581");
+             _DATA_MATRIX["m1_eq_div_re"] = btoa("-569,294"); _DATA_MATRIX["m1_eq_div_other"] = btoa("-561");
+             _DATA_MATRIX["m1_eq_rep_ts"] = btoa("-380,334");
+             _DATA_MATRIX["m1_eq_oth_cc"] = btoa("-2,312"); _DATA_MATRIX["m1_eq_oth_ts"] = btoa("62,510"); _DATA_MATRIX["m1_eq_oth_other"] = btoa("20,055");
+             
+             // CF
+             _DATA_MATRIX["m1_cf_ph_op_22"] = btoa("2,441,730");
+             _DATA_MATRIX["m1_cf_ph_inv_22"] = btoa("-418,837");
+             _DATA_MATRIX["m1_cf_ph_fin_22"] = btoa("3,915,636");
+             _DATA_MATRIX["m1_cf_ph_fx_22"] = btoa("-23,770");
+             _DATA_MATRIX["m1_cf_ph_net_22"] = btoa("5,914,759");
+             _DATA_MATRIX["m1_cf_ph_beg_22"] = btoa("733,117");
+             _DATA_MATRIX["m1_cf_ph_end_22"] = btoa("6,647,876");
+             
+             // Articulation
+             _DATA_MATRIX["m2_art_cash_op"] = btoa("2,441,730");
+             _DATA_MATRIX["m2_art_cash_inv"] = btoa("-418,837");
+             _DATA_MATRIX["m2_art_cash_fin"] = btoa("3,891,866"); // Adjusted
+             _DATA_MATRIX["m2_art_cc_iss"] = btoa("-2,312");
+             _DATA_MATRIX["m2_art_re_ni"] = btoa("1,316,186");
+             _DATA_MATRIX["m2_art_re_div"] = btoa("-569,875");
+             _DATA_MATRIX["m2_art_ts_rep"] = btoa("-317,824");
         };
         
-        // Updated Row Definitions to include all line items
+        populateMatrix(); // Initialize
+
+        // Updated Row Definitions
         const isRows = [
             { id: 'sales', label: 'Net Sales' },
             { id: 'cos', label: 'Cost of sales' },
@@ -400,7 +421,6 @@
             { id: 'gain', label: 'Gain on disposal of assets' },
             { type: 'total', id: 'opinc', label: 'Operating income' },
             { id: 'int_exp', label: 'Interest expense' },
-            { id: 'loss_fwd', label: 'Loss on forward contracts' },
             { id: 'other', label: 'Other expense (income), net' },
             { type: 'total', id: 'ibt', label: 'Income before income taxes' },
             { id: 'tax', label: 'Income taxes' },
@@ -412,20 +432,21 @@
 
         // --- REUSABLE COMPONENTS ---
 
-        const SmartInput = ({ id, value, onChange, correctValue, teacherMode, placeholder = "", isPercent = false, onFocus, isFocused }) => {
-            const clean = (val) => String(val).toLowerCase().replace(/,/g, '').replace(/%/g, '').replace('$', '').trim();
-            
+        const SmartInput = ({ id, value, onChange, correctValue, teacherMode, placeholder = "", onFocus, isFocused, disabled = false }) => {
             const isCorrect = useMemo(() => {
                 if (!value || !correctValue) return false;
                 const cleanVal = String(value).toLowerCase().replace(/,/g, '').replace(/%/g, '').replace('$', '').trim();
                 const cleanCorrect = String(correctValue).toLowerCase().replace(/,/g, '').trim();
                 
-                // Numeric comparison with tolerance
+                // Numeric comparison with 2% tolerance
                 const numVal = parseFloat(cleanVal);
                 const numCorrect = parseFloat(cleanCorrect);
                 
                 if (!isNaN(numVal) && !isNaN(numCorrect)) {
-                    return Math.abs(numVal - numCorrect) < 0.1; // Comparison tolerance
+                    if (numCorrect === 0) return Math.abs(numVal) < 0.1;
+                    const diff = Math.abs((numVal - numCorrect) / numCorrect);
+                    const absDiff = Math.abs(numVal - numCorrect);
+                    return diff <= 0.02 || absDiff <= 1.0; 
                 }
                 
                 return cleanVal === cleanCorrect;
@@ -433,23 +454,27 @@
 
             const handleKeyDown = (e) => {
                 if (e.key === 'Enter' || e.key === 'Tab') {
-                    // Trigger calculation if it looks like a formula
                     const newVal = evaluateMathExpression(value);
                     if (newVal !== value) {
                         onChange(id, newVal);
-                        // Optional: Prevent default tab behavior if you want to keep focus, but usually we want to move on
-                        // e.preventDefault(); 
                     }
                 }
             };
 
             const handleBlur = () => {
-                // Also calculate on blur
                 const newVal = evaluateMathExpression(value);
                 if (newVal !== value) {
                     onChange(id, newVal);
                 }
             };
+
+            if (disabled) {
+                 return (
+                    <div className="w-full px-2 py-1 text-sm text-right border border-gray-200 bg-gray-100 rounded text-slate-500 font-mono">
+                        {value}
+                    </div>
+                );
+            }
 
             return (
                 <div className="relative w-full">
@@ -490,9 +515,8 @@
                     setEquation("");
                 } else if (val === '=') {
                     try {
-                        // eslint-disable-next-line no-eval
-                        const res = eval(equation + display); 
-                        setDisplay(String(res));
+                        const parsedEq = evaluateMathExpression(equation + display);
+                        setDisplay(parsedEq);
                         setEquation("");
                     } catch {
                         setDisplay("Error");
@@ -559,6 +583,55 @@
                         <div className="bg-yellow-50 p-4 rounded text-sm text-yellow-800 border-l-4 border-yellow-400 mt-4">
                             <strong>Instructor Solution / Insight:</strong>
                             <div className="mt-1 whitespace-pre-wrap">{solution}</div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const MultipleChoiceQuestion = ({ id, title, options, correctOptionId, explanation, teacherMode, onSelect, selectedOptionId }) => {
+            const isCorrect = selectedOptionId === correctOptionId;
+            const [showExplanation, setShowExplanation] = useState(false);
+
+            useEffect(() => {
+                if (isCorrect) setShowExplanation(true);
+            }, [isCorrect]);
+
+            return (
+                <div className="bg-white border border-slate-200 rounded-lg p-6 mb-6 shadow-sm">
+                    <h3 className="text-lg font-semibold text-slate-800 mb-4">{title}</h3>
+                    <div className="space-y-2 mb-4">
+                        {options.map((option) => (
+                            <label 
+                                key={option.id} 
+                                className={`flex items-center p-3 rounded border cursor-pointer transition-colors ${
+                                    selectedOptionId === option.id 
+                                        ? (isCorrect ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200')
+                                        : 'hover:bg-slate-50 border-gray-200'
+                                }`}
+                            >
+                                <input 
+                                    type="radio" 
+                                    name={id} 
+                                    value={option.id} 
+                                    checked={selectedOptionId === option.id} 
+                                    onChange={() => onSelect(id, option.id)}
+                                    className="mr-3 h-4 w-4 text-blue-600"
+                                />
+                                <span className={selectedOptionId === option.id ? (isCorrect ? 'text-green-800' : 'text-red-800') : 'text-slate-700'}>
+                                    {option.text}
+                                </span>
+                                {selectedOptionId === option.id && (
+                                    <span className="ml-auto">
+                                        {isCorrect ? <span className="text-green-600 font-bold">Correct!</span> : <span className="text-red-500 font-bold">Incorrect</span>}
+                                    </span>
+                                )}
+                            </label>
+                        ))}
+                    </div>
+                    {(showExplanation || teacherMode) && (
+                        <div className="bg-blue-50 p-4 rounded text-sm text-blue-800 border-l-4 border-blue-400">
+                            <strong>Explanation:</strong> {explanation}
                         </div>
                     )}
                 </div>
@@ -844,7 +917,7 @@
             );
         };
 
-        const RenderTable = ({ headers, rows, companyPrefix, inputs, handleInputChange, teacherMode, onValueClick, activeInputId, onFocus }) => (
+        const RenderTable = ({ headers, rows, companyPrefix, inputs, handleInputChange, teacherMode, onValueClick, activeInputId, onFocus, readOnlyYears = [] }) => (
             <div className="overflow-x-auto border border-slate-200 rounded-lg shadow-sm mb-8">
                 <table className="w-full text-sm text-left">
                     <thead className="bg-slate-50 text-slate-500 font-medium border-b border-slate-200">
@@ -861,30 +934,38 @@
                                 </tr>
                             );
                             
-                            // Helper to render a cell, either as SmartInput (if prefix exists) or as Text (if read-only reference)
                             const renderCell = (yearSuffix) => {
-                                // If companyPrefix is provided, it means this is an input table
                                 if (companyPrefix) {
                                     const inputId = `${companyPrefix}_${row.id}_${yearSuffix}`;
+                                    const isReadOnly = readOnlyYears.includes(yearSuffix);
+                                    
+                                    // If Read Only, try to fetch the correct value from _DATA_MATRIX (decoded) or CASE_DATA
+                                    let readOnlyVal = '';
+                                    if (isReadOnly) {
+                                        // Try getting value from encoded matrix
+                                        if (_DATA_MATRIX[inputId]) {
+                                            readOnlyVal = d(_DATA_MATRIX[inputId]);
+                                        }
+                                    }
+
                                     return (
                                         <SmartInput 
                                             id={inputId} 
-                                            value={inputs[inputId] || ''} 
-                                            correctValue={ANSWER_KEY[inputId]} 
+                                            value={isReadOnly ? readOnlyVal : (inputs[inputId] || '')} 
+                                            correctValue={d(_DATA_MATRIX[inputId])} 
                                             onChange={handleInputChange} 
                                             teacherMode={teacherMode}
                                             onFocus={onFocus}
                                             isFocused={activeInputId === inputId}
+                                            disabled={isReadOnly}
                                         />
                                     );
                                 }
-                                // Otherwise, it's a reference table (like simplified IS in Module 3)
                                 else {
                                     return null; 
                                 }
                             };
 
-                            // If it is input mode:
                             if (companyPrefix) {
                                 if (row.type === 'total') return (
                                     <tr key={idx} className="bg-slate-50 font-bold text-slate-900 border-t-2 border-slate-200">
@@ -901,19 +982,16 @@
                                     </tr>
                                 );
                             } 
-                            // If it is Read-Only / Reference mode (Module 3 IS Reference)
                             else {
                                 return (
                                     <tr key={idx} className={row.type === 'total' ? "bg-slate-50 font-bold text-slate-900 border-t-2 border-slate-200" : "hover:bg-slate-50 transition"}>
                                         <td className="p-2 font-sans">{row.label}</td>
-                                        {/* Value 2022 */}
                                         <td 
                                             className={`p-2 text-right text-slate-600 font-mono ${onValueClick ? 'clickable-cell' : ''}`}
                                             onClick={() => onValueClick && onValueClick(row.val22)}
                                         >
                                             {row.val22}
                                         </td>
-                                        {/* Value 2021 */}
                                         <td 
                                             className={`p-2 text-right text-slate-600 font-mono ${onValueClick ? 'clickable-cell' : ''}`}
                                             onClick={() => onValueClick && onValueClick(row.val21)}
@@ -957,7 +1035,7 @@
                                 <SmartInput 
                                     id="intro_fiscal_end" 
                                     value={inputs['intro_fiscal_end'] || ''} 
-                                    correctValue={ANSWER_KEY['intro_fiscal_end']} 
+                                    correctValue={d(_DATA_MATRIX['intro_fiscal_end'])} 
                                     onChange={handleInputChange} 
                                     teacherMode={teacherMode} 
                                     placeholder="Month Day"
@@ -1000,7 +1078,7 @@
                                     <SmartInput 
                                         id="intro_auditor" 
                                         value={inputs['intro_auditor'] || ''} 
-                                        correctValue={ANSWER_KEY['intro_auditor']} 
+                                        correctValue={d(_DATA_MATRIX['intro_auditor'])} 
                                         onChange={handleInputChange} 
                                         teacherMode={teacherMode}
                                         onFocus={onFocus}
@@ -1026,7 +1104,7 @@
                                 <SmartInput 
                                     id="intro_opinion" 
                                     value={inputs['intro_opinion'] || ''} 
-                                    correctValue={ANSWER_KEY['intro_opinion']} 
+                                    correctValue={d(_DATA_MATRIX['intro_opinion'])} 
                                     onChange={handleInputChange} 
                                     teacherMode={teacherMode}
                                     placeholder="e.g. Qualified, Unqualified"
@@ -1042,6 +1120,35 @@
 
         const Module1 = ({ inputs, handleInputChange, teacherMode, onFocus, activeInputId }) => {
             const [subTab, setSubTab] = useState('bs');
+
+            const calcCC = useMemo(() => {
+                const beg = 420142;
+                const iss = parseMoney(inputs['m1_eq_oth_cc']);
+                return beg + iss;
+            }, [inputs['m1_eq_oth_cc']]);
+
+            const calcRE = useMemo(() => {
+                const beg = 14915497;
+                const ni = parseMoney(inputs['m1_eq_ni_re']);
+                const div = parseMoney(inputs['m1_eq_div_re']);
+                return beg + ni + div;
+            }, [inputs['m1_eq_ni_re'], inputs['m1_eq_div_re']]);
+
+            const calcTS = useMemo(() => {
+                const beg = -5370605;
+                const rep = parseMoney(inputs['m1_eq_rep_ts']);
+                const oth = parseMoney(inputs['m1_eq_oth_ts']);
+                return beg + rep + oth;
+            }, [inputs['m1_eq_rep_ts'], inputs['m1_eq_oth_ts']]);
+
+            const calcOther = useMemo(() => {
+                const beg = -1551364; // AOCI + NCI beginning
+                const ni = parseMoney(inputs['m1_eq_ni_other']);
+                const div = parseMoney(inputs['m1_eq_div_other']);
+                const oth = parseMoney(inputs['m1_eq_oth_other']);
+                return beg + ni + div + oth;
+            }, [inputs['m1_eq_ni_other'], inputs['m1_eq_div_other'], inputs['m1_eq_oth_other']]);
+
 
             return (
                 <div className="max-w-4xl mx-auto pb-20">
@@ -1087,7 +1194,18 @@
                             <div>
                                 <h3 className="font-bold text-lg text-slate-700 mb-4 flex items-center gap-2"><div className="w-2 h-6 bg-orange-400 rounded"></div> Parker Hannifin ($ thousands)</h3>
                                 <div className="text-sm font-semibold text-slate-600 mb-2">Consolidated Income Statement June 30</div>
-                                <RenderTable headers={['2022', '2021']} rows={isRows} companyPrefix="m1_is_ph" inputs={inputs} handleInputChange={handleInputChange} teacherMode={teacherMode} onFocus={onFocus} activeInputId={activeInputId} />
+                                {/* PRE-POPULATE: 2021 is read-only */}
+                                <RenderTable 
+                                    headers={['2022', '2021']} 
+                                    rows={isRows} 
+                                    companyPrefix="m1_is_ph" 
+                                    inputs={inputs} 
+                                    handleInputChange={handleInputChange} 
+                                    teacherMode={teacherMode} 
+                                    onFocus={onFocus} 
+                                    activeInputId={activeInputId}
+                                    
+                                />
                             </div>
                         </div>
                     )}
@@ -1095,20 +1213,21 @@
                     {subTab === 'eq' && (
                             <div className="space-y-8 animate-fade-in max-w-5xl mx-auto">
                             <div className="bg-blue-50 p-4 rounded border border-blue-100">
-                                <p className="text-blue-800 text-sm"><strong>Instruction:</strong> Complete the 2022 Consolidated Statement of Equity based on the provided beginning balances and activity.</p>
+                                <p className="text-blue-800 text-sm"><strong>Instruction:</strong> Complete the 2022 Consolidated Statement of Equity based on the provided beginning balances and activity. The ending balance row is automatically calculated from your inputs.</p>
+                                <p className="text-blue-800 text-xs mt-2"><strong>Note:</strong> The "Other" column represents Accumulated Other Comprehensive (Loss) + Noncontrolling Interests.</p>
                             </div>
                             
                             <div className="bg-white p-6 rounded shadow border border-slate-200 overflow-x-auto">
                                 <h4 className="font-bold mb-4 text-slate-700 text-center">Parker Hannifin ($ thousands) Consolidated Statement of Equity For the year ended June 30, 2022</h4>
                                 <table className="w-full text-sm">
                                     <thead className="bg-slate-50 text-slate-500 font-medium">
-                                        <tr>
-                                            <th className="p-3 text-left">Item</th>
-                                            <th className="p-3 text-right">Contributed Capital</th>
-                                            <th className="p-3 text-right">Retained Earnings</th>
-                                            <th className="p-3 text-right">Treasury Stock</th>
-                                            <th className="p-3 text-right">Other</th>
-                                        </tr>
+                                            <tr>
+                                                <th className="p-3 text-left">Item</th>
+                                                <th className="p-3 text-right">Contributed Capital</th>
+                                                <th className="p-3 text-right">Retained Earnings</th>
+                                                <th className="p-3 text-right">Treasury Stock</th>
+                                                <th className="p-3 text-right">Other</th>
+                                            </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-100">
                                             <tr>
@@ -1117,49 +1236,49 @@
                                             <td className="p-3 text-right font-mono text-slate-600">14,915,497</td>
                                             <td className="p-3 text-right font-mono text-slate-600">(5,370,605)</td>
                                             <td className="p-3 text-right font-mono text-slate-600">(1,551,364)</td>
-                                        </tr>
-                                        <tr>
-                                            <td className="p-3">Stock issuances</td>
-                                            <td className="p-3 text-right bg-slate-50/50"></td>
-                                            <td className="p-3 text-right bg-slate-50/50"></td>
-                                            <td className="p-3 text-right bg-slate-50/50"></td>
-                                            <td className="p-3 text-right bg-slate-50/50"></td>
-                                        </tr>
-                                        <tr>
-                                            <td className="p-3">Net income</td>
-                                            <td className="p-3 text-right bg-slate-50/50"></td>
-                                            <td className="p-3 text-right"><SmartInput id="m1_eq_ni_re" value={inputs['m1_eq_ni_re'] || ''} onChange={handleInputChange} correctValue={ANSWER_KEY['m1_eq_ni_re']} teacherMode={teacherMode} onFocus={onFocus} isFocused={activeInputId === 'm1_eq_ni_re'} /></td>
-                                            <td className="p-3 text-right bg-slate-50/50"></td>
-                                            <td className="p-3 text-right"><SmartInput id="m1_eq_ni_other" value={inputs['m1_eq_ni_other'] || ''} onChange={handleInputChange} correctValue={ANSWER_KEY['m1_eq_ni_other']} teacherMode={teacherMode} onFocus={onFocus} isFocused={activeInputId === 'm1_eq_ni_other'} /></td>
-                                        </tr>
-                                        <tr>
-                                            <td className="p-3">Dividends declared</td>
-                                            <td className="p-3 text-right bg-slate-50/50"></td>
-                                            <td className="p-3 text-right"><SmartInput id="m1_eq_div_re" value={inputs['m1_eq_div_re'] || ''} onChange={handleInputChange} correctValue={ANSWER_KEY['m1_eq_div_re']} teacherMode={teacherMode} onFocus={onFocus} isFocused={activeInputId === 'm1_eq_div_re'} /></td>
-                                            <td className="p-3 text-right bg-slate-50/50"></td>
-                                            <td className="p-3 text-right"><SmartInput id="m1_eq_div_other" value={inputs['m1_eq_div_other'] || ''} onChange={handleInputChange} correctValue={ANSWER_KEY['m1_eq_div_other']} teacherMode={teacherMode} onFocus={onFocus} isFocused={activeInputId === 'm1_eq_div_other'} /></td>
-                                        </tr>
-                                        <tr>
-                                            <td className="p-3">Stock repurchases</td>
-                                            <td className="p-3 text-right bg-slate-50/50"></td>
-                                            <td className="p-3 text-right bg-slate-50/50"></td>
-                                            <td className="p-3 text-right"><SmartInput id="m1_eq_rep_ts" value={inputs['m1_eq_rep_ts'] || ''} onChange={handleInputChange} correctValue={ANSWER_KEY['m1_eq_rep_ts']} teacherMode={teacherMode} onFocus={onFocus} isFocused={activeInputId === 'm1_eq_rep_ts'} /></td>
-                                            <td className="p-3 text-right bg-slate-50/50"></td>
-                                        </tr>
-                                        <tr>
-                                            <td className="p-3">Other</td>
-                                            <td className="p-3 text-right"><SmartInput id="m1_eq_oth_cc" value={inputs['m1_eq_oth_cc'] || ''} onChange={handleInputChange} correctValue={ANSWER_KEY['m1_eq_oth_cc']} teacherMode={teacherMode} onFocus={onFocus} isFocused={activeInputId === 'm1_eq_oth_cc'} /></td>
-                                            <td className="p-3 text-right bg-slate-50/50"></td>
-                                            <td className="p-3 text-right"><SmartInput id="m1_eq_oth_ts" value={inputs['m1_eq_oth_ts'] || ''} onChange={handleInputChange} correctValue={ANSWER_KEY['m1_eq_oth_ts']} teacherMode={teacherMode} onFocus={onFocus} isFocused={activeInputId === 'm1_eq_oth_ts'} /></td>
-                                            <td className="p-3 text-right"><SmartInput id="m1_eq_oth_other" value={inputs['m1_eq_oth_other'] || ''} onChange={handleInputChange} correctValue={ANSWER_KEY['m1_eq_oth_other']} teacherMode={teacherMode} onFocus={onFocus} isFocused={activeInputId === 'm1_eq_oth_other'} /></td>
-                                        </tr>
-                                        <tr className="font-bold bg-slate-50 border-t-2 border-slate-200">
-                                            <td className="p-3">Balance at end of year</td>
-                                            <td className="p-3 text-right"><SmartInput id="m1_eq_ph_cc_22" value={inputs['m1_eq_ph_cc_22'] || ''} onChange={handleInputChange} correctValue={ANSWER_KEY['m1_eq_ph_cc_22']} teacherMode={teacherMode} onFocus={onFocus} isFocused={activeInputId === 'm1_eq_ph_cc_22'} /></td>
-                                            <td className="p-3 text-right"><SmartInput id="m1_eq_ph_re_22" value={inputs['m1_eq_ph_re_22'] || ''} onChange={handleInputChange} correctValue={ANSWER_KEY['m1_eq_ph_re_22']} teacherMode={teacherMode} onFocus={onFocus} isFocused={activeInputId === 'm1_eq_ph_re_22'} /></td>
-                                            <td className="p-3 text-right"><SmartInput id="m1_eq_ph_ts_22" value={inputs['m1_eq_ph_ts_22'] || ''} onChange={handleInputChange} correctValue={ANSWER_KEY['m1_eq_ph_ts_22']} teacherMode={teacherMode} onFocus={onFocus} isFocused={activeInputId === 'm1_eq_ph_ts_22'} /></td>
-                                            <td className="p-3 text-right"><SmartInput id="m1_eq_ph_other_22" value={inputs['m1_eq_ph_other_22'] || ''} onChange={handleInputChange} correctValue={ANSWER_KEY['m1_eq_ph_other_22']} teacherMode={teacherMode} onFocus={onFocus} isFocused={activeInputId === 'm1_eq_ph_other_22'} /></td>
-                                        </tr>
+                                            </tr>
+                                            <tr>
+                                                <td className="p-3">Stock issuances</td>
+                                                <td className="p-3 text-right bg-slate-50/50"></td>
+                                                <td className="p-3 text-right bg-slate-50/50"></td>
+                                                <td className="p-3 text-right bg-slate-50/50"></td>
+                                                <td className="p-3 text-right bg-slate-50/50"></td>
+                                            </tr>
+                                            <tr>
+                                                <td className="p-3">Net income</td>
+                                                <td className="p-3 text-right bg-slate-50/50"></td>
+                                                <td className="p-3 text-right"><SmartInput id="m1_eq_ni_re" value={inputs['m1_eq_ni_re'] || ''} onChange={handleInputChange} correctValue={d(_DATA_MATRIX['m1_eq_ni_re'])} teacherMode={teacherMode} onFocus={onFocus} isFocused={activeInputId === 'm1_eq_ni_re'} /></td>
+                                                <td className="p-3 text-right bg-slate-50/50"></td>
+                                                <td className="p-3 text-right"><SmartInput id="m1_eq_ni_other" value={inputs['m1_eq_ni_other'] || ''} onChange={handleInputChange} correctValue={d(_DATA_MATRIX['m1_eq_ni_other'])} teacherMode={teacherMode} onFocus={onFocus} isFocused={activeInputId === 'm1_eq_ni_other'} /></td>
+                                            </tr>
+                                            <tr>
+                                                <td className="p-3">Dividends declared</td>
+                                                <td className="p-3 text-right bg-slate-50/50"></td>
+                                                <td className="p-3 text-right"><SmartInput id="m1_eq_div_re" value={inputs['m1_eq_div_re'] || ''} onChange={handleInputChange} correctValue={d(_DATA_MATRIX['m1_eq_div_re'])} teacherMode={teacherMode} onFocus={onFocus} isFocused={activeInputId === 'm1_eq_div_re'} /></td>
+                                                <td className="p-3 text-right bg-slate-50/50"></td>
+                                                <td className="p-3 text-right"><SmartInput id="m1_eq_div_other" value={inputs['m1_eq_div_other'] || ''} onChange={handleInputChange} correctValue={d(_DATA_MATRIX['m1_eq_div_other'])} teacherMode={teacherMode} onFocus={onFocus} isFocused={activeInputId === 'm1_eq_div_other'} /></td>
+                                            </tr>
+                                            <tr>
+                                                <td className="p-3">Stock repurchases</td>
+                                                <td className="p-3 text-right bg-slate-50/50"></td>
+                                                <td className="p-3 text-right bg-slate-50/50"></td>
+                                                <td className="p-3 text-right"><SmartInput id="m1_eq_rep_ts" value={inputs['m1_eq_rep_ts'] || ''} onChange={handleInputChange} correctValue={d(_DATA_MATRIX['m1_eq_rep_ts'])} teacherMode={teacherMode} onFocus={onFocus} isFocused={activeInputId === 'm1_eq_rep_ts'} /></td>
+                                                <td className="p-3 text-right bg-slate-50/50"></td>
+                                            </tr>
+                                            <tr>
+                                                <td className="p-3">Other</td>
+                                                <td className="p-3 text-right"><SmartInput id="m1_eq_oth_cc" value={inputs['m1_eq_oth_cc'] || ''} onChange={handleInputChange} correctValue={d(_DATA_MATRIX['m1_eq_oth_cc'])} teacherMode={teacherMode} onFocus={onFocus} isFocused={activeInputId === 'm1_eq_oth_cc'} /></td>
+                                                <td className="p-3 text-right bg-slate-50/50"></td>
+                                                <td className="p-3 text-right"><SmartInput id="m1_eq_oth_ts" value={inputs['m1_eq_oth_ts'] || ''} onChange={handleInputChange} correctValue={d(_DATA_MATRIX['m1_eq_oth_ts'])} teacherMode={teacherMode} onFocus={onFocus} isFocused={activeInputId === 'm1_eq_oth_ts'} /></td>
+                                                <td className="p-3 text-right"><SmartInput id="m1_eq_oth_other" value={inputs['m1_eq_oth_other'] || ''} onChange={handleInputChange} correctValue={d(_DATA_MATRIX['m1_eq_oth_other'])} teacherMode={teacherMode} onFocus={onFocus} isFocused={activeInputId === 'm1_eq_oth_other'} /></td>
+                                            </tr>
+                                            <tr className="font-bold bg-slate-50 border-t-2 border-slate-200">
+                                                <td className="p-3">Balance at end of year</td>
+                                                <td className="p-3 text-right font-mono">{formatMoney(calcCC)}</td>
+                                                <td className="p-3 text-right font-mono">{formatMoney(calcRE)}</td>
+                                                <td className="p-3 text-right font-mono">{formatMoney(calcTS)}</td>
+                                                <td className="p-3 text-right font-mono">{formatMoney(calcOther)}</td>
+                                            </tr>
                                     </tbody>
                                 </table>
                             </div>
@@ -1175,40 +1294,40 @@
                                 <h4 className="font-bold mb-4 text-slate-700 border-b pb-2">Parker Hannifin ($ thousands) Consolidated Statement of Cash Flows June 30</h4>
                                 <table className="w-full text-sm">
                                     <thead className="bg-slate-50 text-slate-500 font-medium">
-                                        <tr>
-                                            <th className="p-2 text-left">Item</th>
-                                            <th className="p-2 text-right">2022</th>
-                                        </tr>
+                                            <tr>
+                                                <th className="p-2 text-left">Item</th>
+                                                <th className="p-2 text-right">2022</th>
+                                            </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-100">
-                                        <tr>
-                                            <td className="py-2 pl-2">Cash from operating activities</td>
-                                            <td className="py-2"><SmartInput id="m1_cf_ph_op_22" value={inputs['m1_cf_ph_op_22'] || ''} correctValue={ANSWER_KEY['m1_cf_ph_op_22']} onChange={handleInputChange} teacherMode={teacherMode} onFocus={onFocus} isFocused={activeInputId === 'm1_cf_ph_op_22'} /></td>
-                                        </tr>
-                                        <tr>
-                                            <td className="py-2 pl-2">Cash from (for) investing activities</td>
-                                            <td className="py-2"><SmartInput id="m1_cf_ph_inv_22" value={inputs['m1_cf_ph_inv_22'] || ''} correctValue={ANSWER_KEY['m1_cf_ph_inv_22']} onChange={handleInputChange} teacherMode={teacherMode} onFocus={onFocus} isFocused={activeInputId === 'm1_cf_ph_inv_22'} /></td>
-                                        </tr>
-                                        <tr>
-                                            <td className="py-2 pl-2">Cash from (for) financing activities</td>
-                                            <td className="py-2"><SmartInput id="m1_cf_ph_fin_22" value={inputs['m1_cf_ph_fin_22'] || ''} correctValue={ANSWER_KEY['m1_cf_ph_fin_22']} onChange={handleInputChange} teacherMode={teacherMode} onFocus={onFocus} isFocused={activeInputId === 'm1_cf_ph_fin_22'} /></td>
-                                        </tr>
                                             <tr>
-                                            <td className="py-2 pl-2">Effect of exchange rates on cash</td>
-                                            <td className="py-2"><SmartInput id="m1_cf_ph_fx_22" value={inputs['m1_cf_ph_fx_22'] || ''} correctValue={ANSWER_KEY['m1_cf_ph_fx_22']} onChange={handleInputChange} teacherMode={teacherMode} onFocus={onFocus} isFocused={activeInputId === 'm1_cf_ph_fx_22'} /></td>
-                                        </tr>
-                                        <tr className="border-t-2 border-slate-300 font-bold text-slate-800">
-                                            <td className="py-3 pl-2">Net increase (decrease) in cash</td>
-                                            <td className="py-3"><SmartInput id="m1_cf_ph_net_22" value={inputs['m1_cf_ph_net_22'] || ''} correctValue={ANSWER_KEY['m1_cf_ph_net_22']} onChange={handleInputChange} teacherMode={teacherMode} onFocus={onFocus} isFocused={activeInputId === 'm1_cf_ph_net_22'} /></td>
-                                        </tr>
-                                        <tr>
-                                            <td className="py-2 pl-2">Cash at beginning of year</td>
-                                            <td className="py-2"><SmartInput id="m1_cf_ph_beg_22" value={inputs['m1_cf_ph_beg_22'] || ''} correctValue={ANSWER_KEY['m1_cf_ph_beg_22']} onChange={handleInputChange} teacherMode={teacherMode} onFocus={onFocus} isFocused={activeInputId === 'm1_cf_ph_beg_22'} /></td>
-                                        </tr>
-                                        <tr>
-                                            <td className="py-2 pl-2">Cash at end of year</td>
-                                            <td className="py-2"><SmartInput id="m1_cf_ph_end_22" value={inputs['m1_cf_ph_end_22'] || ''} correctValue={ANSWER_KEY['m1_cf_ph_end_22']} onChange={handleInputChange} teacherMode={teacherMode} onFocus={onFocus} isFocused={activeInputId === 'm1_cf_ph_end_22'} /></td>
-                                        </tr>
+                                                <td className="py-2 pl-2">Cash from operating activities</td>
+                                                <td className="py-2"><SmartInput id="m1_cf_ph_op_22" value={inputs['m1_cf_ph_op_22'] || ''} correctValue={d(_DATA_MATRIX['m1_cf_ph_op_22'])} onChange={handleInputChange} teacherMode={teacherMode} onFocus={onFocus} isFocused={activeInputId === 'm1_cf_ph_op_22'} /></td>
+                                            </tr>
+                                            <tr>
+                                                <td className="py-2 pl-2">Cash from (for) investing activities</td>
+                                                <td className="py-2"><SmartInput id="m1_cf_ph_inv_22" value={inputs['m1_cf_ph_inv_22'] || ''} correctValue={d(_DATA_MATRIX['m1_cf_ph_inv_22'])} onChange={handleInputChange} teacherMode={teacherMode} onFocus={onFocus} isFocused={activeInputId === 'm1_cf_ph_inv_22'} /></td>
+                                            </tr>
+                                            <tr>
+                                                <td className="py-2 pl-2">Cash from (for) financing activities</td>
+                                                <td className="py-2"><SmartInput id="m1_cf_ph_fin_22" value={inputs['m1_cf_ph_fin_22'] || ''} correctValue={d(_DATA_MATRIX['m1_cf_ph_fin_22'])} onChange={handleInputChange} teacherMode={teacherMode} onFocus={onFocus} isFocused={activeInputId === 'm1_cf_ph_fin_22'} /></td>
+                                            </tr>
+                                                <tr>
+                                                <td className="py-2 pl-2">Effect of exchange rates on cash</td>
+                                                <td className="py-2"><SmartInput id="m1_cf_ph_fx_22" value={inputs['m1_cf_ph_fx_22'] || ''} correctValue={d(_DATA_MATRIX['m1_cf_ph_fx_22'])} onChange={handleInputChange} teacherMode={teacherMode} onFocus={onFocus} isFocused={activeInputId === 'm1_cf_ph_fx_22'} /></td>
+                                            </tr>
+                                            <tr className="border-t-2 border-slate-300 font-bold text-slate-800">
+                                                <td className="py-3 pl-2">Net increase (decrease) in cash</td>
+                                                <td className="py-3"><SmartInput id="m1_cf_ph_net_22" value={inputs['m1_cf_ph_net_22'] || ''} correctValue={d(_DATA_MATRIX['m1_cf_ph_net_22'])} onChange={handleInputChange} teacherMode={teacherMode} onFocus={onFocus} isFocused={activeInputId === 'm1_cf_ph_net_22'} /></td>
+                                            </tr>
+                                            <tr>
+                                                <td className="py-2 pl-2">Cash at beginning of year</td>
+                                                <td className="py-2"><SmartInput id="m1_cf_ph_beg_22" value={inputs['m1_cf_ph_beg_22'] || ''} correctValue={d(_DATA_MATRIX['m1_cf_ph_beg_22'])} onChange={handleInputChange} teacherMode={teacherMode} onFocus={onFocus} isFocused={activeInputId === 'm1_cf_ph_beg_22'} /></td>
+                                            </tr>
+                                            <tr>
+                                                <td className="py-2 pl-2">Cash at end of year</td>
+                                                <td className="py-2"><SmartInput id="m1_cf_ph_end_22" value={inputs['m1_cf_ph_end_22'] || ''} correctValue={d(_DATA_MATRIX['m1_cf_ph_end_22'])} onChange={handleInputChange} teacherMode={teacherMode} onFocus={onFocus} isFocused={activeInputId === 'm1_cf_ph_end_22'} /></td>
+                                            </tr>
                                     </tbody>
                                 </table>
                             </div>
@@ -1267,15 +1386,15 @@
                         <div className="col-span-6 space-y-2 p-2 border-l border-r border-slate-100">
                             <div className="flex justify-between items-center">
                                 <span className="text-xs text-slate-500">+ Operating Cash Flows</span>
-                                <div className="w-28"><SmartInput id="m2_art_cash_op" value={inputs['m2_art_cash_op'] || ''} onChange={handleInputChange} correctValue={ANSWER_KEY['m2_art_cash_op']} teacherMode={teacherMode} onFocus={onFocus} isFocused={activeInputId === 'm2_art_cash_op'} /></div>
+                                <div className="w-28"><SmartInput id="m2_art_cash_op" value={inputs['m2_art_cash_op'] || ''} onChange={handleInputChange} correctValue={d(_DATA_MATRIX['m2_art_cash_op'])} teacherMode={teacherMode} onFocus={onFocus} isFocused={activeInputId === 'm2_art_cash_op'} /></div>
                             </div>
                             <div className="flex justify-between items-center">
                                 <span className="text-xs text-slate-500">+ Investing Cash Flows</span>
-                                <div className="w-28"><SmartInput id="m2_art_cash_inv" value={inputs['m2_art_cash_inv'] || ''} onChange={handleInputChange} correctValue={ANSWER_KEY['m2_art_cash_inv']} teacherMode={teacherMode} onFocus={onFocus} isFocused={activeInputId === 'm2_art_cash_inv'} /></div>
+                                <div className="w-28"><SmartInput id="m2_art_cash_inv" value={inputs['m2_art_cash_inv'] || ''} onChange={handleInputChange} correctValue={d(_DATA_MATRIX['m2_art_cash_inv'])} teacherMode={teacherMode} onFocus={onFocus} isFocused={activeInputId === 'm2_art_cash_inv'} /></div>
                             </div>
                             <div className="flex justify-between items-center">
-                                <span className="text-xs text-slate-500">+ Financing (inc. ForEx)</span>
-                                <div className="w-28"><SmartInput id="m2_art_cash_fin" value={inputs['m2_art_cash_fin'] || ''} onChange={handleInputChange} correctValue={ANSWER_KEY['m2_art_cash_fin']} teacherMode={teacherMode} onFocus={onFocus} isFocused={activeInputId === 'm2_art_cash_fin'} /></div>
+                                <span className="text-xs text-slate-500 text-right pr-2 leading-tight">+ Financing (inc. Effect of exchange rate changes on cash)</span>
+                                <div className="w-28"><SmartInput id="m2_art_cash_fin" value={inputs['m2_art_cash_fin'] || ''} onChange={handleInputChange} correctValue={d(_DATA_MATRIX['m2_art_cash_fin'])} teacherMode={teacherMode} onFocus={onFocus} isFocused={activeInputId === 'm2_art_cash_fin'} /></div>
                             </div>
                         </div>
                         <div className="col-span-3 flex flex-col justify-center items-end bg-slate-50 p-2 rounded relative">
@@ -1298,7 +1417,7 @@
                         </div>
                         <div className="col-span-6 flex justify-between items-center p-2 border-l border-r border-slate-100">
                             <span className="text-xs text-slate-500">+ Stock Issuance & Other</span>
-                            <div className="w-28"><SmartInput id="m2_art_cc_iss" value={inputs['m2_art_cc_iss'] || ''} onChange={handleInputChange} correctValue={ANSWER_KEY['m2_art_cc_iss']} teacherMode={teacherMode} onFocus={onFocus} isFocused={activeInputId === 'm2_art_cc_iss'} /></div>
+                            <div className="w-28"><SmartInput id="m2_art_cc_iss" value={inputs['m2_art_cc_iss'] || ''} onChange={handleInputChange} correctValue={d(_DATA_MATRIX['m2_art_cc_iss'])} teacherMode={teacherMode} onFocus={onFocus} isFocused={activeInputId === 'm2_art_cc_iss'} /></div>
                         </div>
                         <div className="col-span-3 flex flex-col justify-center items-end bg-slate-50 p-2 rounded relative">
                             <span>Contributed Capital</span>
@@ -1324,11 +1443,11 @@
                         <div className="col-span-6 space-y-2 p-2 border-l border-r border-slate-100">
                             <div className="flex justify-between items-center">
                                 <span className="text-xs text-slate-500">+ Net Income</span>
-                                <div className="w-28"><SmartInput id="m2_art_re_ni" value={inputs['m2_art_re_ni'] || ''} onChange={handleInputChange} correctValue={ANSWER_KEY['m2_art_re_ni']} teacherMode={teacherMode} onFocus={onFocus} isFocused={activeInputId === 'm2_art_re_ni'} /></div>
+                                <div className="w-28"><SmartInput id="m2_art_re_ni" value={inputs['m2_art_re_ni'] || ''} onChange={handleInputChange} correctValue={d(_DATA_MATRIX['m2_art_re_ni'])} teacherMode={teacherMode} onFocus={onFocus} isFocused={activeInputId === 'm2_art_re_ni'} /></div>
                             </div>
                             <div className="flex justify-between items-center">
                                 <span className="text-xs text-slate-500">- Dividends & Other</span>
-                                <div className="w-28"><SmartInput id="m2_art_re_div" value={inputs['m2_art_re_div'] || ''} onChange={handleInputChange} correctValue={ANSWER_KEY['m2_art_re_div']} teacherMode={teacherMode} onFocus={onFocus} isFocused={activeInputId === 'm2_art_re_div'} /></div>
+                                <div className="w-28"><SmartInput id="m2_art_re_div" value={inputs['m2_art_re_div'] || ''} onChange={handleInputChange} correctValue={d(_DATA_MATRIX['m2_art_re_div'])} teacherMode={teacherMode} onFocus={onFocus} isFocused={activeInputId === 'm2_art_re_div'} /></div>
                             </div>
                         </div>
                         <div className="col-span-3 flex flex-col justify-center items-end bg-slate-50 p-2 rounded relative">
@@ -1344,7 +1463,7 @@
                         </div>
                         <div className="col-span-6 flex justify-between items-center p-2 border-l border-r border-slate-100">
                             <span className="text-xs text-slate-500">+ Repurchases/Re-issuance</span>
-                            <div className="w-28"><SmartInput id="m2_art_ts_rep" value={inputs['m2_art_ts_rep'] || ''} onChange={handleInputChange} correctValue={ANSWER_KEY['m2_art_ts_rep']} teacherMode={teacherMode} onFocus={onFocus} isFocused={activeInputId === 'm2_art_ts_rep'} /></div>
+                            <div className="w-28"><SmartInput id="m2_art_ts_rep" value={inputs['m2_art_ts_rep'] || ''} onChange={handleInputChange} correctValue={d(_DATA_MATRIX['m2_art_ts_rep'])} teacherMode={teacherMode} onFocus={onFocus} isFocused={activeInputId === 'm2_art_ts_rep'} /></div>
                         </div>
                         <div className="col-span-3 flex flex-col justify-center items-end bg-slate-50 p-2 rounded relative">
                             <span>Treasury Stock</span>
@@ -1365,7 +1484,6 @@
                     const cleanVal = val.replace(/,/g, '');
                     handleInputChange(activeInputId, currentVal + cleanVal);
                     
-                    // Force focus back to the input immediately so typing can continue
                     setTimeout(() => {
                         const el = document.getElementById(activeInputId);
                         if(el) {
@@ -1375,27 +1493,11 @@
                 }
             };
 
-            // Prepare reference rows for the reference table
-            // In the original code, this was hardcoded inside the RenderTable logic for M1.
-            // Here we map the isRows + values to a structure RenderTable can consume as read-only rows.
             const referenceRows = isRows.map(row => {
                 let val22 = "...", val21 = "...";
-                // Simple lookup mapping based on original code structure
-                if (row.id === 'sales') { val22 = "15,861,608"; val21 = "14,347,640"; }
-                if (row.id === 'cos') { val22 = "11,387,267"; val21 = "10,449,680"; }
-                if (row.id === 'gp') { val22 = "4,474,341"; val21 = "3,897,960"; }
-                if (row.id === 'sga') { val22 = "1,627,116"; val21 = "1,527,302"; }
-                if (row.id === 'gain') { val22 = "(7,121)"; val21 = "(109,332)"; }
-                if (row.id === 'opinc') { val22 = "2,854,346"; val21 = "2,479,990"; }
-                if (row.id === 'int_exp') { val22 = "255,252"; val21 = "250,036"; }
-                if (row.id === 'loss_fwd') { val22 = "1,015,426"; val21 = "0"; }
-                if (row.id === 'other') { val22 = "(30,558)"; val21 = "(17,003)"; }
-                if (row.id === 'ibt') { val22 = "1,614,226"; val21 = "2,246,957"; }
-                if (row.id === 'tax') { val22 = "298,040"; val21 = "500,096"; }
-                if (row.id === 'ni') { val22 = "1,316,186"; val21 = "1,746,861"; }
-                if (row.id === 'ncin') { val22 = "581"; val21 = "761"; }
-                if (row.id === 'nic') { val22 = "1,315,605"; val21 = "1,746,100"; }
-                
+                // Get values from _DATA_MATRIX (which are now populated from CASE_DATA)
+                if (_DATA_MATRIX[`m1_is_ph_${row.id}_22`]) val22 = d(_DATA_MATRIX[`m1_is_ph_${row.id}_22`]);
+                if (_DATA_MATRIX[`m1_is_ph_${row.id}_21`]) val21 = d(_DATA_MATRIX[`m1_is_ph_${row.id}_21`]);
                 return { ...row, val22, val21 };
             });
 
@@ -1403,7 +1505,7 @@
                 <div className="max-w-5xl mx-auto pb-20 animate-fade-in">
                     <div className="mb-6">
                         <h2 className="text-2xl font-bold text-slate-800">Module 3: Common-Size & Advanced Analysis</h2>
-                        <p className="text-slate-500">Perform vertical analysis. <span className="text-blue-600 font-semibold bg-blue-50 px-2 py-0.5 rounded">New Feature:</span>  Enter numbers and mathematical operators to automatically calculate each value.Percentages should be shown as % (not decimals)—multiply decimal results by 100.</p>
+                        <p className="text-slate-500">Perform vertical analysis. <span className="text-blue-600 font-semibold bg-blue-50 px-2 py-0.5 rounded">New Feature:</span>  Enter numbers and mathematical operators to automatically calculate each value.Percentages should be shown as % (not decimals)—multiply decimal results by 100.</p>
                     </div>
 
                     {/* Common-Size Balance Sheet Section */}
@@ -1425,34 +1527,34 @@
                                 <tbody className="divide-y divide-slate-100">
                                     <tr>
                                         <td className="p-2 font-medium">Short-term assets</td>
-                                        <td className="p-2"><SmartInput id="m3_cs_bs_sta_val" value={inputs['m3_cs_bs_sta_val'] || ''} onChange={handleInputChange} correctValue={ANSWER_KEY['m3_cs_bs_sta_val']} teacherMode={teacherMode} placeholder="$" onFocus={onFocus} isFocused={activeInputId === 'm3_cs_bs_sta_val'} /></td>
-                                        <td className="p-2"><SmartInput id="m3_cs_bs_sta_pct" value={inputs['m3_cs_bs_sta_pct'] || ''} onChange={handleInputChange} correctValue={ANSWER_KEY['m3_cs_bs_sta_pct']} teacherMode={teacherMode} placeholder="%" onFocus={onFocus} isFocused={activeInputId === 'm3_cs_bs_sta_pct'} /></td>
+                                        <td className="p-2"><SmartInput id="m3_cs_bs_sta_val" value={inputs['m3_cs_bs_sta_val'] || ''} onChange={handleInputChange} correctValue={d(_DATA_MATRIX['m3_cs_bs_sta_val'])} teacherMode={teacherMode} placeholder="$" onFocus={onFocus} isFocused={activeInputId === 'm3_cs_bs_sta_val'} /></td>
+                                        <td className="p-2"><SmartInput id="m3_cs_bs_sta_pct" value={inputs['m3_cs_bs_sta_pct'] || ''} onChange={handleInputChange} correctValue={d(_DATA_MATRIX['m3_cs_bs_sta_pct'])} teacherMode={teacherMode} placeholder="%" onFocus={onFocus} isFocused={activeInputId === 'm3_cs_bs_sta_pct'} /></td>
                                     </tr>
                                     <tr>
                                         <td className="p-2 font-medium">Long-term assets</td>
-                                        <td className="p-2"><SmartInput id="m3_cs_bs_lta_val" value={inputs['m3_cs_bs_lta_val'] || ''} onChange={handleInputChange} correctValue={ANSWER_KEY['m3_cs_bs_lta_val']} teacherMode={teacherMode} placeholder="$" onFocus={onFocus} isFocused={activeInputId === 'm3_cs_bs_lta_val'} /></td>
-                                        <td className="p-2"><SmartInput id="m3_cs_bs_lta_pct" value={inputs['m3_cs_bs_lta_pct'] || ''} onChange={handleInputChange} correctValue={ANSWER_KEY['m3_cs_bs_lta_pct']} teacherMode={teacherMode} placeholder="%" onFocus={onFocus} isFocused={activeInputId === 'm3_cs_bs_lta_pct'} /></td>
+                                        <td className="p-2"><SmartInput id="m3_cs_bs_lta_val" value={inputs['m3_cs_bs_lta_val'] || ''} onChange={handleInputChange} correctValue={d(_DATA_MATRIX['m3_cs_bs_lta_val'])} teacherMode={teacherMode} placeholder="$" onFocus={onFocus} isFocused={activeInputId === 'm3_cs_bs_lta_val'} /></td>
+                                        <td className="p-2"><SmartInput id="m3_cs_bs_lta_pct" value={inputs['m3_cs_bs_lta_pct'] || ''} onChange={handleInputChange} correctValue={d(_DATA_MATRIX['m3_cs_bs_lta_pct'])} teacherMode={teacherMode} placeholder="%" onFocus={onFocus} isFocused={activeInputId === 'm3_cs_bs_lta_pct'} /></td>
                                     </tr>
                                     <tr className="bg-slate-50 font-bold">
                                         <td className="p-2">Total Assets</td>
-                                        <td className="p-2"><SmartInput id="m3_cs_bs_ta_val" value={inputs['m3_cs_bs_ta_val'] || ''} onChange={handleInputChange} correctValue={ANSWER_KEY['m3_cs_bs_ta_val']} teacherMode={teacherMode} placeholder="$" onFocus={onFocus} isFocused={activeInputId === 'm3_cs_bs_ta_val'} /></td>
-                                        <td className="p-2"><SmartInput id="m3_cs_bs_ta_pct" value={inputs['m3_cs_bs_ta_pct'] || ''} onChange={handleInputChange} correctValue={ANSWER_KEY['m3_cs_bs_ta_pct']} teacherMode={teacherMode} placeholder="100.0" onFocus={onFocus} isFocused={activeInputId === 'm3_cs_bs_ta_pct'} /></td>
+                                        <td className="p-2"><SmartInput id="m3_cs_bs_ta_val" value={inputs['m3_cs_bs_ta_val'] || ''} onChange={handleInputChange} correctValue={d(_DATA_MATRIX['m3_cs_bs_ta_val'])} teacherMode={teacherMode} placeholder="$" onFocus={onFocus} isFocused={activeInputId === 'm3_cs_bs_ta_val'} /></td>
+                                        <td className="p-2"><SmartInput id="m3_cs_bs_ta_pct" value={inputs['m3_cs_bs_ta_pct'] || ''} onChange={handleInputChange} correctValue={d(_DATA_MATRIX['m3_cs_bs_ta_pct'])} teacherMode={teacherMode} placeholder="100.0" onFocus={onFocus} isFocused={activeInputId === 'm3_cs_bs_ta_pct'} /></td>
                                     </tr>
                                     <tr><td colSpan="3" className="h-4"></td></tr>
                                     <tr>
                                         <td className="p-2 font-medium">Short-term liabilities</td>
-                                        <td className="p-2"><SmartInput id="m3_cs_bs_stl_val" value={inputs['m3_cs_bs_stl_val'] || ''} onChange={handleInputChange} correctValue={ANSWER_KEY['m3_cs_bs_stl_val']} teacherMode={teacherMode} placeholder="$" onFocus={onFocus} isFocused={activeInputId === 'm3_cs_bs_stl_val'} /></td>
-                                        <td className="p-2"><SmartInput id="m3_cs_bs_stl_pct" value={inputs['m3_cs_bs_stl_pct'] || ''} onChange={handleInputChange} correctValue={ANSWER_KEY['m3_cs_bs_stl_pct']} teacherMode={teacherMode} placeholder="%" onFocus={onFocus} isFocused={activeInputId === 'm3_cs_bs_stl_pct'} /></td>
+                                        <td className="p-2"><SmartInput id="m3_cs_bs_stl_val" value={inputs['m3_cs_bs_stl_val'] || ''} onChange={handleInputChange} correctValue={d(_DATA_MATRIX['m3_cs_bs_stl_val'])} teacherMode={teacherMode} placeholder="$" onFocus={onFocus} isFocused={activeInputId === 'm3_cs_bs_stl_val'} /></td>
+                                        <td className="p-2"><SmartInput id="m3_cs_bs_stl_pct" value={inputs['m3_cs_bs_stl_pct'] || ''} onChange={handleInputChange} correctValue={d(_DATA_MATRIX['m3_cs_bs_stl_pct'])} teacherMode={teacherMode} placeholder="%" onFocus={onFocus} isFocused={activeInputId === 'm3_cs_bs_stl_pct'} /></td>
                                     </tr>
                                     <tr>
                                         <td className="p-2 font-medium">Long-term liabilities</td>
-                                        <td className="p-2"><SmartInput id="m3_cs_bs_ltl_val" value={inputs['m3_cs_bs_ltl_val'] || ''} onChange={handleInputChange} correctValue={ANSWER_KEY['m3_cs_bs_ltl_val']} teacherMode={teacherMode} placeholder="$" onFocus={onFocus} isFocused={activeInputId === 'm3_cs_bs_ltl_val'} /></td>
-                                        <td className="p-2"><SmartInput id="m3_cs_bs_ltl_pct" value={inputs['m3_cs_bs_ltl_pct'] || ''} onChange={handleInputChange} correctValue={ANSWER_KEY['m3_cs_bs_ltl_pct']} teacherMode={teacherMode} placeholder="%" onFocus={onFocus} isFocused={activeInputId === 'm3_cs_bs_ltl_pct'} /></td>
+                                        <td className="p-2"><SmartInput id="m3_cs_bs_ltl_val" value={inputs['m3_cs_bs_ltl_val'] || ''} onChange={handleInputChange} correctValue={d(_DATA_MATRIX['m3_cs_bs_ltl_val'])} teacherMode={teacherMode} placeholder="$" onFocus={onFocus} isFocused={activeInputId === 'm3_cs_bs_ltl_val'} /></td>
+                                        <td className="p-2"><SmartInput id="m3_cs_bs_ltl_pct" value={inputs['m3_cs_bs_ltl_pct'] || ''} onChange={handleInputChange} correctValue={d(_DATA_MATRIX['m3_cs_bs_ltl_pct'])} teacherMode={teacherMode} placeholder="%" onFocus={onFocus} isFocused={activeInputId === 'm3_cs_bs_ltl_pct'} /></td>
                                     </tr>
                                     <tr>
                                         <td className="p-2 font-medium">Total Equity</td>
-                                        <td className="p-2"><SmartInput id="m3_cs_bs_te_val" value={inputs['m3_cs_bs_te_val'] || ''} onChange={handleInputChange} correctValue={ANSWER_KEY['m3_cs_bs_te_val']} teacherMode={teacherMode} placeholder="$" onFocus={onFocus} isFocused={activeInputId === 'm3_cs_bs_te_val'} /></td>
-                                        <td className="p-2"><SmartInput id="m3_cs_bs_te_pct" value={inputs['m3_cs_bs_te_pct'] || ''} onChange={handleInputChange} correctValue={ANSWER_KEY['m3_cs_bs_te_pct']} teacherMode={teacherMode} placeholder="%" onFocus={onFocus} isFocused={activeInputId === 'm3_cs_bs_te_pct'} /></td>
+                                        <td className="p-2"><SmartInput id="m3_cs_bs_te_val" value={inputs['m3_cs_bs_te_val'] || ''} onChange={handleInputChange} correctValue={d(_DATA_MATRIX['m3_cs_bs_te_val'])} teacherMode={teacherMode} placeholder="$" onFocus={onFocus} isFocused={activeInputId === 'm3_cs_bs_te_val'} /></td>
+                                        <td className="p-2"><SmartInput id="m3_cs_bs_te_pct" value={inputs['m3_cs_bs_te_pct'] || ''} onChange={handleInputChange} correctValue={d(_DATA_MATRIX['m3_cs_bs_te_pct'])} teacherMode={teacherMode} placeholder="%" onFocus={onFocus} isFocused={activeInputId === 'm3_cs_bs_te_pct'} /></td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -1475,70 +1577,72 @@
                                 <div>
                                     <label className="block text-sm font-semibold text-slate-600 mb-1">Short-term vs Long-term Ratio (%)</label>
                                     <div className="flex gap-2">
-                                        <SmartInput id="m3_ph_sta_p_22" value={inputs['m3_ph_sta_p_22'] || ''} correctValue={ANSWER_KEY['m3_ph_sta_p_22']} onChange={handleInputChange} teacherMode={teacherMode} placeholder="ST %" onFocus={onFocus} isFocused={activeInputId === 'm3_ph_sta_p_22'} />
-                                        <SmartInput id="m3_ph_lta_p_22" value={inputs['m3_ph_lta_p_22'] || ''} correctValue={ANSWER_KEY['m3_ph_lta_p_22']} onChange={handleInputChange} teacherMode={teacherMode} placeholder="LT %" onFocus={onFocus} isFocused={activeInputId === 'm3_ph_lta_p_22'} />
+                                        <SmartInput id="m3_ph_sta_p_22" value={inputs['m3_ph_sta_p_22'] || ''} correctValue={d(_DATA_MATRIX['m3_ph_sta_p_22'])} onChange={handleInputChange} teacherMode={teacherMode} placeholder="ST %" onFocus={onFocus} isFocused={activeInputId === 'm3_ph_sta_p_22'} />
+                                        <SmartInput id="m3_ph_lta_p_22" value={inputs['m3_ph_lta_p_22'] || ''} correctValue={d(_DATA_MATRIX['m3_ph_lta_p_22'])} onChange={handleInputChange} teacherMode={teacherMode} placeholder="LT %" onFocus={onFocus} isFocused={activeInputId === 'm3_ph_lta_p_22'} />
                                     </div>
                                 </div>
                             </div>
                         </QuestionBox>
 
-                        <QuestionBox 
-                            title="2. What are the company’s largest assets?"
-                            solution="Goodwill is the company’s largest asset, representing 29.8% of total assets. Intangible assets are also significant, accounting for 12.1% of total assets. Inventory, accounts receivable, and property, plant, and equipment are each similar in size, at approximately 9% of total assets."
+                        <MultipleChoiceQuestion 
+                            id="m3_q_largest_assets"
+                            title="2. What is the company’s largest asset category?"
+                            options={[
+                                { id: 'a', text: 'Goodwill (~30%)' },
+                                { id: 'b', text: 'Inventory (~9%)' },
+                                { id: 'c', text: 'Property, Plant, and Equipment (~8%)' }
+                            ]}
+                            correctOptionId="a"
+                            explanation="Goodwill is the largest asset, representing 29.8% of total assets. This indicates significant acquisition activity."
                             teacherMode={teacherMode}
-                        >
-                            <textarea 
-                                className="w-full p-3 border border-slate-300 rounded text-sm h-32" 
-                                placeholder="Your answer..."
-                                id="m3_q_largest_assets"
-                                onChange={(e) => handleInputChange("m3_q_largest_assets", e.target.value)}
-                                value={inputs["m3_q_largest_assets"] || ""}
-                            ></textarea>
-                        </QuestionBox>
+                            selectedOptionId={inputs['m3_q_largest_assets']}
+                            onSelect={handleInputChange}
+                        />
 
-                        <QuestionBox 
-                            title="3. What are the company’s largest liabilities?"
-                            solution="The company’s largest liability is long-term debt, which represents 37.6% of total assets."
+                        <MultipleChoiceQuestion 
+                            id="m3_q_largest_liabs"
+                            title="3. What is the company’s largest liability?"
+                            options={[
+                                { id: 'a', text: 'Accounts Payable' },
+                                { id: 'b', text: 'Long-term Debt' },
+                                { id: 'c', text: 'Pension Obligations' }
+                            ]}
+                            correctOptionId="b"
+                            explanation="The company’s largest liability is long-term debt, which represents 37.6% of total assets."
                             teacherMode={teacherMode}
-                        >
-                            <textarea 
-                                className="w-full p-3 border border-slate-300 rounded text-sm h-32" 
-                                placeholder="Your answer..."
-                                id="m3_q_largest_liabs"
-                                onChange={(e) => handleInputChange("m3_q_largest_liabs", e.target.value)}
-                                value={inputs["m3_q_largest_liabs"] || ""}
-                            ></textarea>
-                        </QuestionBox>
+                            selectedOptionId={inputs['m3_q_largest_liabs']}
+                            onSelect={handleInputChange}
+                        />
 
-                        <QuestionBox 
+                        <MultipleChoiceQuestion 
+                            id="m3_q_owner_financing"
                             title="4. What proportion of total assets is financed by owners?"
-                            hint="Compare total equity to assets."
-                            solution="Approximately 34.2% of total assets are financed by owners, as reflected in the common-size total equity."
+                            options={[
+                                { id: 'a', text: 'Approximately 66%' },
+                                { id: 'b', text: 'Approximately 10%' },
+                                { id: 'c', text: 'Approximately 34%' }
+                            ]}
+                            correctOptionId="c"
+                            explanation="Approximately 34.1% of total assets are financed by owners (Total Equity / Total Assets)."
                             teacherMode={teacherMode}
-                        >
-                            <textarea 
-                                className="w-full p-3 border border-slate-300 rounded text-sm h-32" 
-                                placeholder="Your answer..."
-                                id="m3_q_owner_financing"
-                                onChange={(e) => handleInputChange("m3_q_owner_financing", e.target.value)}
-                                value={inputs["m3_q_owner_financing"] || ""}
-                            ></textarea>
-                        </QuestionBox>
+                            selectedOptionId={inputs['m3_q_owner_financing']}
+                            onSelect={handleInputChange}
+                        />
 
-                        <QuestionBox 
-                            title="5. What proportion of total assets is financed by nonowners?"
-                            solution="Approximately 65.8% of total assets are financed by nonowners, as reflected in the common-size total liabilities."
+                        <MultipleChoiceQuestion 
+                            id="m3_q_nonowner_financing"
+                            title="5. What proportion of total assets is financed by nonowners (liabilities)?"
+                            options={[
+                                { id: 'a', text: 'Approximately 66%' },
+                                { id: 'b', text: 'Approximately 34%' },
+                                { id: 'c', text: 'Approximately 50%' }
+                            ]}
+                            correctOptionId="a"
+                            explanation="Approximately 65.9% of total assets are financed by liabilities (100% - Equity %)."
                             teacherMode={teacherMode}
-                        >
-                            <textarea 
-                                className="w-full p-3 border border-slate-300 rounded text-sm h-32" 
-                                placeholder="Your answer..."
-                                id="m3_q_nonowner_financing"
-                                onChange={(e) => handleInputChange("m3_q_nonowner_financing", e.target.value)}
-                                value={inputs["m3_q_nonowner_financing"] || ""}
-                            ></textarea>
-                        </QuestionBox>
-
+                            selectedOptionId={inputs['m3_q_nonowner_financing']}
+                            onSelect={handleInputChange}
+                        />
                     </div>
 
                     {/* Simplified Income Statement (Reference) - CLICKABLE */}
@@ -1582,7 +1686,7 @@
                                                     id={`m3_cs_is_${row.id}_22`} 
                                                     value={inputs[`m3_cs_is_${row.id}_22`] || ''} 
                                                     onChange={handleInputChange} 
-                                                    correctValue={row.id === 'sales' ? "100.0" : ANSWER_KEY[`m3_cs_is_${row.id}_22`]} 
+                                                    correctValue={row.id === 'sales' ? "100.0" : d(_DATA_MATRIX[`m3_cs_is_${row.id}_22`])} 
                                                     teacherMode={teacherMode} 
                                                     placeholder="%" 
                                                     onFocus={onFocus}
@@ -1594,7 +1698,7 @@
                                                     id={`m3_cs_is_${row.id}_21`} 
                                                     value={inputs[`m3_cs_is_${row.id}_21`] || ''} 
                                                     onChange={handleInputChange} 
-                                                    correctValue={row.id === 'sales' ? "100.0" : ANSWER_KEY[`m3_cs_is_${row.id}_21`]} 
+                                                    correctValue={row.id === 'sales' ? "100.0" : d(_DATA_MATRIX[`m3_cs_is_${row.id}_21`])} 
                                                     teacherMode={teacherMode} 
                                                     placeholder="%" 
                                                     onFocus={onFocus}
@@ -1614,95 +1718,95 @@
                             <Icons.PieChart /> Income Statement Analysis
                         </h3>
 
-                        <QuestionBox 
-                            title="1. What are the major expenses?"
-                            hint="Compare expense line items as a percentage of Sales. Look for the largest numbers in the 2022 column above."
-                            solution="The company’s major expenses are Cost of Goods Sold (COGS), which accounted for 71.8% of revenue in 2022, and Selling, General, and Administrative (SG&A) expenses, which accounted for 10.3% of revenue in 2022."
+                        <MultipleChoiceQuestion 
+                            id="m3_q_major_expenses"
+                            title="1. What are the company's major expenses?"
+                            options={[
+                                { id: 'a', text: 'Interest Expense and Taxes' },
+                                { id: 'b', text: 'Cost of Sales (COGS) and SG&A' },
+                                { id: 'c', text: 'R&D and Depreciation' }
+                            ]}
+                            correctOptionId="b"
+                            explanation="COGS (71.8%) and SG&A (10.3%) are the largest expense categories relative to sales."
                             teacherMode={teacherMode}
-                        >
-                            <textarea 
-                                className="w-full p-3 border border-slate-300 rounded text-sm h-32" 
-                                placeholder="Your answer..."
-                                id="m3_q_major_expenses"
-                                onChange={(e) => handleInputChange("m3_q_major_expenses", e.target.value)}
-                                value={inputs["m3_q_major_expenses"] || ""}
-                            ></textarea>
-                        </QuestionBox>
+                            selectedOptionId={inputs['m3_q_major_expenses']}
+                            onSelect={handleInputChange}
+                        />
 
-                        <QuestionBox 
-                            title="2. Are there any unusual or discontinued items? Are they large in magnitude?"
-                            hint="Look for 'Other' items or specific losses/gains that are not part of regular operations."
-                            solution="Yes. In 2022, the company recorded a loss on forward contracts equal to 6.4% of revenue, which is significant. In addition, the company reports relatively small losses on property, plant, and equipment disposals each year."
+                        <MultipleChoiceQuestion 
+                            id="m3_q_unusual_items"
+                            title="2. Which unusual item significantly impacted 2022 results?"
+                            options={[
+                                { id: 'a', text: 'Loss on forward contracts (6.2% of sales)' },
+                                { id: 'b', text: 'Gain on sale of land' },
+                                { id: 'c', text: 'Litigation settlement' }
+                            ]}
+                            correctOptionId="a"
+                            explanation="The company recorded a loss on forward contracts equal to ~6.2% of revenue, which is significant."
                             teacherMode={teacherMode}
-                        >
-                            <textarea 
-                                className="w-full p-3 border border-slate-300 rounded text-sm h-32" 
-                                placeholder="Your answer..."
-                                id="m3_q_unusual_items"
-                                onChange={(e) => handleInputChange("m3_q_unusual_items", e.target.value)}
-                                value={inputs["m3_q_unusual_items"] || ""}
-                            ></textarea>
-                        </QuestionBox>
+                            selectedOptionId={inputs['m3_q_unusual_items']}
+                            onSelect={handleInputChange}
+                        />
 
-                        <QuestionBox 
-                            title="3. Was the company more or less profitable compared with the prior year?"
-                            hint="Compare the Net Income percentage (Net Margin) for 2022 vs 2021."
-                            solution="The company was less profitable in 2022 compared to 2021. Net income declined to 8.3% of revenue in 2022, down from 12.2% in 2021. This decrease is entirely attributable to the loss on forward contracts recorded in 2022."
+                        <MultipleChoiceQuestion 
+                            id="m3_q_profitability"
+                            title="3. How did 2022 profitability compare to 2021?"
+                            options={[
+                                { id: 'a', text: 'Profitability improved due to higher sales.' },
+                                { id: 'b', text: 'Profitability remained exactly the same.' },
+                                { id: 'c', text: 'Profitability declined, largely due to the forward contract loss.' }
+                            ]}
+                            correctOptionId="c"
+                            explanation="Net income declined to 8.3% of revenue in 2022 from 12.2% in 2021, primarily due to the loss on forward contracts."
                             teacherMode={teacherMode}
-                        >
-                            <textarea 
-                                className="w-full p-3 border border-slate-300 rounded text-sm h-32" 
-                                placeholder="Your answer..."
-                                id="m3_q_profitability"
-                                onChange={(e) => handleInputChange("m3_q_profitability", e.target.value)}
-                                value={inputs["m3_q_profitability"] || ""}
-                            ></textarea>
-                        </QuestionBox>
+                            selectedOptionId={inputs['m3_q_profitability']}
+                            onSelect={handleInputChange}
+                        />
 
-                        <QuestionBox
-                            title="4. Gross Margin Analysis"
-                            hint="Formula: (Gross Profit / Net Sales). Think about production efficiency."
-                            solution="Gross Margin = (Revenue - COGS) / Revenue. It measures product profitability and production efficiency. For PH (2022), Gross Margin is 28.2%. Insight: If low, check pricing or supplier costs. Benchmarking is crucial (e.g., Software ~80-90% vs Food Mfg ~30%)."
+                        <MultipleChoiceQuestion
+                            id="m3_q_gross_margin"
+                            title="4. Gross Margin Analysis (28.2%)"
+                            options={[
+                                { id: 'a', text: 'It measures production efficiency and pricing power before operating costs.' },
+                                { id: 'b', text: 'It indicates the final profit available to shareholders.' },
+                                { id: 'c', text: 'It shows the interest coverage ratio.' }
+                            ]}
+                            correctOptionId="a"
+                            explanation="Gross Margin = (Revenue - COGS) / Revenue. It isolates production costs from overhead."
                             teacherMode={teacherMode}
-                        >
-                            <textarea
-                                className="w-full p-3 border border-slate-300 rounded text-sm h-32"
-                                placeholder="Calculate the Gross Margin and explain what it tells you about pricing and production..."
-                                id="m3_q_gross_margin"
-                                onChange={(e) => handleInputChange("m3_q_gross_margin", e.target.value)}
-                                value={inputs["m3_q_gross_margin"] || ""}
-                            ></textarea>
-                        </QuestionBox>
+                            selectedOptionId={inputs['m3_q_gross_margin']}
+                            onSelect={handleInputChange}
+                        />
 
-                        <QuestionBox
-                            title="5. Net Profit Margin Analysis"
-                            hint="Formula: (Net Income / Net Sales). Think about the bottom line."
-                            solution="Net Margin = Net Income / Revenue. It reflects overall business health, including SG&A, R&D, and interest. For PH (2022), Net Margin is 8.3%. Unlike Gross Margin, this metric captures all operating and non-operating costs."
+                        <MultipleChoiceQuestion
+                            id="m3_q_net_margin"
+                            title="5. Net Profit Margin Analysis (8.3%)"
+                            options={[
+                                { id: 'a', text: 'The cash flow from operations.' },
+                                { id: 'b', text: 'The bottom-line profit per dollar of revenue after all expenses.' },
+                                { id: 'c', text: 'The cost of goods sold percentage.' }
+                            ]}
+                            correctOptionId="b"
+                            explanation="Net Margin reflects overall business health, including SG&A, R&D, interest, and taxes."
                             teacherMode={teacherMode}
-                        >
-                            <textarea
-                                className="w-full p-3 border border-slate-300 rounded text-sm h-32"
-                                placeholder="Calculate Net Profit Margin. What specific expenses does this include that Gross Margin excludes?"
-                                id="m3_q_net_margin"
-                                onChange={(e) => handleInputChange("m3_q_net_margin", e.target.value)}
-                                value={inputs["m3_q_net_margin"] || ""}
-                            ></textarea>
-                        </QuestionBox>
+                            selectedOptionId={inputs['m3_q_net_margin']}
+                            onSelect={handleInputChange}
+                        />
 
-                        <QuestionBox
-                            title="6. Gross vs. Net Margin Distinction"
-                            hint="Compare the scope of costs included in each metric."
-                            solution="Gross Margin focuses on product profitability (Unit Price vs Production Cost). Net Margin focuses on overall business viability. A company can have high Gross Margin but low Net Margin if overhead (marketing, admin, R&D) is too high."
+                        <MultipleChoiceQuestion
+                            id="m3_q_margin_diff"
+                            title="6. Why might Gross Margin be high while Net Margin is low?"
+                            options={[
+                                { id: 'a', text: 'Because COGS is too high.' },
+                                { id: 'b', text: 'Because taxes are negative.' },
+                                { id: 'c', text: 'High operating expenses (SG&A, R&D) or interest costs consume the gross profit.' }
+                            ]}
+                            correctOptionId="c"
+                            explanation="A company can be efficient at production (High Gross Margin) but have heavy administrative or debt burdens (Low Net Margin)."
                             teacherMode={teacherMode}
-                        >
-                            <textarea
-                                className="w-full p-3 border border-slate-300 rounded text-sm h-32"
-                                placeholder="Explain the difference in insights provided by Gross Margin vs Net Profit Margin..."
-                                id="m3_q_margin_diff"
-                                onChange={(e) => handleInputChange("m3_q_margin_diff", e.target.value)}
-                                value={inputs["m3_q_margin_diff"] || ""}
-                            ></textarea>
-                        </QuestionBox>
+                            selectedOptionId={inputs['m3_q_margin_diff']}
+                            onSelect={handleInputChange}
+                        />
                     </div>
 
                 </div>
@@ -1715,20 +1819,22 @@
                     <h2 className="text-2xl font-bold text-slate-800">Module 4: Cash Flow & Valuation</h2>
                     <p className="text-slate-500">Evaluate cash flow patterns and market value.</p>
                 </div>
-                 <QuestionBox 
-                    title="4. Statement of Cash Flows Analysis"
-                    hint="Focus on the SIGN (+ or -) of each section."
-                    solution="See previous modules."
+
+                <MultipleChoiceQuestion 
+                    id="m4_q4_text"
+                    title="4. Statement of Cash Flows Analysis: Analyze the cash flow pattern for 2022."
+                    options={[
+                        { id: 'a', text: 'Operating inflows funded both investing outflows and financing inflows.' },
+                        { id: 'b', text: 'Operating inflows and Financing inflows funded Investing outflows and cash buildup.' },
+                        { id: 'c', text: 'The company is burning cash from operations.' }
+                    ]}
+                    correctOptionId="b"
+                    explanation="Operating Cash Flow was positive ($2.4B), Financing was positive ($3.9B), and Investing was negative (-$0.4B). The massive cash buildup ($5.9B) came from both Ops and Financing."
                     teacherMode={teacherMode}
-                >
-                     <textarea 
-                        className="w-full p-3 border border-slate-300 rounded text-sm h-32" 
-                        placeholder="Interpretation..."
-                        id="m4_q4_text"
-                        onChange={(e) => handleInputChange("m4_q4_text", e.target.value)}
-                        value={inputs["m4_q4_text"] || ""}
-                    ></textarea>
-                </QuestionBox>
+                    selectedOptionId={inputs['m4_q4_text']}
+                    onSelect={handleInputChange}
+                />
+
                 <QuestionBox 
                     title="5. Market Capitalization"
                     hint="Formula: (Common Shares Issued - Treasury Shares) × Year-End Share Price."
@@ -1756,10 +1862,10 @@
                             <SmartInput 
                                 id="m4_ph_mkt_cap" 
                                 value={inputs['m4_ph_mkt_cap'] || ''} 
-                                correctValue={ANSWER_KEY['m4_ph_mkt_cap']} 
+                                correctValue={d(_DATA_MATRIX['m4_ph_mkt_cap'])} 
                                 onChange={handleInputChange} 
                                 teacherMode={teacherMode} 
-                                placeholder="e.g. 31,745,316"
+                                placeholder="e.g. 40,000,000"
                                 onFocus={onFocus}
                                 isFocused={activeInputId === 'm4_ph_mkt_cap'}
                             />
@@ -1773,7 +1879,35 @@
 
         const App = () => {
             const [activeModule, setActiveModule] = useState('intro'); // Default to Intro
-            const [inputs, setInputs] = useState({});
+
+            const getInitialInputs = () => {
+                const defaults = {};
+                // Mapping labels to IDs (must match isRows definitions)
+                const idMap = {
+                    'Net Sales': 'sales', 'Cost of sales': 'cos', 'Gross profit': 'gp',
+                    'Selling, general and administrative expenses': 'sga', 'Gain on disposal of assets': 'gain',
+                    'Operating income': 'opinc', 'Interest expense': 'int_exp', 'Other expense (income), net': 'other',
+                    'Income before income taxes': 'ibt', 'Income taxes': 'tax', 'Net Income': 'ni',
+                    "Less: Noncontrolling interest in subsidiaries' earnings": 'ncin',
+                    "Net Income Attributable to Common Shareholders": 'nic'
+                };
+                
+                // Loop through the data source and fill the 2021 keys
+                if (CASE_DATA && CASE_DATA.ph_is) {
+                    CASE_DATA.ph_is.rows.forEach(row => {
+                        const label = row[0];
+                        const val21 = row[2]; // Index 2 is the 2021 column
+                        if (idMap[label]) {
+                            defaults[`m1_is_ph_${idMap[label]}_21`] = val21;
+                        }
+                    });
+                }
+                return defaults;
+            };
+            
+            // Initialize state with 2021 data pre-filled
+            const [inputs, setInputs] = useState(getInitialInputs);
+            
             const [showCalc, setShowCalc] = useState(false);
             const [showDataPanel, setShowDataPanel] = useState(false);
             const [teacherMode, setTeacherMode] = useState(false);
@@ -1781,7 +1915,40 @@
             const [password, setPassword] = useState("");
             const [studentName, setStudentName] = useState("");
             const [showNamePrompt, setShowNamePrompt] = useState(false);
+            const [showResetConfirm, setShowResetConfirm] = useState(false); // New Reset Confirm State
             const [activeInputId, setActiveInputId] = useState(null);
+
+            // Resizable Sidebar State
+            const [sidebarWidth, setSidebarWidth] = useState(256);
+            const sidebarRef = useRef(null);
+            const [isResizing, setIsResizing] = useState(false);
+
+            // Resizing Logic
+            const startResizing = useCallback((mouseDownEvent) => {
+                setIsResizing(true);
+            }, []);
+
+            const stopResizing = useCallback(() => {
+                setIsResizing(false);
+            }, []);
+
+            const resize = useCallback((mouseMoveEvent) => {
+                if (isResizing) {
+                    const newWidth = mouseMoveEvent.clientX;
+                    if (newWidth > 150 && newWidth < 400) {
+                        setSidebarWidth(newWidth);
+                    }
+                }
+            }, [isResizing]);
+
+            useEffect(() => {
+                window.addEventListener("mousemove", resize);
+                window.addEventListener("mouseup", stopResizing);
+                return () => {
+                    window.removeEventListener("mousemove", resize);
+                    window.removeEventListener("mouseup", stopResizing);
+                };
+            }, [resize, stopResizing]);
 
             const handleInputChange = (id, val) => {
                 setInputs(prev => ({ ...prev, [id]: val }));
@@ -1816,8 +1983,13 @@
                 }
             };
 
+            
             const attemptLogin = () => {
-                if (password.toLowerCase() === 'teacher') {
+                const targetHash = "==QU4kXZL1CSQ1SMQF0T"; 
+                // Implementation of the hashing check logic
+                const inputHash = btoa(password.trim()).split('').reverse().join('');
+                
+                if (inputHash === targetHash) {
                     setTeacherMode(true);
                     setShowLogin(false);
                     setPassword("");
@@ -1827,14 +1999,25 @@
             };
 
             const autoFill = () => {
-                if (Object.keys(inputs).length > 5) {
-                    setInputs({});
-                } else {
-                    const autoClass = {};
-                    ASSET_ITEMS_2022.forEach(item => { autoClass[`class_${item.id}`] = item.correctType; });
-                    LIAB_EQ_ITEMS_2022.forEach(item => { autoClass[`class_${item.id}`] = item.correctType; });
-                    setInputs({...ANSWER_KEY, ...autoClass});
-                }
+                const autoClass = {};
+                ASSET_ITEMS_2022.forEach(item => { autoClass[`class_${item.id}`] = item.correctType; });
+                LIAB_EQ_ITEMS_2022.forEach(item => { autoClass[`class_${item.id}`] = item.correctType; });
+                
+                // Decode matrix for autofill
+                const decodedMatrix = {};
+                Object.keys(_DATA_MATRIX).forEach(key => {
+                    decodedMatrix[key] = d(_DATA_MATRIX[key]);
+                });
+                
+                setInputs({...decodedMatrix, ...autoClass});
+            };
+
+            // New Reset Function
+            const handleReset = () => {
+                setInputs(getInitialInputs()); // Reset to just the 2021 prefilled data
+                setStudentName("");
+                setShowResetConfirm(false);
+                setActiveModule('intro'); // Optional: Go back to start
             };
 
             const generateDownloadFile = (nameToUse) => {
@@ -1870,7 +2053,12 @@
             return (
                 <div className="flex h-screen bg-slate-50">
                     {/* SIDEBAR */}
-                    <div className="w-64 bg-slate-900 text-white flex flex-col shadow-2xl z-20 shrink-0">
+                    <div 
+                        ref={sidebarRef}
+                        style={{ width: sidebarWidth }}
+                        className="bg-slate-900 text-white flex flex-col shadow-2xl z-20 shrink-0 relative"
+                    >
+                        <div className="resizer" onMouseDown={startResizing}></div>
                         <div className="p-6 border-b border-slate-800">
                             <h1 className="text-xl font-bold tracking-tight text-blue-400">FinSim<span className="text-white">Pro</span></h1>
                             <p className="text-xs text-slate-400 mt-1">Case 1: Parker Hannifin</p>
@@ -1916,13 +2104,24 @@
                                 <Icons.Calculator /> <span className="ml-2">Calculator</span>
                             </button>
                             <button onClick={toggleTeacher} className={`w-full flex items-center justify-center p-2 rounded text-sm transition ${teacherMode ? 'bg-yellow-600 hover:bg-yellow-500 text-white' : 'bg-transparent text-slate-500 hover:text-slate-300'}`}>
-                                {teacherMode ? <Icons.Unlock /> : <Icons.Lock />} <span className="ml-2">{teacherMode ? 'Teacher Mode' : 'Instructor'}</span>
+                                <Icons.Lock className={teacherMode ? "opacity-100" : "opacity-30"} /> 
                             </button>
+                            
+                            {/* Auto-Fill Button (Teacher Only) */}
                             {teacherMode && (
                                 <button onClick={autoFill} className="w-full text-center text-xs text-yellow-500 hover:text-yellow-400 underline">
-                                    {Object.keys(inputs).length > 5 ? 'Clear All' : 'Auto-Fill Answers'}
+                                    Auto-Fill Answers
                                 </button>
                             )}
+
+                            {/* NEW: Reset Button */}
+                            <button 
+                                onClick={() => setShowResetConfirm(true)}
+                                className="w-full flex items-center justify-center p-2 rounded text-red-400 hover:bg-red-500/10 hover:text-red-300 text-xs transition mt-2 border border-transparent hover:border-red-900/30"
+                            >
+                                <Icons.Trash2 /> <span className="ml-2">Reset Simulation</span>
+                            </button>
+
                         </div>
                     </div>
 
@@ -2038,6 +2237,37 @@
                                         className="w-full py-2 text-slate-500 hover:text-slate-700 text-sm font-medium hover:bg-slate-50 rounded-lg transition"
                                     >
                                         Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Reset Confirmation Modal */}
+                    {showResetConfirm && (
+                        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in">
+                            <div className="bg-white p-6 rounded-xl shadow-2xl w-80">
+                                <div className="flex items-center gap-3 mb-4 text-red-600">
+                                    <div className="p-2 bg-red-100 rounded-full">
+                                        <Icons.Trash2 />
+                                    </div>
+                                    <h3 className="text-lg font-bold text-slate-800">Reset Simulation?</h3>
+                                </div>
+                                <p className="text-sm text-slate-600 mb-6 leading-relaxed">
+                                    This will <strong>clear all your answers</strong> and return the simulation to its initial state. This action cannot be undone.
+                                </p>
+                                <div className="flex justify-end gap-2">
+                                    <button 
+                                        onClick={() => setShowResetConfirm(false)} 
+                                        className="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg transition font-medium"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button 
+                                        onClick={handleReset} 
+                                        className="px-4 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-medium shadow-sm"
+                                    >
+                                        Yes, Reset Everything
                                     </button>
                                 </div>
                             </div>
