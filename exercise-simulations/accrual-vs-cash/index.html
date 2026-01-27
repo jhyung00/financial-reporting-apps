@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FlashLearn Operating Income Analysis</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
+        
+        body { 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            background-color: #1e1b4b; /* Deep Indigo */
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(232, 121, 249, 0.15) 0px, transparent 50%), 
+                radial-gradient(at 100% 0%, rgba(56, 189, 248, 0.15) 0px, transparent 50%), 
+                radial-gradient(at 100% 100%, rgba(232, 121, 249, 0.15) 0px, transparent 50%);
+            background-attachment: fixed;
+            color: #f1f5f9; 
+        }
+
+        h1, h2, h3 { font-family: 'Fredoka', sans-serif; }
+
+        .glass-card { 
+            background: rgba(30, 27, 75, 0.6); 
+            backdrop-filter: blur(16px); 
+            border: 1px solid rgba(255, 255, 255, 0.12); 
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .hype-gradient { background: linear-gradient(135deg, #38bdf8, #c084fc); } /* Sky to Purple */
+        .reality-gradient { background: linear-gradient(135deg, #fb7185, #fbbf24); } /* Rose to Amber */
+        
+        .meter-fill { transition: width 1s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        
+        /* Visibility Logic */
+        .clue-card {
+            display: none; 
+            transition: all 0.5s ease;
+        }
+
+        .clue-active {
+            display: block;
+            animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border-left: 4px solid #c084fc;
+            background: rgba(49, 46, 129, 0.6);
+        }
+
+        .clue-collapsed {
+            display: block;
+            opacity: 0.6;
+            transform: scale(0.98);
+            cursor: pointer;
+            border-left: 4px solid #64748b;
+            filter: grayscale(0.8);
+        }
+        
+        .clue-collapsed .clue-body { display: none; }
+        .clue-collapsed .clue-icon { display: none; } /* Hide big icon when collapsed */
+        .clue-collapsed:hover { opacity: 0.9; transform: scale(0.99); filter: grayscale(0); }
+        
+        @keyframes popIn { 
+            from { transform: scale(0.9) translateY(20px); opacity: 0; } 
+            to { transform: scale(1) translateY(0); opacity: 1; } 
+        }
+        
+        .input-dark { 
+            background: rgba(0,0,0,0.3); 
+            border: 1px solid rgba(255,255,255,0.1); 
+            border-radius: 8px; 
+            padding: 6px 10px; 
+            color: #e2e8f0; 
+            width: 100%; 
+            font-family: monospace; 
+            font-size: 0.95rem; 
+            text-align: right;
+            transition: all 0.2s;
+        }
+        .input-dark:focus { outline: none; border-color: #c084fc; background: rgba(0,0,0,0.5); }
+
+        .solve-box {
+            background: rgba(192, 132, 252, 0.1);
+            border: 1px solid rgba(192, 132, 252, 0.3);
+            border-radius: 12px;
+            padding: 10px;
+            color: white;
+            width: 100%;
+            font-family: monospace;
+            font-size: 1.2rem;
+            text-align: center;
+            font-weight: bold;
+        }
+        .solve-box:focus { outline: none; border-color: #f472b6; background: rgba(244, 114, 182, 0.1); box-shadow: 0 0 15px rgba(244, 114, 182, 0.2); }
+        
+        /* Table Styles */
+        .fin-table th { text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em; color: #94a3b8; padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .fin-table td { padding: 12px 6px; border-bottom: 1px solid rgba(255,255,255,0.05); font-family: monospace; font-size: 0.95rem; }
+        .fin-table tr:last-child td { border-bottom: none; }
+        .col-accrual { color: #f472b6; font-weight: bold; }
+        .col-cash { color: #38bdf8; }
+        .row-dim { opacity: 0.3; transition: opacity 0.3s ease; }
+        .row-active { opacity: 1; background: rgba(255,255,255,0.03); transition: opacity 0.5s ease; border-radius: 4px; }
+        
+        .fun-icon {
+            font-size: 2rem;
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 16px;
+            margin-right: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+    </style>
+</head>
+<body class="min-h-screen p-4 md:p-8">
+
+    <header class="max-w-7xl mx-auto mb-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div>
+            <div class="flex items-center gap-3 mb-2">
+                <span class="px-3 py-1 rounded-full bg-fuchsia-500/20 text-fuchsia-300 text-xs font-bold uppercase tracking-widest border border-fuchsia-500/30 shadow-[0_0_10px_rgba(232,121,249,0.3)]">Mission #802</span>
+                <h1 class="text-4xl font-bold tracking-tight text-white drop-shadow-md">Operating <span class="text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-fuchsia-400">Analysis</span></h1>
+            </div>
+            <p class="text-indigo-200/70 max-w-xl text-sm font-medium">Your mission: Convert the Operating Statement from Cash Basis to Accrual Basis. Find the hidden prepaid assets and liabilities!</p>
+        </div>
+        <div class="flex gap-3">
+            <button onclick="location.reload()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 font-semibold border border-slate-700 text-sm transition-colors text-slate-300"><i class="fas fa-undo mr-2"></i> Reset</button>
+            <button onclick="prevStep()" id="backBtn" class="px-4 py-2 rounded-xl bg-indigo-900/50 hover:bg-indigo-800/50 font-semibold border border-indigo-700 text-sm transition-colors text-indigo-300 disabled:opacity-30 disabled:cursor-not-allowed" disabled><i class="fas fa-arrow-left mr-2"></i> Back</button>
+            <button onclick="revealNext()" id="revealBtn" class="px-6 py-3 rounded-xl hype-gradient hover:opacity-90 font-bold text-white shadow-[0_0_20px_rgba(56,189,248,0.4)] transition-all transform hover:scale-105 active:scale-95 text-sm flex items-center"><i class="fas fa-search-dollar mr-2 text-lg"></i> Inspect Next Item</button>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- LEFT COLUMN: INPUTS & CLUES -->
+        <div class="lg:col-span-5 space-y-6">
+            
+            <!-- SECTION 1: CASH INPUTS -->
+            <div class="glass-card rounded-2xl p-6 relative overflow-hidden">
+                <div class="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
+                    <i class="fas fa-cash-register text-8xl text-white"></i>
+                </div>
+                <div class="flex justify-between items-center mb-4 relative z-10">
+                    <h2 class="text-sm font-bold text-sky-300 uppercase tracking-widest flex items-center"><i class="fas fa-wallet mr-2"></i> Cash Activity</h2>
+                    <label class="text-xs text-indigo-300 flex items-center gap-2 cursor-pointer hover:text-white transition-colors bg-black/20 px-2 py-1 rounded-lg">
+                        <input type="checkbox" id="lockInputs" class="accent-sky-400" onchange="toggleInputs()"> Lock Values
+                    </label>
+                </div>
+                
+                <div class="space-y-2 relative z-10">
+                    <div class="grid grid-cols-2 gap-4 items-center">
+                        <label class="text-xs font-semibold text-indigo-200">Cash Collected (Sales)</label>
+                        <input type="number" id="cashRev" value="1200000" class="input-dark" oninput="updateCalcs()">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 items-center">
+                        <label class="text-xs font-semibold text-indigo-200">Paid: Employees</label>
+                        <input type="number" id="cashWage" value="300000" class="input-dark" oninput="updateCalcs()">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 items-center">
+                        <label class="text-xs font-semibold text-indigo-200">Paid: Rent (Office)</label>
+                        <input type="number" id="cashRent" value="120000" class="input-dark" oninput="updateCalcs()">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 items-center">
+                        <label class="text-xs font-semibold text-indigo-200">Paid: Marketing</label>
+                        <input type="number" id="cashMkt" value="180000" class="input-dark" oninput="updateCalcs()">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 items-center">
+                        <label class="text-xs font-semibold text-indigo-200">Paid: Insurance</label>
+                        <input type="number" id="cashIns" value="24000" class="input-dark" oninput="updateCalcs()">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 items-center">
+                        <label class="text-xs font-semibold text-indigo-200">Paid: Supplies</label>
+                        <input type="number" id="cashSup" value="15000" class="input-dark" oninput="updateCalcs()">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 items-center">
+                        <label class="text-xs font-semibold text-indigo-200">Paid: Utilities</label>
+                        <input type="number" id="cashUtil" value="33000" class="input-dark" oninput="updateCalcs()">
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION 2: CLUES -->
+            <div id="cluesContainer" class="space-y-3">
+                
+                <!-- CLUE 1: REVENUE -->
+                <div id="clue1" class="clue-card glass-card rounded-2xl p-5">
+                    <div class="flex items-start">
+                        <div class="clue-icon fun-icon bg-gradient-to-br from-blue-400 to-cyan-500 text-white shadow-lg shadow-blue-500/30">
+                            <i class="fas fa-calendar-check"></i>
+                        </div>
+                        <div class="w-full">
+                            <div class="flex justify-between items-center mb-1">
+                                <h3 class="font-bold text-lg text-blue-300">1. Revenue Timing</h3>
+                                <i class="fas fa-chevron-down text-indigo-400 text-xs"></i>
+                            </div>
+                            <div class="clue-body">
+                                <p class="text-xs text-indigo-200 mb-3 leading-relaxed">"Great sales! But contracts are annual (12 mo), and they all started late in the year on <strong>October 1st</strong>."</p>
+                                <div class="bg-black/30 p-4 rounded-xl border border-white/10">
+                                    <p class="text-[10px] text-sky-400 uppercase font-bold mb-2">Adjust Timeline (Oct-Dec)</p>
+                                    <div class="flex items-center gap-4">
+                                        <input type="range" id="inputMonths" min="0" max="12" value="0" class="flex-grow accent-sky-400 h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer" oninput="updateCalcs()">
+                                        <div class="bg-slate-800 px-3 py-1 rounded-lg border border-slate-600">
+                                            <span class="font-mono text-xl text-sky-400 font-bold"><span id="displayMonths">0</span><span class="text-xs ml-1 text-slate-400">mo</span></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CLUE 2: RENT -->
+                <div id="clue2" class="clue-card glass-card rounded-2xl p-5">
+                    <div class="flex items-start">
+                        <div class="clue-icon fun-icon bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-500/30">
+                            <i class="fas fa-building"></i>
+                        </div>
+                        <div class="w-full">
+                            <div class="flex justify-between items-center mb-1">
+                                <h3 class="font-bold text-lg text-indigo-300">2. Prepaid Rent</h3>
+                            </div>
+                            <div class="clue-body">
+                                <p class="text-xs text-indigo-200 mb-3 leading-relaxed">"We paid $120,000 cash upfront for a 1-year lease. However, the lease only started on <strong>October 1st</strong>."</p>
+                                <div class="bg-black/30 p-4 rounded-xl border border-white/10">
+                                    <p class="text-[10px] text-indigo-300 uppercase font-bold mb-2">Calculate Rent Expense (3 months)</p>
+                                    <input type="number" id="solveRent" placeholder="Enter Amount" class="solve-box" oninput="updateCalcs()">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CLUE 3: WAGES -->
+                <div id="clue3" class="clue-card glass-card rounded-2xl p-5">
+                    <div class="flex items-start">
+                        <div class="clue-icon fun-icon bg-gradient-to-br from-emerald-400 to-teal-500 text-white shadow-lg shadow-emerald-500/30">
+                            <i class="fas fa-money-bill-wave"></i>
+                        </div>
+                        <div class="w-full">
+                            <div class="flex justify-between items-center mb-1">
+                                <h3 class="font-bold text-lg text-emerald-300">3. Unpaid Wages</h3>
+                            </div>
+                            <div class="clue-body">
+                                <p class="text-xs text-indigo-200 mb-3 leading-relaxed">"Daily payroll is <strong>$12,000</strong>. The last payday was Dec 26. Your team worked <strong>5 days</strong> (Dec 27-31) that haven't been paid yet."</p>
+                                <div class="bg-black/30 p-4 rounded-xl border border-white/10">
+                                    <p class="text-[10px] text-emerald-400 uppercase font-bold mb-2">Calculate Accrued Liability (5 days)</p>
+                                    <input type="number" id="solveWage" placeholder="Enter Amount" class="solve-box" oninput="updateCalcs()">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CLUE 4: INSURANCE -->
+                <div id="clue4" class="clue-card glass-card rounded-2xl p-5">
+                    <div class="flex items-start">
+                        <div class="clue-icon fun-icon bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-lg shadow-amber-500/30">
+                            <i class="fas fa-shield-alt"></i>
+                        </div>
+                        <div class="w-full">
+                            <div class="flex justify-between items-center mb-1">
+                                <h3 class="font-bold text-lg text-amber-300">4. Prepaid Insurance</h3>
+                            </div>
+                            <div class="clue-body">
+                                <p class="text-xs text-indigo-200 mb-3 leading-relaxed">"Safety first! We bought a <strong>$24,000</strong> policy. It covers <strong>2 years</strong> (24 months), starting Jan 1 of this year."</p>
+                                <div class="bg-black/30 p-4 rounded-xl border border-white/10">
+                                    <p class="text-[10px] text-amber-400 uppercase font-bold mb-2">Calculate Annual Expense (1 Year)</p>
+                                    <input type="number" id="solveIns" placeholder="Enter Amount" class="solve-box" oninput="updateCalcs()">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CLUE 5: MARKETING -->
+                <div id="clue5" class="clue-card glass-card rounded-2xl p-5">
+                    <div class="flex items-start">
+                        <div class="clue-icon fun-icon bg-gradient-to-br from-fuchsia-500 to-pink-600 text-white shadow-lg shadow-fuchsia-500/30">
+                            <i class="fas fa-bullhorn"></i>
+                        </div>
+                        <div class="w-full">
+                            <div class="flex justify-between items-center mb-1">
+                                <h3 class="font-bold text-lg text-fuchsia-300">5. Marketing Deposit</h3>
+                            </div>
+                            <div class="clue-body">
+                                <p class="text-xs text-indigo-200 mb-3 leading-relaxed">"We spent $180k cash. But wait—<strong>$60,000</strong> of that is a deposit for a Super Bowl ad running next February."</p>
+                                <div class="bg-black/30 p-4 rounded-xl border border-white/10">
+                                    <p class="text-[10px] text-fuchsia-400 uppercase font-bold mb-2">Calculate Current Expense ($180k - Deposit)</p>
+                                    <input type="number" id="solveMkt" placeholder="Enter Amount" class="solve-box" oninput="updateCalcs()">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CLUE 6: SUPPLIES -->
+                <div id="clue6" class="clue-card glass-card rounded-2xl p-5">
+                    <div class="flex items-start">
+                        <div class="clue-icon fun-icon bg-gradient-to-br from-rose-400 to-red-500 text-white shadow-lg shadow-rose-500/30">
+                            <i class="fas fa-boxes"></i>
+                        </div>
+                        <div class="w-full">
+                            <div class="flex justify-between items-center mb-1">
+                                <h3 class="font-bold text-lg text-rose-300">6. Supply Closet</h3>
+                            </div>
+                            <div class="clue-body">
+                                <p class="text-xs text-indigo-200 mb-3 leading-relaxed">"We bought $15,000 of sticky notes. We counted the closet yesterday and found <strong>$12,000</strong> still sitting there unused."</p>
+                                <div class="bg-black/30 p-4 rounded-xl border border-white/10">
+                                    <p class="text-[10px] text-rose-400 uppercase font-bold mb-2">Calculate Usage ($15k - Inventory)</p>
+                                    <input type="number" id="solveSup" placeholder="Enter Amount" class="solve-box" oninput="updateCalcs()">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CLUE 7: UTILITIES -->
+                <div id="clue7" class="clue-card glass-card rounded-2xl p-5">
+                    <div class="flex items-start">
+                        <div class="clue-icon fun-icon bg-gradient-to-br from-cyan-400 to-blue-500 text-white shadow-lg shadow-cyan-500/30">
+                            <i class="fas fa-bolt"></i>
+                        </div>
+                        <div class="w-full">
+                            <div class="flex justify-between items-center mb-1">
+                                <h3 class="font-bold text-lg text-cyan-300">7. Late Utility Bill</h3>
+                            </div>
+                            <div class="clue-body">
+                                <p class="text-xs text-indigo-200 mb-3 leading-relaxed">"We paid $33,000 for Jan-Nov. The <strong>$3,000</strong> bill for December electricity just arrived in the mail (unpaid)."</p>
+                                <div class="bg-black/30 p-4 rounded-xl border border-white/10">
+                                    <p class="text-[10px] text-cyan-400 uppercase font-bold mb-2">Calculate Total Annual Expense</p>
+                                    <input type="number" id="solveUtil" placeholder="Enter Amount" class="solve-box" oninput="updateCalcs()">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CLUE 8: DEPRECIATION -->
+                <div id="clue8" class="clue-card glass-card rounded-2xl p-5">
+                    <div class="flex items-start">
+                        <div class="clue-icon fun-icon bg-gradient-to-br from-orange-400 to-red-500 text-white shadow-lg shadow-orange-500/30">
+                            <i class="fas fa-server"></i>
+                        </div>
+                        <div class="w-full">
+                            <div class="flex justify-between items-center mb-1">
+                                <h3 class="font-bold text-lg text-orange-300">8. Depreciation</h3>
+                            </div>
+                            <div class="clue-body">
+                                <p class="text-xs text-indigo-200 mb-3 leading-relaxed">"Hidden Cost! We bought $48,000 of servers on Jan 1. They last <strong>4 years</strong>. This wear-and-tear is a real expense."</p>
+                                <div class="bg-black/30 p-4 rounded-xl border border-white/10">
+                                    <p class="text-[10px] text-orange-400 uppercase font-bold mb-2">Calculate Annual Depreciation</p>
+                                    <input type="number" id="solveDepr" placeholder="Enter Amount" class="solve-box" oninput="updateCalcs()">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- RIGHT COLUMN: COMPARATIVE STATEMENTS -->
+        <div class="lg:col-span-7">
+            <div class="glass-card rounded-3xl p-8 sticky top-6 h-full border border-indigo-500/30 shadow-[0_0_50px_rgba(79,70,229,0.15)]">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-xl font-bold flex items-center gap-3 text-white">
+                        <i class="fas fa-chart-line text-fuchsia-400"></i>
+                        Comparative Statement
+                    </h3>
+                    <div class="text-xs bg-indigo-900/80 px-3 py-1.5 rounded-lg text-indigo-300 border border-indigo-500/50 font-semibold">
+                        Year 1 Analysis
+                    </div>
+                </div>
+
+                <div class="overflow-hidden rounded-xl border border-white/5">
+                    <table class="w-full fin-table">
+                        <thead>
+                            <tr class="bg-black/20">
+                                <th class="text-left pl-4 py-3">Operating Item</th>
+                                <th class="text-right w-32 py-3">Cash Basis</th>
+                                <th class="text-right w-32 pr-4 py-3">Accrual Basis</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-sm">
+                            <!-- Revenue -->
+                            <tr id="rowRev" class="row-active border-l-4 border-l-blue-400 bg-blue-500/5">
+                                <td class="text-indigo-200 pl-4 font-medium">Revenue</td>
+                                <td class="text-right col-cash font-bold" id="tdCashRev">$0</td>
+                                <td class="text-right col-accrual font-mono pr-4 text-lg" id="tdAccRev">---</td>
+                            </tr>
+                            
+                            <!-- Expenses Header -->
+                            <tr class="bg-indigo-950/50">
+                                <td colspan="3" class="text-xs font-bold text-indigo-400 py-2 pt-3 pl-4 tracking-wider">OPERATING EXPENSES</td>
+                            </tr>
+
+                            <!-- Wages -->
+                            <tr id="rowWage" class="row-dim border-l-4 border-l-transparent">
+                                <td class="text-slate-400 pl-4">Wages & Salaries</td>
+                                <td class="text-right col-cash" id="tdCashWage">$0</td>
+                                <td class="text-right col-accrual font-mono pr-4" id="tdAccWage">---</td>
+                            </tr>
+
+                            <!-- Rent -->
+                            <tr id="rowRent" class="row-dim border-l-4 border-l-transparent">
+                                <td class="text-slate-400 pl-4">Rent Expense</td>
+                                <td class="text-right col-cash" id="tdCashRent">$0</td>
+                                <td class="text-right col-accrual font-mono pr-4" id="tdAccRent">---</td>
+                            </tr>
+
+                            <!-- Marketing -->
+                            <tr id="rowMkt" class="row-dim border-l-4 border-l-transparent">
+                                <td class="text-slate-400 pl-4">Marketing</td>
+                                <td class="text-right col-cash" id="tdCashMkt">$0</td>
+                                <td class="text-right col-accrual font-mono pr-4" id="tdAccMkt">---</td>
+                            </tr>
+
+                            <!-- Insurance -->
+                            <tr id="rowIns" class="row-dim border-l-4 border-l-transparent">
+                                <td class="text-slate-400 pl-4">Insurance</td>
+                                <td class="text-right col-cash" id="tdCashIns">$0</td>
+                                <td class="text-right col-accrual font-mono pr-4" id="tdAccIns">---</td>
+                            </tr>
+
+                            <!-- Supplies -->
+                            <tr id="rowSup" class="row-dim border-l-4 border-l-transparent">
+                                <td class="text-slate-400 pl-4">Office Supplies</td>
+                                <td class="text-right col-cash" id="tdCashSup">$0</td>
+                                <td class="text-right col-accrual font-mono pr-4" id="tdAccSup">---</td>
+                            </tr>
+
+                            <!-- Utilities -->
+                            <tr id="rowUtil" class="row-dim border-l-4 border-l-transparent">
+                                <td class="text-slate-400 pl-4">Utilities</td>
+                                <td class="text-right col-cash" id="tdCashUtil">$0</td>
+                                <td class="text-right col-accrual font-mono pr-4" id="tdAccUtil">---</td>
+                            </tr>
+
+                             <!-- Depreciation -->
+                             <tr id="rowDepr" class="row-dim border-l-4 border-l-transparent">
+                                <td class="text-slate-400 pl-4">Depreciation Exp</td>
+                                <td class="text-right col-cash opacity-30">---</td>
+                                <td class="text-right col-accrual font-mono pr-4" id="tdAccDepr">---</td>
+                            </tr>
+                            
+                            <!-- Divider -->
+                            <tr><td colspan="3" class="h-6"></td></tr>
+
+                            <!-- Net Income -->
+                            <tr class="border-t border-indigo-500/30 bg-indigo-900/30">
+                                <td class="py-5 pl-4 font-bold text-white text-base">Operating Income</td>
+                                <td class="py-5 text-right font-bold text-xl col-cash" id="tdCashNI">$0</td>
+                                <td class="py-5 pr-4 text-right font-bold text-2xl col-accrual" id="tdAccNI">---</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Feedback Area -->
+                <div class="mt-8">
+                    <div id="taskPanel" class="bg-gradient-to-r from-indigo-900/60 to-purple-900/60 rounded-2xl p-5 border border-indigo-500/30 shadow-inner">
+                        <div class="flex items-start gap-4">
+                            <div class="bg-indigo-500/20 p-2 rounded-lg text-indigo-300">
+                                <i class="fas fa-info-circle text-xl"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-xs font-bold text-indigo-300 uppercase mb-1 tracking-widest">Status Report</h4>
+                                <p id="statusText" class="text-sm text-indigo-100 leading-relaxed">
+                                    <strong>Step 1:</strong> Compare the columns. The Cash column makes us look profitable. But 8 items are hiding adjustments. Click "Inspect Next Item" to start the analysis.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let step = 0;
+        const totalSteps = 8;
+        
+        function fmt(n) { 
+            return n.toLocaleString('en-US', {style:'currency', currency:'USD', maximumFractionDigits:0});
+        }
+
+        function getNum(id) {
+            return parseFloat(document.getElementById(id).value) || 0;
+        }
+
+        function toggleInputs() {
+            const locked = document.getElementById('lockInputs').checked;
+            const ids = ['cashRev', 'cashWage', 'cashRent', 'cashMkt', 'cashIns', 'cashSup', 'cashUtil'];
+            ids.forEach(id => {
+                const el = document.getElementById(id);
+                el.disabled = locked;
+                el.style.opacity = locked ? "0.5" : "1";
+            });
+        }
+
+        function updateInstructions() {
+            const texts = [
+                "<strong>Step 1:</strong> Compare the columns. The Cash column makes us look profitable. But 8 items are hiding adjustments. Click \"Inspect Next Item\" to start the analysis.",
+                "<strong>Revenue:</strong> Contracts started Oct 1. Slide to 3 months to see Earned Revenue.",
+                "<strong>Rent:</strong> We paid 1 year upfront on Oct 1. Only 3 months (Oct-Dec) is an expense this year.",
+                "<strong>Wages:</strong> We owe 5 unpaid days. Calculate Liability (5 * 12k) and add to expense.",
+                "<strong>Insurance:</strong> We paid 2 years upfront. Only 1 year is an expense now.",
+                "<strong>Marketing:</strong> $60k is a prepaid deposit. Subtract it from the total paid.",
+                "<strong>Supplies:</strong> We have $12k left in inventory. Expense = Paid - Inventory.",
+                "<strong>Utilities:</strong> Add the unpaid December bill ($3k) to the cash paid.",
+                "<strong>Depreciation:</strong> This is a non-cash expense. Calculate 1 year of depreciation for the $48k equipment."
+            ];
+            document.getElementById('statusText').innerHTML = texts[step] || "";
+        }
+
+        function updateVisibility() {
+            for(let i=1; i<=totalSteps; i++) {
+                const el = document.getElementById(`clue${i}`);
+                if (!el) continue;
+                
+                el.classList.remove('clue-active', 'clue-collapsed');
+                
+                if (i === step) {
+                    el.classList.add('clue-active');
+                    el.style.display = 'block';
+                } else if (i < step) {
+                    el.classList.add('clue-collapsed');
+                    el.style.display = 'block';
+                } else {
+                    el.style.display = 'none';
+                }
+            }
+            
+            // Row highlighting logic
+            const rowMap = [null, 'rowRev', 'rowRent', 'rowWage', 'rowIns', 'rowMkt', 'rowSup', 'rowUtil', 'rowDepr'];
+            const colors = [null, 'border-l-blue-400', 'border-l-indigo-400', 'border-l-emerald-400', 'border-l-amber-400', 'border-l-fuchsia-400', 'border-l-rose-400', 'border-l-cyan-400', 'border-l-orange-400'];
+            const bgColors = [null, 'bg-blue-500/10', 'bg-indigo-500/10', 'bg-emerald-500/10', 'bg-amber-500/10', 'bg-fuchsia-500/10', 'bg-rose-500/10', 'bg-cyan-500/10', 'bg-orange-500/10'];
+
+            for(let i=1; i<=totalSteps; i++) {
+                const rid = rowMap[i];
+                if(rid) {
+                    const row = document.getElementById(rid);
+                    row.className = row.className.replace(/border-l-\S+/g, 'border-l-transparent').replace(/bg-\S+/g, ''); // Reset styles
+                    
+                    if (i === step) {
+                        row.classList.remove('row-dim');
+                        row.classList.add('row-active', colors[i], bgColors[i]);
+                    } else if (i > step) {
+                        row.classList.add('row-dim');
+                        row.classList.remove('row-active');
+                    } else {
+                        // Previous rows
+                        row.classList.remove('row-dim', 'row-active');
+                        // Keep text bright for completed rows
+                        row.classList.add('opacity-80');
+                    }
+                }
+            }
+        }
+
+        function prevStep() {
+            if (step > 0) {
+                step--;
+                const btn = document.getElementById('revealBtn');
+                btn.innerHTML = '<i class="fas fa-search-dollar mr-2 text-lg"></i> Inspect Next Item';
+                btn.classList.add('hype-gradient');
+                btn.classList.remove('bg-slate-700', 'text-slate-400', 'cursor-default');
+                btn.disabled = false;
+                document.getElementById('backBtn').disabled = (step === 0);
+                updateInstructions();
+                updateVisibility();
+                updateCalcs();
+            }
+        }
+
+        function revealNext() {
+            if(step < totalSteps) {
+                step++;
+                document.getElementById('backBtn').disabled = false;
+                updateInstructions();
+                updateVisibility();
+                if(step === totalSteps) {
+                    const btn = document.getElementById('revealBtn');
+                    btn.innerHTML = '<i class="fas fa-check-circle mr-2"></i> Analysis Complete';
+                    btn.classList.remove('hype-gradient');
+                    btn.classList.add('bg-slate-700', 'text-slate-400', 'cursor-default');
+                    btn.disabled = true;
+                }
+                updateCalcs();
+            }
+        }
+
+        function updateCalcs() {
+            const cRev = getNum('cashRev');
+            const cWage = getNum('cashWage');
+            const cRent = getNum('cashRent');
+            const cMkt = getNum('cashMkt');
+            const cIns = getNum('cashIns');
+            const cSup = getNum('cashSup');
+            const cUtil = getNum('cashUtil');
+
+            const cNI = cRev - (cWage + cRent + cMkt + cIns + cSup + cUtil);
+
+            document.getElementById('tdCashRev').textContent = fmt(cRev);
+            document.getElementById('tdCashWage').textContent = "(" + fmt(cWage) + ")";
+            document.getElementById('tdCashRent').textContent = "(" + fmt(cRent) + ")";
+            document.getElementById('tdCashMkt').textContent = "(" + fmt(cMkt) + ")";
+            document.getElementById('tdCashIns').textContent = "(" + fmt(cIns) + ")";
+            document.getElementById('tdCashSup').textContent = "(" + fmt(cSup) + ")";
+            document.getElementById('tdCashUtil').textContent = "(" + fmt(cUtil) + ")";
+            document.getElementById('tdCashNI').textContent = fmt(cNI);
+            document.getElementById('tdCashNI').className = `py-5 text-right font-bold text-xl ${cNI >= 0 ? 'text-sky-400' : 'text-rose-400'}`;
+
+            let aRev=0, aWage=0, aRent=0, aMkt=0, aIns=0, aSup=0, aUtil=0, aDepr=0;
+            let displayNI = false;
+
+            if (step >= 1) {
+                const months = parseInt(document.getElementById('inputMonths').value);
+                document.getElementById('displayMonths').textContent = months;
+                aRev = (cRev / 12) * months;
+                document.getElementById('tdAccRev').textContent = fmt(aRev);
+            } else { document.getElementById('tdAccRev').textContent = "---"; }
+
+            if (step >= 2) {
+                aRent = getNum('solveRent');
+                document.getElementById('tdAccRent').textContent = "(" + fmt(aRent) + ")";
+            } else { document.getElementById('tdAccRent').textContent = "---"; }
+
+            if (step >= 3) {
+                aWage = cWage + getNum('solveWage');
+                document.getElementById('tdAccWage').textContent = "(" + fmt(aWage) + ")";
+            } else { document.getElementById('tdAccWage').textContent = "---"; }
+
+            if (step >= 4) {
+                aIns = getNum('solveIns');
+                document.getElementById('tdAccIns').textContent = "(" + fmt(aIns) + ")";
+            } else { document.getElementById('tdAccIns').textContent = "---"; }
+            
+            if (step >= 5) {
+                aMkt = getNum('solveMkt');
+                document.getElementById('tdAccMkt').textContent = "(" + fmt(aMkt) + ")";
+            } else { document.getElementById('tdAccMkt').textContent = "---"; }
+
+            if (step >= 6) {
+                aSup = getNum('solveSup');
+                document.getElementById('tdAccSup').textContent = "(" + fmt(aSup) + ")";
+            } else { document.getElementById('tdAccSup').textContent = "---"; }
+
+            if (step >= 7) {
+                aUtil = getNum('solveUtil');
+                document.getElementById('tdAccUtil').textContent = "(" + fmt(aUtil) + ")";
+            } else { document.getElementById('tdAccUtil').textContent = "---"; }
+
+            if (step >= 8) {
+                aDepr = getNum('solveDepr');
+                document.getElementById('tdAccDepr').textContent = "(" + fmt(aDepr) + ")";
+                displayNI = true;
+            } else { document.getElementById('tdAccDepr').textContent = "---"; }
+
+            if (displayNI) {
+                const aNI = aRev - (aWage + aRent + aMkt + aIns + aSup + aUtil + aDepr);
+                document.getElementById('tdAccNI').textContent = fmt(aNI);
+                document.getElementById('tdAccNI').className = `py-5 pr-4 text-right font-bold text-2xl ${aNI >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
+                
+                if (aNI < 0 && cNI > 0) {
+                     document.getElementById('statusText').innerHTML = "<strong>Mission Complete:</strong> The company is technically unprofitable. <br>ADJUSTMENTS: Revenue Deferred, Rent/Ins/Mkt Prepaid, vs Wages/Util Accrued + Depreciation.";
+                } else if (aNI > 0) {
+                     document.getElementById('statusText').innerHTML = "<strong>Mission Complete:</strong> The company is profitable on an accrual basis!";
+                }
+            } else {
+                document.getElementById('tdAccNI').textContent = "---";
+                document.getElementById('tdAccNI').className = "py-5 pr-4 text-right font-bold text-2xl col-accrual";
+            }
+        }
+
+        updateCalcs();
+    </script>
+</body>
+</html>
