@@ -50,7 +50,7 @@
         }
     </style>
 </head>
-<body>
+<body oncontextmenu="return false">
 
 <div id="root"></div>
 
@@ -375,7 +375,8 @@
         if (!isOpen) return null;
 
         const handleSubmit = () => {
-            if (password === "teacher") {
+            const _0x12a4=["\x54\x30\x46\x51\x4e\x69\x30\x79\x4c\x55\x74\x6c\x65\x54\x56\x55"];
+            if (btoa(password) === _0x12a4[0]) {
                 onSuccess();
                 onClose();
                 setPassword("");
@@ -525,9 +526,10 @@
         );
     };
 
-    const SmartInput = ({ id, value, onChange, onFocus, isActive, expectedValue, placeholder }) => {
+    const SmartInput = ({ id, value, onChange, onFocus, isActive, expectedValue, placeholder, isPercentage }) => {
         const [localValue, setLocalValue] = React.useState(value);
         const [status, setStatus] = React.useState('neutral');
+        const [isFocused, setIsFocused] = React.useState(false);
 
         React.useEffect(() => {
             setLocalValue(value);
@@ -546,18 +548,35 @@
             }
 
             const tolerance = Math.abs(expectedValue * 0.05); // 5% tolerance
+            
+            // Check 1: Direct match (e.g. 5.0 == 5.0)
             if (Math.abs(numVal - expectedValue) <= tolerance) {
                 setStatus('correct');
-            } else {
-                setStatus('incorrect');
+                return;
+            } 
+            
+            // Check 2: Decimal equivalent for percentages (e.g. 0.05 == 5%)
+            if (isPercentage) {
+                if (Math.abs((numVal * 100) - expectedValue) <= tolerance) {
+                    setStatus('correct');
+                    return;
+                }
             }
+
+            setStatus('incorrect');
         };
 
         const handleChange = (e) => {
             setLocalValue(e.target.value);
         };
 
+        const handleFocusInternal = () => {
+            setIsFocused(true);
+            if (onFocus) onFocus(id);
+        };
+
         const handleBlur = () => {
+            setIsFocused(false);
             const result = safeEvaluate(localValue);
             if (result !== null && !isNaN(result)) {
                 const rounded = parseFloat(result.toFixed(2));
@@ -577,7 +596,10 @@
 
         let borderColor = 'border-gray-300';
         let bgColor = 'bg-white';
-        if (isActive) borderColor = 'border-blue-500 ring-2 ring-blue-200';
+        
+        // Use local isFocused state for visual feedback instead of isActive prop
+        // This ensures that when blur occurs (e.g. via Enter), the style updates immediately
+        if (isFocused) borderColor = 'border-blue-500 ring-2 ring-blue-200';
         else if (status === 'correct') { borderColor = 'border-green-500'; bgColor = 'bg-green-50'; }
         else if (status === 'incorrect') { borderColor = 'border-red-500'; bgColor = 'bg-red-50'; }
 
@@ -587,7 +609,7 @@
                     type="text"
                     value={localValue}
                     onChange={handleChange}
-                    onFocus={() => onFocus(id)}
+                    onFocus={handleFocusInternal}
                     onBlur={handleBlur}
                     onKeyDown={handleKeyDown}
                     className={`w-full px-3 py-2 border rounded text-sm transition-all duration-200 focus:outline-none ${borderColor} ${bgColor}`}
@@ -1222,6 +1244,7 @@
                                                 isActive={activeInputId === "percentUsed"}
                                                 expectedValue={expectations.percentUsed}
                                                 placeholder="(Acc Dep / Gross) * 100"
+                                                isPercentage={true}
                                             />
                                         </div>
                                     </div>
@@ -1245,6 +1268,7 @@
                                                 isActive={activeInputId === "intPct"}
                                                 expectedValue={expectations.intPct}
                                                 placeholder="(Intangibles / Assets) * 100"
+                                                isPercentage={true}
                                             />
                                         </div>
                                         <div>
@@ -1257,6 +1281,7 @@
                                                 isActive={activeInputId === "gwPct"}
                                                 expectedValue={expectations.gwPct}
                                                 placeholder="(Goodwill / Assets) * 100"
+                                                isPercentage={true}
                                             />
                                         </div>
                                     </div>
@@ -1265,292 +1290,292 @@
                                 {/* Section 4: ITW SPECIAL */}
                                 {activeCompany === 'ITW' && (
                                     <div className="mb-10 border-t-2 border-blue-100 pt-6">
-                                        <div className="bg-blue-50 p-4 rounded-lg border border-blue-200 mb-6">
-                                            <div className="flex justify-between items-start">
-                                                <div className="flex items-start gap-3">
-                                                    <div className="bg-blue-100 p-2 rounded-full text-blue-600">
-                                                        <i data-lucide="microscope" className="w-5 h-5"></i>
+                                            <div className="bg-blue-50 p-4 rounded-lg border border-blue-200 mb-6">
+                                                <div className="flex justify-between items-start">
+                                                    <div className="flex items-start gap-3">
+                                                        <div className="bg-blue-100 p-2 rounded-full text-blue-600">
+                                                            <i data-lucide="microscope" className="w-5 h-5"></i>
+                                                        </div>
+                                                        <div>
+                                                            <h3 className="font-bold text-blue-900 text-lg">Section 4: Deep Dive - M&A & Intangibles</h3>
+                                                            <p className="text-sm text-blue-700">Analyze the MTS Acquisition (Note 9) and 2022 Intangibles.</p>
+                                                        </div>
                                                     </div>
-                                                    <div>
-                                                        <h3 className="font-bold text-blue-900 text-lg">Section 4: Deep Dive - M&A & Intangibles</h3>
-                                                        <p className="text-sm text-blue-700">Analyze the MTS Acquisition (Note 9) and 2022 Intangibles.</p>
+                                                    <div className="flex flex-col gap-2">
+                                                        <a 
+                                                            href="https://www.sec.gov/ix?doc=/Archives/edgar/data/0000049826/000004982623000008/itw-20221231.htm" 
+                                                            target="_blank" rel="noreferrer"
+                                                            className="text-xs bg-white text-blue-600 px-3 py-1 rounded border border-blue-200 hover:bg-blue-50 flex items-center gap-1 shadow-sm"
+                                                        >
+                                                            Open 2022 10-K <i data-lucide="external-link" className="w-3 h-3"></i>
+                                                        </a>
+                                                        <button 
+                                                            onClick={toggleSolution}
+                                                            className={`text-xs px-3 py-1 rounded border flex items-center gap-1 shadow-sm ${showSolution ? 'bg-green-100 text-green-800 border-green-300' : 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100'}`}
+                                                        >
+                                                            {showSolution ? "Hide Note Data" : "Reveal Note Data"} <i data-lucide={showSolution ? "eye-off" : "eye"} className="w-3 h-3"></i>
+                                                        </button>
                                                     </div>
                                                 </div>
-                                                <div className="flex flex-col gap-2">
-                                                    <a 
-                                                        href="https://www.sec.gov/ix?doc=/Archives/edgar/data/0000049826/000004982623000008/itw-20221231.htm" 
-                                                        target="_blank" rel="noreferrer"
-                                                        className="text-xs bg-white text-blue-600 px-3 py-1 rounded border border-blue-200 hover:bg-blue-50 flex items-center gap-1 shadow-sm"
-                                                    >
-                                                        Open 2022 10-K <i data-lucide="external-link" className="w-3 h-3"></i>
-                                                    </a>
-                                                    <button 
-                                                        onClick={toggleSolution}
-                                                        className={`text-xs px-3 py-1 rounded border flex items-center gap-1 shadow-sm ${showSolution ? 'bg-green-100 text-green-800 border-green-300' : 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100'}`}
-                                                    >
-                                                        {showSolution ? "Hide Note Data" : "Reveal Note Data"} <i data-lucide={showSolution ? "eye-off" : "eye"} className="w-3 h-3"></i>
-                                                    </button>
+                                            </div>
+
+                                            {showSolution && (
+                                                <SolutionDataViewer companyKey="ITW" noteKeys={['note_9', 'note_intangibles']} />
+                                            )}
+
+                                            <SectionHeader title="Part A: MTS Acquisition (Note 9 - Dec 2021)" sectionKey="s4" hideFormula={true} />
+                                            <div className="grid grid-cols-2 gap-6 mb-6">
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Goodwill Recorded</label>
+                                                    <SmartInput 
+                                                        id="mtsGw"
+                                                        value={inputValues[activeCompany].mtsGw || ""}
+                                                        onChange={handleInputChange}
+                                                        onFocus={handleFocus}
+                                                        isActive={activeInputId === "mtsGw"}
+                                                        expectedValue={expectations.mtsGw}
+                                                        placeholder="Find in Note 9"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Intangibles Recorded</label>
+                                                    <SmartInput 
+                                                        id="mtsInt"
+                                                        value={inputValues[activeCompany].mtsInt || ""}
+                                                        onChange={handleInputChange}
+                                                        onFocus={handleFocus}
+                                                        isActive={activeInputId === "mtsInt"}
+                                                        expectedValue={expectations.mtsInt}
+                                                        placeholder="Find in Note 9"
+                                                    />
                                                 </div>
                                             </div>
-                                        </div>
 
-                                        {showSolution && (
-                                            <SolutionDataViewer companyKey="ITW" noteKeys={['note_9', 'note_intangibles']} />
-                                        )}
+                                            <SectionHeader title="Part B: Net Carrying Values 2022" sectionKey="s4" hideFormula={true} />
+                                            <div className="text-xs text-gray-500 mb-2 italic">Formula: Net Carrying Value = Gross Value - Accumulated Amortization (Usually reported directly in notes)</div>
+                                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Customer Lists</label>
+                                                    <SmartInput 
+                                                        id="ncvCust"
+                                                        value={inputValues[activeCompany].ncvCust || ""}
+                                                        onChange={handleInputChange}
+                                                        onFocus={handleFocus}
+                                                        isActive={activeInputId === "ncvCust"}
+                                                        expectedValue={expectations.ncvCust}
+                                                        placeholder="Net Value"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Trademarks</label>
+                                                    <SmartInput 
+                                                        id="ncvTrade"
+                                                        value={inputValues[activeCompany].ncvTrade || ""}
+                                                        onChange={handleInputChange}
+                                                        onFocus={handleFocus}
+                                                        isActive={activeInputId === "ncvTrade"}
+                                                        expectedValue={expectations.ncvTrade}
+                                                        placeholder="Net Value"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Patents</label>
+                                                    <SmartInput 
+                                                        id="ncvPat"
+                                                        value={inputValues[activeCompany].ncvPat || ""}
+                                                        onChange={handleInputChange}
+                                                        onFocus={handleFocus}
+                                                        isActive={activeInputId === "ncvPat"}
+                                                        expectedValue={expectations.ncvPat}
+                                                        placeholder="Net Value"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Indefinite Lived</label>
+                                                    <SmartInput 
+                                                        id="ncvIndef"
+                                                        value={inputValues[activeCompany].ncvIndef || ""}
+                                                        onChange={handleInputChange}
+                                                        onFocus={handleFocus}
+                                                        isActive={activeInputId === "ncvIndef"}
+                                                        expectedValue={expectations.ncvIndef}
+                                                        placeholder="Net Value"
+                                                    />
+                                                </div>
+                                            </div>
 
-                                        <SectionHeader title="Part A: MTS Acquisition (Note 9 - Dec 2021)" sectionKey="s4" hideFormula={true} />
-                                        <div className="grid grid-cols-2 gap-6 mb-6">
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">Goodwill Recorded</label>
-                                                <SmartInput 
-                                                    id="mtsGw"
-                                                    value={inputValues[activeCompany].mtsGw || ""}
-                                                    onChange={handleInputChange}
-                                                    onFocus={handleFocus}
-                                                    isActive={activeInputId === "mtsGw"}
-                                                    expectedValue={expectations.mtsGw}
-                                                    placeholder="Find in Note 9"
-                                                />
+                                            <SectionHeader title="Part C: Amortization & Impairment" sectionKey="s4" hideFormula={true} />
+                                            <div className="grid grid-cols-2 gap-6 mb-4">
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">2022 Amortization Expense</label>
+                                                    <SmartInput 
+                                                        id="itwAmort"
+                                                        value={inputValues[activeCompany].itwAmort || ""}
+                                                        onChange={handleInputChange}
+                                                        onFocus={handleFocus}
+                                                        isActive={activeInputId === "itwAmort"}
+                                                        expectedValue={expectations.itwAmort}
+                                                        placeholder="Find in Cash Flows"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Did ITW record Impairment?</label>
+                                                    <select 
+                                                        value={inputValues[activeCompany].impairmentStatus || ""}
+                                                        onChange={(e) => handleInputChange('impairmentStatus', e.target.value)}
+                                                        className="w-full px-3 py-2 border border-gray-300 rounded text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-200"
+                                                    >
+                                                        <option value="">Select...</option>
+                                                        <option value="Yes">Yes</option>
+                                                        <option value="No">No</option>
+                                                    </select>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">Intangibles Recorded</label>
-                                                <SmartInput 
-                                                    id="mtsInt"
-                                                    value={inputValues[activeCompany].mtsInt || ""}
-                                                    onChange={handleInputChange}
-                                                    onFocus={handleFocus}
-                                                    isActive={activeInputId === "mtsInt"}
-                                                    expectedValue={expectations.mtsInt}
-                                                    placeholder="Find in Note 9"
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <SectionHeader title="Part B: Net Carrying Values 2022" sectionKey="s4" hideFormula={true} />
-                                        <div className="text-xs text-gray-500 mb-2 italic">Formula: Net Carrying Value = Gross Value - Accumulated Amortization (Usually reported directly in notes)</div>
-                                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">Customer Lists</label>
-                                                <SmartInput 
-                                                    id="ncvCust"
-                                                    value={inputValues[activeCompany].ncvCust || ""}
-                                                    onChange={handleInputChange}
-                                                    onFocus={handleFocus}
-                                                    isActive={activeInputId === "ncvCust"}
-                                                    expectedValue={expectations.ncvCust}
-                                                    placeholder="Net Value"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">Trademarks</label>
-                                                <SmartInput 
-                                                    id="ncvTrade"
-                                                    value={inputValues[activeCompany].ncvTrade || ""}
-                                                    onChange={handleInputChange}
-                                                    onFocus={handleFocus}
-                                                    isActive={activeInputId === "ncvTrade"}
-                                                    expectedValue={expectations.ncvTrade}
-                                                    placeholder="Net Value"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">Patents</label>
-                                                <SmartInput 
-                                                    id="ncvPat"
-                                                    value={inputValues[activeCompany].ncvPat || ""}
-                                                    onChange={handleInputChange}
-                                                    onFocus={handleFocus}
-                                                    isActive={activeInputId === "ncvPat"}
-                                                    expectedValue={expectations.ncvPat}
-                                                    placeholder="Net Value"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">Indefinite Lived</label>
-                                                <SmartInput 
-                                                    id="ncvIndef"
-                                                    value={inputValues[activeCompany].ncvIndef || ""}
-                                                    onChange={handleInputChange}
-                                                    onFocus={handleFocus}
-                                                    isActive={activeInputId === "ncvIndef"}
-                                                    expectedValue={expectations.ncvIndef}
-                                                    placeholder="Net Value"
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <SectionHeader title="Part C: Amortization & Impairment" sectionKey="s4" hideFormula={true} />
-                                        <div className="grid grid-cols-2 gap-6 mb-4">
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">2022 Amortization Expense</label>
-                                                <SmartInput 
-                                                    id="itwAmort"
-                                                    value={inputValues[activeCompany].itwAmort || ""}
-                                                    onChange={handleInputChange}
-                                                    onFocus={handleFocus}
-                                                    isActive={activeInputId === "itwAmort"}
-                                                    expectedValue={expectations.itwAmort}
-                                                    placeholder="Find in Cash Flows"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">Did ITW record Impairment?</label>
-                                                <select 
-                                                    value={inputValues[activeCompany].impairmentStatus || ""}
-                                                    onChange={(e) => handleInputChange('impairmentStatus', e.target.value)}
-                                                    className="w-full px-3 py-2 border border-gray-300 rounded text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-200"
-                                                >
-                                                    <option value="">Select...</option>
-                                                    <option value="Yes">Yes</option>
-                                                    <option value="No">No</option>
-                                                </select>
-                                            </div>
-                                        </div>
                                     </div>
                                 )}
 
                                 {/* Section 4: PH SPECIAL */}
                                 {activeCompany === 'PH' && (
                                     <div className="mb-10 border-t-2 border-blue-100 pt-6">
-                                        <div className="bg-blue-50 p-4 rounded-lg border border-blue-200 mb-6">
-                                            <div className="flex justify-between items-start">
-                                                <div className="flex items-start gap-3">
-                                                    <div className="bg-blue-100 p-2 rounded-full text-blue-600">
-                                                        <i data-lucide="microscope" className="w-5 h-5"></i>
+                                            <div className="bg-blue-50 p-4 rounded-lg border border-blue-200 mb-6">
+                                                <div className="flex justify-between items-start">
+                                                    <div className="flex items-start gap-3">
+                                                        <div className="bg-blue-100 p-2 rounded-full text-blue-600">
+                                                            <i data-lucide="microscope" className="w-5 h-5"></i>
+                                                        </div>
+                                                        <div>
+                                                            <h3 className="font-bold text-blue-900 text-lg">Section 4: Deep Dive - 2020 M&A & Intangibles</h3>
+                                                            <p className="text-sm text-blue-700">Analyze the impact of the "Lord" and "Exotic" acquisitions.</p>
+                                                        </div>
                                                     </div>
-                                                    <div>
-                                                        <h3 className="font-bold text-blue-900 text-lg">Section 4: Deep Dive - 2020 M&A & Intangibles</h3>
-                                                        <p className="text-sm text-blue-700">Analyze the impact of the "Lord" and "Exotic" acquisitions.</p>
+                                                    <div className="flex flex-col gap-2">
+                                                        <a 
+                                                            href="https://www.sec.gov/ix?doc=/Archives/edgar/data/0000076334/000007633420000099/ph630202010-k.htm" 
+                                                            target="_blank" rel="noreferrer"
+                                                            className="text-xs bg-white text-blue-600 px-3 py-1 rounded border border-blue-200 hover:bg-blue-50 flex items-center gap-1 shadow-sm"
+                                                        >
+                                                            Open 2020 10-K <i data-lucide="external-link" className="w-3 h-3"></i>
+                                                        </a>
+                                                        <button 
+                                                            onClick={toggleSolution}
+                                                            className={`text-xs px-3 py-1 rounded border flex items-center gap-1 shadow-sm ${showSolution ? 'bg-green-100 text-green-800 border-green-300' : 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100'}`}
+                                                        >
+                                                            {showSolution ? "Hide Note Data" : "Reveal Note Data"} <i data-lucide={showSolution ? "eye-off" : "eye"} className="w-3 h-3"></i>
+                                                        </button>
                                                     </div>
                                                 </div>
-                                                <div className="flex flex-col gap-2">
-                                                    <a 
-                                                        href="https://www.sec.gov/ix?doc=/Archives/edgar/data/0000076334/000007633420000099/ph630202010-k.htm" 
-                                                        target="_blank" rel="noreferrer"
-                                                        className="text-xs bg-white text-blue-600 px-3 py-1 rounded border border-blue-200 hover:bg-blue-50 flex items-center gap-1 shadow-sm"
-                                                    >
-                                                        Open 2020 10-K <i data-lucide="external-link" className="w-3 h-3"></i>
-                                                    </a>
-                                                    <button 
-                                                        onClick={toggleSolution}
-                                                        className={`text-xs px-3 py-1 rounded border flex items-center gap-1 shadow-sm ${showSolution ? 'bg-green-100 text-green-800 border-green-300' : 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100'}`}
-                                                    >
-                                                        {showSolution ? "Hide Note Data" : "Reveal Note Data"} <i data-lucide={showSolution ? "eye-off" : "eye"} className="w-3 h-3"></i>
-                                                    </button>
+                                                
+                                                <div className="mt-4 p-3 bg-white rounded border border-blue-100">
+                                                    <label className="block text-sm font-bold text-gray-700 mb-2">Analysis Check: Observe the sharp jump in Goodwill % in 2020 (39.6%) vs 2019 (30.8%). What does this suggest?</label>
+                                                    <select className="w-full px-3 py-2 border border-gray-300 rounded text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-200">
+                                                        <option>Select your analysis...</option>
+                                                        <option>Significant acquisitions occurred (Inorganic Growth)</option>
+                                                        <option>Organic growth of internal assets</option>
+                                                        <option>Accounting error in 2019</option>
+                                                    </select>
                                                 </div>
                                             </div>
-                                            
-                                            <div className="mt-4 p-3 bg-white rounded border border-blue-100">
-                                                <label className="block text-sm font-bold text-gray-700 mb-2">Analysis Check: Observe the sharp jump in Goodwill % in 2020 (39.6%) vs 2019 (30.8%). What does this suggest?</label>
-                                                <select className="w-full px-3 py-2 border border-gray-300 rounded text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-200">
-                                                    <option>Select your analysis...</option>
-                                                    <option>Significant acquisitions occurred (Inorganic Growth)</option>
-                                                    <option>Organic growth of internal assets</option>
-                                                    <option>Accounting error in 2019</option>
-                                                </select>
-                                            </div>
-                                        </div>
 
-                                        {showSolution && (
-                                            <SolutionDataViewer companyKey="PH" noteKeys={['note_3', 'note_8']} />
-                                        )}
+                                            {showSolution && (
+                                                <SolutionDataViewer companyKey="PH" noteKeys={['note_3', 'note_8']} />
+                                            )}
 
-                                        <SectionHeader title="Part A: Acquisition Impact (Note 3)" sectionKey="s4" hideFormula={true} />
-                                        <div className="grid grid-cols-2 gap-6 mb-6">
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">Total Intangibles Acquired (2020)</label>
-                                                <SmartInput 
-                                                    id="totalIntAcq"
-                                                    value={inputValues[activeCompany].totalIntAcq || ""}
-                                                    onChange={handleInputChange}
-                                                    onFocus={handleFocus}
-                                                    isActive={activeInputId === "totalIntAcq"}
-                                                    expectedValue={expectations.totalIntAcq}
-                                                    placeholder="Find in Note 3"
-                                                />
+                                            <SectionHeader title="Part A: Acquisition Impact (Note 3)" sectionKey="s4" hideFormula={true} />
+                                            <div className="grid grid-cols-2 gap-6 mb-6">
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Total Intangibles Acquired (2020)</label>
+                                                    <SmartInput 
+                                                        id="totalIntAcq"
+                                                        value={inputValues[activeCompany].totalIntAcq || ""}
+                                                        onChange={handleInputChange}
+                                                        onFocus={handleFocus}
+                                                        isActive={activeInputId === "totalIntAcq"}
+                                                        expectedValue={expectations.totalIntAcq}
+                                                        placeholder="Find in Note 3"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Total Goodwill Created (2020)</label>
+                                                    <SmartInput 
+                                                        id="totalGWAcq"
+                                                        value={inputValues[activeCompany].totalGWAcq || ""}
+                                                        onChange={handleInputChange}
+                                                        onFocus={handleFocus}
+                                                        isActive={activeInputId === "totalGWAcq"}
+                                                        expectedValue={expectations.totalGWAcq}
+                                                        placeholder="Find in Note 3"
+                                                    />
+                                                </div>
                                             </div>
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">Total Goodwill Created (2020)</label>
-                                                <SmartInput 
-                                                    id="totalGWAcq"
-                                                    value={inputValues[activeCompany].totalGWAcq || ""}
-                                                    onChange={handleInputChange}
-                                                    onFocus={handleFocus}
-                                                    isActive={activeInputId === "totalGWAcq"}
-                                                    expectedValue={expectations.totalGWAcq}
-                                                    placeholder="Find in Note 3"
-                                                />
-                                            </div>
-                                        </div>
 
-                                        <SectionHeader title="Part B: Net Carrying Values 2020 (Note 8)" sectionKey="s4" hideFormula={true} />
-                                        <div className="text-xs text-gray-500 mb-2 italic">Formula: Net Carrying Value = Gross Value - Accumulated Amortization</div>
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">Patents & Tech Net Value</label>
-                                                <SmartInput 
-                                                    id="patNet"
-                                                    value={inputValues[activeCompany].patNet || ""}
-                                                    onChange={handleInputChange}
-                                                    onFocus={handleFocus}
-                                                    isActive={activeInputId === "patNet"}
-                                                    expectedValue={expectations.patNet}
-                                                    placeholder="Gross - Accum. Amort"
-                                                />
+                                            <SectionHeader title="Part B: Net Carrying Values 2020 (Note 8)" sectionKey="s4" hideFormula={true} />
+                                            <div className="text-xs text-gray-500 mb-2 italic">Formula: Net Carrying Value = Gross Value - Accumulated Amortization</div>
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Patents & Tech Net Value</label>
+                                                    <SmartInput 
+                                                        id="patNet"
+                                                        value={inputValues[activeCompany].patNet || ""}
+                                                        onChange={handleInputChange}
+                                                        onFocus={handleFocus}
+                                                        isActive={activeInputId === "patNet"}
+                                                        expectedValue={expectations.patNet}
+                                                        placeholder="Gross - Accum. Amort"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Trademarks Net Value</label>
+                                                    <SmartInput 
+                                                        id="tmNet"
+                                                        value={inputValues[activeCompany].tmNet || ""}
+                                                        onChange={handleInputChange}
+                                                        onFocus={handleFocus}
+                                                        isActive={activeInputId === "tmNet"}
+                                                        expectedValue={expectations.tmNet}
+                                                        placeholder="Gross - Accum. Amort"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Customer Lists Net Value</label>
+                                                    <SmartInput 
+                                                        id="listNet"
+                                                        value={inputValues[activeCompany].listNet || ""}
+                                                        onChange={handleInputChange}
+                                                        onFocus={handleFocus}
+                                                        isActive={activeInputId === "listNet"}
+                                                        expectedValue={expectations.listNet}
+                                                        placeholder="Gross - Accum. Amort"
+                                                    />
+                                                </div>
                                             </div>
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">Trademarks Net Value</label>
-                                                <SmartInput 
-                                                    id="tmNet"
-                                                    value={inputValues[activeCompany].tmNet || ""}
-                                                    onChange={handleInputChange}
-                                                    onFocus={handleFocus}
-                                                    isActive={activeInputId === "tmNet"}
-                                                    expectedValue={expectations.tmNet}
-                                                    placeholder="Gross - Accum. Amort"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">Customer Lists Net Value</label>
-                                                <SmartInput 
-                                                    id="listNet"
-                                                    value={inputValues[activeCompany].listNet || ""}
-                                                    onChange={handleInputChange}
-                                                    onFocus={handleFocus}
-                                                    isActive={activeInputId === "listNet"}
-                                                    expectedValue={expectations.listNet}
-                                                    placeholder="Gross - Accum. Amort"
-                                                />
-                                            </div>
-                                        </div>
 
-                                        <SectionHeader title="Part C: Amortization & Impairment" sectionKey="s4" hideFormula={true} />
-                                        <div className="grid grid-cols-2 gap-6 mb-4">
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">2020 Amortization Expense</label>
-                                                <SmartInput 
-                                                    id="amort2020"
-                                                    value={inputValues[activeCompany].amort2020 || ""}
-                                                    onChange={handleInputChange}
-                                                    onFocus={handleFocus}
-                                                    isActive={activeInputId === "amort2020"}
-                                                    expectedValue={expectations.amort2020}
-                                                    placeholder="Hint: Check Cash Flows"
-                                                />
+                                            <SectionHeader title="Part C: Amortization & Impairment" sectionKey="s4" hideFormula={true} />
+                                            <div className="grid grid-cols-2 gap-6 mb-4">
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">2020 Amortization Expense</label>
+                                                    <SmartInput 
+                                                        id="amort2020"
+                                                        value={inputValues[activeCompany].amort2020 || ""}
+                                                        onChange={handleInputChange}
+                                                        onFocus={handleFocus}
+                                                        isActive={activeInputId === "amort2020"}
+                                                        expectedValue={expectations.amort2020}
+                                                        placeholder="Hint: Check Cash Flows"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Did PH record Impairment?</label>
+                                                    <select 
+                                                        value={inputValues[activeCompany].impairmentStatus || ""}
+                                                        onChange={(e) => handleInputChange('impairmentStatus', e.target.value)}
+                                                        className="w-full px-3 py-2 border border-gray-300 rounded text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-200"
+                                                    >
+                                                        <option value="">Select...</option>
+                                                        <option value="Yes, significant charges.">Yes, significant charges.</option>
+                                                        <option value="No, no charges recorded.">No, no charges recorded.</option>
+                                                    </select>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">Did PH record Impairment?</label>
-                                                <select 
-                                                    value={inputValues[activeCompany].impairmentStatus || ""}
-                                                    onChange={(e) => handleInputChange('impairmentStatus', e.target.value)}
-                                                    className="w-full px-3 py-2 border border-gray-300 rounded text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-200"
-                                                >
-                                                    <option value="">Select...</option>
-                                                    <option value="Yes, significant charges.">Yes, significant charges.</option>
-                                                    <option value="No, no charges recorded.">No, no charges recorded.</option>
-                                                </select>
-                                            </div>
-                                        </div>
                                     </div>
                                 )}
                             </>
