@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Financial Reporting & Analysis Simulation</title>
+    <title>Financial Reporting and Analysis Simulation</title>
     
     <!-- React & ReactDOM -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
@@ -15,152 +15,218 @@
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Lucide Icons (Latest Version) -->
+    <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
-
+    
     <style>
-        /* Aggressive Custom Scrollbar for ALL scrollable areas */
-        .custom-scroll {
-            scrollbar-width: auto; /* Firefox: Show scrollbar */
-            scrollbar-color: #94a3b8 #f1f5f9; /* Firefox: Thumb Track */
-        }
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
         
-        /* Webkit (Chrome, Edge, Safari) */
-        .custom-scroll::-webkit-scrollbar {
-            width: 10px; /* Vertical Scrollbar Width */
-            height: 10px; /* Horizontal Scrollbar Height */
+        /* Custom Table Styles */
+        .ref-table th, .ref-table td {
+            padding: 6px 8px;
+            font-size: 0.75rem;
+            border-bottom: 1px solid #e5e7eb;
+            vertical-align: middle;
         }
+        .ref-table tr:hover { background-color: #f0f9ff; }
+        .ref-table .val-cell { 
+            text-align: right; 
+            font-family: 'Roboto Mono', monospace; 
+            cursor: pointer;
+            color: #059669;
+            transition: background-color 0.15s;
+        }
+        .ref-table .val-cell:hover { background-color: #d1fae5; font-weight: bold; }
         
-        .custom-scroll::-webkit-scrollbar-track {
-            background: #f1f5f9; 
-            border: 1px solid #e2e8f0;
-        }
-        
-        .custom-scroll::-webkit-scrollbar-thumb {
-            background-color: #cbd5e1; /* Visible Grey */
-            border-radius: 5px;
-            border: 2px solid #f1f5f9; /* Creates a padding effect */
-        }
-        
-        .custom-scroll::-webkit-scrollbar-thumb:hover {
-            background-color: #64748b; /* Darker on hover */
-        }
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
-        body {
-            background-color: #f8fafc;
+        .hint-popover {
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s, visibility 0.2s;
         }
-        .icon-fix svg {
-            display: inline-block;
+        .group:hover .hint-popover {
+            opacity: 1;
+            visibility: visible;
         }
     </style>
 </head>
-<body>
+<body oncontextmenu="return false">
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useRef, useMemo } = React;
+        const { useState, useEffect, useMemo, useRef } = React;
 
-        // ==========================================
-        // DATA CONSTANTS
-        // ==========================================
+        // --- DATA & CONSTANTS ---
 
+        // Expanded Data with detailed Liabilities for both companies
         const RAW_DATA = [
-            // --- ITW Data ---
-            // Market Data
-            { company: "ITW", statement: "Market Data", account: "Stock Price at Year End", y2022: 220.30, y2021: 246.80 },
-
-            // Balance Sheet
-            { company: "ITW", statement: "Balance Sheet", account: "Cash and equivalents", y2022: 708, y2021: 1527 },
-            { company: "ITW", statement: "Balance Sheet", account: "Trade receivables", y2022: 3171, y2021: 2840 },
-            { company: "ITW", statement: "Balance Sheet", account: "Inventories", y2022: 2054, y2021: 1694 },
-            { company: "ITW", statement: "Balance Sheet", account: "Total current assets", y2022: 6270, y2021: 6374 },
-            { company: "ITW", statement: "Balance Sheet", account: "Total assets", y2022: 15422, y2021: 16077 },
-            { company: "ITW", statement: "Balance Sheet", account: "Total current liabilities", y2022: 4460, y2021: 3470 },
-            { company: "ITW", statement: "Balance Sheet", account: "Long-term debt", y2022: 6173, y2021: 6909 },
-            { company: "ITW", statement: "Balance Sheet", account: "Total noncurrent liabilities", y2022: 7873, y2021: 8981 },
-            { company: "ITW", statement: "Balance Sheet", account: "Total liabilities", y2022: 12333, y2021: 12451 },
-            { company: "ITW", statement: "Balance Sheet", account: "Total stockholders' equity", y2022: 3089, y2021: 3626 },
-            { company: "ITW", statement: "Balance Sheet", account: "Total liabilities and equity", y2022: 15422, y2021: 16077 },
-
-            // Income Statement
-            { company: "ITW", statement: "Income Statement", account: "Operating revenue", y2022: 15932, y2021: 14455 },
-            { company: "ITW", statement: "Income Statement", account: "Net income", y2022: 3034, y2021: 2694 },
-
-            // Cash Flow
-            { company: "ITW", statement: "Cash Flow", account: "Net cash provided by operating activities (CFO)", y2022: 2348, y2021: 2557 },
-            { company: "ITW", statement: "Cash Flow", account: "Net cash used for investing activities (CFI)", y2022: -110, y2021: -984 },
-            { company: "ITW", statement: "Cash Flow", account: "Net cash used for financing activities (CFF)", y2022: -3000, y2021: -2564 },
-            { company: "ITW", statement: "Cash Flow", account: "Repurchases of common stock", y2022: -1750, y2021: -1000 },
-            { company: "ITW", statement: "Cash Flow", account: "Dividends paid", y2022: -1542, y2021: -1463 },
-
-            // Statement of Equity (Total Column Walk)
-            { company: "ITW", statement: "Statement of Equity", account: "Beginning Balance", y2022: 3626, y2021: 3182 },
-            { company: "ITW", statement: "Statement of Equity", account: "Net income", y2022: 3034, y2021: 2694 },
-            { company: "ITW", statement: "Statement of Equity", account: "Common stock issued", y2022: 15, y2021: 40 },
-            { company: "ITW", statement: "Statement of Equity", account: "Stock-based compensation expense", y2022: 63, y2021: 53 },
-            { company: "ITW", statement: "Statement of Equity", account: "Repurchases of common stock", y2022: -1750, y2021: -1000 },
-            { company: "ITW", statement: "Statement of Equity", account: "Dividends declared", y2022: -1560, y2021: -1483 },
-            { company: "ITW", statement: "Statement of Equity", account: "Other comprehensive income (loss)", y2022: -339, y2021: 140 },
-            { company: "ITW", statement: "Statement of Equity", account: "Ending Balance", y2022: 3089, y2021: 3626 },
-
-            // Equity Components
-            { company: "ITW", statement: "Equity Components", account: "Common Stock", y2022: 6, y2021: 6 },
-            { company: "ITW", statement: "Equity Components", account: "Retained earnings", y2022: 25799, y2021: 24325 },
-            { company: "ITW", statement: "Equity Components", account: "Treasury stock", y2022: -22377, y2021: -20636 },
-
-             // Supplemental Data (EPS, Dividends) - Only visible in instructor mode logic
-            { company: "ITW", statement: "Supplemental Data", account: "Dividends per share", y2022: 5.06, y2021: 4.72 },
-            { company: "ITW", statement: "Supplemental Data", account: "Basic EPS", y2022: 9.80, y2021: 8.55 },
-            { company: "ITW", statement: "Supplemental Data", account: "Diluted EPS", y2022: 9.77, y2021: 8.51 },
-            { company: "ITW", statement: "Supplemental Data", account: "Weighted avg shares (Basic)", y2022: 309.6, y2021: 315.1 },
-            { company: "ITW", statement: "Supplemental Data", account: "Weighted avg shares (Diluted)", y2022: 310.7, y2021: 316.4 },
-            { company: "ITW", statement: "Supplemental Data", account: "Antidilutive options", y2022: 0.9, y2021: 0.4 },
-
-            // --- PH Data ---
-            // Market Data
-            { company: "PH", statement: "Market Data", account: "Stock Price at Year End", y2022: 246.05, y2021: 307.11 },
-
-            // Balance Sheet
-            { company: "PH", statement: "Balance Sheet", account: "Cash and cash equivalents", y2022: 535799, y2021: 733117 },
-            { company: "PH", statement: "Balance Sheet", account: "Total current assets", y2022: 12046644, y2021: 5616750 },
-            { company: "PH", statement: "Balance Sheet", account: "Total assets", y2022: 25943943, y2021: 20341200 },
-            { company: "PH", statement: "Balance Sheet", account: "Total liabilities", y2022: 17084023, y2021: 11927530 },
-            { company: "PH", statement: "Balance Sheet", account: "Total equity", y2022: 8859920, y2021: 8413670 },
-            { company: "PH", statement: "Balance Sheet", account: "Total liabilities and equity", y2022: 25943943, y2021: 20341200 },
-
-            // Income Statement
-            { company: "PH", statement: "Income Statement", account: "Net sales", y2022: 15861608, y2021: 14347640 },
-            { company: "PH", statement: "Income Statement", account: "Net income", y2022: 1315605, y2021: 1746100 },
-
-            // Cash Flow
-            { company: "PH", statement: "Cash Flow", account: "Net cash provided by operating activities (CFO)", y2022: 2441730, y2021: 2575001 },
-            { company: "PH", statement: "Cash Flow", account: "Net cash used for investing activities (CFI)", y2022: -418837, y2021: -13 },
-            { company: "PH", statement: "Cash Flow", account: "Net cash provided by financing activities (CFF)", y2022: 3915636, y2021: -2623339 },
-            { company: "PH", statement: "Cash Flow", account: "Shares purchased at cost (Repurchases)", y2022: -380334, y2021: -100000 },
+            // --- PARKER HANNIFIN (PH) FIRST ---
+            // PH Balance Sheet Assets
+            {company: "PH", statement: "Balance Sheet", account: "Cash and cash equivalents", year: 2022, value: 535799},
+            {company: "PH", statement: "Balance Sheet", account: "Cash and cash equivalents", year: 2021, value: 733117},
+            {company: "PH", statement: "Balance Sheet", account: "Trade accounts receivable net", year: 2022, value: 2341504},
+            {company: "PH", statement: "Balance Sheet", account: "Trade accounts receivable net", year: 2021, value: 2183594},
+            {company: "PH", statement: "Balance Sheet", account: "Inventories", year: 2022, value: 2214553},
+            {company: "PH", statement: "Balance Sheet", account: "Inventories", year: 2021, value: 2090642},
+            {company: "PH", statement: "Balance Sheet", account: "Total current assets", year: 2022, value: 12046644},
+            {company: "PH", statement: "Balance Sheet", account: "Total current assets", year: 2021, value: 5616750},
+            {company: "PH", statement: "Balance Sheet", account: "Total assets", year: 2022, value: 25943943},
+            {company: "PH", statement: "Balance Sheet", account: "Total assets", year: 2021, value: 20341200},
             
-            // Statement of Equity (Total Column Walk)
-            { company: "PH", statement: "Statement of Equity", account: "Beginning Balance", y2022: 8413670, y2021: 6241770 },
-            { company: "PH", statement: "Statement of Equity", account: "Net income", y2022: 1316186, y2021: 1746861 },
-            { company: "PH", statement: "Statement of Equity", account: "Other comprehensive income (loss)", y2022: 22003, y2021: 992868 },
-            { company: "PH", statement: "Statement of Equity", account: "Dividends declared", y2022: -569855, y2021: -475174 },
-            { company: "PH", statement: "Statement of Equity", account: "Stock incentive plan activity", y2022: 60198, y2021: 7345 },
-            { company: "PH", statement: "Statement of Equity", account: "Acquisition activity", y2022: 0, y2021: 10066 },
-            { company: "PH", statement: "Statement of Equity", account: "Liquidation activity", y2022: -1948, y2021: 0 },
-            { company: "PH", statement: "Statement of Equity", account: "Shares purchased at cost", y2022: -380334, y2021: -100000 },
-            { company: "PH", statement: "Statement of Equity", account: "Ending Balance", y2022: 8859920, y2021: 8413670 },
+            // PH Balance Sheet Liabilities (Detailed)
+            {company: "PH", statement: "Balance Sheet", account: "Accounts payable", year: 2022, value: 1731925},
+            {company: "PH", statement: "Balance Sheet", account: "Accounts payable", year: 2021, value: 1667878},
+            {company: "PH", statement: "Balance Sheet", account: "Accrued expenses", year: 2022, value: 470132},
+            {company: "PH", statement: "Balance Sheet", account: "Accrued expenses", year: 2021, value: 507027},
+            {company: "PH", statement: "Balance Sheet", account: "Accrued taxes", year: 2022, value: 250292},
+            {company: "PH", statement: "Balance Sheet", account: "Accrued taxes", year: 2021, value: 236384},
+            {company: "PH", statement: "Balance Sheet", account: "Other current liabilities", year: 2022, value: 1646636},
+            {company: "PH", statement: "Balance Sheet", account: "Other current liabilities", year: 2021, value: 642197},
+            {company: "PH", statement: "Balance Sheet", account: "Commercial paper", year: 2022, value: 1422000},
+            {company: "PH", statement: "Balance Sheet", account: "Commercial paper", year: 2021, value: 0},
+            {company: "PH", statement: "Balance Sheet", account: "Current portion of LT debt", year: 2022, value: 302280},
+            {company: "PH", statement: "Balance Sheet", account: "Current portion of LT debt", year: 2021, value: 2819},
+            {company: "PH", statement: "Balance Sheet", account: "Current lease liabilities", year: 2022, value: 36023},
+            {company: "PH", statement: "Balance Sheet", account: "Current lease liabilities", year: 2021, value: 40193},
+            {company: "PH", statement: "Balance Sheet", account: "Long-term debt (Noncurrent)", year: 2022, value: 9755825},
+            {company: "PH", statement: "Balance Sheet", account: "Long-term debt (Noncurrent)", year: 2021, value: 6582053},
+            {company: "PH", statement: "Balance Sheet", account: "Noncurrent lease liabilities", year: 2022, value: 100337},
+            {company: "PH", statement: "Balance Sheet", account: "Noncurrent lease liabilities", year: 2021, value: 93904},
+            {company: "PH", statement: "Balance Sheet", account: "Total equity", year: 2022, value: 8859920},
+            {company: "PH", statement: "Balance Sheet", account: "Total equity", year: 2021, value: 8413670},
 
-            // Equity Components
-            { company: "PH", statement: "Equity Components", account: "Common Stock", y2022: 90523, y2021: 90523 },
-            { company: "PH", statement: "Equity Components", account: "Retained earnings", y2022: 15661808, y2021: 14915497 },
-            { company: "PH", statement: "Equity Components", account: "Treasury stock", y2022: -5688429, y2021: -5370605 },
+            // PH Income Statement
+            {company: "PH", statement: "Income Statement", account: "Net sales", year: 2022, value: 15861608},
+            {company: "PH", statement: "Income Statement", account: "Net sales", year: 2021, value: 14347640},
+            {company: "PH", statement: "Income Statement", account: "Cost of sales", year: 2022, value: 11387267},
+            {company: "PH", statement: "Income Statement", account: "Cost of sales", year: 2021, value: 10449680},
+            {company: "PH", statement: "Income Statement", account: "Operating income", year: 2022, value: 2854346},
+            {company: "PH", statement: "Income Statement", account: "Operating income", year: 2021, value: 2479990},
+            {company: "PH", statement: "Income Statement", account: "Net income", year: 2022, value: 1315605},
+            {company: "PH", statement: "Income Statement", account: "Net income", year: 2021, value: 1746100},
 
-            // Supplemental Data (EPS, Dividends)
-            { company: "PH", statement: "Supplemental Data", account: "Dividends per share", y2022: 4.42, y2021: 3.67 },
-            { company: "PH", statement: "Supplemental Data", account: "Basic EPS", y2022: 10.24, y2021: 13.54 },
-            { company: "PH", statement: "Supplemental Data", account: "Diluted EPS", y2022: 10.09, y2021: 13.35 },
-            { company: "PH", statement: "Supplemental Data", account: "Weighted avg shares (Basic)", y2022: 128539.387, y2021: 128999.879 },
-            { company: "PH", statement: "Supplemental Data", account: "Weighted avg shares (Diluted)", y2022: 130355.943, y2021: 130834.478 },
-            { company: "PH", statement: "Supplemental Data", account: "Antidilutive options", y2022: 400, y2021: 400 }
+            // PH Cash Flow
+            {company: "PH", statement: "Cash Flow Statement", account: "Net cash provided by operating activities", year: 2022, value: 2441730},
+            {company: "PH", statement: "Cash Flow Statement", account: "Net cash provided by operating activities", year: 2021, value: 2575001},
+            {company: "PH", statement: "Cash Flow Statement", account: "Net cash used for investing activities", year: 2022, value: -418837},
+            {company: "PH", statement: "Cash Flow Statement", account: "Net cash used for investing activities", year: 2021, value: -13},
+            {company: "PH", statement: "Cash Flow Statement", account: "Net cash provided by financing activities", year: 2022, value: 3915636},
+            {company: "PH", statement: "Cash Flow Statement", account: "Net cash provided by financing activities", year: 2021, value: -2623339},
+            {company: "PH", statement: "Cash Flow", account: "Shares purchased at cost (Repurchases)", year: 2022, value: -380334},
+            {company: "PH", statement: "Cash Flow", account: "Shares purchased at cost (Repurchases)", year: 2021, value: -100000},
+
+            // --- ITW SECOND ---
+            // ITW Balance Sheet Assets
+            {company: "ITW", statement: "Balance Sheet", account: "Cash and equivalents", year: 2022, value: 708},
+            {company: "ITW", statement: "Balance Sheet", account: "Cash and equivalents", year: 2021, value: 1527},
+            {company: "ITW", statement: "Balance Sheet", account: "Trade receivables", year: 2022, value: 3171},
+            {company: "ITW", statement: "Balance Sheet", account: "Trade receivables", year: 2021, value: 2840},
+            {company: "ITW", statement: "Balance Sheet", account: "Inventories", year: 2022, value: 2054},
+            {company: "ITW", statement: "Balance Sheet", account: "Inventories", year: 2021, value: 1694},
+            {company: "ITW", statement: "Balance Sheet", account: "Total current assets", year: 2022, value: 6270},
+            {company: "ITW", statement: "Balance Sheet", account: "Total current assets", year: 2021, value: 6374},
+            {company: "ITW", statement: "Balance Sheet", account: "Total assets", year: 2022, value: 15422},
+            {company: "ITW", statement: "Balance Sheet", account: "Total assets", year: 2021, value: 16077},
+            
+            // ITW Balance Sheet Liabilities (Detailed)
+            {company: "ITW", statement: "Balance Sheet", account: "Short-term debt", year: 2022, value: 1590},
+            {company: "ITW", statement: "Balance Sheet", account: "Short-term debt", year: 2021, value: 778},
+            {company: "ITW", statement: "Balance Sheet", account: "Accounts payable", year: 2022, value: 594},
+            {company: "ITW", statement: "Balance Sheet", account: "Accounts payable", year: 2021, value: 585},
+            {company: "ITW", statement: "Balance Sheet", account: "Current portion of operating lease liabilities", year: 2022, value: 55},
+            {company: "ITW", statement: "Balance Sheet", account: "Current portion of operating lease liabilities", year: 2021, value: 61},
+            {company: "ITW", statement: "Balance Sheet", account: "Accrued expenses", year: 2022, value: 1673},
+            {company: "ITW", statement: "Balance Sheet", account: "Accrued expenses", year: 2021, value: 1587},
+            {company: "ITW", statement: "Balance Sheet", account: "Cash dividends payable", year: 2022, value: 400},
+            {company: "ITW", statement: "Balance Sheet", account: "Cash dividends payable", year: 2021, value: 382},
+            {company: "ITW", statement: "Balance Sheet", account: "Income taxes payable", year: 2022, value: 147},
+            {company: "ITW", statement: "Balance Sheet", account: "Income taxes payable", year: 2021, value: 77},
+            {company: "ITW", statement: "Balance Sheet", account: "Liabilities held for sale", year: 2022, value: 1},
+            {company: "ITW", statement: "Balance Sheet", account: "Liabilities held for sale", year: 2021, value: 0},
+            {company: "ITW", statement: "Balance Sheet", account: "Long-term debt", year: 2022, value: 6173},
+            {company: "ITW", statement: "Balance Sheet", account: "Long-term debt", year: 2021, value: 6909},
+            {company: "ITW", statement: "Balance Sheet", account: "Deferred income taxes (liabilities)", year: 2022, value: 484},
+            {company: "ITW", statement: "Balance Sheet", account: "Deferred income taxes (liabilities)", year: 2021, value: 654},
+            {company: "ITW", statement: "Balance Sheet", account: "Noncurrent income taxes payable", year: 2022, value: 273},
+            {company: "ITW", statement: "Balance Sheet", account: "Noncurrent income taxes payable", year: 2021, value: 365},
+            {company: "ITW", statement: "Balance Sheet", account: "Long-term portion of operating lease liabilities", year: 2022, value: 131},
+            {company: "ITW", statement: "Balance Sheet", account: "Long-term portion of operating lease liabilities", year: 2021, value: 133},
+            {company: "ITW", statement: "Balance Sheet", account: "Other liabilities", year: 2022, value: 812},
+            {company: "ITW", statement: "Balance Sheet", account: "Other liabilities", year: 2021, value: 920},
+            {company: "ITW", statement: "Balance Sheet", account: "Total stockholders' equity", year: 2022, value: 3089},
+            {company: "ITW", statement: "Balance Sheet", account: "Total stockholders' equity", year: 2021, value: 3626},
+
+            // ITW Income Statement
+            {company: "ITW", statement: "Income Statement", account: "Operating revenue", year: 2022, value: 15932},
+            {company: "ITW", statement: "Income Statement", account: "Operating revenue", year: 2021, value: 14455},
+            {company: "ITW", statement: "Income Statement", account: "Cost of revenue", year: 2022, value: 9429},
+            {company: "ITW", statement: "Income Statement", account: "Cost of revenue", year: 2021, value: 8489},
+            {company: "ITW", statement: "Income Statement", account: "Operating income", year: 2022, value: 3790},
+            {company: "ITW", statement: "Income Statement", account: "Operating income", year: 2021, value: 3477},
+            {company: "ITW", statement: "Income Statement", account: "Net income", year: 2022, value: 3034},
+            {company: "ITW", statement: "Income Statement", account: "Net income", year: 2021, value: 2694},
+
+            // ITW Cash Flow
+            {company: "ITW", statement: "Cash Flow Statement", account: "Net cash provided by operating activities", year: 2022, value: 2348},
+            {company: "ITW", statement: "Cash Flow Statement", account: "Net cash provided by operating activities", year: 2021, value: 2557},
+            {company: "ITW", statement: "Cash Flow Statement", account: "Net cash used for investing activities", year: 2022, value: -110},
+            {company: "ITW", statement: "Cash Flow Statement", account: "Net cash used for investing activities", year: 2021, value: -984},
+            {company: "ITW", statement: "Cash Flow Statement", account: "Net cash used for financing activities", year: 2022, value: -3000},
+            {company: "ITW", statement: "Cash Flow Statement", account: "Net cash used for financing activities", year: 2021, value: -2564},
+            {company: "ITW", statement: "Cash Flow", account: "Repurchases of common stock", year: 2022, value: -1750},
+            {company: "ITW", statement: "Cash Flow", account: "Repurchases of common stock", year: 2021, value: -1000},
+            {company: "ITW", statement: "Cash Flow", account: "Dividends paid", year: 2022, value: -1542},
+            {company: "ITW", statement: "Cash Flow", account: "Dividends paid", year: 2021, value: -1463},
+
+             // Hidden Instructor Notes Data
+            {company: "ITW", statement: "Notes", account: "Warranty liability (end of year)", year: 2022, value: 42},
+            {company: "ITW", statement: "Notes", account: "Warranty liability (end of year)", year: 2021, value: 46},
+            {company: "ITW", statement: "Notes", account: "Warranty settlements", year: 2022, value: 40},
+            {company: "ITW", statement: "Notes", account: "Warranty settlements", year: 2021, value: 34},
+            {company: "ITW", statement: "Notes", account: "Warranty expense", year: 2022, value: 40},
+            {company: "ITW", statement: "Notes", account: "Warranty expense", year: 2021, value: 34},
+            {company: "ITW", statement: "Notes", account: "Fair value of debt", year: 2022, value: 6228},
+
+            // Market Data
+            { company: "ITW", statement: "Market Data", account: "Stock Price at Year End", year: 2022, value: 220.30},
+            { company: "ITW", statement: "Market Data", account: "Stock Price at Year End", year: 2021, value: 246.80},
+            { company: "PH", statement: "Market Data", account: "Stock Price at Year End", year: 2022, value: 246.05},
+            { company: "PH", statement: "Market Data", account: "Stock Price at Year End", year: 2021, value: 307.11},
+
+            // Supplemental Data (EPS, Dividends) - Only visible in instructor mode logic
+            { company: "ITW", statement: "Supplemental Data", account: "Dividends per share", year: 2022, value: 5.06}, 
+            { company: "ITW", statement: "Supplemental Data", account: "Dividends per share", year: 2021, value: 4.72},
+            { company: "ITW", statement: "Supplemental Data", account: "Basic EPS", year: 2022, value: 9.80},
+            { company: "ITW", statement: "Supplemental Data", account: "Basic EPS", year: 2021, value: 8.55},
+            { company: "ITW", statement: "Supplemental Data", account: "Diluted EPS", year: 2022, value: 9.77},
+            { company: "ITW", statement: "Supplemental Data", account: "Diluted EPS", year: 2021, value: 8.51},
+            { company: "ITW", statement: "Supplemental Data", account: "Weighted avg shares (Basic)", year: 2022, value: 309.6},
+            { company: "ITW", statement: "Supplemental Data", account: "Weighted avg shares (Basic)", year: 2021, value: 315.1},
+            { company: "ITW", statement: "Supplemental Data", account: "Weighted avg shares (Diluted)", year: 2022, value: 310.7},
+            { company: "ITW", statement: "Supplemental Data", account: "Weighted avg shares (Diluted)", year: 2021, value: 316.4},
+            { company: "ITW", statement: "Supplemental Data", account: "Antidilutive options", year: 2022, value: 0.9},
+            { company: "ITW", statement: "Supplemental Data", account: "Antidilutive options", year: 2021, value: 0.4},
+
+            { company: "PH", statement: "Supplemental Data", account: "Dividends per share", year: 2022, value: 4.42},
+            { company: "PH", statement: "Supplemental Data", account: "Dividends per share", year: 2021, value: 3.67},
+            { company: "PH", statement: "Supplemental Data", account: "Basic EPS", year: 2022, value: 10.24},
+            { company: "PH", statement: "Supplemental Data", account: "Basic EPS", year: 2021, value: 13.54},
+            { company: "PH", statement: "Supplemental Data", account: "Diluted EPS", year: 2022, value: 10.09},
+            { company: "PH", statement: "Supplemental Data", account: "Diluted EPS", year: 2021, value: 13.35},
+            { company: "PH", statement: "Supplemental Data", account: "Weighted avg shares (Basic)", year: 2022, value: 128539.387},
+            { company: "PH", statement: "Supplemental Data", account: "Weighted avg shares (Basic)", year: 2021, value: 128999.879},
+            { company: "PH", statement: "Supplemental Data", account: "Weighted avg shares (Diluted)", year: 2022, value: 130355.943},
+            { company: "PH", statement: "Supplemental Data", account: "Weighted avg shares (Diluted)", year: 2021, value: 130834.478},
+            { company: "PH", statement: "Supplemental Data", account: "Antidilutive options", year: 2022, value: 400},
+            { company: "PH", statement: "Supplemental Data", account: "Antidilutive options", year: 2021, value: 400},
+
+            {company: "PH", statement: "Notes", account: "Fair value of debt", year: 2022, value: 9709407},
         ];
 
         const LINKS = {
@@ -309,31 +375,50 @@
                                                 </div>
 
                                                 <div className="space-y-0.5">
-                                                    {groupedData[company][statement].map((row, idx) => (
-                                                        <div key={idx} className="text-[11px] flex justify-between items-center group hover:bg-white p-1 rounded cursor-pointer border border-transparent hover:border-blue-200 hover:shadow-sm transition-all"
-                                                            title="Click to insert value"
-                                                        >
-                                                            <span className="truncate flex-1 text-slate-600 group-hover:text-blue-700 pr-2">{row.account}</span>
-                                                            <div className="flex gap-3">
-                                                                {row.y2022 !== undefined && (
-                                                                    <span 
-                                                                        onClick={() => onDataClick(row.y2022)}
-                                                                        className="w-14 text-right font-mono text-slate-700 hover:bg-blue-600 hover:text-white rounded px-1 transition cursor-pointer"
-                                                                    >
-                                                                        {row.y2022.toLocaleString()}
-                                                                    </span>
-                                                                )}
-                                                                {row.y2021 !== undefined && (
-                                                                    <span 
-                                                                        onClick={() => onDataClick(row.y2021)}
-                                                                        className="w-14 text-right font-mono text-slate-400 hover:bg-slate-200 hover:text-slate-800 rounded px-1 transition cursor-pointer"
-                                                                    >
-                                                                        {row.y2021.toLocaleString()}
-                                                                    </span>
-                                                                )}
+                                                    {groupedData[company][statement].map((row, idx) => {
+                                                        const pivoted = { account: row.account };
+                                                        // This raw data isn't pivoted like the other file, fixing it here:
+                                                        // Actually raw data is flat. The GroupedData structure is company -> statement -> list of rows.
+                                                        // The list of rows contains multiple entries for same account but different years.
+                                                        // We need to group by account within the statement.
+                                                        return null; // Logic needs to be inside the memo
+                                                    })}
+                                                    
+                                                    {/* Proper rendering logic for flat data structure */}
+                                                    {(() => {
+                                                        // Pivot logic just for display
+                                                        const pivoted = {};
+                                                        groupedData[company][statement].forEach(r => {
+                                                            if (!pivoted[r.account]) pivoted[r.account] = { account: r.account };
+                                                            pivoted[r.account][`y${r.year}`] = r.value;
+                                                        });
+                                                        
+                                                        return Object.values(pivoted).map((row, idx) => (
+                                                            <div key={idx} className="text-[11px] flex justify-between items-center group hover:bg-white p-1 rounded cursor-pointer border border-transparent hover:border-blue-200 hover:shadow-sm transition-all"
+                                                                title="Click to insert value"
+                                                            >
+                                                                <span className="truncate flex-1 text-slate-600 group-hover:text-blue-700 pr-2">{row.account}</span>
+                                                                <div className="flex gap-3">
+                                                                    {row.y2022 !== undefined && (
+                                                                        <span 
+                                                                            onClick={() => onDataClick(row.y2022)}
+                                                                            className="w-14 text-right font-mono text-slate-700 hover:bg-blue-600 hover:text-white rounded px-1 transition cursor-pointer"
+                                                                        >
+                                                                            {row.y2022.toLocaleString()}
+                                                                        </span>
+                                                                    )}
+                                                                    {row.y2021 !== undefined && (
+                                                                        <span 
+                                                                            onClick={() => onDataClick(row.y2021)}
+                                                                            className="w-14 text-right font-mono text-slate-400 hover:bg-slate-200 hover:text-slate-800 rounded px-1 transition cursor-pointer"
+                                                                        >
+                                                                            {row.y2021.toLocaleString()}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
                                                             </div>
-                                                        </div>
-                                                    ))}
+                                                        ));
+                                                    })()}
                                                 </div>
                                             </div>
                                         ))}
@@ -446,7 +531,8 @@
             if (!isOpen) return null;
 
             const handleLogin = () => {
-                if (pass === "teacher") {
+                const _0x9b2 = ["T0FQOC1LZXk2UA=="];
+                if (btoa(pass) === _0x9b2[0]) {
                     onUnlock();
                     onClose();
                     setPass("");
