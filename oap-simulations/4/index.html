@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Module 4: Credit Analysis Simulation</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Module 4: Cash Flow and Valuation</title>
     
     <!-- React & ReactDOM -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -21,8 +21,8 @@
     <style>
         /* Custom Scrollbar for financial statements */
         .scroller::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
+            width: 6px;
+            height: 6px;
         }
         .scroller::-webkit-scrollbar-track {
             background: #f1f1f1;
@@ -45,6 +45,11 @@
             user-select: none;
             -webkit-user-select: none;
         }
+        .resizer {
+            cursor: col-resize;
+            user-select: none;
+            touch-action: none;
+        }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 h-screen flex flex-col overflow-hidden font-sans" oncontextmenu="return false;">
@@ -65,6 +70,20 @@
             } catch (e) {
                 return "";
             }
+        };
+
+        // Icons Component Wrapper to use Lucide via CDN or SVGs
+        const Icons = {
+            Menu: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>,
+            X: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
+            Info: () => <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline text-blue-500 hover:text-blue-700 cursor-help"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>,
+            Briefcase: () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>,
+            Download: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>,
+            Check: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
+            ChevronDown: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>,
+            Database: () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>,
+            Lock: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>,
+            Unlock: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>
         };
 
         // ==========================================
@@ -323,10 +342,6 @@
         // COMPONENTS
         // ==========================================
 
-        const InfoIcon = () => (
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline text-blue-500 hover:text-blue-700 cursor-help"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>
-        );
-
         // Updated SmartInput: Decodes correct value, Handles Percentages
         const SmartInput = ({ id, value, onChange, correctValueEnc, tolerance = 0.05, label, isPercent = false, activeId, setActiveId, showCorrectness = true }) => {
             const [isCorrect, setIsCorrect] = useState(null);
@@ -413,11 +428,11 @@
                 <div className="flex flex-col">
                     <div className="flex justify-between items-center mb-1">
                          <label className="text-xs font-medium text-slate-600 truncate mr-2" title={label}>{label}</label>
-                         {showCorrectness && isCorrect === true && <span className="text-green-600 text-[10px]">✔</span>}
+                         {showCorrectness && isCorrect === true && <span className="text-green-600 text-[10px]"><Icons.Check /></span>}
                     </div>
                     <input
                         type="text"
-                        className={`w-full text-sm p-1.5 rounded border ${borderColor} focus:outline-none transition-colors text-right font-mono`}
+                        className={`w-full text-base sm:text-sm p-1.5 rounded border ${borderColor} focus:outline-none transition-colors text-right font-mono`}
                         value={value || ""}
                         onChange={(e) => onChange(id, e.target.value)}
                         onBlur={handleBlur}
@@ -437,7 +452,7 @@
                  <select 
                     value={value || ""} 
                     onChange={(e) => onChange(id, e.target.value)}
-                    className="w-full text-sm p-1.5 rounded border border-slate-300 focus:border-blue-500 bg-white"
+                    className="w-full text-base sm:text-sm p-1.5 rounded border border-slate-300 focus:border-blue-500 bg-white"
                  >
                     <option value="">Select Rating</option>
                     {MOODY_RATINGS.map(r => <option key={r} value={r}>{r}</option>)}
@@ -447,12 +462,12 @@
 
         const SectionHeader = ({ title, isOpen, toggle }) => (
             <div 
-                className="flex items-center justify-between bg-slate-100 p-2 cursor-pointer hover:bg-slate-200 border-b border-slate-200"
+                className="flex items-center justify-between bg-slate-100 p-3 cursor-pointer hover:bg-slate-200 border-b border-slate-200"
                 onClick={toggle}
             >
                 <h3 className="font-bold text-slate-700 text-sm uppercase tracking-wide">{title}</h3>
                 <span className="text-slate-500 transform transition-transform duration-200" style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>
-                    ▼
+                    <Icons.ChevronDown />
                 </span>
             </div>
         );
@@ -466,8 +481,9 @@
             const [activeInputId, setActiveInputId] = useState(null);
             
             // Layout State
-            const [sidebarWidth, setSidebarWidth] = useState(50); // percentage
+            const [sidebarWidth, setSidebarWidth] = useState(40); // percentage
             const isDraggingRef = useRef(false);
+            const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
             // UI State
             const [sections, setSections] = useState({
@@ -507,6 +523,11 @@
                         [company]: { ...prev[company], [activeInputId]: currentVal + cleanVal }
                     };
                 });
+                
+                // On mobile, close menu after selection to return to workspace
+                if (window.innerWidth < 768) {
+                    setMobileMenuOpen(false);
+                }
             };
 
             // Sidebar Resizer Logic
@@ -595,14 +616,16 @@
             // Render Helpers
             const renderRow = (label, idPrefix, isPercent=false, hint="", showCorrectness=true) => (
                 <div className="grid grid-cols-3 gap-2 mb-2 items-end border-b border-slate-100 pb-2">
-                    <div className="col-span-1 text-sm text-slate-700 flex items-center">
-                        {label}
-                        {hint && <div className="ml-1 group relative">
-                            <InfoIcon />
-                            <div className="hidden group-hover:block absolute z-50 bottom-full left-0 w-48 bg-slate-800 text-white text-xs p-2 rounded shadow-lg pointer-events-none">
-                                {hint}
-                            </div>
-                        </div>}
+                    <div className="col-span-1 text-sm text-slate-700 flex flex-col justify-end">
+                        <span className="flex items-center font-medium">
+                            {label}
+                            {hint && <div className="ml-1 group relative">
+                                <Icons.Info />
+                                <div className="hidden group-hover:block absolute z-50 bottom-full left-0 w-48 bg-slate-800 text-white text-xs p-2 rounded shadow-lg pointer-events-none">
+                                    {hint}
+                                </div>
+                            </div>}
+                        </span>
                     </div>
                     <SmartInput 
                         id={`${idPrefix}_2022`} 
@@ -631,14 +654,14 @@
 
             // Special Renderer for Moody's (Single Year)
             const renderMoodyRow = (label, id, unit, hint) => (
-                <div className="grid grid-cols-4 gap-2 mb-2 items-center border-b border-slate-100 pb-1">
-                    <div className="col-span-2 text-sm text-slate-700 flex items-center">
+                <div className="grid grid-cols-4 gap-2 mb-2 items-center border-b border-slate-100 pb-2">
+                    <div className="col-span-4 sm:col-span-2 text-sm text-slate-700 flex items-center font-medium">
                         {label}
-                        <div className="ml-1 group relative"><InfoIcon />
+                        <div className="ml-1 group relative"><Icons.Info />
                             <div className="hidden group-hover:block absolute z-50 left-0 bottom-full mb-1 w-64 bg-slate-800 text-white text-xs p-2 rounded shadow-lg pointer-events-none">{hint}</div>
                         </div>
                     </div>
-                    <div className="col-span-1">
+                    <div className="col-span-2 sm:col-span-1">
                         <SmartInput 
                             id={id} 
                             label={`Value (${unit})`} 
@@ -650,7 +673,7 @@
                             setActiveId={setActiveInputId}
                         />
                     </div>
-                    <div className="col-span-1 pt-4">
+                    <div className="col-span-2 sm:col-span-1 pt-4">
                         <RatingSelect 
                             id={`${id}_rating`} 
                             value={inputs[company][`${id}_rating`]} 
@@ -662,18 +685,18 @@
 
             // Special Renderer for Z-Score
             const renderZRow = (label, id, weight, hint) => (
-                <div className="grid grid-cols-12 gap-2 mb-2 items-center border-b border-slate-100 pb-1">
-                    <div className="col-span-4 text-sm text-slate-700 flex items-center">
+                <div className="grid grid-cols-12 gap-1 mb-2 items-center border-b border-slate-100 pb-2">
+                    <div className="col-span-12 sm:col-span-4 text-sm text-slate-700 flex items-center font-medium">
                         {label}
-                        <div className="ml-1 group relative"><InfoIcon />
+                        <div className="ml-1 group relative"><Icons.Info />
                             <div className="hidden group-hover:block absolute z-50 left-0 bottom-full mb-1 w-56 bg-slate-800 text-white text-xs p-2 rounded shadow-lg pointer-events-none">{hint}</div>
                         </div>
                     </div>
-                    <div className="col-span-2 text-xs text-center text-slate-400 font-mono pt-4">x {weight}</div>
-                    <div className="col-span-3">
+                    <div className="col-span-2 text-xs text-center text-slate-400 font-mono pt-4 sm:pt-0">x {weight}</div>
+                    <div className="col-span-5 sm:col-span-3">
                         <SmartInput 
                             id={id} 
-                            label="Ratio Value" 
+                            label="Ratio" 
                             value={inputs[company][id]} 
                             onChange={handleInputChange} 
                             correctValueEnc={_DATA_MATRIX[company][id]} 
@@ -681,7 +704,7 @@
                             setActiveId={setActiveInputId}
                         />
                     </div>
-                    <div className="col-span-3 pt-5 text-xs text-right text-slate-400">
+                    <div className="col-span-5 sm:col-span-3 pt-5 sm:pt-0 text-xs text-right text-slate-400">
                          = {(parseFloat(inputs[company][id] || 0) * weight).toFixed(4)}
                     </div>
                 </div>
@@ -690,69 +713,300 @@
             const companyData = DATA_SETS[company];
 
             return (
-                <div className="flex flex-col h-full">
+                <div className="flex flex-col h-full bg-slate-100 relative">
+                    
+                    {/* Mobile Overlay */}
+                    {mobileMenuOpen && (
+                        <div className="fixed inset-0 bg-black/50 z-30 md:hidden" onClick={() => setMobileMenuOpen(false)}></div>
+                    )}
+
                     {/* TOP BAR */}
-                    <div className="bg-slate-900 text-white p-3 flex justify-between items-center shadow-md z-10 no-select">
-                        <div className="flex items-center gap-4">
-                            <h1 className="font-bold text-lg tracking-tight">Financial Simulation <span className="text-slate-400 font-normal">| Module 4 Credit Analysis</span></h1>
-                            <div className="bg-slate-700 rounded p-1 flex">
-                                <button 
-                                    className={`px-3 py-1 rounded text-sm font-medium transition-all ${company === 'ITW' ? 'bg-blue-500 text-white shadow' : 'text-slate-300 hover:text-white'}`}
-                                    onClick={() => setCompany('ITW')}
-                                >ITW</button>
-                                <button 
-                                    className={`px-3 py-1 rounded text-sm font-medium transition-all ${company === 'PH' ? 'bg-blue-500 text-white shadow' : 'text-slate-300 hover:text-white'}`}
-                                    onClick={() => setCompany('PH')}
-                                >Parker Hannifin</button>
+                    <div className="bg-slate-900 text-white p-3 flex justify-between items-center shadow-md z-10 no-select shrink-0">
+                        <div className="flex items-center gap-3">
+                            <button className="md:hidden text-slate-300" onClick={() => setMobileMenuOpen(true)}>
+                                <Icons.Menu />
+                            </button>
+                            <div>
+                                <h1 className="font-bold text-base sm:text-lg tracking-tight leading-tight">Module 4 <span className="text-slate-400 font-normal hidden sm:inline">| Cash Flow and Valuation</span></h1>
+                                <p className="text-xs text-slate-400 sm:hidden">Cash Flow and Valuation</p>
                             </div>
                         </div>
                         <div className="flex gap-2 items-center">
-                             <button onClick={() => setShowRefTable(!showRefTable)} className="text-xs bg-slate-700 hover:bg-slate-600 px-3 py-1.5 rounded transition">
-                                {showRefTable ? "Hide" : "Show"} Moody's Matrix
+                             <button onClick={() => setShowRefTable(!showRefTable)} className="text-xs bg-slate-700 hover:bg-slate-600 px-2 py-1.5 rounded transition hidden sm:block">
+                                {showRefTable ? "Hide" : "Show"} Matrix
                             </button>
-                            <button onClick={requestDownload} className="text-xs bg-green-600 hover:bg-green-700 px-3 py-1.5 rounded transition flex items-center gap-1">
-                                <span>Save Work</span>
+                            <div className="bg-slate-800 rounded p-1 flex">
+                                <button 
+                                    className={`px-2 py-1 rounded text-xs font-medium transition-all ${company === 'ITW' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
+                                    onClick={() => setCompany('ITW')}
+                                >ITW</button>
+                                <button 
+                                    className={`px-2 py-1 rounded text-xs font-medium transition-all ${company === 'PH' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
+                                    onClick={() => setCompany('PH')}
+                                >PH</button>
+                            </div>
+                            <button onClick={requestDownload} className="text-xs bg-green-600 hover:bg-green-700 p-1.5 sm:px-3 rounded transition flex items-center gap-1">
+                                <Icons.Download /> <span className="hidden sm:inline">Save</span>
                             </button>
+                            
                             {!teacherMode ? (
-                                <button onClick={() => setShowTeacherLogin(true)} className="text-slate-600 hover:text-slate-400 transition opacity-30 hover:opacity-100 p-1" title="Instructor Access">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                                <button onClick={() => setShowTeacherLogin(true)} className="text-slate-600 hover:text-slate-400 transition opacity-30 hover:opacity-100 p-1">
+                                    <Icons.Lock />
                                 </button>
                             ) : (
-                                <div className="flex gap-2">
-                                    <button onClick={autoFill} className="text-xs bg-yellow-600 hover:bg-yellow-700 px-2 py-1 rounded">Auto-Fill</button>
-                                    <button onClick={requestClear} className="text-xs bg-red-600 hover:bg-red-700 px-2 py-1 rounded">Clear</button>
-                                </div>
+                                <button onClick={requestClear} className="text-xs bg-red-600 hover:bg-red-700 px-2 py-1 rounded">Reset</button>
                             )}
                         </div>
                     </div>
 
-                    {/* MODALS (Simplified for brevity) */}
+                    {/* MAIN CONTENT AREA WITH DRAWER LAYOUT */}
+                    <div className="flex flex-1 overflow-hidden relative">
+                        
+                        {/* LEFT PANEL: DATA (Sidebar on Desktop, Drawer on Mobile) */}
+                        <div 
+                            className={`
+                                fixed inset-y-0 left-0 z-40 bg-white border-r border-slate-200 flex flex-col shadow-2xl transition-transform duration-300 transform 
+                                ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} 
+                                md:translate-x-0 md:relative md:shadow-none md:z-0
+                            `}
+                            style={{ width: window.innerWidth >= 768 ? `${sidebarWidth}%` : '85%' }}
+                        >
+                            <div className="p-4 bg-slate-50 border-b flex justify-between items-center">
+                                <div>
+                                    <h2 className="text-lg font-bold text-slate-800 leading-none">{companyData.name}</h2>
+                                    <p className="text-xs text-slate-500 font-mono mt-1">Currency: {companyData.currency}</p>
+                                </div>
+                                <button className="md:hidden text-slate-400" onClick={() => setMobileMenuOpen(false)}><Icons.X /></button>
+                            </div>
+
+                            <div className="flex-1 overflow-y-auto scroller p-4">
+                                <p className="text-xs text-blue-600 mb-4 bg-blue-50 p-2 rounded border border-blue-100">
+                                    <span className="font-bold">Tip:</span> Click any number in the tables below to insert it into the active input field.
+                                </p>
+
+                                {Object.entries(companyData.CASE_DATA).map(([key, section]) => (
+                                    <div key={key} className="mb-6">
+                                        <h3 className="font-bold text-slate-700 text-sm border-b-2 border-slate-100 mb-2 pb-1 uppercase tracking-wide">{section.title}</h3>
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full text-xs text-left border-collapse min-w-[300px]">
+                                                <thead>
+                                                    <tr className="text-slate-400 border-b">
+                                                        {section.headers.map((h, i) => (
+                                                            <th key={i} className={`p-1.5 font-medium ${i > 0 ? 'text-right' : ''}`}>{h}</th>
+                                                        ))}
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {section.rows.map((row, rIndex) => (
+                                                        <tr key={rIndex} className="hover:bg-blue-50 transition-colors group">
+                                                            {row.map((cell, cIndex) => (
+                                                                <td 
+                                                                    key={cIndex} 
+                                                                    className={`p-1.5 border-b border-slate-50 ${cIndex > 0 ? 'text-right font-mono text-slate-700 cursor-pointer hover:bg-blue-100 hover:text-blue-700 hover:font-bold' : 'text-slate-600 font-medium'}`}
+                                                                    onMouseDown={(e) => e.preventDefault()} 
+                                                                    onClick={() => cIndex > 0 && handleDataClick(cell)}
+                                                                    title={cIndex > 0 ? "Click to insert value" : ""}
+                                                                >
+                                                                    {cell}
+                                                                </td>
+                                                            ))}
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* RESIZE HANDLE (Desktop Only) */}
+                        <div 
+                            className="hidden md:flex w-1 bg-slate-200 hover:bg-blue-400 cursor-col-resize items-center justify-center transition-colors z-20 flex-shrink-0"
+                            onMouseDown={startResize}
+                        >
+                            <div className="h-8 w-1 bg-slate-400 rounded-full"></div>
+                        </div>
+
+                        {/* RIGHT PANEL: WORKSPACE */}
+                        <div 
+                            className="flex-1 bg-slate-50 overflow-y-auto scroller p-4 pb-20 relative w-full" 
+                            ref={workspaceRef}
+                        >
+                            <div className="max-w-3xl mx-auto">
+                                <h2 className="text-lg font-bold text-slate-700 mb-4 flex items-center gap-2">
+                                    <Icons.Briefcase /> Analysis Workspace
+                                </h2>
+
+                                {/* 1. LIQUIDITY */}
+                                <div className="bg-white rounded shadow-sm border border-slate-200 mb-4">
+                                    <SectionHeader title="1. Liquidity Ratios" isOpen={sections.liquidity} toggle={() => toggleSection('liquidity')} />
+                                    {sections.liquidity && <div className="p-4">
+                                        {renderRow("Current Ratio", "current_ratio", false, "Current Assets / Current Liabilities")}
+                                        {renderRow("Quick Ratio", "quick_ratio", false, "Cash + Marketable Securities + Trade AR / Current Liabilities")}
+                                    </div>}
+                                </div>
+
+                                {/* 2. CAPITAL STRUCTURE */}
+                                <div className="bg-white rounded shadow-sm border border-slate-200 mb-4">
+                                    <SectionHeader title="2. Capital Structure" isOpen={sections.capStructure} toggle={() => toggleSection('capStructure')} />
+                                    {sections.capStructure && <div className="p-4">
+                                        {renderRow("Liabilities to Equity", "liab_equity", false, "Total Liabilities / Total Equity")}
+                                        {renderRow("Debt to Equity", "debt_equity", false, "Total Debt (incl. Leases) / Total Equity")}
+                                    </div>}
+                                </div>
+
+                                {/* 3. COVERAGE */}
+                                <div className="bg-white rounded shadow-sm border border-slate-200 mb-4">
+                                    <SectionHeader title="3. Coverage Ratios" isOpen={sections.coverage} toggle={() => toggleSection('coverage')} />
+                                    {sections.coverage && <div className="p-4">
+                                        {renderRow("Times Interest Earned", "tie", false, "Operating Income / Interest Expense")}
+                                        {/* Intermittent Calculation Step */}
+                                        {renderRow("EBITDA ($)", "ebitda_val", false, "Operating Income + Depreciation + Amortization", true)}
+                                        {renderRow("EBITDA Coverage", "ebitda_cov", false, "EBITDA / Interest Expense")}
+                                    </div>}
+                                </div>
+
+                                {/* 4. CASH FLOW */}
+                                <div className="bg-white rounded shadow-sm border border-slate-200 mb-4">
+                                    <SectionHeader title="4. Cash Flow Protection" isOpen={sections.cashFlow} toggle={() => toggleSection('cashFlow')} />
+                                    {sections.cashFlow && <div className="p-4">
+                                        {renderRow("CFO to Debt", "cfo_debt", false, "Cash from Ops / Total Debt")}
+                                        {renderRow("Free Op Cash Flow to Debt", "focf_debt", false, "(CFO - Capex) / Total Debt")}
+                                    </div>}
+                                </div>
+
+                                {/* 5. MOODY'S ANALYSIS */}
+                                <div className="bg-white rounded shadow-sm border border-indigo-100 ring-1 ring-indigo-50 mb-4">
+                                    <div 
+                                        className="flex items-center justify-between bg-indigo-50 p-3 cursor-pointer hover:bg-indigo-100 border-b border-indigo-200"
+                                        onClick={() => toggleSection('moody')}
+                                    >
+                                        <h3 className="font-bold text-indigo-900 text-sm uppercase tracking-wide">5. Moody's Credit Rating (2022)</h3>
+                                        <span className="text-indigo-500">{sections.moody ? '▼' : '▶'}</span>
+                                    </div>
+                                    {sections.moody && <div className="p-4 bg-white">
+                                        <div className="grid grid-cols-4 gap-2 mb-2 font-bold text-xs text-slate-400 uppercase">
+                                            <div className="col-span-2">Metric</div>
+                                            <div className="col-span-1">Computed</div>
+                                            <div className="col-span-1">Rating</div>
+                                        </div>
+                                        {renderMoodyRow("Debt / EBITDA", "moody_debt_ebitda", "x", "Total Debt / EBITDA")}
+                                        
+                                        {/* New Intermittent Step for EBITA */}
+                                        <div className="grid grid-cols-4 gap-2 mb-2 items-center border-b border-indigo-50 bg-indigo-50/50 p-1 rounded">
+                                            <div className="col-span-2 text-sm text-indigo-800 flex items-center font-medium">
+                                                EBITA ($)
+                                                <div className="ml-1 group relative"><Icons.Info />
+                                                    <div className="hidden group-hover:block absolute z-50 left-0 bottom-full mb-1 w-64 bg-slate-800 text-white text-xs p-2 rounded shadow-lg pointer-events-none">Operating Income + Amortization Expense</div>
+                                                </div>
+                                            </div>
+                                            <div className="col-span-2 sm:col-span-1">
+                                                <SmartInput 
+                                                    id="ebita_val" 
+                                                    label="" 
+                                                    value={inputs[company]["ebita_val"]} 
+                                                    onChange={handleInputChange} 
+                                                    correctValueEnc={_DATA_MATRIX[company]["ebita_val"]} 
+                                                    activeId={activeInputId}
+                                                    setActiveId={setActiveInputId}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {renderMoodyRow("EBITA / Interest", "moody_ebita_int", "x", "EBITA / Interest Expense")}
+                                        {renderMoodyRow("Revenue ($Bn)", "moody_rev", "$", "Revenue in Billions")}
+                                        {renderMoodyRow("EBITA Margin", "moody_ebita_marg", "%", "EBITA / Revenue")}
+                                        {renderMoodyRow("Operating Margin", "moody_op_marg", "%", "Operating Income / Revenue")}
+                                        {renderMoodyRow("FFO / Debt", "moody_ffo_debt", "%", "Funds From Ops / Total Debt")}
+                                        {renderMoodyRow("(FFO+Int) / Int", "moody_ffo_int_int", "x", "(FFO + Interest) / Interest")}
+                                        {renderMoodyRow("EBITA / Avg Assets", "moody_ebita_assets", "%", "EBITA / Average Assets")}
+                                        {renderMoodyRow("Capex / Depreciation", "moody_capex_dep", "x", "Capex / Depreciation")}
+                                    </div>}
+                                </div>
+
+                                {/* 6. ALTMAN Z-SCORE */}
+                                <div className="bg-white rounded shadow-sm border border-slate-200 mb-4">
+                                    <SectionHeader title="6. Altman Z-Score (2022)" isOpen={sections.zScore} toggle={() => toggleSection('zScore')} />
+                                    {sections.zScore && <div className="p-4">
+                                        <p className="text-xs text-slate-500 mb-3 italic">Formula: Z = 1.2A + 1.4B + 3.3C + 0.6D + 0.99E</p>
+                                        {renderZRow("(A) Working Cap / Assets", "z_wc_ta", 1.2, "Working Capital / Total Assets")}
+                                        {renderZRow("(B) Retained Earnings / Assets", "z_re_ta", 1.4, "Retained Earnings / Total Assets")}
+                                        {renderZRow("(C) EBIT / Assets", "z_ebit_ta", 3.3, "EBIT / Total Assets")}
+                                        {renderZRow("(D) Mkt Value Equity / Liabs", "z_mve_tl", 0.6, "Market Cap / Total Liabilities")}
+                                        {renderZRow("(E) Sales / Assets", "z_sales_ta", 0.99, "Revenue / Total Assets")}
+                                        
+                                        <div className="mt-4 pt-3 border-t-2 border-slate-100 flex justify-between items-center">
+                                            <label className="font-bold text-slate-800">Total Z-Score:</label>
+                                            <div className="w-32">
+                                                <SmartInput 
+                                                    id="z_score_total" 
+                                                    label="" 
+                                                    value={inputs[company]["z_score_total"]} 
+                                                    onChange={handleInputChange} 
+                                                    correctValueEnc={_DATA_MATRIX[company]["z_score_total"]} 
+                                                    activeId={activeInputId}
+                                                    setActiveId={setActiveInputId}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {/* Z-SCORE LEGEND */}
+                                        <div className="mt-6 border border-slate-200 rounded-md overflow-hidden">
+                                            <div className="bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-600 border-b border-slate-200">
+                                                Z-Score Interpretation Guide
+                                            </div>
+                                            <div className="divide-y divide-slate-100">
+                                                <div className="grid grid-cols-2 p-2 bg-green-50 text-green-800 text-xs">
+                                                    <span className="font-mono font-bold">&gt; 3.0</span>
+                                                    <span className="font-semibold text-right">Low Bankruptcy Risk</span>
+                                                </div>
+                                                <div className="grid grid-cols-2 p-2 bg-yellow-50 text-yellow-800 text-xs">
+                                                    <span className="font-mono font-bold">1.8 – 3.0</span>
+                                                    <span className="font-semibold text-right">Grey Zone</span>
+                                                </div>
+                                                <div className="grid grid-cols-2 p-2 bg-red-50 text-red-800 text-xs">
+                                                    <span className="font-mono font-bold">&lt; 1.8</span>
+                                                    <span className="font-semibold text-right">High Bankruptcy Risk</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                    </div>}
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* MODALS */}
                     {modal.isOpen && (
-                        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
-                            <div className="bg-white p-6 rounded-lg shadow-2xl w-80 animate-fade-in">
+                        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
+                            <div className="bg-white p-6 rounded-lg shadow-2xl w-full max-w-sm animate-fade-in">
                                 {modal.type === 'download' && (
                                     <>
                                         <h3 className="font-bold text-lg mb-2 text-slate-800">Save Your Work</h3>
                                         <input 
                                             type="text" 
-                                            className="w-full border border-slate-300 p-2 rounded mb-4" 
+                                            className="w-full border border-slate-300 p-2 rounded mb-4 text-base" 
                                             placeholder="Student Name"
                                             value={modal.studentName}
                                             onChange={(e) => setModal(prev => ({ ...prev, studentName: e.target.value }))}
                                             autoFocus
                                         />
                                         <div className="flex justify-end gap-2">
-                                            <button onClick={closeModal} className="text-slate-500 text-sm">Cancel</button>
-                                            <button onClick={handleConfirmDownload} className="bg-green-600 text-white px-4 py-1.5 rounded text-sm">Download</button>
+                                            <button onClick={closeModal} className="text-slate-500 text-sm py-2 px-3">Cancel</button>
+                                            <button onClick={handleConfirmDownload} className="bg-green-600 text-white px-4 py-2 rounded text-sm font-bold">Download</button>
                                         </div>
                                     </>
                                 )}
                                 {modal.type === 'clear' && (
                                     <>
                                         <h3 className="font-bold text-lg mb-2 text-red-600">Clear Data?</h3>
-                                        <div className="flex justify-end gap-2 mt-4">
-                                            <button onClick={closeModal} className="text-slate-500 text-sm">Cancel</button>
-                                            <button onClick={handleConfirmClear} className="bg-red-600 text-white px-4 py-1.5 rounded text-sm">Yes</button>
+                                        <p className="text-sm text-slate-600 mb-4">This will erase all your current inputs for {company}.</p>
+                                        <div className="flex justify-end gap-2">
+                                            <button onClick={closeModal} className="text-slate-500 text-sm py-2 px-3">Cancel</button>
+                                            <button onClick={handleConfirmClear} className="bg-red-600 text-white px-4 py-2 rounded text-sm font-bold">Yes, Clear</button>
                                         </div>
                                     </>
                                 )}
@@ -762,53 +1016,55 @@
 
                     {/* MOODY'S TABLE MODAL */}
                     {showRefTable && (
-                        <div className="absolute top-16 right-4 z-50 bg-white shadow-xl border rounded p-4 w-[600px] text-xs">
-                            <div className="flex justify-between mb-2 font-bold text-slate-700 border-b pb-1">
-                                <span>Exhibit 4.4: Moody's Ratios & Risk Classes</span>
-                                <button onClick={() => setShowRefTable(false)} className="text-red-500">Close</button>
-                            </div>
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-left border-collapse">
-                                    <thead>
-                                        <tr className="bg-slate-100">
-                                            <th className="p-1 border">Rating</th>
-                                            <th className="p-1 border">Debt/EBITDA</th>
-                                            <th className="p-1 border">EBITA/Int</th>
-                                            <th className="p-1 border">Rev ($B)</th>
-                                            <th className="p-1 border">EBITA %</th>
-                                            <th className="p-1 border">Op %</th>
-                                            <th className="p-1 border">FFO/Debt %</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {[
-                                            ["Aaa", "1.1", "63.0", "146.0", "38.3", "34.1", "83.5"],
-                                            ["Aa", "1.3", "29.7", "143.2", "22.9", "22.2", "65.4"],
-                                            ["A", "2.1", "14.4", "22.4", "19.7", "16.9", "41.7"],
-                                            ["Baa", "2.6", "8.4", "10.7", "17.0", "15.0", "32.6"],
-                                            ["Ba", "3.3", "5.1", "3.5", "14.3", "12.3", "24.9"],
-                                            ["B", "6.0", "2.1", "0.9", "12.3", "7.4", "9.7"],
-                                            ["Caa", "9.5", "0.8", "0.5", "7.1", "2.2", "3.1"],
-                                        ].map((r, i) => (
-                                            <tr key={i} className={i%2===0 ? "bg-white" : "bg-slate-50"}>
-                                                <td className="font-bold border p-1 text-center">{r[0]}</td>
-                                                {r.slice(1).map((c, j) => <td key={j} className="border p-1 text-center">{c}</td>)}
+                        <div className="fixed inset-0 bg-black/20 z-50 flex items-center justify-center p-4">
+                            <div className="bg-white shadow-xl border rounded p-0 w-full max-w-2xl max-h-[80vh] flex flex-col">
+                                <div className="flex justify-between items-center p-3 border-b bg-slate-50">
+                                    <span className="font-bold text-slate-700 text-sm">Exhibit 4.4: Moody's Ratios & Risk Classes</span>
+                                    <button onClick={() => setShowRefTable(false)} className="text-slate-400 hover:text-red-500"><Icons.X /></button>
+                                </div>
+                                <div className="overflow-auto p-4">
+                                    <table className="w-full text-left border-collapse text-xs sm:text-sm">
+                                        <thead>
+                                            <tr className="bg-slate-100">
+                                                <th className="p-2 border">Rating</th>
+                                                <th className="p-2 border">Debt/EBITDA</th>
+                                                <th className="p-2 border">EBITA/Int</th>
+                                                <th className="p-2 border">Rev ($B)</th>
+                                                <th className="p-2 border">EBITA %</th>
+                                                <th className="p-2 border">Op %</th>
+                                                <th className="p-2 border">FFO/Debt %</th>
                                             </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
+                                        </thead>
+                                        <tbody>
+                                            {[
+                                                ["Aaa", "1.1", "63.0", "146.0", "38.3", "34.1", "83.5"],
+                                                ["Aa", "1.3", "29.7", "143.2", "22.9", "22.2", "65.4"],
+                                                ["A", "2.1", "14.4", "22.4", "19.7", "16.9", "41.7"],
+                                                ["Baa", "2.6", "8.4", "10.7", "17.0", "15.0", "32.6"],
+                                                ["Ba", "3.3", "5.1", "3.5", "14.3", "12.3", "24.9"],
+                                                ["B", "6.0", "2.1", "0.9", "12.3", "7.4", "9.7"],
+                                                ["Caa", "9.5", "0.8", "0.5", "7.1", "2.2", "3.1"],
+                                            ].map((r, i) => (
+                                                <tr key={i} className={i%2===0 ? "bg-white" : "bg-slate-50"}>
+                                                    <td className="font-bold border p-2 text-center">{r[0]}</td>
+                                                    {r.slice(1).map((c, j) => <td key={j} className="border p-2 text-center">{c}</td>)}
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         </div>
                     )}
 
                     {/* INSTRUCTOR LOGIN MODAL */}
                     {showTeacherLogin && (
-                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                            <div className="bg-white p-6 rounded shadow-lg w-64">
-                                <h3 className="font-bold mb-4">Instructor Access</h3>
+                        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
+                            <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-xs">
+                                <h3 className="font-bold mb-4 text-lg text-slate-800">Instructor Access</h3>
                                 <input 
                                     type="password" 
-                                    className="w-full border p-2 mb-4 rounded" 
+                                    className="w-full border p-3 mb-4 rounded text-base" 
                                     placeholder="Password" 
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
@@ -816,212 +1072,12 @@
                                     autoFocus
                                 />
                                 <div className="flex justify-end gap-2">
-                                    <button onClick={() => setShowTeacherLogin(false)} className="text-slate-500">Cancel</button>
-                                    <button onClick={handleTeacherLogin} className="bg-blue-600 text-white px-3 py-1 rounded">Login</button>
+                                    <button onClick={() => setShowTeacherLogin(false)} className="text-slate-500 py-2 px-3">Cancel</button>
+                                    <button onClick={handleTeacherLogin} className="bg-blue-600 text-white px-4 py-2 rounded font-bold">Login</button>
                                 </div>
                             </div>
                         </div>
                     )}
-
-                    {/* MAIN CONTENT AREA WITH RESIZABLE SPLIT */}
-                    <div className="flex flex-1 overflow-hidden">
-                        
-                        {/* LEFT PANEL: DATA */}
-                        <div 
-                            className="bg-white border-r border-slate-200 overflow-y-auto scroller p-4" 
-                            style={{ width: `${sidebarWidth}%` }}
-                        >
-                            <h2 className="text-xl font-bold text-slate-800 mb-1">{companyData.name}</h2>
-                            <p className="text-xs text-slate-500 mb-6 font-mono">Currency: {companyData.currency}</p>
-
-                            {Object.entries(companyData.CASE_DATA).map(([key, section]) => (
-                                <div key={key} className="mb-8">
-                                    <h3 className="font-bold text-blue-800 border-b-2 border-blue-100 mb-2 pb-1">{section.title}</h3>
-                                    <table className="w-full text-sm text-left border-collapse">
-                                        <thead>
-                                            <tr className="text-xs text-slate-500 border-b">
-                                                {section.headers.map((h, i) => (
-                                                    <th key={i} className={`p-2 ${i > 0 ? 'text-right' : ''}`}>{h}</th>
-                                                ))}
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {section.rows.map((row, rIndex) => (
-                                                <tr key={rIndex} className="hover:bg-blue-50 transition-colors group">
-                                                    {row.map((cell, cIndex) => (
-                                                        <td 
-                                                            key={cIndex} 
-                                                            className={`p-1.5 border-b border-slate-50 ${cIndex > 0 ? 'text-right font-mono text-slate-700 cursor-pointer hover:bg-blue-100 hover:text-blue-700 hover:font-bold' : 'text-slate-600'}`}
-                                                            onMouseDown={(e) => e.preventDefault()} 
-                                                            onClick={() => cIndex > 0 && handleDataClick(cell)}
-                                                            title={cIndex > 0 ? "Click to insert value" : ""}
-                                                        >
-                                                            {cell}
-                                                        </td>
-                                                    ))}
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            ))}
-                        </div>
-
-                        {/* RESIZE HANDLE */}
-                        <div 
-                            className="w-1 bg-slate-200 hover:bg-blue-400 cursor-col-resize flex items-center justify-center transition-colors z-20"
-                            onMouseDown={startResize}
-                        >
-                            <div className="h-8 w-1 bg-slate-400 rounded-full"></div>
-                        </div>
-
-                        {/* RIGHT PANEL: WORKSPACE */}
-                        <div 
-                            className="bg-slate-50 overflow-y-auto scroller p-4 pb-20" 
-                            style={{ width: `${100 - sidebarWidth}%` }}
-                            ref={workspaceRef}
-                        >
-                            <h2 className="text-xl font-bold text-slate-700 mb-4">Credit Analysis Workspace</h2>
-
-                            {/* 1. LIQUIDITY */}
-                            <div className="bg-white rounded shadow-sm border border-slate-200 mb-4">
-                                <SectionHeader title="1. Liquidity Ratios" isOpen={sections.liquidity} toggle={() => toggleSection('liquidity')} />
-                                {sections.liquidity && <div className="p-4">
-                                    {renderRow("Current Ratio", "current_ratio", false, "Current Assets / Current Liabilities")}
-                                    {renderRow("Quick Ratio", "quick_ratio", false, "Cash + Marketable Securities + Trade AR / Current Liabilities")}
-                                </div>}
-                            </div>
-
-                            {/* 2. CAPITAL STRUCTURE */}
-                            <div className="bg-white rounded shadow-sm border border-slate-200 mb-4">
-                                <SectionHeader title="2. Capital Structure" isOpen={sections.capStructure} toggle={() => toggleSection('capStructure')} />
-                                {sections.capStructure && <div className="p-4">
-                                    {renderRow("Liabilities to Equity", "liab_equity", false, "Total Liabilities / Total Equity")}
-                                    {renderRow("Debt to Equity", "debt_equity", false, "Total Debt (incl. Leases) / Total Equity")}
-                                </div>}
-                            </div>
-
-                            {/* 3. COVERAGE */}
-                            <div className="bg-white rounded shadow-sm border border-slate-200 mb-4">
-                                <SectionHeader title="3. Coverage Ratios" isOpen={sections.coverage} toggle={() => toggleSection('coverage')} />
-                                {sections.coverage && <div className="p-4">
-                                    {renderRow("Times Interest Earned", "tie", false, "Operating Income / Interest Expense")}
-                                    {/* Intermittent Calculation Step */}
-                                    {renderRow("EBITDA ($)", "ebitda_val", false, "Operating Income + Depreciation + Amortization", true)}
-                                    {renderRow("EBITDA Coverage", "ebitda_cov", false, "EBITDA / Interest Expense")}
-                                </div>}
-                            </div>
-
-                            {/* 4. CASH FLOW */}
-                            <div className="bg-white rounded shadow-sm border border-slate-200 mb-4">
-                                <SectionHeader title="4. Cash Flow Protection" isOpen={sections.cashFlow} toggle={() => toggleSection('cashFlow')} />
-                                {sections.cashFlow && <div className="p-4">
-                                    {renderRow("CFO to Debt", "cfo_debt", false, "Cash from Ops / Total Debt")}
-                                    {renderRow("Free Op Cash Flow to Debt", "focf_debt", false, "(CFO - Capex) / Total Debt")}
-                                </div>}
-                            </div>
-
-                            {/* 5. MOODY'S ANALYSIS */}
-                            <div className="bg-white rounded shadow-sm border border-indigo-100 ring-1 ring-indigo-50 mb-4">
-                                <div 
-                                    className="flex items-center justify-between bg-indigo-50 p-2 cursor-pointer hover:bg-indigo-100 border-b border-indigo-200"
-                                    onClick={() => toggleSection('moody')}
-                                >
-                                    <h3 className="font-bold text-indigo-900 text-sm uppercase tracking-wide">5. Moody's Credit Rating (2022)</h3>
-                                    <span className="text-indigo-500">{sections.moody ? '▼' : '▶'}</span>
-                                </div>
-                                {sections.moody && <div className="p-4 bg-white">
-                                    <div className="grid grid-cols-4 gap-2 mb-2 font-bold text-xs text-slate-400 uppercase">
-                                        <div className="col-span-2">Metric</div>
-                                        <div className="col-span-1">Computed Value</div>
-                                        <div className="col-span-1">Implied Rating</div>
-                                    </div>
-                                    {renderMoodyRow("Debt / EBITDA", "moody_debt_ebitda", "x", "Total Debt / EBITDA")}
-                                    
-                                    {/* New Intermittent Step for EBITA */}
-                                    <div className="grid grid-cols-4 gap-2 mb-2 items-center border-b border-indigo-50 bg-indigo-50/50 p-1 rounded">
-                                        <div className="col-span-2 text-sm text-indigo-800 flex items-center font-medium">
-                                            EBITA ($)
-                                            <div className="ml-1 group relative"><InfoIcon />
-                                                <div className="hidden group-hover:block absolute z-50 left-0 bottom-full mb-1 w-64 bg-slate-800 text-white text-xs p-2 rounded shadow-lg pointer-events-none">Operating Income + Amortization Expense</div>
-                                            </div>
-                                        </div>
-                                        <div className="col-span-1">
-                                            <SmartInput 
-                                                id="ebita_val" 
-                                                label="" 
-                                                value={inputs[company]["ebita_val"]} 
-                                                onChange={handleInputChange} 
-                                                correctValueEnc={_DATA_MATRIX[company]["ebita_val"]} 
-                                                activeId={activeInputId}
-                                                setActiveId={setActiveInputId}
-                                            />
-                                        </div>
-                                    </div>
-
-                                    {renderMoodyRow("EBITA / Interest", "moody_ebita_int", "x", "EBITA / Interest Expense")}
-                                    {renderMoodyRow("Revenue ($Bn)", "moody_rev", "$", "Revenue in Billions")}
-                                    {renderMoodyRow("EBITA Margin", "moody_ebita_marg", "%", "EBITA / Revenue")}
-                                    {renderMoodyRow("Operating Margin", "moody_op_marg", "%", "Operating Income / Revenue")}
-                                    {renderMoodyRow("FFO / Debt", "moody_ffo_debt", "%", "Funds From Ops / Total Debt")}
-                                    {renderMoodyRow("(FFO+Int) / Int", "moody_ffo_int_int", "x", "(FFO + Interest) / Interest")}
-                                    {renderMoodyRow("EBITA / Avg Assets", "moody_ebita_assets", "%", "EBITA / Average Assets")}
-                                    {renderMoodyRow("Capex / Depreciation", "moody_capex_dep", "x", "Capex / Depreciation")}
-                                </div>}
-                            </div>
-
-                            {/* 6. ALTMAN Z-SCORE */}
-                            <div className="bg-white rounded shadow-sm border border-slate-200 mb-4">
-                                <SectionHeader title="6. Altman Z-Score (2022)" isOpen={sections.zScore} toggle={() => toggleSection('zScore')} />
-                                {sections.zScore && <div className="p-4">
-                                    <p className="text-xs text-slate-500 mb-3 italic">Formula: Z = 1.2A + 1.4B + 3.3C + 0.6D + 0.99E</p>
-                                    {renderZRow("(A) Working Cap / Assets", "z_wc_ta", 1.2, "Working Capital / Total Assets")}
-                                    {renderZRow("(B) Retained Earnings / Assets", "z_re_ta", 1.4, "Retained Earnings / Total Assets")}
-                                    {renderZRow("(C) EBIT / Assets", "z_ebit_ta", 3.3, "EBIT / Total Assets")}
-                                    {renderZRow("(D) Mkt Value Equity / Liabs", "z_mve_tl", 0.6, "Market Cap / Total Liabilities")}
-                                    {renderZRow("(E) Sales / Assets", "z_sales_ta", 0.99, "Revenue / Total Assets")}
-                                    
-                                    <div className="mt-4 pt-3 border-t-2 border-slate-100 flex justify-between items-center">
-                                        <label className="font-bold text-slate-800">Total Z-Score:</label>
-                                        <div className="w-32">
-                                            <SmartInput 
-                                                id="z_score_total" 
-                                                label="" 
-                                                value={inputs[company]["z_score_total"]} 
-                                                onChange={handleInputChange} 
-                                                correctValueEnc={_DATA_MATRIX[company]["z_score_total"]} 
-                                                activeId={activeInputId}
-                                                setActiveId={setActiveInputId}
-                                            />
-                                        </div>
-                                    </div>
-
-                                    {/* Z-SCORE LEGEND */}
-                                    <div className="mt-6 border border-slate-200 rounded-md overflow-hidden">
-                                        <div className="bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-600 border-b border-slate-200">
-                                            Z-Score Interpretation Guide
-                                        </div>
-                                        <div className="divide-y divide-slate-100">
-                                            <div className="grid grid-cols-2 p-2 bg-green-50 text-green-800 text-xs">
-                                                <span className="font-mono font-bold">&gt; 3.0</span>
-                                                <span className="font-semibold text-right">Low Bankruptcy Risk</span>
-                                            </div>
-                                            <div className="grid grid-cols-2 p-2 bg-yellow-50 text-yellow-800 text-xs">
-                                                <span className="font-mono font-bold">1.8 – 3.0</span>
-                                                <span className="font-semibold text-right">Grey Zone</span>
-                                            </div>
-                                            <div className="grid grid-cols-2 p-2 bg-red-50 text-red-800 text-xs">
-                                                <span className="font-mono font-bold">&lt; 1.8</span>
-                                                <span className="font-semibold text-right">High Bankruptcy Risk</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                </div>}
-                            </div>
-
-                        </div>
-                    </div>
                 </div>
             );
         };
