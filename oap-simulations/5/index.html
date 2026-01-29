@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Financial Reporting & Analysis Simulation</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cash Flow and Valuation</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -37,6 +37,7 @@
         body {
             background-color: #f3f4f6;
             user-select: none; /* Light deterrence for selection */
+            -webkit-tap-highlight-color: transparent;
         }
         .math-font {
             font-family: 'Courier New', Courier, monospace;
@@ -45,9 +46,9 @@
         .table-input input {
             border: 1px solid #d1d5db;
             border-radius: 4px;
-            padding: 4px 8px;
+            padding: 8px; /* Larger touch target */
             width: 100%;
-            font-size: 0.9em;
+            font-size: 16px; /* Prevent iOS zoom */
         }
         .table-input input:focus {
             border-color: #2563eb;
@@ -70,11 +71,12 @@
         }
     </style>
 </head>
-<body oncontextmenu="return false;"> <!-- Anti-Tampering: Disable Right Click -->
+<body oncontextmenu="return false;">
     <div id="root"></div>
 
     <script type="text/babel">
         // --- SECURITY & HELPERS ---
+        const { useState, useEffect, useMemo, useRef } = React;
 
         // Helper to decode Base64 values
         const d = (str) => {
@@ -84,6 +86,25 @@
             } catch (e) {
                 return str;
             }
+        };
+
+        // --- ICONS ---
+        const Icon = ({ name, size = 18, className = "" }) => {
+            const iconRef = React.useRef(null);
+            React.useEffect(() => {
+                if (window.lucide && iconRef.current) {
+                    const i = document.createElement('i');
+                    i.setAttribute('data-lucide', name);
+                    if (className) i.setAttribute('class', className);
+                    iconRef.current.innerHTML = '';
+                    iconRef.current.appendChild(i);
+                    window.lucide.createIcons({
+                        root: iconRef.current,
+                        attrs: { width: size, height: size }
+                    });
+                }
+            }, [name, size, className]);
+            return <span ref={iconRef} style={{ display: 'inline-flex', alignItems: 'center' }} />;
         };
 
         // --- CONSTANTS & DATA ---
@@ -798,65 +819,6 @@
 
         // --- COMPONENTS ---
 
-        const Icon = ({ name, size = 18, className = "" }) => {
-            const iconRef = React.useRef(null);
-
-            React.useEffect(() => {
-                if (window.lucide && iconRef.current) {
-                    const i = document.createElement('i');
-                    i.setAttribute('data-lucide', name);
-                    if (className) {
-                        i.setAttribute('class', className);
-                    }
-                    iconRef.current.innerHTML = '';
-                    iconRef.current.appendChild(i);
-                    window.lucide.createIcons({
-                        root: iconRef.current,
-                        attrs: {
-                            width: size,
-                            height: size
-                        }
-                    });
-                }
-            }, [name, size, className]);
-
-            return <span ref={iconRef} style={{ display: 'inline-flex', alignItems: 'center' }} />;
-        };
-
-        const GuidanceBlock = ({ guidance, openQuestions }) => {
-            if (!guidance) return null;
-            return (
-                <div className="mb-6 bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-md">
-                    <div className="mb-2">
-                        <span className="font-bold text-blue-800 flex items-center gap-1 text-sm uppercase tracking-wide">
-                            <Icon name="clipboard-list" size={14} /> Task
-                        </span>
-                        <p className="text-gray-700 text-sm mt-1 leading-relaxed">{guidance.task}</p>
-                    </div>
-                    <div className="mb-2">
-                        <span className="font-bold text-blue-800 flex items-center gap-1 text-sm uppercase tracking-wide">
-                            <Icon name="search" size={14} /> Where to find this information
-                        </span>
-                        <p className="text-gray-700 text-sm mt-1 italic">{guidance.source}</p>
-                    </div>
-                    {openQuestions && (
-                        <div className="mt-3 pt-3 border-t border-blue-200">
-                             <span className="font-bold text-blue-800 flex items-center gap-1 text-sm uppercase tracking-wide">
-                                <Icon name="message-circle" size={14} /> Questions to Consider
-                            </span>
-                             <div className="mt-1 space-y-2">
-                                {Object.entries(openQuestions).map(([key, q]) => (
-                                    <div key={key} className="text-sm text-gray-800">
-                                        <span className="font-bold">{key}:</span> {q}
-                                    </div>
-                                ))}
-                             </div>
-                        </div>
-                    )}
-                </div>
-            );
-        };
-
         const TextBlock = ({ content }) => {
             if (!content) return null;
             return (
@@ -877,7 +839,6 @@
             );
         };
 
-        // Component for Yes/No Questions
         const ChoiceInput = ({ id, label, correct, value, onChange, showKey }) => {
             const decodedCorrect = d(correct);
             const isCorrect = value === decodedCorrect;
@@ -967,14 +928,14 @@
 
                 // Percent Tolerance Logic
                 if (isPct) {
-                     // If user enters 0.106 and target is 10.6 -> Multiply user by 100
-                     if (Math.abs(userVal) < 1 && Math.abs(targetVal) > 1) {
-                         userVal = userVal * 100;
-                     } 
-                     // If user enters 10.6 and target is 0.106 -> Multiply target by 100
-                     else if (Math.abs(userVal) > 1 && Math.abs(targetVal) < 1) {
-                         targetVal = targetVal * 100;
-                     }
+                      // If user enters 0.106 and target is 10.6 -> Multiply user by 100
+                      if (Math.abs(userVal) < 1 && Math.abs(targetVal) > 1) {
+                           userVal = userVal * 100;
+                      } 
+                      // If user enters 10.6 and target is 0.106 -> Multiply target by 100
+                      else if (Math.abs(userVal) > 1 && Math.abs(targetVal) < 1) {
+                           targetVal = targetVal * 100;
+                      }
                 }
 
                 const diff = Math.abs(userVal - targetVal);
@@ -1025,7 +986,7 @@
                             onKeyDown={handleKeyDown}
                             onFocus={() => onFocus(id)}
                             className={`${isValid === true ? 'border-green-500 bg-green-50' : 
-                                      isValid === false ? 'border-red-400 bg-red-50' : ''}`}
+                                          isValid === false ? 'border-red-400 bg-red-50' : ''}`}
                             placeholder="..."
                         />
                         {isValid === true && <div className="absolute right-2 top-1.5"><Icon name="check" size={14} className="text-green-600" /></div>}
@@ -1192,12 +1153,12 @@
             return (
                 <div>
                     {views && (
-                        <div className="flex border-b border-gray-200 mb-4">
+                        <div className="flex border-b border-gray-200 mb-4 overflow-x-auto">
                             {Object.keys(views).map(viewKey => (
                                 <button
                                     key={viewKey}
                                     onClick={() => setActiveView(viewKey)}
-                                    className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                                    className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                                         activeView === viewKey 
                                         ? 'border-blue-500 text-blue-600' 
                                         : 'border-transparent text-gray-500 hover:text-gray-700'
@@ -1212,7 +1173,7 @@
                     {textContent && <TextBlock content={textContent} />}
 
                     <div className="overflow-x-auto border border-gray-200 rounded-lg">
-                        <table className="w-full text-left border-collapse">
+                        <table className="w-full text-left border-collapse min-w-[500px]">
                             <thead>
                                 <tr className="bg-gray-100 text-sm uppercase text-gray-600">
                                     {renderHeaders.map((h, i) => (
@@ -1267,6 +1228,40 @@
             );
         };
 
+        const GuidanceBlock = ({ guidance, openQuestions }) => {
+            if (!guidance) return null;
+            return (
+                <div className="mb-6 bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-md">
+                    <div className="mb-2">
+                        <span className="font-bold text-blue-800 flex items-center gap-1 text-sm uppercase tracking-wide">
+                            <Icon name="clipboard-list" size={14} /> Task
+                        </span>
+                        <p className="text-gray-700 text-sm mt-1 leading-relaxed">{guidance.task}</p>
+                    </div>
+                    <div className="mb-2">
+                        <span className="font-bold text-blue-800 flex items-center gap-1 text-sm uppercase tracking-wide">
+                            <Icon name="search" size={14} /> Where to find this information
+                        </span>
+                        <p className="text-gray-700 text-sm mt-1 italic">{guidance.source}</p>
+                    </div>
+                    {openQuestions && (
+                        <div className="mt-3 pt-3 border-t border-blue-200">
+                             <span className="font-bold text-blue-800 flex items-center gap-1 text-sm uppercase tracking-wide">
+                                <Icon name="message-circle" size={14} /> Questions to Consider
+                            </span>
+                             <div className="mt-1 space-y-2">
+                                {Object.entries(openQuestions).map(([key, q]) => (
+                                    <div key={key} className="text-sm text-gray-800">
+                                        <span className="font-bold">{key}:</span> {q}
+                                    </div>
+                                ))}
+                             </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
         const Sidebar = ({ onDataClick, width }) => {
             const [openCompany, setOpenCompany] = React.useState('PH');
 
@@ -1277,10 +1272,7 @@
             };
 
             return (
-                <div 
-                    style={{ width: width }}
-                    className="bg-white border-r border-gray-200 h-full flex flex-col overflow-hidden shadow-lg z-10 shrink-0"
-                >
+                <div className="h-full flex flex-col">
                     <div className="p-4 bg-gray-800 text-white flex items-center gap-2">
                         <Icon name="database" size={20} />
                         <h2 className="font-bold">Reference Data</h2>
@@ -1291,7 +1283,7 @@
                             Click any number to insert it into your calculation.
                         </p>
                     </div>
-                    <div className="flex-1 overflow-y-auto scrollbar-thin p-2 overflow-x-auto">
+                    <div className="flex-1 overflow-y-auto scrollbar-thin p-2">
                         {Object.entries(RAW_DATA).map(([company, statements]) => (
                             <div key={company} className="mb-4 border border-gray-200 rounded-lg overflow-hidden">
                                 <button 
@@ -1316,7 +1308,7 @@
                                                         <div className="flex-1 min-w-[120px]">Account</div>
                                                         <div className="flex gap-4">
                                                             {years.map(year => (
-                                                                <div key={year} className="w-24 text-center">{year}</div>
+                                                                <div key={year} className="w-20 text-center">{year}</div>
                                                             ))}
                                                         </div>
                                                     </div>
@@ -1328,7 +1320,7 @@
                                                                     <button
                                                                         key={year}
                                                                         onClick={() => onDataClick(row[year])}
-                                                                        className="w-24 text-right text-blue-600 hover:text-blue-800 font-mono text-xs p-1"
+                                                                        className="w-20 text-right text-blue-600 hover:text-blue-800 font-mono text-xs p-1"
                                                                         title={`Insert ${year} value`}
                                                                     >
                                                                         {row[year] !== undefined ? row[year].toLocaleString() : '-'}
@@ -1357,27 +1349,27 @@
             const [password, setPassword] = React.useState('');
             const [confirmation, setConfirmation] = React.useState({ isOpen: false, message: '', onConfirm: null });
             
-            // Resizing State
-            const [sidebarWidth, setSidebarWidth] = React.useState(420); // Default wider
+            // Mobile & Layout State
+            const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
+            const [showNamePrompt, setShowNamePrompt] = React.useState(false);
+            const [studentName, setStudentName] = React.useState("");
+            
+            // Resizing State (Desktop only)
+            const [sidebarWidth, setSidebarWidth] = React.useState(350); 
             const [isResizing, setIsResizing] = React.useState(false);
 
             React.useEffect(() => {
                 const handleMouseMove = (e) => {
                     if (isResizing) {
-                        const newWidth = Math.max(200, Math.min(e.clientX, 800)); // Constraints
+                        const newWidth = Math.max(250, Math.min(e.clientX, 600)); 
                         setSidebarWidth(newWidth);
                     }
                 };
-
-                const handleMouseUp = () => {
-                    setIsResizing(false);
-                };
-
+                const handleMouseUp = () => setIsResizing(false);
                 if (isResizing) {
                     window.addEventListener('mousemove', handleMouseMove);
                     window.addEventListener('mouseup', handleMouseUp);
                 }
-
                 return () => {
                     window.removeEventListener('mousemove', handleMouseMove);
                     window.removeEventListener('mouseup', handleMouseUp);
@@ -1390,7 +1382,6 @@
                 const currentVal = answers[focusedInput] || '';
                 let newVal = currentVal.toString();
 
-                // Append logic
                 if (/[\+\-\*\/]$/.test(newVal)) {
                     newVal += value;
                 } else if (newVal === '') {
@@ -1400,13 +1391,15 @@
                 }
 
                 setAnswers(prev => ({ ...prev, [focusedInput]: newVal }));
+                
+                // Close mobile menu on selection to return to input
+                if (window.innerWidth < 768) setMobileMenuOpen(false);
 
-                // Focus restoration logic: Keep focus so user can type next operator immediately
+                // Focus restoration
                 setTimeout(() => {
                     const inputEl = document.getElementById(focusedInput);
                     if (inputEl) {
                         inputEl.focus();
-                        // Move cursor to end
                         const len = inputEl.value.length;
                         inputEl.setSelectionRange(len, len);
                     }
@@ -1418,7 +1411,6 @@
             };
 
             const login = () => {
-                // Password: OAP5-Key9R (Base64: T0FQNS1LZXk5Ug==)
                 if (btoa(password) === 'T0FQNS1LZXk5Ug==') {
                     setInstructorMode(true);
                     setShowLogin(false);
@@ -1447,9 +1439,7 @@
                             }
                         } else if (sub.questions) {
                             sub.questions.forEach(q => {
-                                if (q.type === 'multiselect') {
-                                    newAnswers[q.id] = d(q.correct);
-                                } else if (q.type === 'choice') {
+                                if (q.type === 'multiselect' || q.type === 'choice') {
                                     newAnswers[q.id] = d(q.correct);
                                 } else {
                                     newAnswers[q.id] = d(q.correct);
@@ -1485,9 +1475,7 @@
                              if(sub.flexibleTable.rows) {
                                  sub.flexibleTable.rows.forEach(row => {
                                     row.forEach(cell => {
-                                        if(cell.type === 'input') {
-                                             content += `    ${cell.id}: ${answers[cell.id] || '(No Answer)'}\n`;
-                                        }
+                                        if(cell.type === 'input') content += `    ${cell.id}: ${answers[cell.id] || '(No Answer)'}\n`;
                                     });
                                  });
                              }
@@ -1495,11 +1483,9 @@
                                  Object.entries(sub.flexibleTable.views).forEach(([viewName, view]) => {
                                      content += `    [View: ${viewName}]\n`;
                                      view.rows.forEach(row => {
-                                        row.forEach(cell => {
-                                            if(cell.type === 'input') {
-                                                 content += `      ${cell.id}: ${answers[cell.id] || '(No Answer)'}\n`;
-                                            }
-                                        });
+                                         row.forEach(cell => {
+                                             if(cell.type === 'input') content += `      ${cell.id}: ${answers[cell.id] || '(No Answer)'}\n`;
+                                         });
                                      });
                                  });
                              }
@@ -1511,107 +1497,100 @@
                     });
                     content += "\n";
                 });
-
                 const element = document.createElement("a");
                 const file = new Blob([content], {type: 'text/plain'});
                 element.href = URL.createObjectURL(file);
                 element.download = "financial_simulation_work.txt";
                 document.body.appendChild(element);
                 element.click();
+                setShowNamePrompt(false);
             };
 
             return (
-                <div className="flex h-screen flex-row overflow-hidden font-sans text-gray-800">
-                    {/* Sidebar */}
-                    <Sidebar onDataClick={handleDataClick} width={sidebarWidth} />
+                <div className="flex h-screen overflow-hidden bg-slate-100 relative">
+                    
+                    {/* Mobile Menu Overlay */}
+                    {mobileMenuOpen && (
+                        <div className="fixed inset-0 bg-black/50 z-30 md:hidden" onClick={() => setMobileMenuOpen(false)}></div>
+                    )}
 
-                    {/* Resizer Handle */}
+                    {/* Sidebar / Drawer */}
                     <div 
-                        className={`resizer ${isResizing ? 'active' : ''}`} 
-                        onMouseDown={() => setIsResizing(true)}
-                    ></div>
+                        style={{ width: window.innerWidth >= 768 ? sidebarWidth : '85%' }}
+                        className={`fixed inset-y-0 left-0 z-40 bg-white border-r border-slate-200 shadow-xl transition-transform duration-300 transform 
+                            ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} 
+                            md:translate-x-0 md:relative md:shadow-none md:z-0 flex flex-col h-full`}
+                    >
+                        <div className="md:hidden p-4 flex justify-between items-center border-b">
+                            <h2 className="font-bold text-gray-800">Data Source</h2>
+                            <button onClick={() => setMobileMenuOpen(false)}><Icon name="x" /></button>
+                        </div>
+                        <Sidebar onDataClick={handleDataClick} />
+                    </div>
+
+                    {/* Resizer (Desktop) */}
+                    <div className="hidden md:block resizer" onMouseDown={() => setIsResizing(true)}></div>
 
                     {/* Main Content */}
-                    <div className="flex-1 flex flex-col h-full bg-white relative min-w-0">
-                        {/* Instructor Toolbar */}
-                        {instructorMode && (
-                            <div className="bg-purple-600 text-white p-2 flex justify-between items-center shadow-md z-20 sticky top-0">
-                                <div className="flex items-center gap-2 font-bold">
-                                    <Icon name="graduation-cap" className="text-white" />
-                                    Instructor Mode Active
-                                </div>
-                                <div className="flex gap-2">
-                                    <button onClick={autoFill} className="bg-white text-purple-700 px-3 py-1 rounded text-sm font-bold hover:bg-gray-100 flex items-center gap-1">
-                                        <Icon name="wand-2" size={14} /> Auto-Fill Key
-                                    </button>
-                                    <button onClick={clearAll} className="bg-red-500 text-white px-3 py-1 rounded text-sm font-bold hover:bg-red-600 flex items-center gap-1">
-                                        <Icon name="trash-2" size={14} /> Clear & Exit
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-
+                    <div className="flex-1 flex flex-col h-full overflow-hidden w-full relative bg-white">
+                        
                         {/* Header */}
-                        <header className="border-b border-gray-200 p-4 bg-white flex flex-col md:flex-row justify-between items-center gap-4 shadow-sm z-10">
-                            <div>
-                                <h1 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                                    <Icon name="calculator" className="text-blue-600" />
-                                    Financial Analysis Simulation
-                                </h1>
-                                <div className="text-sm text-gray-500 mt-1 flex gap-4">
-                                    <a href="https://www.sec.gov/ix?doc=/Archives/edgar/data/0000076334/000007633422000034/ph-20220630.htm" target="_blank" className="text-blue-600 hover:underline flex items-center gap-1">
-                                        <Icon name="external-link" size={12} /> PH 10-K
-                                    </a>
-                                    <a href="https://www.sec.gov/ix?doc=/Archives/edgar/data/0000049826/000004982623000008/itw-20221231.htm" target="_blank" className="text-blue-600 hover:underline flex items-center gap-1">
-                                        <Icon name="external-link" size={12} /> ITW 10-K
-                                    </a>
+                        <header className="border-b border-gray-200 p-4 bg-white flex justify-between items-center shadow-sm z-10 shrink-0">
+                            <div className="flex items-center gap-3">
+                                <button className="md:hidden p-1 rounded hover:bg-gray-100" onClick={() => setMobileMenuOpen(true)}>
+                                    <Icon name="menu" />
+                                </button>
+                                <div>
+                                    <h1 className="text-lg md:text-xl font-bold text-gray-800 flex items-center gap-2">
+                                        <Icon name="calculator" className="text-blue-600 hidden sm:block" />
+                                        Cash Flow and Valuation
+                                    </h1>
+                                    <p className="text-xs text-gray-500 hidden sm:block">DuPont Disaggregation Analysis</p>
                                 </div>
                             </div>
 
                             <div className="flex gap-2">
-                                <button 
-                                    onClick={() => setShowLogin(true)}
-                                    className="px-2 py-2 text-gray-400 hover:text-gray-600 rounded flex items-center gap-2 opacity-50 hover:opacity-100"
-                                    title="Instructor Access"
-                                >
-                                    <Icon name="lock" size={16} />
+                                {instructorMode && (
+                                    <div className="flex gap-2 mr-2">
+                                         <button onClick={autoFill} className="bg-purple-100 text-purple-700 px-3 py-1 rounded text-xs font-bold hover:bg-purple-200 flex items-center gap-1">
+                                            Auto-Fill
+                                        </button>
+                                         <button onClick={clearAll} className="bg-red-100 text-red-700 px-3 py-1 rounded text-xs font-bold hover:bg-red-200 flex items-center gap-1">
+                                            Clear
+                                        </button>
+                                    </div>
+                                )}
+                                <button onClick={() => setShowLogin(true)} className="px-2 py-2 text-gray-400 hover:text-gray-600">
+                                    {instructorMode ? <Icon name="unlock" size={18} className="text-green-600" /> : <Icon name="lock" size={18} />}
                                 </button>
-                                <button 
-                                    onClick={downloadWork}
-                                    className="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 shadow flex items-center gap-2"
-                                >
-                                    <Icon name="save" size={16} /> Save Work
+                                <button onClick={() => setShowNamePrompt(true)} className="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 shadow flex items-center gap-2 font-bold">
+                                    <Icon name="download" size={16} /> <span className="hidden sm:inline">Save</span>
                                 </button>
                             </div>
                         </header>
 
-                        {/* Content Area */}
-                        <div className="flex-1 overflow-y-auto p-6 scrollbar-thin bg-gray-50">
-                            <div className="max-w-5xl mx-auto space-y-8 pb-12">
+                        {/* Workspace */}
+                        <div className="flex-1 overflow-y-auto p-4 md:p-6 scrollbar-thin bg-gray-50">
+                            <div className="max-w-4xl mx-auto space-y-8 pb-12">
                                 {_DATA_MATRIX.map((sec) => (
-                                    <div key={sec.id} className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-                                        <h2 className="text-xl font-bold text-gray-800 mb-6 border-b pb-3 flex items-center gap-2">
-                                            <Icon name="hash" size={24} className="text-blue-500" />
-                                            {sec.title}
+                                    <div key={sec.id} className="bg-white p-4 md:p-6 rounded-lg shadow-sm border border-gray-200">
+                                        <h2 className="text-lg md:text-xl font-bold text-gray-800 mb-6 border-b pb-3 flex items-center gap-2">
+                                            <span className="bg-blue-100 text-blue-600 w-8 h-8 flex items-center justify-center rounded-full text-sm">
+                                                {sec.title.split('.')[0]}
+                                            </span>
+                                            {sec.title.split('. ')[1]}
                                         </h2>
                                         
                                         <div className="space-y-8">
                                             {sec.subsections.map((sub, subIdx) => (
                                                 <div key={subIdx} className="bg-white rounded-md">
-                                                    <h3 className="text-md font-bold text-gray-800 mb-4 flex items-center gap-2">
-                                                        <span className="bg-gray-100 text-gray-600 py-1 px-2 rounded text-xs uppercase tracking-wide border border-gray-200">
-                                                            Section {sub.title.split(' ')[0]}
-                                                        </span>
+                                                    <h3 className="text-md font-bold text-gray-800 mb-4 flex flex-wrap items-center gap-2">
+                                                        <span className="text-blue-600 font-mono text-sm">{sub.title.split(' ')[0]}</span>
                                                         {sub.title.split(' ').slice(1).join(' ')}
                                                     </h3>
-                                                    
-                                                    {/* Guidance Block */}
                                                     <GuidanceBlock guidance={sub.guidance} openQuestions={sub.openQuestions} />
-
-                                                    {/* Text Block */}
                                                     {sub.textContent && <TextBlock content={sub.textContent} />}
-
-                                                    {/* Render Table or Standard Inputs */}
+                                                    
                                                     {sub.flexibleTable ? (
                                                         <FlexibleTable 
                                                             headers={sub.flexibleTable.headers}
@@ -1623,40 +1602,15 @@
                                                             showKey={instructorMode}
                                                         />
                                                     ) : (
-                                                        <div className={`grid gap-4 pl-4 border-l-2 border-gray-100 ${sub.gridCols === 2 ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1'}`}>
+                                                        <div className={`grid gap-4 pl-0 md:pl-4 md:border-l-2 border-gray-100 ${sub.gridCols === 2 ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1'}`}>
                                                             {sub.questions && sub.questions.map(q => (
                                                                 <div key={q.id}>
                                                                     {q.type === 'multiselect' ? (
-                                                                        <MultiSelect
-                                                                            id={q.id}
-                                                                            label={q.label}
-                                                                            options={q.options}
-                                                                            correct={q.correct}
-                                                                            value={answers[q.id]}
-                                                                            onChange={handleInputChange}
-                                                                            showKey={instructorMode}
-                                                                        />
+                                                                        <MultiSelect id={q.id} label={q.label} options={q.options} correct={q.correct} value={answers[q.id]} onChange={handleInputChange} showKey={instructorMode} />
                                                                     ) : q.type === 'choice' ? (
-                                                                        <ChoiceInput
-                                                                            id={q.id}
-                                                                            label={q.label}
-                                                                            correct={q.correct}
-                                                                            value={answers[q.id]}
-                                                                            onChange={handleInputChange}
-                                                                            showKey={instructorMode}
-                                                                        />
+                                                                        <ChoiceInput id={q.id} label={q.label} correct={q.correct} value={answers[q.id]} onChange={handleInputChange} showKey={instructorMode} />
                                                                     ) : (
-                                                                        <SmartInput
-                                                                            id={q.id}
-                                                                            label={q.label}
-                                                                            correct={q.correct}
-                                                                            isPct={q.isPct}
-                                                                            suffix={q.suffix}
-                                                                            value={answers[q.id]}
-                                                                            onChange={handleInputChange}
-                                                                            onFocus={setFocusedInput}
-                                                                            showKey={instructorMode}
-                                                                        />
+                                                                        <SmartInput id={q.id} label={q.label} correct={q.correct} isPct={q.isPct} suffix={q.suffix} value={answers[q.id]} onChange={handleInputChange} onFocus={setFocusedInput} showKey={instructorMode} />
                                                                     )}
                                                                 </div>
                                                             ))}
@@ -1669,45 +1623,49 @@
                                 ))}
                             </div>
                         </div>
-
-                        {/* Confirmation Modal */}
-                        {confirmation.isOpen && (
-                            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 fade-in">
-                                <div className="bg-white p-6 rounded-lg shadow-xl w-80">
-                                    <h3 className="font-bold text-lg mb-4 text-gray-800">Confirm Action</h3>
-                                    <p className="text-sm text-gray-600 mb-6">{confirmation.message}</p>
-                                    <div className="flex justify-end gap-2">
-                                        <button onClick={() => setConfirmation({ isOpen: false, message: '', onConfirm: null })} className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded">Cancel</button>
-                                        <button onClick={confirmation.onConfirm} className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-sm font-medium">Confirm</button>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Login Modal */}
-                        {showLogin && (
-                            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 fade-in">
-                                <div className="bg-white p-6 rounded-lg shadow-xl w-80">
-                                    <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
-                                        <Icon name="shield-check" className="text-purple-600" />
-                                        Instructor Access
-                                    </h3>
-                                    <input 
-                                        type="password" 
-                                        placeholder="Password"
-                                        className="w-full border p-2 rounded mb-4 outline-none focus:border-purple-500"
-                                        value={password}
-                                        onChange={(e) => setPassword(e.target.value)}
-                                        onKeyDown={(e) => e.key === 'Enter' && login()}
-                                    />
-                                    <div className="flex justify-end gap-2">
-                                        <button onClick={() => setShowLogin(false)} className="px-3 py-1 text-gray-600 hover:bg-gray-100 rounded">Cancel</button>
-                                        <button onClick={login} className="px-3 py-1 bg-purple-600 text-white rounded hover:bg-purple-700">Unlock</button>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
                     </div>
+
+                    {/* Modals */}
+                    {confirmation.isOpen && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 fade-in p-4">
+                            <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-sm">
+                                <h3 className="font-bold text-lg mb-4 text-gray-800">Confirm Action</h3>
+                                <p className="text-sm text-gray-600 mb-6">{confirmation.message}</p>
+                                <div className="flex justify-end gap-2">
+                                    <button onClick={() => setConfirmation({ isOpen: false, message: '', onConfirm: null })} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded">Cancel</button>
+                                    <button onClick={confirmation.onConfirm} className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded text-sm font-medium">Confirm</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {showLogin && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 fade-in p-4">
+                            <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-xs">
+                                <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
+                                    <Icon name="shield-check" className="text-purple-600" /> Instructor Access
+                                </h3>
+                                <input type="password" className="w-full border p-2 rounded mb-4 outline-none focus:border-purple-500" value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && login()} autoFocus placeholder="Enter Password" />
+                                <div className="flex justify-end gap-2">
+                                    <button onClick={() => setShowLogin(false)} className="px-3 py-1 text-gray-600 hover:bg-gray-100 rounded">Cancel</button>
+                                    <button onClick={login} className="px-3 py-1 bg-purple-600 text-white rounded hover:bg-purple-700">Unlock</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {showNamePrompt && (
+                        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 animate-fade-in backdrop-blur-sm p-4">
+                            <div className="bg-white p-8 rounded-xl shadow-2xl w-full max-w-sm">
+                                <h3 className="text-xl font-bold text-slate-800 mb-4 text-center">Save Your Work</h3>
+                                <input type="text" value={studentName} onChange={(e) => setStudentName(e.target.value)} placeholder="Your Full Name" className="w-full p-3 border border-slate-300 rounded-lg mb-4 text-center" autoFocus />
+                                <div className="flex flex-col gap-2">
+                                    <button onClick={() => studentName.trim() ? downloadWork() : alert("Name required")} className="w-full py-3 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700">Download Answers</button>
+                                    <button onClick={() => setShowNamePrompt(false)} className="w-full py-2 text-slate-500 hover:bg-slate-50 rounded-lg">Cancel</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             );
         };
