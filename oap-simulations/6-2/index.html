@@ -48,6 +48,33 @@
             border-color: #3b82f6 !important;
             animation: pulse-ring 2s infinite;
         }
+
+        /* Resizer Handle */
+        .resizer {
+            width: 8px;
+            cursor: col-resize;
+            background-color: #e5e7eb;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.2s;
+            z-index: 20;
+            flex-shrink: 0;
+        }
+        .resizer:hover, .resizer.active {
+            background-color: #3b82f6;
+        }
+        .resizer-dots {
+            height: 24px;
+            width: 2px;
+            background-color: #9ca3af;
+            border-radius: 1px;
+        }
+
+        /* Mobile specific adjustments */
+        @media (max-width: 768px) {
+            .resizer { display: none; }
+        }
     </style>
 </head>
 <body oncontextmenu="return false">
@@ -57,7 +84,6 @@
 <script type="text/babel">
 
     // --- 1. THE DATASET (Source of Truth) ---
-    // Notes marked 'hidden: true' will not appear in the left Data Panel
     const DATA_SETS = {
         ITW: {
             name: "Illinois Tool Works (ITW)",
@@ -264,13 +290,6 @@
         } catch (e) {
             return null;
         }
-    };
-
-    const formatNumber = (num) => {
-        return new Intl.NumberFormat('en-US', {
-            minimumFractionDigits: 1,
-            maximumFractionDigits: 1
-        }).format(num);
     };
 
     // Global Quiz Questions
@@ -547,7 +566,8 @@
                 return;
             }
 
-            const tolerance = Math.abs(expectedValue * 0.05); // 5% tolerance
+            // Updated tolerance: 2% (0.02)
+            const tolerance = Math.abs(expectedValue * 0.02);
             
             // Check 1: Direct match (e.g. 5.0 == 5.0)
             if (Math.abs(numVal - expectedValue) <= tolerance) {
@@ -555,12 +575,16 @@
                 return;
             } 
             
-            // Check 2: Decimal equivalent for percentages (e.g. 0.05 == 5%)
-            if (isPercentage) {
-                if (Math.abs((numVal * 100) - expectedValue) <= tolerance) {
-                    setStatus('correct');
-                    return;
-                }
+            // Check 2: Decimal equivalent for percentages (e.g. 0.13 == 13%)
+            if (Math.abs((numVal * 100) - expectedValue) <= tolerance) {
+                 setStatus('correct');
+                 return;
+            }
+
+            // Check 3: Reverse (e.g. expected 0.13, user enters 13)
+            if (Math.abs((numVal / 100) - expectedValue) <= tolerance) {
+                 setStatus('correct');
+                 return;
             }
 
             setStatus('incorrect');
@@ -579,6 +603,7 @@
             setIsFocused(false);
             const result = safeEvaluate(localValue);
             if (result !== null && !isNaN(result)) {
+                // Round to 2 decimal places for display, but validation handles tolerance
                 const rounded = parseFloat(result.toFixed(2));
                 setLocalValue(rounded.toString());
                 onChange(id, rounded.toString());
@@ -597,8 +622,6 @@
         let borderColor = 'border-gray-300';
         let bgColor = 'bg-white';
         
-        // Use local isFocused state for visual feedback instead of isActive prop
-        // This ensures that when blur occurs (e.g. via Enter), the style updates immediately
         if (isFocused) borderColor = 'border-blue-500 ring-2 ring-blue-200';
         else if (status === 'correct') { borderColor = 'border-green-500'; bgColor = 'bg-green-50'; }
         else if (status === 'incorrect') { borderColor = 'border-red-500'; bgColor = 'bg-red-50'; }
@@ -674,11 +697,10 @@
             </div>
         );
 
-        // Filter out hidden sections (Notes) for the left panel
         const visibleSections = Object.keys(data.CASE_DATA).filter(key => !data.CASE_DATA[key].hidden);
 
         return (
-            <div className="h-full overflow-y-auto custom-scrollbar p-4 bg-gray-50 border-r border-gray-200">
+            <div className="h-full overflow-y-auto custom-scrollbar p-4 bg-gray-50">
                 <div className="flex justify-between items-center mb-6 sticky top-0 bg-gray-50 z-10 py-2 border-b">
                     <div>
                         <h2 className="text-xl font-bold text-gray-900">{data.name}</h2>
@@ -691,7 +713,6 @@
         );
     };
 
-    // Component to render specific hidden data tables as "Solutions"
     const SolutionDataViewer = ({ companyKey, noteKeys }) => {
         const data = DATA_SETS[companyKey];
         if (!data) return null;
@@ -735,25 +756,56 @@
 
     const App = () => {
         const [activeCompany, setActiveCompany] = React.useState('ITW');
-        const [activeTab, setActiveTab] = React.useState('simulation'); // 'simulation' | 'quiz'
+        const [activeTab, setActiveTab] = React.useState('simulation');
         const [activeInputId, setActiveInputId] = React.useState(null);
         const [inputValues, setInputValues] = React.useState({ ITW: {}, PH: {} });
         const [showFormula, setShowFormula] = React.useState({ s1: false, s2: false, s3: false });
-        const [showSolution, setShowSolution] = React.useState(false); // For Deep Dive
-        const [isInstructor, setIsInstructor] = React.useState(false); // Instructor mode toggle
+        const [showSolution, setShowSolution] = React.useState(false);
+        const [isInstructor, setIsInstructor] = React.useState(false);
         const [showSubmissionModal, setShowSubmissionModal] = React.useState(false);
         const [showPasswordModal, setShowPasswordModal] = React.useState(false);
         
-        // Lifted Quiz State
+        // Quiz State
         const [quizAnswers, setQuizAnswers] = React.useState({});
         const [quizShowResults, setQuizShowResults] = React.useState(false);
 
+        // Layout State
+        const [sidebarWidth, setSidebarWidth] = React.useState(40); // Percentage
+        const sidebarRef = React.useRef(null);
+        const isResizing = React.useRef(false);
+        const [isMobile, setIsMobile] = React.useState(window.innerWidth < 768);
+
         React.useEffect(() => {
             if (window.lucide) window.lucide.createIcons();
-            setShowSolution(false); // Reset solution view on company switch
+            setShowSolution(false);
         }, [activeCompany, isInstructor]);
 
-        // Helper to get raw data
+        // Mobile check
+        React.useEffect(() => {
+            const handleResize = () => setIsMobile(window.innerWidth < 768);
+            window.addEventListener('resize', handleResize);
+            return () => window.removeEventListener('resize', handleResize);
+        }, []);
+
+        // Resizing Logic
+        const startResizing = React.useCallback(() => { isResizing.current = true; }, []);
+        const stopResizing = React.useCallback(() => { isResizing.current = false; }, []);
+        const resize = React.useCallback((e) => {
+            if (isResizing.current) {
+                const newWidth = (e.clientX / window.innerWidth) * 100;
+                if (newWidth > 20 && newWidth < 80) setSidebarWidth(newWidth);
+            }
+        }, []);
+
+        React.useEffect(() => {
+            window.addEventListener("mousemove", resize);
+            window.addEventListener("mouseup", stopResizing);
+            return () => {
+                window.removeEventListener("mousemove", resize);
+                window.removeEventListener("mouseup", stopResizing);
+            };
+        }, [resize, stopResizing]);
+
         const getData = (company, section, rowName, colIndex) => {
             if (!DATA_SETS[company].CASE_DATA[section]) return 0;
             const rows = DATA_SETS[company].CASE_DATA[section].rows;
@@ -796,7 +848,6 @@
             let deepDiveData = {};
 
             if (company === 'PH') {
-                // PH SPECIAL (2020)
                 const lordInt = getData('PH', 'note_3', 'Intangible assets', 1);
                 const exoticInt = getData('PH', 'note_3', 'Intangible assets', 2);
                 const totalIntAcq = lordInt + exoticInt;
@@ -822,7 +873,6 @@
                 deepDiveData = { totalIntAcq, totalGWAcq, patNet, tmNet, listNet, amort2020, impairmentStatus: "No, no charges recorded." };
 
             } else if (company === 'ITW') {
-                // ITW SPECIAL (2021/2022)
                 const mtsGw = getData('ITW', 'note_9', 'Goodwill', 1);
                 const mtsInt = getData('ITW', 'note_9', 'Intangible Assets', 1);
 
@@ -851,7 +901,6 @@
 
         const expectations = getExpectations(activeCompany);
 
-        // --- HANDLERS ---
         const handleValueClick = (val) => {
             if (!activeInputId) return;
             const currentVal = inputValues[activeCompany][activeInputId] || "";
@@ -888,7 +937,6 @@
 
         const toggleSolution = () => setShowSolution(!showSolution);
 
-        // --- INSTRUCTOR FUNCTIONS ---
         const handleAutoFill = () => {
             const expITW = getExpectations('ITW');
             const expPH = getExpectations('PH');
@@ -915,7 +963,6 @@
             setShowSolution(false);
         };
 
-        // --- QUIZ FUNCTIONS (Instructor) ---
         const handleQuizAutoFill = () => {
             const correct = {};
             QUIZ_QUESTIONS.forEach((q, i) => correct[i] = q.correct);
@@ -980,7 +1027,6 @@
                 content += `\n-----------------------------------\n\n`;
             });
 
-            // Add Quiz Results to Download
             content += `KNOWLEDGE QUIZ RESULTS\n`;
             const answeredCount = Object.keys(quizAnswers).length;
             const correctCount = QUIZ_QUESTIONS.filter((q, i) => quizAnswers[i] === q.correct).length;
@@ -1023,7 +1069,7 @@
         };
 
         return (
-            <div className="flex h-screen w-full overflow-hidden relative">
+            <div className="flex flex-col md:flex-row h-screen w-full overflow-hidden relative">
                 <SubmissionModal 
                     isOpen={showSubmissionModal} 
                     onClose={() => setShowSubmissionModal(false)}
@@ -1037,12 +1083,20 @@
                 />
 
                 {/* LEFT: Data Panel */}
-                <div className="w-5/12 h-full bg-gray-50 border-r border-gray-300">
+                <div 
+                    className="w-full md:w-auto h-1/2 md:h-full bg-gray-50 border-r border-gray-300 flex-shrink-0"
+                    style={{ width: !isMobile ? `${sidebarWidth}%` : '100%' }}
+                >
                     <DataPanel companyKey={activeCompany} onCellClick={handleValueClick} />
                 </div>
 
+                {/* Resizer */}
+                <div className="resizer hidden md:flex" onMouseDown={startResizing}>
+                    <div className="resizer-dots"></div>
+                </div>
+
                 {/* RIGHT: Workspace */}
-                <div className="w-7/12 h-full bg-white flex flex-col">
+                <div className="flex-1 h-1/2 md:h-full bg-white flex flex-col overflow-hidden">
                     {/* Header */}
                     <div className="bg-white border-b border-gray-200 p-4 shadow-sm z-10">
                         <div className="flex justify-between items-center mb-3">
@@ -1173,7 +1227,7 @@
                                         Avg Net PPE = (Net PPE 2022 + Net PPE 2021) / 2 <br/>
                                         PPE Turnover = Revenue / Avg Net PPE
                                     </FormulaBox>
-                                    <div className="grid grid-cols-2 gap-6 mb-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-1">Average Net PPE</label>
                                             <SmartInput 
@@ -1257,7 +1311,7 @@
                                         Intangibles % = (Intangibles / Total Assets) * 100 <br/>
                                         Goodwill % = (Goodwill / Total Assets) * 100
                                     </FormulaBox>
-                                    <div className="grid grid-cols-2 gap-6 mb-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-1">Intangibles % of Assets</label>
                                             <SmartInput 
@@ -1324,7 +1378,7 @@
                                             )}
 
                                             <SectionHeader title="Part A: MTS Acquisition (Note 9 - Dec 2021)" sectionKey="s4" hideFormula={true} />
-                                            <div className="grid grid-cols-2 gap-6 mb-6">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                                                 <div>
                                                     <label className="block text-sm font-medium text-gray-700 mb-1">Goodwill Recorded</label>
                                                     <SmartInput 
@@ -1353,7 +1407,7 @@
 
                                             <SectionHeader title="Part B: Net Carrying Values 2022" sectionKey="s4" hideFormula={true} />
                                             <div className="text-xs text-gray-500 mb-2 italic">Formula: Net Carrying Value = Gross Value - Accumulated Amortization (Usually reported directly in notes)</div>
-                                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                                                 <div>
                                                     <label className="block text-sm font-medium text-gray-700 mb-1">Customer Lists</label>
                                                     <SmartInput 
@@ -1405,7 +1459,7 @@
                                             </div>
 
                                             <SectionHeader title="Part C: Amortization & Impairment" sectionKey="s4" hideFormula={true} />
-                                            <div className="grid grid-cols-2 gap-6 mb-4">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
                                                 <div>
                                                     <label className="block text-sm font-medium text-gray-700 mb-1">2022 Amortization Expense</label>
                                                     <SmartInput 
@@ -1464,7 +1518,7 @@
                                                         </button>
                                                     </div>
                                                 </div>
-                                                
+                                            
                                                 <div className="mt-4 p-3 bg-white rounded border border-blue-100">
                                                     <label className="block text-sm font-bold text-gray-700 mb-2">Analysis Check: Observe the sharp jump in Goodwill % in 2020 (39.6%) vs 2019 (30.8%). What does this suggest?</label>
                                                     <select className="w-full px-3 py-2 border border-gray-300 rounded text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-200">
@@ -1481,7 +1535,7 @@
                                             )}
 
                                             <SectionHeader title="Part A: Acquisition Impact (Note 3)" sectionKey="s4" hideFormula={true} />
-                                            <div className="grid grid-cols-2 gap-6 mb-6">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                                                 <div>
                                                     <label className="block text-sm font-medium text-gray-700 mb-1">Total Intangibles Acquired (2020)</label>
                                                     <SmartInput 
@@ -1550,7 +1604,7 @@
                                             </div>
 
                                             <SectionHeader title="Part C: Amortization & Impairment" sectionKey="s4" hideFormula={true} />
-                                            <div className="grid grid-cols-2 gap-6 mb-4">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
                                                 <div>
                                                     <label className="block text-sm font-medium text-gray-700 mb-1">2020 Amortization Expense</label>
                                                     <SmartInput 
