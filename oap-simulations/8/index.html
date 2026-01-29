@@ -54,19 +54,24 @@
             opacity: 1;
             visibility: visible;
         }
+
+        /* Resize Handle Styles */
+        .resize-handle {
+            transition: background-color 0.2s;
+        }
+        .resize-handle:hover, .resize-handle:active {
+            background-color: #3b82f6;
+        }
     </style>
 </head>
 <body oncontextmenu="return false">
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useMemo, useRef } = React;
+        const { useState, useEffect, useMemo, useRef, useCallback } = React;
 
         // --- DATA & CONSTANTS ---
-
-        // Expanded Data with detailed Liabilities for both companies
         const RAW_DATA = [
-            // --- PARKER HANNIFIN (PH) FIRST ---
             // PH Balance Sheet Assets
             {company: "PH", statement: "Balance Sheet", account: "Cash and cash equivalents", year: 2022, value: 535799},
             {company: "PH", statement: "Balance Sheet", account: "Cash and cash equivalents", year: 2021, value: 733117},
@@ -79,7 +84,7 @@
             {company: "PH", statement: "Balance Sheet", account: "Total assets", year: 2022, value: 25943943},
             {company: "PH", statement: "Balance Sheet", account: "Total assets", year: 2021, value: 20341200},
             
-            // PH Balance Sheet Liabilities (Detailed)
+            // PH Balance Sheet Liabilities
             {company: "PH", statement: "Balance Sheet", account: "Accounts payable", year: 2022, value: 1731925},
             {company: "PH", statement: "Balance Sheet", account: "Accounts payable", year: 2021, value: 1667878},
             {company: "PH", statement: "Balance Sheet", account: "Accrued expenses", year: 2022, value: 470132},
@@ -121,7 +126,6 @@
             {company: "PH", statement: "Cash Flow", account: "Shares purchased at cost (Repurchases)", year: 2022, value: -380334},
             {company: "PH", statement: "Cash Flow", account: "Shares purchased at cost (Repurchases)", year: 2021, value: -100000},
 
-            // --- ITW SECOND ---
             // ITW Balance Sheet Assets
             {company: "ITW", statement: "Balance Sheet", account: "Cash and equivalents", year: 2022, value: 708},
             {company: "ITW", statement: "Balance Sheet", account: "Cash and equivalents", year: 2021, value: 1527},
@@ -134,7 +138,7 @@
             {company: "ITW", statement: "Balance Sheet", account: "Total assets", year: 2022, value: 15422},
             {company: "ITW", statement: "Balance Sheet", account: "Total assets", year: 2021, value: 16077},
             
-            // ITW Balance Sheet Liabilities (Detailed)
+            // ITW Balance Sheet Liabilities
             {company: "ITW", statement: "Balance Sheet", account: "Short-term debt", year: 2022, value: 1590},
             {company: "ITW", statement: "Balance Sheet", account: "Short-term debt", year: 2021, value: 778},
             {company: "ITW", statement: "Balance Sheet", account: "Accounts payable", year: 2022, value: 594},
@@ -247,8 +251,6 @@
 
             useEffect(() => {
                 if (window.lucide && window.lucide.createIcons && ref.current) {
-                    // Force a re-render of the icon by resetting innerHTML
-                    // This allows us to use the latest CDN version which expects [data-lucide] attributes
                     const iconName = name.toLowerCase().replace(/[A-Z]/g, letter => `-${letter.toLowerCase()}`);
                     ref.current.innerHTML = `<i data-lucide="${iconName}" style="width: ${size}px; height: ${size}px;"></i>`;
                     
@@ -267,24 +269,11 @@
             return <span ref={ref} className={`icon-fix inline-flex items-center justify-center ${className}`} style={{ width: size, height: size }} />;
         };
 
-        // Safe math evaluator
-        const evaluateMath = (expression) => {
-            if (!expression) return "";
-            try {
-                // Remove anything that isn't a number or operator
-                const sanitized = String(expression).replace(/[^0-9+\-*/()..]/g, '');
-                // eslint-disable-next-line no-new-func
-                return new Function('return ' + sanitized)();
-            } catch (e) {
-                return expression; 
-            }
-        };
-
         // ==========================================
         // COMPONENTS
         // ==========================================
 
-        const Sidebar = ({ onDataClick, activeTab, onTabChange, modules, isInstructor }) => {
+        const Sidebar = ({ onDataClick, activeTab, onTabChange, modules, isInstructor, width, isOpen, onToggle, isMobile }) => {
             const groupedData = useMemo(() => {
                 const groups = {};
                 RAW_DATA.forEach(row => {
@@ -301,15 +290,28 @@
             const [expandedCompany, setExpandedCompany] = useState("PH");
 
             return (
-                <div className="w-96 bg-white border-r border-gray-200 flex flex-col h-screen fixed left-0 top-0 shadow-lg z-20">
+                <div 
+                    style={{ width: isMobile ? '100%' : (isOpen ? width : '4rem') }}
+                    className={`bg-white border-r border-gray-200 flex flex-col shadow-lg z-20 shrink-0 transition-width duration-200 ease-linear ${isMobile ? 'h-auto' : 'h-full'}`}
+                >
                     
                     {/* SECTION 1: MODULE NAVIGATION */}
                     <div className="bg-slate-50 border-b border-gray-200 flex flex-col">
                         <div className="p-4 pb-2">
-                            <h2 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-2">
-                                <Icon name="list" size={14}/> Worksheet Modules
-                            </h2>
-                            <div className="flex flex-col space-y-1 max-h-24 overflow-y-auto custom-scroll pr-1">
+                            <div className="flex justify-between items-center mb-2">
+                                {(isOpen || isMobile) && <h2 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                                    <Icon name="list" size={14}/> Worksheet Modules
+                                </h2>}
+                                <button onClick={onToggle} className="p-1 hover:bg-slate-200 rounded ml-auto text-slate-600">
+                                    {isMobile ? (
+                                        isOpen ? <Icon name="chevron-up" size={16} /> : <Icon name="chevron-down" size={16} />
+                                    ) : (
+                                        <Icon name={isOpen ? "chevron-left" : "chevron-right"} size={16} />
+                                    )}
+                                </button>
+                            </div>
+                            
+                            <div className={`${isOpen ? 'block' : (isMobile ? 'hidden' : 'hidden')} flex flex-col space-y-1 max-h-48 md:max-h-64 overflow-y-auto custom-scroll pr-1`}>
                                 {modules.map((mod, idx) => (
                                     <button
                                         key={idx}
@@ -328,158 +330,183 @@
                         </div>
                     </div>
 
-                    {/* SECTION 2: REFERENCE DATA HEADER */}
-                    <div className="p-4 border-b border-gray-200 bg-white">
-                        <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                            <Icon name="database" /> Reference Data
-                        </h2>
-                        <p className="text-xs text-slate-500 mt-1">Click a value to insert into fields.</p>
-                        
-                        <div className="flex gap-2 mt-3">
-                            <a href={LINKS.PH} target="_blank" className="flex-1 text-center text-xs bg-blue-100 text-blue-700 py-1 rounded hover:bg-blue-200 transition font-medium">
-                                PH 10-K
-                            </a>
-                            <a href={LINKS.ITW} target="_blank" className="flex-1 text-center text-xs bg-emerald-100 text-emerald-700 py-1 rounded hover:bg-emerald-200 transition font-medium">
-                                ITW 10-K
-                            </a>
+                    {/* SECTION 2 & 3: CONTENT (Only when open) */}
+                    <div className={`${isOpen ? 'flex flex-col flex-1 min-h-0' : (isMobile ? 'hidden' : 'hidden')}`}>
+                        {/* SECTION 2: REFERENCE DATA HEADER */}
+                        <div className="p-4 border-b border-gray-200 bg-white shrink-0">
+                            <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                                <Icon name="database" /> Reference Data
+                            </h2>
+                            <p className="text-xs text-slate-500 mt-1">Click a value to insert into fields.</p>
+                            
+                            <div className="flex gap-2 mt-3">
+                                <a href={LINKS.PH} target="_blank" className="flex-1 text-center text-xs bg-blue-100 text-blue-700 py-1 rounded hover:bg-blue-200 transition font-medium">
+                                    PH 10-K
+                                </a>
+                                <a href={LINKS.ITW} target="_blank" className="flex-1 text-center text-xs bg-emerald-100 text-emerald-700 py-1 rounded hover:bg-emerald-200 transition font-medium">
+                                    ITW 10-K
+                                </a>
+                            </div>
                         </div>
-                    </div>
 
-                    {/* SECTION 3: SCROLLABLE DATA LIST */}
-                    <div className="flex-1 overflow-y-auto custom-scroll p-2 bg-slate-50">
-                        {Object.keys(groupedData).map(company => (
-                            <div key={company} className="mb-4">
-                                <button 
-                                    onClick={() => setExpandedCompany(company === expandedCompany ? null : company)}
-                                    className="w-full text-left font-bold bg-white border border-gray-200 px-3 py-2 rounded shadow-sm flex justify-between items-center hover:bg-slate-50 transition"
-                                >
-                                    {company === "PH" ? "Parker Hannifin" : "Illinois Tool Works"}
-                                    <Icon name={expandedCompany === company ? "chevron-down" : "chevron-right"} size={14} />
-                                </button>
-                                
-                                {expandedCompany === company && (
-                                    <div className="pl-1 mt-1 space-y-4">
-                                        {Object.keys(groupedData[company]).map(statement => (
-                                            <div key={statement} className="bg-white/50 rounded p-1 border border-slate-100 mt-2">
-                                                <h4 className="text-[10px] font-bold text-blue-600 uppercase tracking-wider mb-2 mt-1 px-1 border-b border-blue-100 pb-1">
-                                                    {statement}
-                                                </h4>
-                                                
-                                                {/* Header Row for Years */}
-                                                <div className="flex justify-between items-center text-[9px] font-bold text-slate-400 uppercase mb-1 px-2">
-                                                    <span>Account</span>
-                                                    <div className="flex gap-3">
-                                                        <span className="w-14 text-right">2022</span>
-                                                        <span className="w-14 text-right">2021</span>
+                        {/* SECTION 3: SCROLLABLE DATA LIST */}
+                        <div className="flex-1 overflow-y-auto custom-scroll p-2 bg-slate-50">
+                            {Object.keys(groupedData).map(company => (
+                                <div key={company} className="mb-4">
+                                    <button 
+                                        onClick={() => setExpandedCompany(company === expandedCompany ? null : company)}
+                                        className="w-full text-left font-bold bg-white border border-gray-200 px-3 py-2 rounded shadow-sm flex justify-between items-center hover:bg-slate-50 transition"
+                                    >
+                                        {company === "PH" ? "Parker Hannifin" : "Illinois Tool Works"}
+                                        <Icon name={expandedCompany === company ? "chevron-down" : "chevron-right"} size={14} />
+                                    </button>
+                                    
+                                    {expandedCompany === company && (
+                                        <div className="pl-1 mt-1 space-y-4">
+                                            {Object.keys(groupedData[company]).map(statement => (
+                                                <div key={statement} className="bg-white/50 rounded p-1 border border-slate-100 mt-2">
+                                                    <h4 className="text-[10px] font-bold text-blue-600 uppercase tracking-wider mb-2 mt-1 px-1 border-b border-blue-100 pb-1">
+                                                        {statement}
+                                                    </h4>
+                                                    
+                                                    {/* Header Row for Years */}
+                                                    <div className="flex justify-between items-center text-[9px] font-bold text-slate-400 uppercase mb-1 px-2">
+                                                        <span>Account</span>
+                                                        <div className="flex gap-3">
+                                                            <span className="w-14 text-right">2022</span>
+                                                            <span className="w-14 text-right">2021</span>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="space-y-0.5">
+                                                        {(() => {
+                                                            // Pivot logic just for display
+                                                            const pivoted = {};
+                                                            groupedData[company][statement].forEach(r => {
+                                                                if (!pivoted[r.account]) pivoted[r.account] = { account: r.account };
+                                                                pivoted[r.account][`y${r.year}`] = r.value;
+                                                            });
+                                                            
+                                                            return Object.values(pivoted).map((row, idx) => (
+                                                                <div key={idx} className="text-[11px] flex justify-between items-center group hover:bg-white p-1 rounded cursor-pointer border border-transparent hover:border-blue-200 hover:shadow-sm transition-all"
+                                                                    title="Click to insert value"
+                                                                >
+                                                                    <span className="truncate flex-1 text-slate-600 group-hover:text-blue-700 pr-2">{row.account}</span>
+                                                                    <div className="flex gap-3">
+                                                                        {row.y2022 !== undefined && (
+                                                                            <span 
+                                                                                onClick={() => onDataClick(row.y2022)}
+                                                                                className="w-14 text-right font-mono text-slate-700 hover:bg-blue-600 hover:text-white rounded px-1 transition cursor-pointer"
+                                                                            >
+                                                                                {row.y2022.toLocaleString()}
+                                                                            </span>
+                                                                        )}
+                                                                        {row.y2021 !== undefined && (
+                                                                            <span 
+                                                                                onClick={() => onDataClick(row.y2021)}
+                                                                                className="w-14 text-right font-mono text-slate-400 hover:bg-slate-200 hover:text-slate-800 rounded px-1 transition cursor-pointer"
+                                                                            >
+                                                                                {row.y2021.toLocaleString()}
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            ));
+                                                        })()}
                                                     </div>
                                                 </div>
-
-                                                <div className="space-y-0.5">
-                                                    {groupedData[company][statement].map((row, idx) => {
-                                                        const pivoted = { account: row.account };
-                                                        // This raw data isn't pivoted like the other file, fixing it here:
-                                                        // Actually raw data is flat. The GroupedData structure is company -> statement -> list of rows.
-                                                        // The list of rows contains multiple entries for same account but different years.
-                                                        // We need to group by account within the statement.
-                                                        return null; // Logic needs to be inside the memo
-                                                    })}
-                                                    
-                                                    {/* Proper rendering logic for flat data structure */}
-                                                    {(() => {
-                                                        // Pivot logic just for display
-                                                        const pivoted = {};
-                                                        groupedData[company][statement].forEach(r => {
-                                                            if (!pivoted[r.account]) pivoted[r.account] = { account: r.account };
-                                                            pivoted[r.account][`y${r.year}`] = r.value;
-                                                        });
-                                                        
-                                                        return Object.values(pivoted).map((row, idx) => (
-                                                            <div key={idx} className="text-[11px] flex justify-between items-center group hover:bg-white p-1 rounded cursor-pointer border border-transparent hover:border-blue-200 hover:shadow-sm transition-all"
-                                                                title="Click to insert value"
-                                                            >
-                                                                <span className="truncate flex-1 text-slate-600 group-hover:text-blue-700 pr-2">{row.account}</span>
-                                                                <div className="flex gap-3">
-                                                                    {row.y2022 !== undefined && (
-                                                                        <span 
-                                                                            onClick={() => onDataClick(row.y2022)}
-                                                                            className="w-14 text-right font-mono text-slate-700 hover:bg-blue-600 hover:text-white rounded px-1 transition cursor-pointer"
-                                                                        >
-                                                                            {row.y2022.toLocaleString()}
-                                                                        </span>
-                                                                    )}
-                                                                    {row.y2021 !== undefined && (
-                                                                        <span 
-                                                                            onClick={() => onDataClick(row.y2021)}
-                                                                            className="w-14 text-right font-mono text-slate-400 hover:bg-slate-200 hover:text-slate-800 rounded px-1 transition cursor-pointer"
-                                                                        >
-                                                                            {row.y2021.toLocaleString()}
-                                                                        </span>
-                                                                    )}
-                                                                </div>
-                                                            </div>
-                                                        ));
-                                                    })()}
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        ))}
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 </div>
             );
         };
 
         const SmartInput = ({ id, value, onChange, correctValue, isPct, onFocus, isInstructor }) => {
+            const [localVal, setLocalVal] = useState(value || "");
             const [status, setStatus] = useState("neutral"); // neutral, correct, incorrect
             
-            // Validate on mount if value exists (for auto-fill) and on updates
+            // Sync with parent value
             useEffect(() => {
-                if (!value) {
+                setLocalVal(value || "");
+                if (value === undefined || value === "" || value === null) {
                     setStatus("neutral");
-                    return;
+                } else {
+                    validate(value);
                 }
-                validate(value);
             }, [value]);
 
             const validate = (val) => {
-                if (!val) return;
-                const numVal = parseFloat(val);
-                if (isNaN(numVal)) return;
-
-                let isCorrect = false;
-                const tolerance = 0.02; // 2%
-
-                const check = (target) => Math.abs((numVal - target) / target) <= tolerance;
-
-                // 1. Standard exact match check
-                if (check(correctValue)) isCorrect = true;
-
-                // 2. Unit Confusion Check (Factor of 1000)
-                // If key is 3000 (thousands) and student types 3000000 (ones) -> Correct
-                if (check(correctValue * 1000)) isCorrect = true;
-                // If key is 3000000 (ones) and student types 3000 (thousands) -> Correct
-                if (check(correctValue / 1000)) isCorrect = true;
-
-                // 3. Percentage Logic
-                if (isPct) {
-                     // Check if they typed integer (65.8) matching expected (0.658 * 100)
-                     if (check(correctValue * 100)) isCorrect = true;
+                if (!val && val !== 0) return;
+                
+                let numVal = parseFloat(val);
+                
+                // Eval simple math expressions (e.g., 500/10)
+                if (typeof val === 'string' && val.match(/[+\-*\/]/)) {
+                     try {
+                        numVal = Function('"use strict";return (' + val + ')')();
+                     } catch(e) {}
                 }
 
-                setStatus(isCorrect ? "correct" : "incorrect");
+                if (isNaN(numVal)) {
+                    setStatus("incorrect");
+                    return;
+                }
+                
+                const tolerance = 0.02; // 2% relative tolerance
+                
+                // Adaptive absolute tolerance: 
+                // For small numbers (ratios < 10), use 0.01 floor. For larger, use 0.1 or purely relative.
+                const floor = Math.abs(correctValue) < 10 ? 0.01 : 0.1;
+                const absTolerance = Math.max(Math.abs(correctValue * tolerance), floor);
+                
+                let isValid = false;
+                
+                const check = (v) => Math.abs(v - correctValue) <= absTolerance;
+
+                // 1. Exact match
+                if (check(numVal)) isValid = true;
+
+                // 2. Unit Confusion (x1000)
+                if (!isValid) {
+                    if (check(numVal * 1000)) isValid = true;
+                    if (check(numVal / 1000)) isValid = true;
+                }
+
+                // 3. Percentage Logic
+                if (!isValid && isPct) {
+                    // User types decimal (0.13), Key is percent (13) -> 0.13 * 100 = 13
+                    if (check(numVal * 100)) isValid = true;
+                    // User types percent (13), Key is decimal (0.13) -> 13 / 100 = 0.13
+                    if (check(numVal / 100)) isValid = true;
+                }
+                
+                setStatus(isValid ? "correct" : "incorrect");
             };
 
             const handleBlur = (e) => {
                 const val = e.target.value;
-                const evaluated = evaluateMath(val);
+                let finalVal = val;
+
+                // Evaluate math on blur
+                if (typeof val === 'string' && val.match(/[+\-*\/]/)) {
+                    try {
+                        const calculated = Function('"use strict";return (' + val + ')')();
+                        finalVal = parseFloat(calculated.toFixed(2));
+                    } catch (e) {}
+                }
                 
-                // If the user typed math (e.g. 500/10), update the field with the result
-                if (evaluated !== val && evaluated !== "") {
-                    onChange(id, evaluated); // Parent update
-                    validate(evaluated);
+                // Update parent and validate
+                if (finalVal !== val) {
+                    onChange(id, finalVal);
+                    setLocalVal(finalVal); // Update local display
+                    validate(finalVal);
                 } else {
+                    onChange(id, val); // Ensure parent has string if needed
                     validate(val);
                 }
             };
@@ -505,21 +532,24 @@
                     <input
                         id={id}
                         type="text"
-                        value={value || ""}
-                        onChange={(e) => onChange(id, e.target.value)}
+                        value={localVal}
+                        onChange={(e) => {
+                            setLocalVal(e.target.value);
+                            onChange(id, e.target.value);
+                        }}
                         onFocus={() => onFocus(id)}
                         onBlur={handleBlur}
                         onKeyDown={handleKeyDown}
                         placeholder={isPct ? "%" : "#"}
                         className={`w-full text-sm p-2 border rounded shadow-sm outline-none transition-colors font-mono ${borderClass}`}
                     />
-                    <div className="absolute right-2 top-2.5">
+                    <div className="absolute right-2 top-2.5 pointer-events-none">
                         {status === "correct" && <Icon name="check" size={14} className="text-green-600" />}
                         {status === "incorrect" && <Icon name="x" size={14} className="text-red-500" />}
                     </div>
                     {isInstructor && (
                         <div className="mt-1 px-2 py-1 bg-purple-100 text-purple-700 text-xs font-bold rounded border border-purple-200 inline-block">
-                            Key: {getKeyDisplay()}
+                            Key: {correctValue}
                         </div>
                     )}
                 </div>
@@ -532,7 +562,7 @@
 
             const handleLogin = () => {
                 const _0x9b2 = ["T0FQOC1LZXk2UA=="];
-                if (btoa(pass) === _0x9b2[0]) {
+                if (btoa(pass.trim()) === _0x9b2[0]) {
                     onUnlock();
                     onClose();
                     setPass("");
@@ -551,6 +581,7 @@
                             placeholder="Password" 
                             value={pass}
                             onChange={(e) => setPass(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
                         />
                         <div className="flex justify-end gap-2">
                             <button onClick={onClose} className="px-3 py-1 text-sm text-gray-500 hover:bg-gray-100 rounded">Cancel</button>
@@ -568,6 +599,44 @@
             const [isInstructor, setIsInstructor] = useState(false);
             const [showModal, setShowModal] = useState(false);
             const [studentName, setStudentName] = useState("");
+            const [confirmation, setConfirmation] = useState({ isOpen: false, message: '', onConfirm: null });
+            
+            // Layout States
+            const [sidebarWidth, setSidebarWidth] = useState(384); // Default w-96
+            const [isResizing, setIsResizing] = useState(false);
+            const [isMobile, setIsMobile] = useState(false);
+            const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
+            // --- Layout Logic ---
+            useEffect(() => {
+                const checkMobile = () => {
+                    const mobile = window.innerWidth < 768;
+                    setIsMobile(mobile);
+                    if (mobile) setIsSidebarOpen(false); // Default close on mobile
+                    else setIsSidebarOpen(true);
+                };
+                checkMobile();
+                window.addEventListener('resize', checkMobile);
+                return () => window.removeEventListener('resize', checkMobile);
+            }, []);
+
+            const startResizing = useCallback(() => setIsResizing(true), []);
+            const stopResizing = useCallback(() => setIsResizing(false), []);
+            const resize = useCallback((mouseMoveEvent) => {
+                if (isResizing) {
+                    const newWidth = mouseMoveEvent.clientX;
+                    if (newWidth > 200 && newWidth < 800) setSidebarWidth(newWidth);
+                }
+            }, [isResizing]);
+
+            useEffect(() => {
+                window.addEventListener("mousemove", resize);
+                window.addEventListener("mouseup", stopResizing);
+                return () => {
+                    window.removeEventListener("mousemove", resize);
+                    window.removeEventListener("mouseup", stopResizing);
+                };
+            }, [resize, stopResizing]);
 
             // --- Handlers ---
 
@@ -631,30 +700,42 @@
 
             // Auto-fill logic (using the 'correctValue' from structure)
             const handleAutoFill = () => {
-                const newInputs = {};
-                MODULES.forEach(mod => {
-                    mod.sections.forEach(sec => {
-                        sec.rows.forEach((row, rIdx) => {
-                            // Fixed: Include row index (rIdx) in ID generation to match the SmartInput IDs
-                            if (row.ph_2022_key !== undefined) newInputs[`${sec.id}_ph_22_r${rIdx}`] = row.ph_2022_key;
-                            if (row.ph_2021_key !== undefined) newInputs[`${sec.id}_ph_21_r${rIdx}`] = row.ph_2021_key;
-                            if (row.itw_2022_key !== undefined) newInputs[`${sec.id}_itw_22_r${rIdx}`] = row.itw_2022_key;
-                            if (row.itw_2021_key !== undefined) newInputs[`${sec.id}_itw_21_r${rIdx}`] = row.itw_2021_key;
+                setConfirmation({
+                    isOpen: true,
+                    message: "Are you sure you want to overwrite all answers with the key?",
+                    onConfirm: () => {
+                        const newInputs = {};
+                        MODULES.forEach(mod => {
+                            mod.sections.forEach(sec => {
+                                sec.rows.forEach((row, rIdx) => {
+                                    if (row.ph_2022_key !== undefined) newInputs[`${sec.id}_ph_22_r${rIdx}`] = row.ph_2022_key;
+                                    if (row.ph_2021_key !== undefined) newInputs[`${sec.id}_ph_21_r${rIdx}`] = row.ph_2021_key;
+                                    if (row.itw_2022_key !== undefined) newInputs[`${sec.id}_itw_22_r${rIdx}`] = row.itw_2022_key;
+                                    if (row.itw_2021_key !== undefined) newInputs[`${sec.id}_itw_21_r${rIdx}`] = row.itw_2021_key;
+                                });
+                            });
                         });
-                    });
+                        setInputs(newInputs);
+                        setConfirmation({ isOpen: false, message: '', onConfirm: null });
+                    }
                 });
-                setInputs(newInputs);
             };
 
             const handleClear = () => {
-                setInputs({});
-                setIsInstructor(false);
+                setConfirmation({
+                    isOpen: true,
+                    message: "Are you sure you want to clear all answers? This will also exit Instructor Mode.",
+                    onConfirm: () => {
+                        setInputs({});
+                        setIsInstructor(false);
+                        setConfirmation({ isOpen: false, message: '', onConfirm: null });
+                    }
+                });
             };
 
             // ==========================================
             // MODULE CONFIGURATION
             // ==========================================
-            // Defines the structure of the worksheets
             
             const MODULES = [
                 {
@@ -818,54 +899,81 @@
             ];
 
             return (
-                <div className="flex h-screen overflow-hidden text-slate-800">
+                <div className="flex flex-col md:flex-row h-screen overflow-hidden text-slate-800 relative">
+                    
+                    {/* Confirmation Modal */}
+                    {confirmation.isOpen && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                            <div className="bg-white p-6 rounded-lg shadow-xl w-80 animate-in fade-in zoom-in duration-200">
+                                <h3 className="font-bold text-lg mb-4 text-gray-800">Confirm Action</h3>
+                                <p className="text-sm text-gray-600 mb-6">{confirmation.message}</p>
+                                <div className="flex justify-end gap-2">
+                                    <button onClick={() => setConfirmation({ isOpen: false, message: '', onConfirm: null })} className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded">Cancel</button>
+                                    <button onClick={confirmation.onConfirm} className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-sm font-medium">Confirm</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     <Sidebar 
                         onDataClick={handleReferenceClick} 
                         activeTab={activeTab} 
                         onTabChange={setActiveTab} 
                         modules={MODULES} 
                         isInstructor={isInstructor}
+                        width={sidebarWidth}
+                        isOpen={isSidebarOpen}
+                        onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
+                        isMobile={isMobile}
                     />
 
-                    <main className="flex-1 ml-96 h-full flex flex-col">
+                    {/* Resize Handle (Desktop Only) */}
+                    {!isMobile && isSidebarOpen && (
+                        <div 
+                            className="resize-handle w-1 h-full cursor-col-resize hover:bg-blue-400 active:bg-blue-600 z-30 hidden md:block"
+                            onMouseDown={startResizing}
+                        />
+                    )}
+
+                    <main className="flex-1 flex flex-col h-full overflow-hidden">
                         
                         {/* Header */}
-                        <header className="bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center shadow-sm z-10">
+                        <header className="bg-white border-b border-gray-200 px-6 py-4 flex flex-col md:flex-row justify-between items-start md:items-center shadow-sm z-10 gap-4 md:gap-0">
                             <div>
                                 <h1 className="text-xl font-bold text-slate-800 flex items-center gap-2">
                                     <Icon name="bar-chart-2" className="text-blue-600"/> Financial Analysis Simulation
                                 </h1>
                                 <p className="text-sm text-slate-500">Parker Hannifin vs. Illinois Tool Works (2021-2022)</p>
                             </div>
-                            <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-4 w-full md:w-auto">
                                 <input 
                                     type="text" 
                                     placeholder="Enter Student Name"
-                                    className="border rounded px-3 py-1 text-sm focus:border-blue-500 outline-none"
+                                    className="border rounded px-3 py-1 text-sm focus:border-blue-500 outline-none w-full md:w-auto"
                                     value={studentName}
                                     onChange={(e) => setStudentName(e.target.value)}
                                 />
                                 <button 
                                     onClick={handleDownload}
-                                    className="bg-blue-600 text-white px-4 py-1.5 rounded text-sm font-medium hover:bg-blue-700 flex items-center gap-2 transition"
+                                    className="bg-blue-600 text-white px-4 py-1.5 rounded text-sm font-medium hover:bg-blue-700 flex items-center gap-2 transition shrink-0"
                                 >
                                     <Icon name="download" size={16}/> Save Work
                                 </button>
                                 
                                 <button 
                                     onClick={() => isInstructor ? handleClear() : setShowModal(true)}
-                                    className={`px-3 py-1.5 rounded text-sm font-medium flex items-center gap-2 transition ${isInstructor ? "bg-purple-100 text-purple-700 hover:bg-purple-200" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
+                                    className={`px-3 py-1.5 rounded text-sm font-medium flex items-center gap-2 transition shrink-0 ${isInstructor ? "bg-purple-100 text-purple-700 hover:bg-purple-200" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
                                     title="Instructor Access"
                                 >
                                     <Icon name={isInstructor ? "unlock" : "lock"} size={16} />
-                                    <span>{isInstructor ? "Instructor Mode" : "Instructor Access"}</span>
+                                    <span className="hidden md:inline">{isInstructor ? "Instructor Mode" : "Instructor Access"}</span>
                                 </button>
                             </div>
                         </header>
 
                         {/* Instructor Banner */}
                         {isInstructor && (
-                            <div className="bg-purple-600 text-white px-6 py-2 text-sm flex justify-between items-center shadow-md z-10">
+                            <div className="bg-purple-600 text-white px-6 py-2 text-sm flex flex-col md:flex-row justify-between items-center shadow-md z-10 gap-2 md:gap-0">
                                 <span className="font-semibold flex items-center gap-2"><Icon name="shield-check" size={16}/> Instructor Mode Active</span>
                                 <div className="flex gap-4">
                                     <button onClick={handleAutoFill} className="hover:bg-purple-700 px-3 py-1 rounded flex items-center gap-2 transition" title="Auto-fill all answers">
@@ -879,7 +987,7 @@
                         )}
 
                         {/* Module Content */}
-                        <div className="flex-1 overflow-y-auto p-8 bg-slate-50 custom-scroll">
+                        <div className="flex-1 overflow-y-auto p-4 md:p-8 bg-slate-50 custom-scroll">
                             <div className="max-w-5xl mx-auto space-y-8">
                                 
                                 {MODULES[activeTab].observation && (
