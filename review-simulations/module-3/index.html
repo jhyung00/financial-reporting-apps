@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Financial Analyst Simulation: Merck & Co. 2022</title>
     
     <!-- React & ReactDOM -->
@@ -22,7 +22,9 @@
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         body { 
             font-family: 'Inter', sans-serif; 
-            user-select: none; /* Prevent easy text selection */
+            /* Improved touch response */
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
         }
         
         /* Custom Scrollbar */
@@ -52,16 +54,20 @@
         .resizer-handle:hover, .resizer-handle:active {
             background-color: #3b82f6;
         }
+
+        /* Mobile Overlay Transition */
+        .sidebar-transition {
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-900 h-screen overflow-hidden" oncontextmenu="return false">
+<body class="bg-slate-50 text-slate-900 h-screen overflow-hidden">
     <div id="root"></div>
 
     <script type="text/babel">
         const { useState, useEffect, useMemo, useRef, useCallback } = React;
 
         // --- SECURITY UTILS ---
-        // d() decodes the obfuscated Base64 values
         const d = (s) => {
             try {
                 const decoded = atob(s);
@@ -75,6 +81,7 @@
         const evaluateMathExpression = (expression) => {
             if (!expression) return "";
             let cleanExpr = expression.toString().replace(/,/g, '').replace(/\s/g, '');
+            // Handle 15% as (15/100)
             cleanExpr = cleanExpr.replace(/(\d+(\.\d+)?)%/g, '($1/100)');
 
             try {
@@ -143,7 +150,6 @@
             }
         };
 
-        // Obfuscated Schema with Base64 answers
         const _DATA_MATRIX = [
             {
                 id: "3-1",
@@ -327,7 +333,7 @@
 
         const ClickableNumber = ({ value, onClick }) => (
             <span 
-                className="cursor-pointer hover:bg-blue-600 hover:text-white px-1 rounded transition-colors border border-transparent hover:border-blue-700"
+                className="cursor-pointer hover:bg-blue-600 hover:text-white px-1 py-0.5 rounded transition-colors border border-transparent hover:border-blue-700 select-none active:bg-blue-700"
                 onMouseDown={(e) => { e.preventDefault(); onClick(value); }}
                 title="Click to insert into active field"
             >
@@ -351,6 +357,7 @@
                 }
             }, [value]);
 
+            // --- IMPROVED VALIDATION LOGIC ---
             const validate = (val) => {
                 if (val === "" || val === undefined || val === null) {
                     setStatus("neutral");
@@ -361,21 +368,33 @@
                     setStatus("incorrect");
                     return;
                 }
+                
+                // 2% Tolerance calculation
+                const tolerance = 0.02; 
+
+                // Helper to check if two numbers are within tolerance relative difference
+                const isCloseEnough = (input, target) => {
+                    if (Math.abs(target) < 0.00001) return Math.abs(input) < 0.001; // Handle zero case
+                    const diff = Math.abs(input - target);
+                    const percentageDiff = diff / Math.abs(target);
+                    return percentageDiff <= tolerance;
+                };
+
                 let isCorrect = false;
-                const tolerance = 0.02; // 2% relative error
-                
-                // Direct relative check
-                const relativeError = Math.abs((numVal - correctValue) / correctValue);
-                if (relativeError <= tolerance) isCorrect = true;
-                
-                // Decimal vs Whole Percentage handle (e.g. 0.22 vs 22)
-                if (isPct && !isCorrect) {
-                    const relErrScaledUp = Math.abs(((numVal * 100) - correctValue) / correctValue);
-                    const relErrScaledDown = Math.abs(((numVal / 100) - correctValue) / correctValue);
-                    if (relErrScaledUp <= tolerance || relErrScaledDown <= tolerance) isCorrect = true;
+
+                // 1. Direct match (e.g. Input 22, Target 22)
+                if (isCloseEnough(numVal, correctValue)) isCorrect = true;
+
+                // 2. Percentage/Decimal interchangeability
+                // If answer is 22%, accept 0.22. Or if answer is 0.22, accept 22.
+                if (!isCorrect) {
+                     // Check if user input * 100 matches target (User: 0.22, Target: 22)
+                     if (isCloseEnough(numVal * 100, correctValue)) isCorrect = true;
+                     
+                     // Check if user input / 100 matches target (User: 22, Target: 0.22)
+                     if (isCloseEnough(numVal / 100, correctValue)) isCorrect = true;
                 }
-                
-                if (correctValue === 0) isCorrect = Math.abs(numVal) < 0.001;
+
                 setStatus(isCorrect ? "correct" : "incorrect");
             };
 
@@ -407,12 +426,13 @@
                 <div className="relative">
                     <input 
                         type="text"
+                        inputMode="decimal" 
                         value={localValue}
                         onChange={(e) => setLocalValue(e.target.value)}
                         onBlur={handleBlur}
                         onFocus={onFocus}
                         onKeyDown={(e) => e.key === 'Enter' && e.target.blur()}
-                        className={`w-full border rounded-lg py-2 pl-3 pr-8 text-slate-800 outline-none font-mono text-sm transition-colors ${borderClass} ${bgClass}`}
+                        className={`w-full border rounded-lg py-3 md:py-2 pl-3 pr-8 text-slate-800 outline-none font-mono text-base md:text-sm transition-colors ${borderClass} ${bgClass}`}
                         placeholder="0.00 or calc..."
                     />
                     {icon}
@@ -433,8 +453,8 @@
                         <h3 className="text-lg font-bold text-slate-800 mb-2">{title}</h3>
                         <p className="text-slate-600 mb-6 text-sm">{message}</p>
                         <div className="flex justify-end gap-3">
-                            <button onClick={onClose} className="px-4 py-2 rounded-lg text-slate-600 hover:bg-slate-100 font-medium text-sm">Cancel</button>
-                            <button onClick={onConfirm} className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white font-medium text-sm">Confirm</button>
+                            <button onClick={onClose} className="px-4 py-3 md:py-2 rounded-lg text-slate-600 hover:bg-slate-100 font-medium text-sm">Cancel</button>
+                            <button onClick={onConfirm} className="px-4 py-3 md:py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white font-medium text-sm">Confirm</button>
                         </div>
                     </div>
                 </div>
@@ -443,17 +463,17 @@
 
         const InstructorToolbar = ({ onAutoFill, onClearExit }) => {
             return (
-                <div className="fixed top-0 left-0 right-0 bg-purple-900 text-white h-14 flex items-center justify-between px-6 shadow-lg z-50 animate-slideDown">
+                <div className="fixed top-0 left-0 right-0 bg-purple-900 text-white h-14 flex items-center justify-between px-4 md:px-6 shadow-lg z-50 animate-slideDown">
                     <div className="flex items-center gap-2">
                         <div className="bg-purple-700 p-1.5 rounded-lg"><Icon name="shield" size={18} /></div>
-                        <span className="font-bold text-sm tracking-wide">SECURE VIEW</span>
+                        <span className="font-bold text-xs md:text-sm tracking-wide">SECURE VIEW</span>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 md:gap-3">
                         <button onClick={onAutoFill} className="flex items-center gap-2 px-3 py-1.5 bg-purple-700 hover:bg-purple-600 rounded text-xs font-semibold transition-colors">
-                            <Icon name="zap" size={14} /> Auto-Fill All
+                            <Icon name="zap" size={14} /> <span className="hidden md:inline">Auto-Fill</span>
                         </button>
                         <button onClick={onClearExit} className="flex items-center gap-2 px-3 py-1.5 bg-red-600 hover:bg-red-500 rounded text-xs font-semibold transition-colors">
-                            <Icon name="log-out" size={14} /> Clear & Exit
+                            <Icon name="log-out" size={14} /> <span className="hidden md:inline">Exit</span>
                         </button>
                     </div>
                 </div>
@@ -463,6 +483,10 @@
         const Sidebar = ({ isOpen, toggleSidebar, onDataClick, width, setWidth }) => {
             const [expandedSection, setExpandedSection] = useState('assets');
             const isResizing = useRef(false);
+
+            // --- Mobile vs Desktop Handling ---
+            // On mobile, the sidebar acts as a full-height overlay or slide-over
+            // On desktop, it pushes content or sits side-by-side
 
             const startResizing = useCallback(() => {
                 isResizing.current = true;
@@ -491,149 +515,169 @@
                 };
             }, [resize, stopResizing]);
 
-            return (
-                <div 
-                    className="relative flex h-full border-r border-slate-700 bg-slate-800 transition-all duration-300 ease-out shrink-0"
-                    style={{ width: isOpen ? `${width}px` : '48px' }}
-                >
-                    <div className="flex flex-col w-full h-full text-slate-100 overflow-hidden">
-                        <div className="p-4 border-b border-slate-700 flex justify-between items-center whitespace-nowrap">
-                            {isOpen && <h2 className="font-bold text-lg text-blue-400">Financial Data</h2>}
-                            <button onClick={toggleSidebar} className="p-1 hover:bg-slate-700 rounded text-slate-300">
-                                <Icon name={isOpen ? "panel-left-close" : "panel-left-open"} />
-                            </button>
-                        </div>
+            // Determine styles based on state
+            const mobileClasses = `fixed inset-y-0 left-0 z-40 bg-slate-800 transition-transform transform ${isOpen ? 'translate-x-0' : '-translate-x-full'} w-3/4 max-w-xs shadow-2xl md:hidden`;
+            const desktopClasses = `hidden md:flex relative h-full border-r border-slate-700 bg-slate-800 transition-all duration-300 ease-out shrink-0`;
+            const desktopStyle = { width: isOpen ? `${width}px` : '48px' };
 
-                        {isOpen && (
-                            <div className="flex-1 overflow-y-auto scrollbar-hide p-4 space-y-6">
-                                <div>
-                                    <button onClick={() => setExpandedSection(expandedSection === 'income' ? '' : 'income')} className="flex items-center justify-between w-full font-semibold text-slate-300 mb-2 hover:text-white">
-                                        <span>Income Statement (2022)</span>
-                                        <Icon name={expandedSection === 'income' ? "chevron-up" : "chevron-down"} size={16} />
-                                    </button>
-                                    {expandedSection === 'income' && (
-                                        <table className="w-full text-xs text-left text-slate-400">
-                                            <tbody>
-                                                {FINANCIAL_DATA.incomeStatement.map((row, idx) => (
-                                                    <tr key={idx} className="border-b border-slate-700/50 hover:bg-slate-700/30">
-                                                        <td className="py-1 pl-1">{row.item}</td>
-                                                        <td className="py-1 pr-1 text-right font-mono text-slate-200">
-                                                            <ClickableNumber value={row.value} onClick={onDataClick} />
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    )}
-                                </div>
-                                <div>
-                                    <button onClick={() => setExpandedSection(expandedSection === 'assets' ? '' : 'assets')} className="flex items-center justify-between w-full font-semibold text-slate-300 mb-2 hover:text-white">
-                                        <span>Balance Sheet: Assets</span>
-                                        <Icon name={expandedSection === 'assets' ? "chevron-up" : "chevron-down"} size={16} />
-                                    </button>
-                                    {expandedSection === 'assets' && (
-                                        <table className="w-full text-xs text-left text-slate-400">
-                                            <thead>
-                                                <tr className="text-slate-500 border-b border-slate-600">
-                                                    <th className="pb-1 font-normal">Item</th>
-                                                    <th className="pb-1 text-right font-normal">2022</th>
-                                                    <th className="pb-1 text-right font-normal">2021</th>
+            // Mobile Backdrop
+            const backdrop = isOpen ? <div className="fixed inset-0 bg-black/50 z-30 md:hidden" onClick={toggleSidebar}></div> : null;
+
+            const SidebarContent = () => (
+                <div className="flex flex-col w-full h-full text-slate-100 overflow-hidden">
+                    <div className="p-4 border-b border-slate-700 flex justify-between items-center whitespace-nowrap h-16">
+                        {isOpen && <h2 className="font-bold text-lg text-blue-400">Financial Data</h2>}
+                        <button onClick={toggleSidebar} className="p-2 hover:bg-slate-700 rounded text-slate-300">
+                            <Icon name={isOpen ? "panel-left-close" : "panel-left-open"} />
+                        </button>
+                    </div>
+
+                    {isOpen && (
+                        <div className="flex-1 overflow-y-auto scrollbar-hide p-4 space-y-6 pb-20">
+                            <div>
+                                <button onClick={() => setExpandedSection(expandedSection === 'income' ? '' : 'income')} className="flex items-center justify-between w-full font-semibold text-slate-300 mb-2 hover:text-white py-2">
+                                    <span>Income Statement (2022)</span>
+                                    <Icon name={expandedSection === 'income' ? "chevron-up" : "chevron-down"} size={16} />
+                                </button>
+                                {expandedSection === 'income' && (
+                                    <table className="w-full text-xs text-left text-slate-400">
+                                        <tbody>
+                                            {FINANCIAL_DATA.incomeStatement.map((row, idx) => (
+                                                <tr key={idx} className="border-b border-slate-700/50 hover:bg-slate-700/30">
+                                                    <td className="py-2 pl-1">{row.item}</td>
+                                                    <td className="py-2 pr-1 text-right font-mono text-slate-200">
+                                                        <ClickableNumber value={row.value} onClick={onDataClick} />
+                                                    </td>
                                                 </tr>
-                                            </thead>
-                                            <tbody>
-                                                {FINANCIAL_DATA.balanceSheet.assets.map((row, idx) => (
-                                                    <tr key={idx} className={`border-b border-slate-700/50 hover:bg-slate-700/30 ${row.bold ? 'font-bold text-white bg-slate-700/50' : ''}`}>
-                                                        <td className="py-1 pl-1">{row.item}</td>
-                                                        <td className="py-1 text-right font-mono text-slate-200">
-                                                            <ClickableNumber value={row.value22} onClick={onDataClick} />
-                                                        </td>
-                                                        <td className="py-1 pr-1 text-right font-mono text-slate-400">
-                                                            <ClickableNumber value={row.value21} onClick={onDataClick} />
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    )}
-                                </div>
-                                <div>
-                                    <button onClick={() => setExpandedSection(expandedSection === 'liab' ? '' : 'liab')} className="flex items-center justify-between w-full font-semibold text-slate-300 mb-2 hover:text-white">
-                                        <span>Liabilities & Equity</span>
-                                        <Icon name={expandedSection === 'liab' ? "chevron-up" : "chevron-down"} size={16} />
-                                    </button>
-                                    {expandedSection === 'liab' && (
-                                        <table className="w-full text-xs text-left text-slate-400">
-                                            <thead>
-                                                <tr className="text-slate-500 border-b border-slate-600">
-                                                    <th className="pb-1 font-normal">Item</th>
-                                                    <th className="pb-1 text-right font-normal">2022</th>
-                                                    <th className="pb-1 text-right font-normal">2021</th>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                )}
+                            </div>
+                            <div>
+                                <button onClick={() => setExpandedSection(expandedSection === 'assets' ? '' : 'assets')} className="flex items-center justify-between w-full font-semibold text-slate-300 mb-2 hover:text-white py-2">
+                                    <span>Balance Sheet: Assets</span>
+                                    <Icon name={expandedSection === 'assets' ? "chevron-up" : "chevron-down"} size={16} />
+                                </button>
+                                {expandedSection === 'assets' && (
+                                    <table className="w-full text-xs text-left text-slate-400">
+                                        <thead>
+                                            <tr className="text-slate-500 border-b border-slate-600">
+                                                <th className="pb-1 font-normal">Item</th>
+                                                <th className="pb-1 text-right font-normal">2022</th>
+                                                <th className="pb-1 text-right font-normal">2021</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {FINANCIAL_DATA.balanceSheet.assets.map((row, idx) => (
+                                                <tr key={idx} className={`border-b border-slate-700/50 hover:bg-slate-700/30 ${row.bold ? 'font-bold text-white bg-slate-700/50' : ''}`}>
+                                                    <td className="py-2 pl-1">{row.item}</td>
+                                                    <td className="py-2 text-right font-mono text-slate-200">
+                                                        <ClickableNumber value={row.value22} onClick={onDataClick} />
+                                                    </td>
+                                                    <td className="py-2 pr-1 text-right font-mono text-slate-400">
+                                                        <ClickableNumber value={row.value21} onClick={onDataClick} />
+                                                    </td>
                                                 </tr>
-                                            </thead>
-                                            <tbody>
-                                                {FINANCIAL_DATA.balanceSheet.liabilitiesAndEquity.map((row, idx) => (
-                                                    <tr key={idx} className={`border-b border-slate-700/50 hover:bg-slate-700/30 ${row.bold ? 'font-bold text-white bg-slate-700/50' : ''} ${row.isDouble ? 'border-t-4 border-double border-slate-600' : ''}`}>
-                                                        <td className="py-1 pl-1">{row.item}</td>
-                                                        <td className="py-1 text-right font-mono text-slate-200">
-                                                            <ClickableNumber value={row.value22} onClick={onDataClick} />
-                                                        </td>
-                                                        <td className="py-1 pr-1 text-right font-mono text-slate-400">
-                                                            <ClickableNumber value={row.value21} onClick={onDataClick} />
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    )}
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                )}
+                            </div>
+                            <div>
+                                <button onClick={() => setExpandedSection(expandedSection === 'liab' ? '' : 'liab')} className="flex items-center justify-between w-full font-semibold text-slate-300 mb-2 hover:text-white py-2">
+                                    <span>Liabilities & Equity</span>
+                                    <Icon name={expandedSection === 'liab' ? "chevron-up" : "chevron-down"} size={16} />
+                                </button>
+                                {expandedSection === 'liab' && (
+                                    <table className="w-full text-xs text-left text-slate-400">
+                                        <thead>
+                                            <tr className="text-slate-500 border-b border-slate-600">
+                                                <th className="pb-1 font-normal">Item</th>
+                                                <th className="pb-1 text-right font-normal">2022</th>
+                                                <th className="pb-1 text-right font-normal">2021</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {FINANCIAL_DATA.balanceSheet.liabilitiesAndEquity.map((row, idx) => (
+                                                <tr key={idx} className={`border-b border-slate-700/50 hover:bg-slate-700/30 ${row.bold ? 'font-bold text-white bg-slate-700/50' : ''} ${row.isDouble ? 'border-t-4 border-double border-slate-600' : ''}`}>
+                                                    <td className="py-2 pl-1">{row.item}</td>
+                                                    <td className="py-2 text-right font-mono text-slate-200">
+                                                        <ClickableNumber value={row.value22} onClick={onDataClick} />
+                                                    </td>
+                                                    <td className="py-2 pr-1 text-right font-mono text-slate-400">
+                                                        <ClickableNumber value={row.value21} onClick={onDataClick} />
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                )}
+                            </div>
+                            <div className="bg-slate-700/40 p-3 rounded text-xs border border-slate-600 whitespace-nowrap">
+                                <h3 className="font-semibold text-blue-300 mb-2">Supplemental Data</h3>
+                                <div className="flex justify-between mb-1 gap-2">
+                                    <span>NOA 2021:</span> 
+                                    <span className="font-mono text-slate-300"><ClickableNumber value={FINANCIAL_DATA.supplemental.noa2021} onClick={onDataClick} /></span>
                                 </div>
-                                <div className="bg-slate-700/40 p-3 rounded text-xs border border-slate-600 whitespace-nowrap">
-                                    <h3 className="font-semibold text-blue-300 mb-2">Supplemental Data</h3>
-                                    <div className="flex justify-between mb-1 gap-2">
-                                        <span>NOA 2021:</span> 
-                                        <span className="font-mono text-slate-300"><ClickableNumber value={FINANCIAL_DATA.supplemental.noa2021} onClick={onDataClick} /></span>
-                                    </div>
-                                    <div className="flex justify-between mb-1 gap-2">
-                                        <span>NCIR (Given):</span> 
-                                        <span className="font-mono text-slate-300"><ClickableNumber value={FINANCIAL_DATA.supplemental.ncir} onClick={onDataClick} /></span>
-                                    </div>
+                                <div className="flex justify-between mb-1 gap-2">
+                                    <span>NCIR (Given):</span> 
+                                    <span className="font-mono text-slate-300"><ClickableNumber value={FINANCIAL_DATA.supplemental.ncir} onClick={onDataClick} /></span>
                                 </div>
                             </div>
-                        )}
-                    </div>
-                    {/* Resizer Handle */}
-                    {isOpen && <div className="resizer-handle absolute right-0 top-0 bottom-0" onMouseDown={startResizing}></div>}
+                        </div>
+                    )}
                 </div>
+            );
+
+            return (
+                <>
+                    {backdrop}
+                    {/* Mobile Drawer */}
+                    <aside className={mobileClasses}>
+                        <SidebarContent />
+                    </aside>
+                    
+                    {/* Desktop Sidebar */}
+                    <div className={desktopClasses} style={desktopStyle}>
+                        <SidebarContent />
+                        {isOpen && <div className="resizer-handle absolute right-0 top-0 bottom-0" onMouseDown={startResizing}></div>}
+                    </div>
+                </>
             );
         };
 
-        const Header = ({ teacherMode, onRequestTeacherMode, studentName, setStudentName, onExport }) => {
+        const Header = ({ teacherMode, onRequestTeacherMode, studentName, setStudentName, onExport, onMobileMenu }) => {
             return (
-                <header className="bg-white border-b border-slate-200 h-16 flex items-center justify-between px-6 shadow-sm z-10">
-                    <div className="flex items-center space-x-3">
-                        <div className="bg-blue-600 p-2 rounded-lg text-white">
+                <header className="bg-white border-b border-slate-200 h-16 flex items-center justify-between px-4 md:px-6 shadow-sm z-10 sticky top-0">
+                    <div className="flex items-center gap-3">
+                        <button onClick={onMobileMenu} className="md:hidden text-slate-600 p-1">
+                            <Icon name="menu" size={24} />
+                        </button>
+                        <div className="bg-blue-600 p-2 rounded-lg text-white hidden md:block">
                             <Icon name="bar-chart-2" />
                         </div>
-                        <div>
-                            <h1 className="font-bold text-lg text-slate-800">Financial Analyst Simulation</h1>
-                            <p className="text-xs text-slate-500">Merck & Co. 2022 Case Study</p>
+                        <div className="leading-tight">
+                            <h1 className="font-bold text-base md:text-lg text-slate-800 truncate max-w-[150px] md:max-w-none">Fin. Analyst Sim.</h1>
+                            <p className="text-xs text-slate-500 hidden md:block">Merck & Co. 2022 Case Study</p>
                         </div>
                     </div>
-                    <div className="flex items-center space-x-4">
-                        <div className="flex items-center space-x-2">
+                    <div className="flex items-center gap-2 md:gap-4">
+                        <div className="flex items-center gap-2">
                             <span className="text-sm font-medium text-slate-600 hidden md:block">Analyst:</span>
                             <input 
                                 type="text" 
                                 value={studentName}
                                 onChange={(e) => setStudentName(e.target.value)}
-                                placeholder="Student Name"
-                                className="border border-slate-300 rounded px-2 py-1 text-sm w-32 md:w-48 focus:border-blue-500 outline-none"
+                                placeholder="Your Name"
+                                className="border border-slate-300 rounded px-2 py-1 text-sm w-28 md:w-48 focus:border-blue-500 outline-none"
                             />
                         </div>
-                        <button onClick={onExport} className="flex items-center gap-2 text-sm bg-slate-800 text-white hover:bg-slate-700 font-medium px-4 py-2 rounded-lg transition-colors">
+                        <button onClick={onExport} className="flex items-center gap-2 text-sm bg-slate-800 text-white hover:bg-slate-700 font-medium px-3 py-2 rounded-lg transition-colors">
                             <Icon name="download" size={16} /> <span className="hidden md:inline">Submit</span>
                         </button>
                         {!teacherMode && (
-                            <button onClick={onRequestTeacherMode} className="opacity-10 hover:opacity-100 transition-opacity">
+                            <button onClick={onRequestTeacherMode} className="opacity-10 hover:opacity-100 transition-opacity p-1">
                                 <Icon name="lock" size={14} />
                             </button>
                         )}
@@ -710,45 +754,49 @@
                 return { result: 0 };
             }, [inputs, exercise]);
 
-            const validate = (val, correctEnc, tol) => {
+            // Re-using the robust validation logic here for display purposes
+            const checkDisplay = (val, correctEnc, tol) => {
                 const numVal = Number(val) || 0;
                 const correctValue = Number(d(correctEnc)) || 0;
                 
-                // Direct relative check
-                let isCorrect = Math.abs(numVal - correctValue) / (correctValue || 1) <= tol;
+                // Flexible tolerance logic (same as SmartInput)
+                const isCloseEnough = (input, target) => {
+                    if (Math.abs(target) < 0.00001) return Math.abs(input) < 0.001; 
+                    const diff = Math.abs(input - target);
+                    const percentageDiff = diff / Math.abs(target);
+                    return percentageDiff <= tol;
+                };
+
+                if (isCloseEnough(numVal, correctValue)) return true;
+                if (isCloseEnough(numVal * 100, correctValue)) return true;
+                if (isCloseEnough(numVal / 100, correctValue)) return true;
                 
-                // Handle 0.22 vs 22 for percentages
-                if (!isCorrect) {
-                    const scaledUp = Math.abs((numVal * 100) - correctValue) / (correctValue || 1) <= tol;
-                    const scaledDown = Math.abs((numVal / 100) - correctValue) / (correctValue || 1) <= tol;
-                    isCorrect = scaledUp || scaledDown;
-                }
-                return isCorrect;
+                return false;
             };
 
             return (
                 <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mb-6">
                     <div className="bg-slate-50 border-b border-slate-200 p-4 flex justify-between items-center">
                         <div className="flex items-center gap-3">
-                            <span className="bg-blue-100 text-blue-700 font-bold px-2.5 py-1 rounded text-sm">{exercise.id}</span>
-                            <h3 className="font-bold text-slate-800">{exercise.title}</h3>
+                            <span className="bg-blue-100 text-blue-700 font-bold px-2.5 py-1 rounded text-sm shrink-0">{exercise.id}</span>
+                            <h3 className="font-bold text-slate-800 text-sm md:text-base leading-tight">{exercise.title}</h3>
                         </div>
-                        <button onClick={() => setShowHint(!showHint)} className="text-slate-400 hover:text-blue-500"><Icon name="help-circle" size={20} /></button>
+                        <button onClick={() => setShowHint(!showHint)} className="text-slate-400 hover:text-blue-500 p-2"><Icon name="help-circle" size={20} /></button>
                     </div>
-                    <div className="p-6">
+                    <div className="p-4 md:p-6">
                         <p className="text-slate-600 mb-6 text-sm">{exercise.description}</p>
                         {showHint && <div className="bg-blue-50 text-blue-800 p-3 rounded-lg mb-6 text-sm font-mono border border-blue-100 animate-fadeIn">{exercise.formulaDisplay}</div>}
-                        <div className="grid md:grid-cols-2 gap-8">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                             <div className="space-y-4">
                                 <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Inputs</h4>
                                 {exercise.type === "classification_sum" ? (
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div className="border rounded p-3 bg-slate-50/50">
                                             <h5 className="font-bold text-xs text-slate-500 uppercase mb-2">Assets</h5>
                                             <div className="space-y-1 max-h-48 overflow-y-auto pr-1 scrollbar-hide">
                                                 {FINANCIAL_DATA.balanceSheet.assets.map((item, idx) => !item.bold && (
-                                                    <label key={idx} className="flex items-center space-x-2 text-xs cursor-pointer hover:bg-slate-100 p-1 rounded">
-                                                        <input type="checkbox" checked={!!inputs[`asset_${item.item}`]} onChange={(e) => updateInput(exercise.id, `asset_${item.item}`, e.target.checked)} className="rounded text-blue-600" />
+                                                    <label key={idx} className="flex items-center space-x-2 text-xs cursor-pointer hover:bg-slate-100 p-2 rounded active:bg-slate-200">
+                                                        <input type="checkbox" checked={!!inputs[`asset_${item.item}`]} onChange={(e) => updateInput(exercise.id, `asset_${item.item}`, e.target.checked)} className="rounded text-blue-600 w-4 h-4" />
                                                         <div className="flex-1 flex justify-between"><span>{item.item}</span><span className="font-mono">{item.value22.toLocaleString()}</span></div>
                                                     </label>
                                                 ))}
@@ -758,8 +806,8 @@
                                             <h5 className="font-bold text-xs text-slate-500 uppercase mb-2">Liabilities</h5>
                                             <div className="space-y-1 max-h-48 overflow-y-auto pr-1 scrollbar-hide">
                                                 {FINANCIAL_DATA.balanceSheet.liabilitiesAndEquity.map((item, idx) => !item.bold && !item.item.includes("Total") && (
-                                                    <label key={idx} className="flex items-center space-x-2 text-xs cursor-pointer hover:bg-slate-100 p-1 rounded">
-                                                        <input type="checkbox" checked={!!inputs[`liab_${item.item}`]} onChange={(e) => updateInput(exercise.id, `liab_${item.item}`, e.target.checked)} className="rounded text-blue-600" />
+                                                    <label key={idx} className="flex items-center space-x-2 text-xs cursor-pointer hover:bg-slate-100 p-2 rounded active:bg-slate-200">
+                                                        <input type="checkbox" checked={!!inputs[`liab_${item.item}`]} onChange={(e) => updateInput(exercise.id, `liab_${item.item}`, e.target.checked)} className="rounded text-blue-600 w-4 h-4" />
                                                         <div className="flex-1 flex justify-between"><span>{item.item}</span><span className="font-mono">{item.value22.toLocaleString()}</span></div>
                                                     </label>
                                                 ))}
@@ -793,12 +841,12 @@
                                                 else if (check.id === "roe_check") val = calculation.roeCheck;
                                                 
                                                 const displayVal = Number(val) || 0;
-                                                const isCorrect = validate(displayVal, check.correctVal, check.tolerance);
+                                                const isCorrect = checkDisplay(displayVal, check.correctVal, check.tolerance);
                                                 
                                                 return (
-                                                    <div key={idx} className="flex items-center justify-between">
+                                                    <div key={idx} className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
                                                         <span className="text-sm font-medium text-slate-600">{check.label}:</span>
-                                                        <div className="flex items-center gap-3">
+                                                        <div className="flex items-center gap-3 self-end sm:self-auto">
                                                             <span className={`font-mono text-lg font-bold ${isCorrect ? 'text-green-600' : 'text-slate-400'}`}>
                                                                 {displayVal.toFixed(2)}{check.unit}
                                                             </span>
@@ -811,11 +859,11 @@
                                     ) : (exercise.type === "multi_average" || exercise.type === "disaggregation") ? (
                                         exercise.checks.map((check, idx) => {
                                             const val = idx === 0 ? (calculation.res1 || 0) : (calculation.res2 || 0);
-                                            const isCorrect = validate(val, check.correctVal, check.tolerance);
+                                            const isCorrect = checkDisplay(val, check.correctVal, check.tolerance);
                                             return (
-                                                <div key={idx} className="flex items-center justify-between">
+                                                <div key={idx} className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
                                                     <span className="text-sm font-medium text-slate-600">{check.label}:</span>
-                                                    <div className="flex items-center gap-3">
+                                                    <div className="flex items-center gap-3 self-end sm:self-auto">
                                                         <span className={`font-mono text-lg font-bold ${isCorrect ? 'text-green-600' : 'text-slate-400'}`}>
                                                             {Number(val).toFixed(2)}{check.unit}
                                                         </span>
@@ -847,10 +895,10 @@
                                         <div className="flex items-center justify-between">
                                             <span className="text-sm font-medium text-slate-600">{exercise.resultLabel || "Calculated Result"}:</span>
                                             <div className="flex items-center gap-3">
-                                                <span className={`font-mono text-xl font-bold ${validate(calculation.result || 0, exercise.targetValue, exercise.tolerance) ? 'text-green-600' : 'text-slate-400'}`}>
+                                                <span className={`font-mono text-xl font-bold ${checkDisplay(calculation.result || 0, exercise.targetValue, exercise.tolerance) ? 'text-green-600' : 'text-slate-400'}`}>
                                                     {(Number(calculation.result) || 0).toFixed(2)}{exercise.unit}
                                                 </span>
-                                                {validate(calculation.result || 0, exercise.targetValue, exercise.tolerance) ? <Icon name="check-circle" className="text-green-500" /> : <div className="w-5 h-5 rounded-full border-2 border-slate-300"></div>}
+                                                {checkDisplay(calculation.result || 0, exercise.targetValue, exercise.tolerance) ? <Icon name="check-circle" className="text-green-500" /> : <div className="w-5 h-5 rounded-full border-2 border-slate-300"></div>}
                                             </div>
                                         </div>
                                     )}
@@ -905,8 +953,9 @@
         };
 
         const App = () => {
-            const [sidebarOpen, setSidebarOpen] = useState(true);
-            const [sidebarWidth, setSidebarWidth] = useState(384);
+            // Default sidebar closed on mobile (but check screen width)
+            const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth > 768);
+            const [sidebarWidth, setSidebarWidth] = useState(320);
             const [activeTab, setActiveTab] = useState('exercises');
             const [teacherMode, setTeacherMode] = useState(false);
             const [inputs, setInputs] = useState({});
@@ -918,13 +967,24 @@
             const [showConfirmClear, setShowConfirmClear] = useState(false);
             const [authCode, setAuthCode] = useState("");
 
+            useEffect(() => {
+                // Adjust sidebar state on resize
+                const handleResize = () => {
+                    if (window.innerWidth > 768 && !sidebarOpen) {
+                        setSidebarOpen(true);
+                    }
+                };
+                window.addEventListener('resize', handleResize);
+                return () => window.removeEventListener('resize', handleResize);
+            }, [sidebarOpen]);
+
             const updateInput = (exerciseId, inputId, value) => {
                 setInputs(prev => ({ ...prev, [exerciseId]: { ...prev[exerciseId], [inputId]: value } }));
             };
             const updateNotes = (exerciseId, value) => setNotes(prev => ({ ...prev, [exerciseId]: value }));
 
             const unlockInstructor = () => {
-                // Obfuscated password comparison for "review"
+                // Password: "review"
                 if (btoa(authCode) === 'cmV2aWV3') {
                     setTeacherMode(true);
                     setShowLoginModal(false);
@@ -978,27 +1038,36 @@
             ];
 
             return (
-                <div className="flex h-screen bg-slate-100 relative">
+                <div className="flex h-screen bg-slate-100 relative overflow-hidden">
                     {teacherMode && <InstructorToolbar onAutoFill={autoFill} onClearExit={() => setShowConfirmClear(true)} />}
                     {showLoginModal && (
                         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-fadeIn">
                             <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6 relative">
-                                <button onClick={() => setShowLoginModal(false)} className="absolute top-4 right-4 text-slate-400"><Icon name="x" size={18}/></button>
+                                <button onClick={() => setShowLoginModal(false)} className="absolute top-4 right-4 text-slate-400 p-2"><Icon name="x" size={18}/></button>
                                 <h3 className="text-lg font-bold text-slate-800 mb-4 uppercase tracking-tighter">System Access</h3>
-                                <input type="password" placeholder="Enter Access Code" className="w-full border p-2 rounded mb-4" value={authCode} onChange={(e) => setAuthCode(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && unlockInstructor()} />
-                                <button onClick={unlockInstructor} className="w-full bg-blue-600 text-white py-2 rounded font-bold">Validate</button>
+                                <input type="password" placeholder="Enter Access Code" className="w-full border p-3 rounded mb-4 text-base" value={authCode} onChange={(e) => setAuthCode(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && unlockInstructor()} />
+                                <button onClick={unlockInstructor} className="w-full bg-blue-600 text-white py-3 rounded font-bold hover:bg-blue-700">Validate</button>
                             </div>
                         </div>
                     )}
                     <ConfirmModal isOpen={showConfirmClear} title="Clear Data?" message="This resets all inputs and exits the instructor view." onClose={() => setShowConfirmClear(false)} onConfirm={clearAndExit} />
+                    
                     <Sidebar isOpen={sidebarOpen} toggleSidebar={() => setSidebarOpen(!sidebarOpen)} onDataClick={handleDataClick} width={sidebarWidth} setWidth={setSidebarWidth} />
+                    
                     <div className={`flex-1 flex flex-col min-w-0 transition-all ${teacherMode ? 'pt-14' : ''}`}>
-                        <Header teacherMode={teacherMode} onRequestTeacherMode={() => setShowLoginModal(true)} studentName={studentName} setStudentName={setStudentName} onExport={handleExport} />
-                        <main className="flex-1 overflow-y-auto p-6 md:p-8">
-                            <div className="max-w-4xl mx-auto">
-                                <div className="bg-gradient-to-r from-blue-900 to-blue-800 rounded-2xl p-8 mb-8 text-white shadow-lg">
-                                    <h1 className="text-3xl font-bold mb-2">Profitability & Efficiency</h1>
-                                    <p className="text-blue-100">Merck & Co. (2022) Strategic Financial Review</p>
+                        <Header 
+                            teacherMode={teacherMode} 
+                            onRequestTeacherMode={() => setShowLoginModal(true)} 
+                            studentName={studentName} 
+                            setStudentName={setStudentName} 
+                            onExport={handleExport}
+                            onMobileMenu={() => setSidebarOpen(true)}
+                        />
+                        <main className="flex-1 overflow-y-auto p-4 md:p-8">
+                            <div className="max-w-4xl mx-auto pb-10">
+                                <div className="bg-gradient-to-r from-blue-900 to-blue-800 rounded-2xl p-6 md:p-8 mb-6 md:mb-8 text-white shadow-lg">
+                                    <h1 className="text-2xl md:text-3xl font-bold mb-2">Profitability & Efficiency</h1>
+                                    <p className="text-blue-100 text-sm md:text-base">Merck & Co. (2022) Strategic Financial Review</p>
                                 </div>
                                 <div className="flex space-x-1 mb-6 bg-slate-200 p-1 rounded-lg w-fit">
                                     <button onClick={() => setActiveTab('exercises')} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'exercises' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-600'}`}>Simulation</button>
