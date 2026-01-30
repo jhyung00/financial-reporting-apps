@@ -4,133 +4,256 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Module 5: Revenue Recognition & Operating Income</title>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Lato:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <style>
         :root {
-            --primary: #2c3e50; /* Dark Slate */
-            --accent: #2980b9;  /* Blue */
-            --accent-dark: #1a5276;
-            --bg: #f8f9fa;      /* Light Gray */
-            --white: #ffffff;
-            --success: #27ae60;
-            --error: #c0392b;
-            --text: #34495e;
-            --border: #dee2e6;
-            --card-gradient: linear-gradient(135deg, #2980b9 0%, #2c3e50 100%);
+            /* Theme: Modern Tech/Startup */
+            --primary: #6C63FF;       /* Vibrant Purple */
+            --primary-dark: #5a52d5;
+            --accent: #FF6B6B;        /* Coral */
+            --accent-hover: #ff5252;
+            --bg-body: #2D2E32;       /* Dark background */
+            --bg-slide: #F9FAFC;      /* Light slide background */
+            --text-dark: #2D3436;
+            --text-light: #636E72;
+            --success: #00B894;
+            --error: #D63031;
+            --warning: #fdcb6e;
+            
+            --card-shadow: 0 10px 20px rgba(0,0,0,0.05);
+            --gradient: linear-gradient(135deg, #6C63FF 0%, #a29bfe 100%);
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
-            font-family: 'Roboto', sans-serif;
-            background-color: #2c3e50;
+            font-family: 'Lato', sans-serif;
+            background-color: var(--bg-body);
             height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            overflow: hidden;
+            color: var(--text-dark);
         }
 
-        /* Fixed Container */
-        #slide-deck {
+        /* --- Main Container --- */
+        #app-container {
             width: 1280px;
             height: 720px;
-            background-color: var(--white);
+            background-color: var(--bg-slide);
             position: relative;
-            box-shadow: 0 0 50px rgba(0,0,0,0.5);
+            border-radius: 20px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
             overflow: hidden;
             display: flex;
             flex-direction: column;
         }
 
-        /* Slide Styles */
-        .slide {
+        /* --- Navigation Sidebar --- */
+        #menu-toggle {
+            position: absolute;
+            top: 25px;
+            left: 25px;
+            z-index: 200;
+            background: var(--bg-slide);
+            border: none;
+            color: var(--primary);
+            font-size: 1.5rem;
+            cursor: pointer;
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #menu-toggle:hover { transform: scale(1.1); color: var(--accent); }
+
+        #sidebar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 300px;
+            height: 100%;
+            background: var(--primary);
+            z-index: 150;
+            padding-top: 80px;
+            transform: translateX(-100%);
+            transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            box-shadow: 5px 0 15px rgba(0,0,0,0.1);
+            overflow-y: auto;
+        }
+        #sidebar.open { transform: translateX(0); }
+        #sidebar::-webkit-scrollbar { width: 6px; }
+        #sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.3); border-radius: 3px; }
+
+        .nav-group {
+            padding: 15px 25px 5px;
+            color: rgba(255,255,255,0.5);
+            font-family: 'Poppins', sans-serif;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 5px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: 10px 25px;
+            color: rgba(255,255,255,0.9);
+            text-decoration: none;
+            font-family: 'Poppins', sans-serif;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: 0.2s;
+            cursor: pointer;
+            border-left: 4px solid transparent;
+        }
+        .nav-item:hover { background: rgba(255,255,255,0.1); padding-left: 30px; }
+        .nav-item.active { background: white; color: var(--primary); border-left-color: var(--accent); }
+        .nav-item i { margin-right: 10px; width: 20px; text-align: center; }
+
+        /* --- Slide Structure --- */
+        .slide-container {
             flex: 1;
-            padding: 40px 60px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .slide {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            padding: 40px 80px;
             display: none;
             flex-direction: column;
-            animation: fadeIn 0.5s ease;
-            overflow-y: auto; 
+            animation: fadeIn 0.4s ease-out;
+            overflow-y: auto;
         }
-
         .slide.active { display: flex; }
-
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* Typography */
-        h1, h2 { font-family: 'Playfair Display', serif; color: var(--primary); margin-bottom: 10px; }
-        h1 { font-size: 3.5rem; }
-        h2 { font-size: 2.2rem; border-bottom: 3px solid var(--accent); padding-bottom: 15px; margin-bottom: 30px; }
-        h3 { color: var(--accent); font-size: 1.4rem; margin-bottom: 15px; margin-top: 10px; }
-        p, li { font-size: 1.1rem; line-height: 1.6; color: var(--text); margin-bottom: 12px; }
-        ul, ol { margin-left: 30px; }
+        /* --- Typography & Elements --- */
+        h1, h2, h3, h4 { font-family: 'Poppins', sans-serif; font-weight: 700; color: var(--text-dark); }
+        h1 { font-size: 3rem; line-height: 1.2; color: var(--primary); }
+        h2 { font-size: 2.2rem; margin-bottom: 20px; display: flex; align-items: center; gap: 15px; }
+        h2::before { content: ''; display: block; width: 6px; height: 35px; background: var(--accent); border-radius: 4px; }
+        
+        p, li { font-size: 1.15rem; line-height: 1.6; color: var(--text-light); margin-bottom: 15px; }
+        ul { margin-left: 25px; }
+        
+        /* Layouts */
+        .cols-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 50px; height: 100%; align-items: center; }
 
-        /* Components */
-        .problem-box {
-            background-color: #f0f4f8; /* Slightly bluer gray for distinction */
-            border-left: 6px solid var(--primary);
+        /* Cards */
+        .card {
+            background: white;
             padding: 25px;
-            margin: 20px 0;
-            border-radius: 0 8px 8px 0;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            border-radius: 16px;
+            box-shadow: var(--card-shadow);
+            border: 1px solid rgba(0,0,0,0.03);
+            transition: transform 0.2s;
+            height: 100%;
         }
-        .problem-box h4 {
-            color: var(--primary);
-            font-size: 1.2rem;
-            margin-bottom: 10px;
-            font-family: 'Playfair Display', serif;
-        }
+        .card:hover { transform: translateY(-3px); }
 
-        .financial-data {
-            font-family: 'Courier New', monospace;
-            background: #fff;
-            border: 1px solid var(--border);
-            padding: 15px;
-            margin: 10px 0;
-            display: grid;
-            grid-template-columns: 1fr auto;
-            gap: 10px;
-            font-size: 0.95rem;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        .concept-box {
+            background: white;
+            border-left: 5px solid var(--accent);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: var(--card-shadow);
+            margin: 15px 0;
         }
         
-        .financial-data.compact {
-            grid-template-columns: auto 1fr;
-            gap: 30px;
+        /* Problem Box (User requested style) */
+        .problem-box {
+            background: #f8f9fa;
+            border-left: 6px solid var(--primary);
+            padding: 20px;
+            border-radius: 0 8px 8px 0;
+            margin-bottom: 20px;
         }
 
-        .data-row { display: contents; cursor: pointer; }
-        .data-label { font-weight: 500; }
-        .data-val { text-align: right; font-weight: bold; }
-
-        .btn-reveal, .btn-reveal-sm {
-            background-color: var(--accent);
+        /* Interactive Elements */
+        .btn {
+            background: var(--primary);
             color: white;
             border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-family: 'Poppins', sans-serif;
+            font-weight: 600;
             cursor: pointer;
-            border-radius: 4px;
-            transition: background 0.3s;
-            display: inline-block;
+            transition: 0.3s;
+            font-size: 1rem;
         }
-        
-        .btn-reveal { padding: 10px 20px; font-size: 1rem; margin-top: 10px; }
-        .btn-reveal-sm { padding: 5px 10px; font-size: 0.9rem; margin-top: 5px; background-color: var(--text); }
+        .btn:hover { background: var(--primary-dark); transform: scale(1.05); }
+        .btn-accent { background: var(--accent); }
+        .btn-accent:hover { background: var(--accent-hover); }
 
-        .btn-reveal:hover { background-color: var(--accent-dark); }
-
-        .answer {
-            margin-top: 20px;
+        .answer-box {
+            background: #E3FDF5;
+            color: #006442;
             padding: 15px;
-            background-color: #d5f5e3;
-            border: 1px solid var(--success);
-            border-radius: 5px;
-            color: #196f3d;
+            border-radius: 8px;
+            margin-top: 15px;
             display: none;
+            border: 1px solid #00B894;
+            animation: slideDown 0.3s;
         }
+        .answer-box.visible { display: block; }
 
-        .answer.visible { display: block; animation: slideDown 0.3s ease; }
-        @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        /* Tables */
+        .fin-table { width: 100%; border-collapse: collapse; font-family: 'Lato', sans-serif; background: white; border-radius: 8px; overflow: hidden; box-shadow: var(--card-shadow); }
+        .fin-table th { background: #f1f5f9; text-align: left; padding: 12px; color: var(--text-dark); font-weight: 700; }
+        .fin-table td { padding: 12px; border-bottom: 1px solid #eee; }
+        .fin-table .num { text-align: right; font-family: 'Courier New', monospace; font-weight: 700; }
+        .highlight-row { background: #fffbeb; }
+
+        /* Flip Cards */
+        .flip-container { perspective: 1000px; height: 240px; cursor: pointer; }
+        .flip-inner { position: relative; width: 100%; height: 100%; transition: transform 0.6s; transform-style: preserve-3d; }
+        .flip-container.flipped .flip-inner { transform: rotateY(180deg); }
+        .flip-front, .flip-back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; box-shadow: var(--card-shadow); text-align: center; }
+        .flip-front { background: var(--gradient); color: white; }
+        .flip-front i { font-size: 3rem; margin-bottom: 10px; }
+        .flip-back { background: white; color: var(--text-dark); transform: rotateY(180deg); border: 2px solid var(--primary); }
+        
+        .flip-card { perspective: 1000px; height: 300px; cursor: pointer; }
+        .flip-card-inner { position: relative; width: 100%; height: 100%; text-align: center; transition: transform 0.6s; transform-style: preserve-3d; }
+        .flip-card.flipped .flip-card-inner { transform: rotateY(180deg); }
+        .flip-card-front, .flip-card-back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 12px; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; box-shadow: var(--card-shadow); }
+        .flip-card-front { background: var(--gradient); color: white; }
+        .flip-card-front i { font-size: 4rem; margin-bottom: 15px; }
+        .flip-card-back { background: white; color: var(--text-dark); transform: rotateY(180deg); border: 2px solid var(--accent); }
+
+        /* Clickable Line Item */
+        .clickable-line {
+            cursor: pointer;
+            transition: background 0.2s;
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            font-family: 'Lato', sans-serif;
+            background: white;
+        }
+        .clickable-line:first-child { border-top-left-radius: 8px; border-top-right-radius: 8px; }
+        .clickable-line:last-child { border-bottom-left-radius: 8px; border-bottom-right-radius: 8px; border-bottom: none; }
+        .clickable-line:hover { background-color: #f0f9ff; }
+        .clickable-line .hidden-val { visibility: hidden; opacity: 0; transition: opacity 0.3s; font-family: 'Courier New', monospace; font-weight: bold; }
+        .clickable-line.revealed .hidden-val { visibility: visible; opacity: 1; }
+        .clickable-line.revealed .hidden-val.neg { color: var(--error); }
 
         /* Math Fractions CSS */
         .math-eq {
@@ -140,10 +263,11 @@
             font-style: italic;
             font-size: 1.3rem;
             margin: 10px 0;
-            background: #f8f9fa;
+            background: #fff;
             padding: 10px 20px;
             border-radius: 8px;
             border: 1px solid #dee2e6;
+            box-shadow: var(--card-shadow);
         }
         
         .fraction {
@@ -154,1044 +278,1019 @@
             vertical-align: middle;
         }
         
-        .numerator {
-            border-bottom: 2px solid #000;
-            padding-bottom: 2px;
-            text-align: center;
-        }
-        
-        .denominator {
-            padding-top: 2px;
-            text-align: center;
-        }
-        
-        .eq-symbol { margin: 0 10px; font-weight: bold; font-style: normal;}
+        .numerator { border-bottom: 2px solid #000; padding-bottom: 2px; text-align: center; }
+        .denominator { padding-top: 2px; text-align: center; }
+        .eq-symbol { margin: 0 10px; font-weight: bold; font-style: normal; }
         .eq-result { font-weight: bold; color: var(--accent); font-style: normal; }
-
-        /* Flip Cards */
-        .card-container {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 30px;
-            margin-top: 40px;
-            perspective: 1000px;
-        }
-
-        .flip-card {
-            background-color: transparent;
-            height: 300px;
-            cursor: pointer;
-        }
-
-        .flip-card-inner {
-            position: relative;
-            width: 100%;
-            height: 100%;
-            text-align: center;
-            transition: transform 0.6s;
-            transform-style: preserve-3d;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.15); /* Enhanced shadow */
-            border-radius: 12px;
-        }
-
-        .flip-card.flipped .flip-card-inner {
-            transform: rotateY(180deg);
-        }
-
-        .flip-card-front, .flip-card-back {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            -webkit-backface-visibility: hidden;
-            backface-visibility: hidden;
-            border-radius: 12px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-        }
-
-        .flip-card-front {
-            background: var(--card-gradient); /* Gradient for better aesthetics */
-            color: white;
-            font-weight: bold;
-            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
-        }
         
-        /* Ensure headings in front cards are white */
-        .flip-card-front h3 { color: white !important; }
-
-        .flip-card-back {
-            background-color: #ecf0f1;
-            color: var(--primary);
-            transform: rotateY(180deg);
-            border: 2px solid var(--accent);
-            overflow-y: auto;
-        }
-
-        /* Insight Card */
-        .insight-card {
-            background: linear-gradient(135deg, #ffffff 0%, #eef2f5 100%);
-            border-left: 5px solid var(--accent);
+        .math-block {
+            background: #f8f9fa;
+            padding: 15px;
             border-radius: 8px;
-            padding: 20px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            margin-top: 20px;
+            text-align: center;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            margin: 15px 0;
+            border: 1px dashed #ccc;
         }
-        .insight-card h4 { color: var(--accent); margin-bottom: 10px; }
 
-        /* Real Data Table */
-        .real-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.95rem;
-            margin-top: 20px;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-        .real-table th { background: var(--primary); color: white; padding: 12px; text-align: left; }
-        .real-table td { border-bottom: 1px solid var(--border); padding: 10px; text-align: left; }
-        .real-table tr:nth-child(even) { background: #f8f9fa; }
-        .real-table tr:hover { background: #e9ecef; }
-        .real-table .num { text-align: right; font-family: 'Courier New', monospace; font-weight: 600; }
-
-        /* Quiz Styles */
-        .quiz-option {
+        /* Controls */
+        .controls {
+            height: 60px;
             background: white;
-            border: 2px solid #e2e8f0;
+            border-top: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 40px;
+            z-index: 50;
+        }
+        .nav-btn {
+            background: white;
+            border: 2px solid #eee;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            color: var(--text-light);
+            font-weight: 600;
+            transition: 0.2s;
+        }
+        .nav-btn:hover { border-color: var(--primary); color: var(--primary); }
+
+        /* Quiz */
+        .quiz-opt {
+            background: white;
             padding: 15px;
             margin-bottom: 10px;
             border-radius: 8px;
+            border: 2px solid #eee;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: 0.2s;
         }
-        .quiz-option:hover { background: #f1f5f9; border-color: var(--accent); }
-        .quiz-option.correct { background: #dcfce7; border-color: var(--success); color: #166534; }
-        .quiz-option.incorrect { background: #fee2e2; border-color: var(--error); color: #991b1b; }
+        .quiz-opt:hover { border-color: var(--primary); background: #f9f9ff; }
+        .quiz-opt.correct { background: #d1fae5; border-color: var(--success); color: #064e3b; }
+        .quiz-opt.wrong { background: #fee2e2; border-color: var(--error); color: #991b1b; }
         
-        .quiz-explanation {
-            margin-top: 15px;
-            padding: 15px;
-            background: #f0f9ff;
-            border-left: 4px solid var(--accent);
-            display: none;
-        }
-
-        /* Layouts */
-        .cols-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; height: 100%; }
-        
-        /* Navigation */
-        .nav-bar {
-            height: 60px;
-            background-color: var(--primary);
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0 30px;
-            flex-shrink: 0;
-        }
-
-        .nav-controls button {
-            background: none;
-            border: 1px solid rgba(255,255,255,0.3);
-            color: white;
-            padding: 8px 15px;
-            cursor: pointer;
-            border-radius: 4px;
-            margin-left: 10px;
-        }
-        .nav-controls button:hover { background: rgba(255,255,255,0.1); }
-        .page-num { font-family: 'Courier New', monospace; }
-
-        /* Summary Reveal */
-        .summary-item {
-            opacity: 0;
-            transition: opacity 0.5s ease;
-            margin-bottom: 15px;
-            padding: 10px;
-            background: #f8f9fa;
-            border-left: 4px solid var(--accent);
-        }
-        .summary-item.visible { opacity: 1; }
-
-        /* Clickable Line Item */
-        .clickable-line {
-            cursor: pointer;
-            transition: background 0.2s;
-            padding: 10px;
-            border-bottom: 1px solid #eee;
-            display: flex;
-            justify-content: space-between;
-        }
-        .clickable-line:hover { background-color: #e0f2fe; }
-        .clickable-line .hidden-val { visibility: hidden; }
-        .clickable-line.revealed .hidden-val { visibility: visible; font-weight: bold; }
-        .clickable-line.revealed .hidden-val.neg { color: var(--error); }
-        
-        /* Large Text Utility */
-        .text-lg p { font-size: 1.5rem; line-height: 1.8; }
+        /* List Animations */
+        .reveal-item { animation: fadeIn 0.8s ease-in-out; }
     </style>
 </head>
 <body>
 
-<div id="slide-deck">
+<div id="app-container">
     
-    <!-- SLIDE 1: Title -->
-    <div class="slide active">
-        <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; text-align: center;">
-            <p style="text-transform: uppercase; letter-spacing: 2px; color: var(--accent);">Module 5</p>
-            <h1>Revenue Recognition & Operating Income</h1>
-            <p style="font-size: 1.5rem; margin-top: 20px;">Analysis of the "Top Line"</p>
-            <div style="margin-top: 50px; border-top: 1px solid #dee2e6; padding-top: 20px; display: inline-block;">
-                <p><strong>Learning Objectives:</strong></p>
-                <p>1. Apply revenue recognition principles (ASC 606).</p>
-                <p>2. Evaluate sales allowances and earnings quality.</p>
-                <p>3. Analyze deferred revenue as a leading indicator.</p>
-            </div>
-        </div>
-    </div>
+    <!-- Hamburger Menu -->
+    <button id="menu-toggle" onclick="toggleMenu()"><i class="fas fa-bars"></i></button>
 
-    <!-- SLIDE 2: Focus on Income -->
-    <div class="slide">
-        <h2>The Income Statement</h2>
-        <div class="cols-2">
-            <div class="text-lg">
-                <p>We are shifting focus from the Balance Sheet to the Income Statement.</p>
-                <ul>
-                    <li><strong>Top Line:</strong> Revenue (Sales)</li>
-                    <li><strong>Bottom Line:</strong> Net Income (Profit)</li>
-                </ul>
-                <div class="insight-card">
-                    <h4>Why Start Here?</h4>
-                    <p>Revenue is the driver of all profitability. Without sales, there is no business. It is often called "Vanity," but it's the crucial starting point.</p>
-                </div>
-            </div>
-            <div class="problem-box">
-                <h4>Discussion</h4>
-                <p>"Revenue is vanity, Profit is sanity, Cash is reality."</p>
-                <p>Why do analysts obsess over Revenue if it's "vanity"?</p>
-                <button class="btn-reveal-sm" onclick="toggleAnswer(this)">Reveal Answer</button>
-                <div class="answer">
-                    <p>Because you can't cut costs to growth forever. Revenue growth proves customers value the product.</p>
-                </div>
-            </div>
+    <!-- Sidebar -->
+    <nav id="sidebar">
+        <div style="text-align: center; margin-bottom: 20px; color: white;">
+            <i class="fas fa-rocket" style="font-size: 2.5rem; margin-bottom: 10px;"></i>
+            <h3 style="color:white; font-size: 1.2rem;">Module 5</h3>
         </div>
-    </div>
-
-    <!-- SLIDE 3: Pfizer Example -->
-    <div class="slide">
-        <h2>Pfizer's Income Statement (2022)</h2>
-        <div class="financial-data">
-            <div class="data-row"><span class="data-label">Revenues:</span> <span class="data-val">$100,330 M</span></div>
-            <div class="data-row"><span class="data-label">Cost of Sales:</span> <span class="data-val">($34,344 M)</span></div>
-            <div class="data-row"><span class="data-label">R&D Expenses:</span> <span class="data-val">($11,428 M)</span></div>
-            <div class="data-row" style="border-top: 1px solid #000;"><span class="data-label"><strong>Net Income:</strong></span> <span class="data-val"><strong>$31,372 M</strong></span></div>
-        </div>
-        <div class="problem-box">
-            <h4>Critical Question</h4>
-            <p>Is that $100 Billion purely cash received from customers?</p>
-            <button class="btn-reveal" onclick="toggleAnswer(this)">Reveal Answer</button>
-            <div class="answer">
-                <p><strong>No.</strong> It includes sales on credit (Accounts Receivable) and deductions for rebates, chargebacks, and returns.</p>
-            </div>
-        </div>
-    </div>
-
-    <!-- SLIDE 4: Revenue Principle -->
-    <div class="slide">
-        <h2>The Core Principle: ASC 606</h2>
-        <p class="text-lg"><strong>ASC 606</strong> is the accounting standard that governs Revenue Recognition.</p>
         
-        <div class="insight-card" style="text-align:center; padding: 40px;">
-            <h3 style="font-size: 2rem; margin-bottom: 20px;">Transfer of Control</h3>
-            <p style="font-size: 1.3rem;">Revenue is recognized when control of the promised good or service is transferred to the customer.</p>
-            <p style="margin-top: 20px; color: var(--accent); font-weight: bold; font-size: 1.2rem;">It is NOT dependent on cash receipt.</p>
-        </div>
-    </div>
+        <div class="nav-group">Introduction</div>
+        <a class="nav-item active" onclick="goToSlide(0)">1. Start</a>
+        <a class="nav-item" onclick="goToSlide(1)">2. The Top Line</a>
+        <a class="nav-item" onclick="goToSlide(2)">3. Pfizer Example</a>
+        
+        <div class="nav-group">ASC 606 Model</div>
+        <a class="nav-item" onclick="goToSlide(3)">4. Core Principle</a>
+        <a class="nav-item" onclick="goToSlide(4)">5. Step 1: Contract</a>
+        <a class="nav-item" onclick="goToSlide(5)">6. Step 2: Obligations</a>
+        <a class="nav-item" onclick="goToSlide(6)">7. Step 3: Price</a>
+        <a class="nav-item" onclick="goToSlide(7)">8. Step 4: Allocate</a>
+        <a class="nav-item" onclick="goToSlide(8)">9. Step 5: Recognize</a>
 
-    <!-- SLIDE 5: Sales on Credit -->
-    <div class="slide">
-        <h2>Sales on Credit</h2>
-        <div class="cols-2">
-            <div class="text-lg">
-                <p>Most B2B transactions are on credit.</p>
-                <ul>
-                    <li>Seller recognizes Revenue immediately upon shipping (transfer of control).</li>
-                    <li>Seller records an <strong>Account Receivable</strong> (Asset).</li>
-                </ul>
-            </div>
-            <div class="problem-box">
-                <h4>Scenario</h4>
-                <p>You ship $1M of goods on Dec 31. The check arrives Jan 15.</p>
-                <p>Which year do you record the revenue?</p>
-                <button class="btn-reveal-sm" onclick="toggleAnswer(this)">Reveal Answer</button>
-                <div class="answer">
-                    <p><strong>Dec 31 (Year 1).</strong> Control transferred when shipped (assuming FOB Shipping Point).</p>
-                </div>
-            </div>
-        </div>
-    </div>
+        <div class="nav-group">Complications</div>
+        <a class="nav-item" onclick="goToSlide(9)">10. Right of Return</a>
+        <a class="nav-item" onclick="goToSlide(10)">11. Consignment</a>
+        <a class="nav-item" onclick="goToSlide(11)">12. Gift Cards</a>
+        <a class="nav-item" onclick="goToSlide(12)">13. Licensing</a>
+        <a class="nav-item" onclick="goToSlide(13)">14. Franchises</a>
+        <a class="nav-item" onclick="goToSlide(14)">15. Channel Stuffing</a>
 
-    <!-- SLIDE 6: Analogy for Rev Rec -->
-    <div class="slide">
-        <h2>Analogy: Fast Food Value Meal</h2>
-        <p>Think of the 5-step process like ordering a meal:</p>
-        <div class="card-container" style="grid-template-columns: repeat(5, 1fr); gap: 10px;">
-            <div class="flip-card" onclick="this.classList.toggle('flipped')">
-                <div class="flip-card-inner">
-                    <div class="flip-card-front"><h3 style="font-size:1.1rem;">1. Contract</h3><p>Agreement</p></div>
-                    <div class="flip-card-back"><p style="font-size:0.8rem;">You place your order at the counter.</p></div>
-                </div>
-            </div>
-            <div class="flip-card" onclick="this.classList.toggle('flipped')">
-                <div class="flip-card-inner">
-                    <div class="flip-card-front"><h3 style="font-size:1.1rem;">2. Performance</h3><p>Obligations</p></div>
-                    <div class="flip-card-back"><p style="font-size:0.8rem;">Burger, Fries, Drink (3 distinct promises).</p></div>
-                </div>
-            </div>
-            <div class="flip-card" onclick="this.classList.toggle('flipped')">
-                <div class="flip-card-inner">
-                    <div class="flip-card-front"><h3 style="font-size:1.1rem;">3. Price</h3><p>Transaction</p></div>
-                    <div class="flip-card-back"><p style="font-size:0.8rem;">Total meal cost is $10.00.</p></div>
-                </div>
-            </div>
-            <div class="flip-card" onclick="this.classList.toggle('flipped')">
-                <div class="flip-card-inner">
-                    <div class="flip-card-front"><h3 style="font-size:1.1rem;">4. Allocate</h3><p>Value</p></div>
-                    <div class="flip-card-back"><p style="font-size:0.8rem;">Burger=$6, Fries=$2, Drink=$2.</p></div>
-                </div>
-            </div>
-            <div class="flip-card" onclick="this.classList.toggle('flipped')">
-                <div class="flip-card-inner">
-                    <div class="flip-card-front"><h3 style="font-size:1.1rem;">5. Recognize</h3><p>Earnings</p></div>
-                    <div class="flip-card-back"><p style="font-size:0.8rem;">Earn $2 when drink is handed; $8 when tray is given.</p></div>
-                </div>
-            </div>
-        </div>
-    </div>
+        <div class="nav-group">Long-Term Contracts</div>
+        <a class="nav-item" onclick="goToSlide(15)">16. The Problem</a>
+        <a class="nav-item" onclick="goToSlide(16)">17. Cost-to-Cost</a>
+        <a class="nav-item" onclick="goToSlide(17)">18. Raytheon Exercise</a>
+        <a class="nav-item" onclick="goToSlide(18)">19. Year 1 Balance Sheet</a>
+        <a class="nav-item" onclick="goToSlide(19)">20. Year 2 Completion</a>
+        <a class="nav-item" onclick="goToSlide(20)">21. Contract Assets</a>
+        <a class="nav-item" onclick="goToSlide(21)">22. Manipulation Risk</a>
 
-    <!-- SLIDE 7: Step 1 Details (Card) -->
-    <div class="slide">
-        <h2>Step 1: Identify the Contract</h2>
-        <div class="card-container" style="grid-template-columns: 1fr;">
-             <div class="flip-card" onclick="this.classList.toggle('flipped')" style="height: 200px;">
-                <div class="flip-card-inner">
-                    <div class="flip-card-front">
-                        <h3 style="font-size:2rem; margin-top:60px;">Definition & Example</h3>
-                        <p>Click to Reveal</p>
-                    </div>
-                    <div class="flip-card-back">
-                        <p style="text-align:left; padding:20px;"><strong>Definition:</strong> Agreement where parties are identifiable and terms are specified.<br><br><strong>Example:</strong> A formal $10 million construction contract signed by <strong>Raytheon</strong>.</p>
-                    </div>
-                </div>
+        <div class="nav-group">Analysis</div>
+        <a class="nav-item" onclick="goToSlide(22)">23. Sales Allowances</a>
+        <a class="nav-item" onclick="goToSlide(23)">24. Levi's Exercise</a>
+        <a class="nav-item" onclick="goToSlide(24)">25. Reserve Adequacy</a>
+        <a class="nav-item" onclick="goToSlide(25)">26. The Cookie Jar</a>
+        <a class="nav-item" onclick="goToSlide(26)">27. Step 1: Avg Rate</a>
+        <a class="nav-item" onclick="goToSlide(27)">28. Step 2: Income Adj</a>
+        <a class="nav-item" onclick="goToSlide(28)">29. Step 3: B/S Adj</a>
+        <a class="nav-item" onclick="goToSlide(29)">30. Deferred Rev</a>
+        <a class="nav-item" onclick="goToSlide(30)">31. Netflix Case</a>
+        
+        <div class="nav-group">Advanced Topics</div>
+        <a class="nav-item" onclick="goToSlide(31)">32. Pitfalls</a>
+        <a class="nav-item" onclick="goToSlide(32)">33. Keurig Case</a>
+        <a class="nav-item" onclick="goToSlide(33)">34. Footnotes</a>
+        <a class="nav-item" onclick="goToSlide(34)">35. Under Armour</a>
+        <a class="nav-item" onclick="goToSlide(35)">36. AI Economy</a>
+        <a class="nav-item" onclick="goToSlide(36)">37. Simulation</a>
+        
+        <div class="nav-group">Wrap Up</div>
+        <a class="nav-item" onclick="goToSlide(37)">38. Summary</a>
+        <a class="nav-item" onclick="goToSlide(38)">39. Quiz</a>
+    </nav>
+
+    <div class="slide-container">
+        
+        <!-- SLIDE 0: Title -->
+        <div class="slide active">
+            <div style="height:100%; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center;">
+                <div style="background:var(--accent); color:white; padding:5px 15px; border-radius:20px; font-weight:bold; margin-bottom:20px;">MODULE 5</div>
+                <h1 style="font-size: 3.5rem; margin-bottom: 20px;">Revenue Recognition</h1>
+                <p style="font-size: 1.5rem;">Analyzing the "Top Line" & Operating Income</p>
+                <button class="btn" style="margin-top: 40px; font-size: 1.2rem; padding: 15px 40px;" onclick="nextSlide()">Start Module <i class="fas fa-arrow-right"></i></button>
             </div>
         </div>
-    </div>
 
-    <!-- SLIDE 8: Step 2 Details (Card) -->
-    <div class="slide">
-        <h2>Step 2: Identify Performance Obligations</h2>
-        <div class="card-container" style="grid-template-columns: 1fr;">
-             <div class="flip-card" onclick="this.classList.toggle('flipped')" style="height: 200px;">
-                <div class="flip-card-inner">
-                    <div class="flip-card-front">
-                        <h3 style="font-size:2rem; margin-top:60px;">What is an Obligation?</h3>
-                        <p>Click to Reveal</p>
+        <!-- SLIDE 1: Income Basics -->
+        <div class="slide">
+            <h2>The Income Statement</h2>
+            <div class="cols-2">
+                <div>
+                    <p>We are shifting focus from the Balance Sheet (Assets/Liabilities) to the <strong>Income Statement</strong> (Performance).</p>
+                    <div class="concept-box">
+                        <h4><i class="fas fa-quote-left"></i> The Old Adage</h4>
+                        <p><em>"Revenue is vanity, Profit is sanity, Cash is reality."</em></p>
                     </div>
-                    <div class="flip-card-back">
-                        <p style="text-align:left; padding:20px;"><strong>Definition:</strong> A promise to provide a good or service.<br><br><strong>Example (Franchise):</strong> Two distinct components: 1. Goods (Equipment/Inventory) and 2. Services (License/Trade Name).</p>
+                    <p><strong>Discussion:</strong> Why do analysts obsess over Revenue ("Vanity")?</p>
+                    <button class="btn btn-accent" onclick="toggleId('ans-2')">Reveal Answer</button>
+                    <div id="ans-2" class="answer-box">
+                        Because you cannot cost-cut your way to growth forever. Revenue growth proves customers value the product.
                     </div>
+                </div>
+                <div style="display:flex; justify-content:center;">
+                    <i class="fas fa-chart-bar" style="font-size: 12rem; color: #eee;"></i>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- SLIDE 9: Step 3 Details (Card) -->
-    <div class="slide">
-        <h2>Step 3: Determine Transaction Price</h2>
-        <div class="card-container" style="grid-template-columns: 1fr;">
-             <div class="flip-card" onclick="this.classList.toggle('flipped')" style="height: 200px;">
-                <div class="flip-card-inner">
-                    <div class="flip-card-front">
-                        <h3 style="font-size:2rem; margin-top:60px;">Variable Consideration</h3>
-                        <p>Click to Reveal</p>
-                    </div>
-                    <div class="flip-card-back">
-                        <p style="text-align:left; padding:20px;"><strong>Definition:</strong> Amount expected to be received. Must estimate variables.<br><br><strong>Examples:</strong> Pfizer deducts rebates/chargebacks. Levi's estimates 3% returns.</p>
+        <!-- SLIDE 2: Pfizer Example -->
+        <div class="slide">
+            <h2>Pfizer's Income (2022)</h2>
+            <div class="cols-2">
+                <div class="card">
+                    <table class="fin-table">
+                        <tr><td>Revenues</td><td class="num">$100,330 M</td></tr>
+                        <tr><td>Cost of Sales</td><td class="num" style="color:var(--error)">($34,344) M</td></tr>
+                        <tr><td>R&D Expenses</td><td class="num" style="color:var(--error)">($11,428) M</td></tr>
+                        <tr class="highlight-row"><td><strong>Net Income</strong></td><td class="num"><strong>$31,372 M</strong></td></tr>
+                    </table>
+                </div>
+                <div>
+                    <h3>Critical Question</h3>
+                    <p>Is that $100 Billion purely cash received from customers?</p>
+                    <button class="btn" onclick="toggleId('ans-3')">Check Answer</button>
+                    <div id="ans-3" class="answer-box">
+                        <strong>NO.</strong> Revenue ≠ Cash.
+                        <ul style="margin-top:10px;">
+                            <li>Includes sales on credit (Receivables).</li>
+                            <li>Includes deductions for rebates/returns.</li>
+                        </ul>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- SLIDE 10: Step 4 Details (Card) -->
-    <div class="slide">
-        <h2>Step 4: Allocate Transaction Price</h2>
-        <div class="card-container" style="grid-template-columns: 1fr;">
-             <div class="flip-card" onclick="this.classList.toggle('flipped')" style="height: 200px;">
-                <div class="flip-card-inner">
-                    <div class="flip-card-front">
-                        <h3 style="font-size:2rem; margin-top:60px;">Allocation Method</h3>
-                        <p>Click to Reveal</p>
+        <!-- SLIDE 3: ASC 606 Intro -->
+        <div class="slide">
+            <h2>ASC 606: The Core Principle</h2>
+            <p style="font-size: 1.3rem;">Revenue is recognized when <strong>control</strong> of the promised good or service is transferred to the customer.</p>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 40px;">
+                <div class="concept-box" style="text-align: center;">
+                    <i class="fas fa-check-circle" style="font-size: 4rem; color: var(--success); margin-bottom: 15px;"></i>
+                    <h4>Revenue Recognized</h4>
+                    <p>Customer has ability to direct use & obtain benefits.</p>
+                </div>
+                <div class="concept-box" style="text-align: center; border-left-color: var(--error);">
+                    <i class="fas fa-times-circle" style="font-size: 4rem; color: var(--error); margin-bottom: 15px;"></i>
+                    <h4>Not Dependent On</h4>
+                    <p>Cash receipt is NOT the trigger for recognition.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 4: Step 1 Contract -->
+        <div class="slide">
+            <h2>Step 1: Identify the Contract</h2>
+            <div class="cols-2">
+                <div>
+                    <p>An agreement between two or more parties that creates enforceable rights and obligations.</p>
+                    <div class="card">
+                        <h4>Criteria</h4>
+                        <ul>
+                            <li>Parties have approved the contract.</li>
+                            <li>Rights & Payment terms are identified.</li>
+                            <li>Commercial substance exists.</li>
+                            <li>Collection is probable.</li>
+                        </ul>
                     </div>
-                    <div class="flip-card-back">
-                        <p style="text-align:left; padding:20px;"><strong>Method:</strong> Allocate total price based on <strong>Standalone Selling Price</strong>.<br><br><strong>Example:</strong> In a bundle, value each component separately to attribute revenue correctly.</p>
-                    </div>
                 </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- SLIDE 11: Step 5 Details -->
-    <div class="slide">
-        <h2>Step 5: Recognize Revenue</h2>
-        <p>Revenue is recognized when the customer obtains control. <strong>Click cards for examples.</strong></p>
-        <div class="card-container">
-            <div class="flip-card" onclick="this.classList.toggle('flipped')">
-                <div class="flip-card-inner">
-                    <div class="flip-card-front"><i class="fas fa-check-circle" style="font-size:3rem; margin-bottom:15px;"></i><h3>Walmart Gift Cards</h3><p>(Point in Time)</p></div>
-                    <div class="flip-card-back"><p style="font-size:0.9rem"><strong>Issue:</strong> Timing of Redemption.<br>Recognized only when the card is redeemed and customer purchases merchandise.</p></div>
-                </div>
-            </div>
-            <div class="flip-card" onclick="this.classList.toggle('flipped')">
-                <div class="flip-card-inner">
-                    <div class="flip-card-front"><i class="fas fa-clock" style="font-size:3rem; margin-bottom:15px;"></i><h3>Netflix Subscription</h3><p>(Over Time)</p></div>
-                    <div class="flip-card-back"><p style="font-size:0.9rem"><strong>Issue:</strong> Service Period.<br>Recognized over the term of the membership (typically 12 months) as service is provided.</p></div>
-                </div>
-            </div>
-            <div class="flip-card" onclick="this.classList.toggle('flipped')">
-                <div class="flip-card-inner">
-                    <div class="flip-card-front"><i class="fas fa-percentage" style="font-size:3rem; margin-bottom:15px;"></i><h3>Raytheon Contracts</h3><p>(% of Completion)</p></div>
-                    <div class="flip-card-back"><p style="font-size:0.9rem"><strong>Issue:</strong> Long-term Projects.<br>Uses cost-to-cost method based on costs incurred vs total estimated costs.</p></div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- SLIDE 13: Right of Return -->
-    <div class="slide">
-        <h2>Complication: Right of Return</h2>
-        <div class="cols-2">
-            <div class="text-lg">
-                <p>If you sell 100 items but expect 5 to come back, you cannot book revenue for 100.</p>
-                <div class="problem-box">
-                    <h4>Accounting Rule</h4>
-                    <p>Variable Consideration.</p>
-                    <p>Revenue is constrained to the amount that is probable not to be reversed.</p>
-                </div>
-                <p>We record a "Refund Liability" for the expected returns.</p>
-            </div>
-            <div class="problem-box">
-                <h4>Example</h4>
-                <p>Levi's sells jeans for $100 but expects a 3% return rate.</p>
-                <p>How much revenue is booked initially?</p>
-                <button class="btn-reveal-sm" onclick="toggleAnswer(this)">Reveal Answer</button>
-                <div class="answer">
-                    <p>$97. The remaining $3 is recorded as a refund liability.</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- SLIDE 14: Consignment (Flip Card) -->
-    <div class="slide">
-        <h2>Complication: Consignment</h2>
-        <div class="cols-2">
-            <div class="text-lg">
-                <p><strong>Scenario:</strong> Artist gives a painting to a Gallery to sell.</p>
-                <ul>
-                    <li>Artist = Consignor (Owner).</li>
-                    <li>Gallery = Consignee (Agent).</li>
-                </ul>
-            </div>
-            <div class="card-container" style="grid-template-columns: 1fr; margin-top:0;">
-                <div class="flip-card" onclick="this.classList.toggle('flipped')" style="height:200px;">
-                    <div class="flip-card-inner">
-                        <div class="flip-card-front">
-                            <h3>Who books the Revenue?</h3>
+                <div class="flip-container" onclick="this.classList.toggle('flipped')">
+                    <div class="flip-inner">
+                        <div class="flip-front">
+                            <i class="fas fa-file-signature"></i>
+                            <h3>Does it need to be written?</h3>
+                            <p>(Click to Flip)</p>
                         </div>
-                        <div class="flip-card-back">
-                            <p><strong>The Gallery</strong> only books the commission (e.g., 20%). They never owned the painting, so they cannot claim the full sale price as revenue.</p>
+                        <div class="flip-back">
+                            <h3>No!</h3>
+                            <p>A verbal order at a fast-food counter is a valid contract.</p>
+                            <p>A formal $10M construction deal is also a contract.</p>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- SLIDE 15: Gift Cards (Flip Card) -->
-    <div class="slide">
-        <h2>Complication: Gift Cards</h2>
-        <div class="cols-2">
-            <div class="text-lg">
-                <p>When you buy a $50 gift card at Starbucks:</p>
-                <ul>
-                    <li>Cash goes UP.</li>
-                    <li><strong>Deferred Revenue (Liability)</strong> goes UP.</li>
-                    <li>Revenue = $0.</li>
-                </ul>
+        <!-- SLIDE 5: Step 2 Obligations -->
+        <div class="slide">
+            <h2>Step 2: Performance Obligations</h2>
+            <p>Identify distinct goods or services promised in the contract.</p>
+            
+            <div class="cols-2">
+                <div class="card">
+                    <h4><i class="fas fa-hamburger" style="color:var(--accent)"></i> McDonald's Meal</h4>
+                    <p>When you buy a value meal, are you buying 1 thing or 3?</p>
+                    <button class="btn btn-accent" onclick="toggleId('ans-6a')">Reveal</button>
+                    <div id="ans-6a" class="answer-box">
+                        <strong>3 Distinct Obligations:</strong>
+                        1. Burger<br>
+                        2. Fries<br>
+                        3. Drink
+                    </div>
+                </div>
+                <div class="card">
+                    <h4><i class="fas fa-store" style="color:var(--primary)"></i> Franchise Agreement</h4>
+                    <p>When you buy a franchise, what are you buying?</p>
+                    <button class="btn" onclick="toggleId('ans-6b')">Reveal</button>
+                    <div id="ans-6b" class="answer-box">
+                        <strong>Multiple Obligations:</strong>
+                        1. IP License (Trade name)<br>
+                        2. Equipment/Inventory<br>
+                        3. Training Services
+                    </div>
+                </div>
             </div>
-             <div class="card-container" style="grid-template-columns: 1fr; margin-top:0;">
-                <div class="flip-card" onclick="this.classList.toggle('flipped')" style="height:200px;">
-                    <div class="flip-card-inner">
-                        <div class="flip-card-front">
-                            <h3>When is it Revenue?</h3>
-                        </div>
-                        <div class="flip-card-back" style="text-align:left; padding:20px;">
-                            <p>1. When the card is redeemed for coffee.</p>
-                            <p>2. "Breakage": When the card is deemed likely never to be used.</p>
+        </div>
+
+        <!-- SLIDE 6: Step 3 Price -->
+        <div class="slide">
+            <h2>Step 3: Transaction Price</h2>
+            <p>Determine the amount of consideration expected.</p>
+            <div class="cols-2">
+                <div>
+                    <h3>Variable Consideration</h3>
+                    <p>The price isn't always fixed on the sticker. We must estimate:</p>
+                    <ul>
+                        <li>Discounts & Rebates</li>
+                        <li>Returns & Refunds</li>
+                        <li>Performance Bonuses</li>
+                    </ul>
+                    <div class="concept-box">
+                        <strong>Constraint:</strong> Only recognize revenue to the extent it is <em>probable</em> significant reversal will not occur.
+                    </div>
+                </div>
+                <div style="text-align:center;">
+                    <i class="fas fa-tag" style="font-size: 10rem; color: #eee;"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 7: Step 4 Allocate -->
+        <div class="slide">
+            <h2>Step 4: Allocate Price</h2>
+            <p>If a contract has multiple obligations (Step 2), how do we split the single price (Step 3)?</p>
+            
+            <div class="cols-2">
+                <div>
+                    <div class="card">
+                        <h4 style="color:var(--primary)">Relative Standalone Selling Price</h4>
+                        <p>We determine what each item would cost if sold separately, and allocate the total discount proportionally.</p>
+                    </div>
+                </div>
+                <div>
+                    <div class="card">
+                        <h4>Example: Software Bundle</h4>
+                        <p>Bundle Price: <strong>$100</strong>.</p>
+                        <p style="font-size:0.9rem;">Standalone: Software ($80) + Support ($40) = $120 Total.</p>
+                        <div class="math-block">
+                            <p>Software: ($80/$120) × $100 = <strong>$66.67</strong></p>
+                            <p>Support: ($40/$120) × $100 = <strong>$33.33</strong></p>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- SLIDE 16: Bundled Sales (Updated) -->
-    <div class="slide">
-        <h2>Complication: Bundled Sales</h2>
-        <div class="cols-2">
-            <div>
-                <p class="text-lg"><strong>Problem:</strong> You sell a Software + Support bundle for <strong>$100</strong>.</p>
-                <ul>
-                    <li>If sold separately, Software is $80.</li>
-                    <li>If sold separately, Support is $40.</li>
-                </ul>
-                <div class="problem-box">
-                    <h4>The Rule</h4>
-                    <p>Allocate the $100 transaction price based on the <strong>Relative Standalone Selling Prices</strong> of each item.</p>
+        <!-- SLIDE 8: Step 5 Recognize -->
+        <div class="slide">
+            <h2>Step 5: Recognize Revenue</h2>
+            <p>Revenue is booked when the obligation is satisfied.</p>
+            <div class="cols-2">
+                <div class="flip-container" onclick="this.classList.toggle('flipped')">
+                    <div class="flip-inner">
+                        <div class="flip-front">
+                            <i class="fas fa-clock"></i>
+                            <h3>Point in Time</h3>
+                        </div>
+                        <div class="flip-back">
+                            <h3>Immediate</h3>
+                            <p>Control transfers instantly.</p>
+                            <p><em>Examples:</em> Buying groceries, Software license key delivery.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="flip-container" onclick="this.classList.toggle('flipped')">
+                    <div class="flip-inner">
+                        <div class="flip-front" style="background: linear-gradient(135deg, #00B894 0%, #55efc4 100%);">
+                            <i class="fas fa-calendar-alt"></i>
+                            <h3>Over Time</h3>
+                        </div>
+                        <div class="flip-back" style="border-color: var(--success);">
+                            <h3>Ratably</h3>
+                            <p>Control transfers continuously.</p>
+                            <p><em>Examples:</em> Netflix subscription, Construction project, Consulting retainer.</p>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div>
-                <div class="financial-data">
-                    <div class="data-row"><span class="data-label">Software Standalone:</span> <span class="data-val">$80</span></div>
-                    <div class="data-row"><span class="data-label">Support Standalone:</span> <span class="data-val">$40</span></div>
-                    <div class="data-row" style="border-top:1px solid #000"><span class="data-label">Total Standalone Value:</span> <span class="data-val">$120</span></div>
+            
+            <div class="concept-box" style="margin-top:20px;">
+                <h4>Real World Complication: Tesla FSD</h4>
+                <p>When you buy a Tesla with Full Self-Driving (FSD), you pay one price upfront. However, the software capabilities are delivered <strong>over time</strong> via updates.</p>
+                <p><strong>Recognition:</strong> The car hardware revenue is recognized at delivery (Point-in-Time), but the FSD revenue is deferred and recognized over the expected life of the car (Over-Time).</p>
+            </div>
+        </div>
+
+        <!-- SLIDE 9: Returns -->
+        <div class="slide">
+            <h2>Complication: Right of Return</h2>
+            <div class="cols-2">
+                <div>
+                    <p>If you sell 100 items but expect 5 to come back, you cannot book revenue for 100.</p>
+                    <div class="concept-box">
+                        <strong>Refund Liability:</strong> The amount expected to be returned is recorded as a liability, not revenue.
+                    </div>
+                </div>
+                <div class="card">
+                    <h4><i class="fas fa-question-circle"></i> Quick Quiz</h4>
+                    <p>Levi's sells jeans for <strong>$100</strong>.</p>
+                    <p>They expect <strong>3%</strong> to be returned.</p>
+                    <p>What amounts are recorded?</p>
+                    <button class="btn" style="margin-top:10px;" onclick="toggleId('ans-levis-q')">Check</button>
+                    <div id="ans-levis-q" class="answer-box">
+                        <p>Revenue: <strong style="color:var(--success)">$97</strong></p>
+                        <p>Refund Liability: <strong style="color:var(--error)">$3</strong></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 10: Consignment -->
+        <div class="slide">
+            <h2>Complication: Consignment</h2>
+            <div class="cols-2">
+                <div>
+                    <h3>The Scenario</h3>
+                    <p>An Artist gives a painting to a Gallery to sell.</p>
+                    <ul>
+                        <li>Artist = Consignor (Owner)</li>
+                        <li>Gallery = Consignee (Agent)</li>
+                    </ul>
+                </div>
+                <div class="flip-container" onclick="this.classList.toggle('flipped')">
+                    <div class="flip-inner">
+                        <div class="flip-front" style="background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);">
+                            <i class="fas fa-handshake"></i>
+                            <h3>Who books Revenue?</h3>
+                        </div>
+                        <div class="flip-back" style="border-color: var(--accent);">
+                            <h3>The Gallery?</h3>
+                            <p>Only the <strong>Commission</strong>.</p>
+                            <p>They never owned the painting, so they cannot claim the full price as revenue.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 11: Gift Cards -->
+        <div class="slide">
+            <h2>Complication: Gift Cards</h2>
+            <div class="cols-2">
+                <div class="card">
+                    <h4>The Transaction</h4>
+                    <p>Customer buys $50 Starbucks Card.</p>
+                    <p><strong>Cash:</strong> +$50</p>
+                    <p><strong>Revenue:</strong> $0</p>
+                    <p><strong>Liability:</strong> +$50 (Deferred Rev)</p>
+                </div>
+                <div class="card" style="text-align:center;">
+                    <!-- Starbucks Logo Icon -->
+                    <div style="color:#00704A; margin-bottom:15px;">
+                        <i class="fas fa-coffee" style="font-size:3rem;"></i>
+                        <div style="font-weight:bold; font-family:'Poppins'; letter-spacing:1px; margin-top:5px;">STARBUCKS</div>
+                    </div>
+                    <h4>Quiz</h4>
+                    <p>When does Starbucks recognize the revenue?</p>
+                    <button class="btn btn-accent" onclick="toggleId('ans-sb')">Reveal Answer</button>
+                    <div id="ans-sb" class="answer-box" style="text-align:left; width:100%;">
+                        <ol>
+                            <li><strong>Redemption:</strong> When used for coffee.</li>
+                            <li><strong>Breakage:</strong> When remote probability of use (free money!).</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 12: Licensing -->
+        <div class="slide">
+            <h2>Complication: Licensing</h2>
+            <p>Revenue timing depends on the nature of the license.</p>
+            <div class="cols-2">
+                <div class="card">
+                    <h4>Perpetual License</h4>
+                    <p><em>(e.g., Old Adobe CS6)</em></p>
+                    <p>Customer gets right to use IP as it exists.</p>
+                    <div style="margin-top:10px; font-weight:bold; color:var(--primary)">Point-in-Time Recognition</div>
+                </div>
+                <div class="card">
+                    <h4>SaaS / Subscription</h4>
+                    <p><em>(e.g., Creative Cloud)</em></p>
+                    <p>Customer gets right to access IP as it evolves.</p>
+                    <div style="margin-top:10px; font-weight:bold; color:var(--success)">Over-Time Recognition</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 13: Franchises -->
+        <div class="slide">
+            <h2>Complication: Franchises</h2>
+            <p>Fees paid by Franchisee to Franchisor.</p>
+            
+            <div class="cols-2">
+                <div class="flip-container" onclick="this.classList.toggle('flipped')">
+                    <div class="flip-inner">
+                        <div class="flip-front" style="background: linear-gradient(135deg, #a29bfe 0%, #6c5ce7 100%);">
+                            <i class="fas fa-store-alt"></i>
+                            <h3>Initial Fee</h3>
+                            <p>(Setup, Training)</p>
+                        </div>
+                        <div class="flip-back">
+                            <h3>Recognize When Open</h3>
+                            <p>Revenue is booked when the store opens and performance obligations are complete.</p>
+                        </div>
+                    </div>
                 </div>
                 
-                <p style="margin-top:20px;"><strong>How much revenue is allocated to each?</strong></p>
-                <button class="btn-reveal" onclick="toggleAnswer(this)">Reveal Allocation</button>
-                
-                <div class="answer">
-                    <div class="math-eq" style="width:100%; display:block; margin-bottom:10px;">
-                        <p style="font-size:0.9rem; margin-bottom:5px;"><strong>Software:</strong> ($80 / $120) × $100 = <span class="eq-result">$66.67</span></p>
-                        <p style="font-size:0.9rem;"><strong>Support:</strong> ($40 / $120) × $100 = <span class="eq-result">$33.33</span></p>
-                    </div>
-                    <p style="font-size:0.9rem;"><em>Note: You recognize the $66.67 upon delivery, and the $33.33 over the support period.</em></p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- SLIDE 17: Franchises -->
-    <div class="slide">
-        <h2>Complication: Franchises</h2>
-        <p class="text-lg">Franchisors (e.g., McDonald's) receive fees from Franchisees. <strong>Click to learn when revenue is recognized.</strong></p>
-        <div class="card-container" style="grid-template-columns: 1fr 1fr;">
-            <div class="flip-card" onclick="this.classList.toggle('flipped')">
-                <div class="flip-card-inner">
-                    <div class="flip-card-front"><h3>Initial Fee</h3><p>(Setup, training)</p></div>
-                    <div class="flip-card-back"><p>Recognized when the store <strong>opens</strong>.</p></div>
-                </div>
-            </div>
-            <div class="flip-card" onclick="this.classList.toggle('flipped')">
-                <div class="flip-card-inner">
-                    <div class="flip-card-front"><h3>Continuing Fees</h3><p>(Royalties)</p></div>
-                    <div class="flip-card-back"><p>Recognized <strong>over time</strong> as sales occur.</p></div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- SLIDE 18: Licensing -->
-    <div class="slide">
-        <h2>Complication: Licensing</h2>
-        <p class="text-lg">Revenue depends on the nature of the license. <strong>Click to reveal timing.</strong></p>
-        <div class="card-container" style="grid-template-columns: 1fr 1fr;">
-            <div class="flip-card" onclick="this.classList.toggle('flipped')">
-                <div class="flip-card-inner">
-                    <div class="flip-card-front"><h3>Perpetual License</h3><p>Example: Adobe CS6</p></div>
-                    <div class="flip-card-back"><p>Recognize: <strong>Point in Time</strong> (Upon delivery).</p></div>
-                </div>
-            </div>
-            <div class="flip-card" onclick="this.classList.toggle('flipped')">
-                <div class="flip-card-inner">
-                    <div class="flip-card-front"><h3>SaaS</h3><p>Example: Creative Cloud</p></div>
-                    <div class="flip-card-back"><p>Recognize: <strong>Over Time</strong> (Throughout license period).</p></div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- SLIDE 19: Bill-and-Hold / Channel Stuffing -->
-    <div class="slide">
-        <h2>Complication: Channel Stuffing</h2>
-        <p>A manipulation tactic to pull future sales into the current quarter.</p>
-        <div class="cols-2">
-            <div class="insight-card">
-                <h4>The Tactic</h4>
-                <p>Shipping excessive goods to distributors at the end of the quarter to inflate sales figures, knowing they will likely be returned later.</p>
-                <p><strong>Red Flag:</strong> Accounts Receivable growing faster than Sales.</p>
-            </div>
-            <div class="problem-box">
-                <h4>Real Life Example: Sunbeam</h4>
-                <p>In the late 90s, Sunbeam Corporation (Al Dunlap) sold massive amounts of grills in winter using "bill-and-hold" to artificially inflate earnings before a downturn.</p>
-            </div>
-        </div>
-    </div>
-
-    <!-- SLIDE 20: Long-Term Contracts Intro -->
-    <div class="slide">
-        <h2>Long-Term Contracts</h2>
-        <p class="text-lg">Construction, Defense, Aerospace.</p>
-        <p class="text-lg">Projects take years. Recognizing revenue only at the end would distort financial reality.</p>
-        <div class="card-container" style="grid-template-columns: 1fr;">
-             <div class="flip-card" onclick="this.classList.toggle('flipped')" style="height: 150px;">
-                <div class="flip-card-inner">
-                    <div class="flip-card-front"><h3>The Problem: Timing Mismatch</h3></div>
-                    <div class="flip-card-back">
-                        <p><strong>How to Recognize Revenue?</strong></p>
-                        <p>Use the <strong>Percentage-of-Completion (Cost-to-Cost) Method.</strong></p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- SLIDE 21: Cost-to-Cost Method -->
-    <div class="slide">
-        <h2>The Cost-to-Cost Formula</h2>
-        <div class="math-eq" style="width:100%; justify-content:center;">
-            <div class="fraction">
-                <span class="numerator">Total Costs Incurred to Date</span>
-                <span class="denominator">Total Estimated Costs</span>
-            </div>
-            <span class="eq-symbol">=</span>
-            <span class="eq-result">% Complete</span>
-        </div>
-        <p style="text-align:center; margin-top:20px;">Cumulative Revenue = Total Contract Price × % Complete</p>
-    </div>
-
-    <!-- SLIDE 22: Raytheon Exercise -->
-    <div class="slide">
-        <h2>Exercise: Raytheon Contract</h2>
-        <p>Raytheon signs a <strong>$10M contract</strong>. Estimated total cost is <strong>$7.5M</strong>.</p>
-        
-        <div class="cols-2">
-            <div>
-                <div class="financial-data">
-                    <div class="data-row"><span class="data-label">Year 1 Costs Incurred:</span> <span class="data-val">$4.5 M</span></div>
-                    <div class="data-row"><span class="data-label">Year 2 Costs Incurred:</span> <span class="data-val">$3.0 M</span></div>
-                </div>
-                <div class="problem-box">
-                    <h4>Task</h4>
-                    <p>Calculate Revenue Recognized in Year 1.</p>
-                </div>
-                <button class="btn-reveal" onclick="toggleAnswer(this)" data-target="ans-raytheon">Show Calculation</button>
-            </div>
-            <div>
-                <div id="ans-raytheon" class="answer">
-                    <h3>Step 1: % Complete</h3>
-                    <div class="math-eq">
-                        <div class="fraction">
-                            <span class="numerator">$4.5M</span>
-                            <span class="denominator">$7.5M</span>
+                <div class="flip-container" onclick="this.classList.toggle('flipped')">
+                    <div class="flip-inner">
+                        <div class="flip-front" style="background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);">
+                            <i class="fas fa-percentage"></i>
+                            <h3>Continuing Fees</h3>
+                            <p>(Royalties)</p>
                         </div>
-                        <span class="eq-symbol">=</span>
-                        <span class="eq-result">60%</span>
-                    </div>
-                    
-                    <h3>Step 2: Revenue</h3>
-                    <div class="math-eq">
-                        <span>$10.0M</span>
-                        <span class="eq-symbol">×</span>
-                        <span>60%</span>
-                        <span class="eq-symbol">=</span>
-                        <span class="eq-result">$6.0 Million</span>
+                        <div class="flip-back">
+                            <h3>Recognize as Earned</h3>
+                            <p>Revenue is booked over time as sales occur.</p>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- SLIDE 23: Raytheon Balance Sheet (Updated with Full Data) -->
-    <div class="slide">
-        <h2>Balance Sheet Impact: Raytheon</h2>
-        <p>Real data from Raytheon's Balance Sheet (2022).</p>
-        
-        <table class="real-table">
-            <thead>
-                <tr><th>At Dec 31 ($ Millions)</th><th class="num">2022</th></tr>
-            </thead>
-            <tbody>
-                <tr><td>Cash & Equivalents</td><td class="num">6,220</td></tr>
-                <tr><td>Accounts Receivables, net</td><td class="num">9,108</td></tr>
-                <tr style="background:#dcfce7; font-weight:bold;"><td>Contract Assets</td><td class="num">11,534</td></tr>
-                <tr><td>Inventory, net</td><td class="num">10,617</td></tr>
-                <tr><td>Other Current Assets</td><td class="num">4,964</td></tr>
-                <tr style="border-top: 2px solid #000; font-weight:bold; background:#e0f2fe;"><td>Total Current Assets</td><td class="num">42,443</td></tr>
-            </tbody>
-        </table>
-        
-        <div class="problem-box" style="margin-top:20px;">
-            <h4>What are Contract Assets?</h4>
-            <button class="btn-reveal-sm" onclick="toggleAnswer(this)">Reveal Answer</button>
-            <div class="answer">
-                <p>Unbilled Receivables. Revenue recognized (via % complete) > Cash Billed. "We did the work but haven't invoiced yet."</p>
+        <!-- SLIDE 14: Channel Stuffing -->
+        <div class="slide">
+            <h2>Manipulation: Channel Stuffing</h2>
+            <p style="margin-bottom:30px;">Shipping excessive goods to distributors at the end of the quarter to inflate sales figures.</p>
+            <div class="cols-2">
+                <div class="flip-container" onclick="this.classList.toggle('flipped')">
+                    <div class="flip-inner">
+                        <div class="flip-front" style="background: linear-gradient(135deg, #fab1a0 0%, #e17055 100%);">
+                            <i class="fas fa-shipping-fast"></i>
+                            <h3>The Tactic</h3>
+                            <p>Tap to reveal mechanism</p>
+                        </div>
+                        <div class="flip-back" style="border-color:var(--error)">
+                            <h3>"Stuffing"</h3>
+                            <p>Force-shipping goods that weren't ordered or offering deep discounts to pull future sales forward.</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flip-container" onclick="this.classList.toggle('flipped')">
+                    <div class="flip-inner">
+                        <div class="flip-front" style="background: linear-gradient(135deg, #d63031 0%, #c0392b 100%);">
+                            <i class="fas fa-flag"></i>
+                            <h3>Red Flag</h3>
+                            <p>Tap to reveal detection</p>
+                        </div>
+                        <div class="flip-back" style="border-color:var(--error)">
+                            <h3>Receivables Surge</h3>
+                            <p>If Accounts Receivable grows significantly faster than Sales, it suggests goods shipped but not paid for.</p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
 
-    <!-- SLIDE 24: Raytheon Year 2 -->
-    <div class="slide">
-        <h2>Exercise: Raytheon Year 2</h2>
-        <p>In Year 2, the remaining $3.0M costs are incurred.</p>
-        <div class="financial-data">
-             <div class="data-row"><span class="data-label">Year 1 Costs Incurred:</span> <span class="data-val">$4.5 M</span></div>
-             <div class="data-row"><span class="data-label">Year 2 Costs Incurred:</span> <span class="data-val">$3.0 M</span></div>
-             <div class="data-row"><span class="data-label">Total Contract Value:</span> <span class="data-val">$10.0 M</span></div>
-             <div class="data-row"><span class="data-label">Total Est. Cost:</span> <span class="data-val">$7.5 M</span></div>
+        <!-- SLIDE 15: Long Term Contracts -->
+        <div class="slide">
+            <h2>Long-Term Contracts</h2>
+            <p>Construction, Defense, Aerospace.</p>
+            <p>Projects take years. Recognizing revenue only at the end would distort financial reality.</p>
+            <div class="concept-box">
+                <h4>Solution: Percentage-of-Completion</h4>
+                <p>Also known as the <strong>Cost-to-Cost Method</strong>.</p>
+                <p>Revenue is recognized in proportion to the work completed.</p>
+            </div>
         </div>
-        
-        <div class="card-container" style="grid-template-columns: 1fr;">
-            <div class="flip-card" onclick="this.classList.toggle('flipped')">
-                <div class="flip-card-inner">
-                    <div class="flip-card-front" style="background: linear-gradient(135deg, #bdc3c7 0%, #95a5a6 100%);">
-                        <h3 style="font-size:2rem; margin-top:50px;">Calculate Year 2 Revenue</h3>
+
+        <!-- SLIDE 16: Cost-to-Cost Math -->
+        <div class="slide">
+            <h2>The Formula</h2>
+            <div style="display:flex; justify-content:center; align-items:center; height:60%;">
+                <div style="background:white; padding:40px; border-radius:20px; box-shadow:var(--card-shadow); text-align:center;">
+                    <h3>% Complete =</h3>
+                    <div style="font-size: 2rem; font-weight:bold; color:var(--primary); margin: 20px 0;">
+                        Total Costs Incurred<br>
+                        ---------------------<br>
+                        Total Estimated Costs
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 17: Raytheon Exercise -->
+        <div class="slide">
+            <h2>Exercise: Raytheon Contract</h2>
+            <p>Raytheon signs a <strong>$10M contract</strong>. Estimated total cost is <strong>$7.5M</strong>.</p>
+            
+            <div class="cols-2">
+                <div>
+                    <div class="card">
+                        <table class="fin-table">
+                            <tr><td>Year 1 Costs Incurred</td><td class="num">$4.5 M</td></tr>
+                            <tr><td>Year 2 Costs Incurred</td><td class="num">$3.0 M</td></tr>
+                        </table>
+                    </div>
+                    <div class="problem-box" style="margin-top:20px;">
+                        <h4>Task</h4>
+                        <p>Calculate Revenue Recognized in Year 1.</p>
+                    </div>
+                    <button class="btn" onclick="toggleId('ans-raytheon')">Show Calculation</button>
+                </div>
+                <div>
+                    <div id="ans-raytheon" class="answer-box">
+                        <h3>Step 1: % Complete</h3>
+                        <div class="math-eq">
+                            <div class="fraction">
+                                <span class="numerator">$4.5M</span>
+                                <span class="denominator">$7.5M</span>
+                            </div>
+                            <span class="eq-symbol">=</span>
+                            <span class="eq-result">60%</span>
+                        </div>
+                        
+                        <h3>Step 2: Revenue</h3>
+                        <div class="math-eq">
+                            <span>$10.0M</span>
+                            <span class="eq-symbol">×</span>
+                            <span>60%</span>
+                            <span class="eq-symbol">=</span>
+                            <span class="eq-result">$6.0 Million</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 18: Year 1 Balance Sheet -->
+        <div class="slide">
+            <h2>Year 1 Balance Sheet Impact</h2>
+            <p>Real data from Raytheon's Balance Sheet.</p>
+            
+            <table class="fin-table" style="max-width:800px; margin:0 auto;">
+                <thead>
+                    <tr><th>At Dec 31 ($ Millions)</th><th class="num">2022</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>Cash & Equivalents</td><td class="num">6,220</td></tr>
+                    <tr><td>Accounts Receivables, net</td><td class="num">9,108</td></tr>
+                    <tr style="background:#dcfce7; font-weight:bold;"><td>Contract Assets</td><td class="num">11,534</td></tr>
+                    <tr><td>Inventory, net</td><td class="num">10,617</td></tr>
+                    <tr style="border-top: 2px solid #000; font-weight:bold; background:#e0f2fe;"><td>Total Current Assets</td><td class="num">42,443</td></tr>
+                </tbody>
+            </table>
+            
+            <div class="problem-box" style="margin-top:20px;">
+                <h4>What are Contract Assets?</h4>
+                <button class="btn" onclick="toggleId('ans-ca')">Reveal Answer</button>
+                <div id="ans-ca" class="answer-box">
+                    <p>Unbilled Receivables. Revenue recognized (via % complete) > Cash Billed. "We did the work but haven't invoiced yet."</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 19: Year 2 Math -->
+        <div class="slide">
+            <h2>Exercise: Raytheon Year 2</h2>
+            <p>In Year 2, the remaining $3.0M costs are incurred.</p>
+            <div class="card" style="margin-bottom:20px;">
+                <table class="fin-table">
+                     <tr><td>Year 1 Costs Incurred</td><td class="num">$4.5 M</td></tr>
+                     <tr><td>Year 2 Costs Incurred</td><td class="num">$3.0 M</td></tr>
+                     <tr><td>Total Contract Value</td><td class="num">$10.0 M</td></tr>
+                     <tr><td>Total Est. Cost</td><td class="num">$7.5 M</td></tr>
+                </table>
+            </div>
+            
+            <!-- Increased height to 450px -->
+            <div class="flip-container" onclick="this.classList.toggle('flipped')" style="height:625px;">
+                <div class="flip-inner">
+                    <div class="flip-front" style="background: linear-gradient(135deg, #a29bfe 0%, #6c5ce7 100%);">
+                        <i class="fas fa-forward"></i>
+                        <h3>Calculate Year 2 Revenue</h3>
                         <p>(Click to Reveal)</p>
                     </div>
-                    <div class="flip-card-back">
+                    <div class="flip-back">
                         <h3>Calculation</h3>
                         <p>Total Costs = $4.5M + $3.0M = $7.5M (100% Complete).</p>
                         <p>Total Revenue = $10.0M.</p>
                         <p>Less: Revenue Recognized in Yr 1 ($6.0M).</p>
+                        <hr style="margin:10px 0; border:0; border-top:1px solid #eee;">
                         <p><strong>Year 2 Revenue = $4.0M.</strong></p>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- SLIDE 25: Contract Assets vs Liabilities (Updated Cards) -->
-    <div class="slide">
-        <h2>Balance Sheet Impact</h2>
-        <div style="font-size:0.9rem; margin-bottom:15px; color:var(--error); font-weight:bold;">
-            Note for Analysts: A large "Contract Asset" balance signifies revenue recognized without an unconditional right to payment yet.
+        <!-- SLIDE 20: Contract Assets/Liabilities -->
+        <div class="slide">
+            <h2>Contract Assets vs Liabilities</h2>
+            <div class="cols-2">
+                <div class="card">
+                    <h4>Contract Asset</h4>
+                    <p style="color:var(--success); font-weight:bold;">Rev Recognized > Cash Billed</p>
+                    <p>You worked ahead of your billing schedule.</p>
+                </div>
+                <div class="card">
+                    <h4>Contract Liability</h4>
+                    <p style="color:var(--error); font-weight:bold;">Cash Billed > Rev Recognized</p>
+                    <p>Deferred Revenue. You billed ahead of your work.</p>
+                </div>
+            </div>
         </div>
-        <div class="card-container" style="grid-template-columns: 1fr 1fr;">
-            <div class="flip-card" onclick="this.classList.toggle('flipped')">
-                <div class="flip-card-inner">
-                    <div class="flip-card-front"><h3>Scenario 1: Work > Billing</h3></div>
-                    <div class="flip-card-back">
-                        <h3>Contract Asset</h3>
-                        <p>Revenue Recognized > Cash Billed.<br><em>"We did the work, but haven't invoiced yet."</em></p>
+
+        <!-- SLIDE 21: Manipulation -->
+        <div class="slide">
+            <h2>Hypothetical: Manipulating % Completion</h2>
+            <p>What if management deliberately <strong>underestimates</strong> total costs to boost earnings?</p>
+            
+            <div class="cols-2">
+                <div>
+                    <p><strong>Scenario:</strong></p>
+                    <p>Contract Price: $10M. Cost Incurred: $2M.</p>
+                    <div class="concept-box">
+                        <p><strong>True Est. Cost:</strong> $8M (25% Complete).</p>
+                        <p style="color:var(--error)"><strong>Management Claims:</strong> $5M (40% Complete).</p>
                     </div>
                 </div>
-            </div>
-            <div class="flip-card" onclick="this.classList.toggle('flipped')">
-                <div class="flip-card-inner">
-                    <div class="flip-card-front"><h3>Scenario 2: Billing > Work</h3></div>
-                    <div class="flip-card-back">
-                        <h3>Contract Liability</h3>
-                        <p>(Deferred Revenue)<br>Cash Billed > Revenue Recognized.<br><em>"We billed them, but haven't done the work yet."</em></p>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <table class="real-table" style="margin-top:20px;">
-            <thead><tr><th>Raytheon 2022 ($M)</th><th></th></tr></thead>
-            <tbody>
-                <tr><td>Contract Assets</td><td class="num">$11,534</td></tr>
-                <tr><td>Contract Liabilities</td><td class="num">$9,800</td></tr>
-            </tbody>
-        </table>
-    </div>
-
-    <!-- SLIDE 26: Hypothetical Manipulation -->
-    <div class="slide">
-        <h2>Hypothetical: Manipulating % Completion</h2>
-        <p>What if management deliberately <strong>underestimates</strong> total costs to boost earnings?</p>
-        
-        <div class="cols-2">
-            <div>
-                <p><strong>Scenario:</strong></p>
-                <p>Contract Price: $10M. Cost Incurred: $2M.</p>
-                <p><strong>True Est. Cost:</strong> $8M (25% Complete).</p>
-                <p><strong>Management Claims:</strong> $5M (40% Complete).</p>
-            </div>
-            <div>
-                <button class="btn-reveal" onclick="toggleAnswer(this)">Calculate the Boost</button>
-                <div class="answer">
-                    <p><strong>True Revenue:</strong> $10M × 25% = $2.5M</p>
-                    <p><strong>Manipulated Revenue:</strong> $10M × 40% = $4.0M</p>
-                    <p style="color:var(--error); font-weight:bold; margin-top:10px;">Artificial Revenue Boost: $1.5 Million</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- SLIDE 27: Sales Allowances Intro -->
-    <div class="slide">
-        <h2>Sales Allowances</h2>
-        <p>Gross Sales vs. Net Sales.</p>
-        <ul>
-            <li><strong>Returns:</strong> Customer sends product back.</li>
-            <li><strong>Allowances:</strong> Customer keeps defective product for a discount.</li>
-            <li><strong>Discounts:</strong> 2/10 Net 30 volume discounts.</li>
-        </ul>
-        <p>GAAP requires reporting <strong>Net Sales</strong>.</p>
-    </div>
-
-    <!-- SLIDE 28: Levi Strauss Exercise -->
-    <div class="slide">
-        <h2>Sales Allowances: Levi Strauss</h2>
-        <div class="cols-2">
-            <div>
-                <p><strong>Scenario:</strong> Levi's sells jeans for $130 (Cost $80). Expects 3% returns.</p>
-                <div class="problem-box">
-                    <h4>Task</h4>
-                    <p>Calculate <strong>Net Sales</strong> and <strong>Gross Profit</strong> reported on the Income Statement.</p>
-                </div>
-                <button class="btn-reveal" onclick="toggleAnswer(this)" data-target="ans-levis">Reveal Income Statement</button>
-            </div>
-            <div>
-                <div id="ans-levis" class="answer">
-                    <div class="financial-data">
-                        <div class="data-row"><span class="data-label">Gross Sales:</span> <span class="data-val">$130.00</span></div>
-                        <div class="data-row"><span class="data-label">(-) Returns (3%):</span> <span class="data-val">($3.90)</span></div>
-                        <div class="data-row" style="border-top:1px solid #ccc"><span class="data-label"><strong>Net Sales:</strong></span> <span class="data-val"><strong>$126.10</strong></span></div>
-                        <div class="data-row"><span class="data-label">(-) COGS ($80 - Adj*):</span> <span class="data-val">($77.60)</span></div>
-                        <div class="data-row" style="border-top:1px solid #000"><span class="data-label"><strong>Gross Profit:</strong></span> <span class="data-val" style="color:var(--success)"><strong>$48.50</strong></span></div>
-                    </div>
-                     <p style="font-size:0.9rem; margin-top:5px; color:var(--text); font-style:italic;">*COGS Adj: $80 × ($3.90 / $130) = $2.40. Net COGS = $80 - $2.40 = $77.60.</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- SLIDE 29: Analyzing Allowances -->
-    <div class="slide">
-        <h2>Analyzing Allowances</h2>
-        <p>We look at two ratios to detect manipulation or business issues:</p>
-        <ol>
-            <li><strong>Additions to Sales / Gross Sales:</strong> Is the company offering more discounts to move product? (Pricing pressure).</li>
-            <li><strong>Allowance / Gross Sales:</strong> Is the balance sheet reserve adequate for future returns?</li>
-        </ol>
-    </div>
-
-    <!-- SLIDE 30: Adequacy of Reserves -->
-    <div class="slide">
-        <h2>Adequacy of Reserves</h2>
-        <p>Compare the Expense (Additions) to the Actuals (Deductions).</p>
-        <div class="financial-data">
-            <div class="data-row"><span class="data-label">Levi's 2022 Additions:</span> <span class="data-val">$763.1 M</span></div>
-            <div class="data-row"><span class="data-label">Levi's 2022 Deductions:</span> <span class="data-val">$792.1 M</span></div>
-            <div class="data-row" style="border-top:1px solid #ccc;"><span class="data-label">Ratio:</span> <span class="data-val">96.3%</span></div>
-        </div>
-        <p>If the ratio is consistently below 100%, the company is <strong>under-reserving</strong> (Shaving), which boosts current income.</p>
-    </div>
-
-    <!-- SLIDE 31: The Cookie Jar Effect -->
-    <div class="slide">
-        <h2>The "Cookie Jar" Effect</h2>
-        <div style="text-align:center; margin-bottom:20px;">
-             <i class="fas fa-cookie-bite" style="font-size: 5rem; color: #d35400;"></i>
-        </div>
-        <div class="cols-2">
-            <div>
-                <h3>Padding vs. Shaving</h3>
-                <ul>
-                    <li><strong>Padding:</strong> Overestimate returns in good years (saves profit for later).</li>
-                    <li><strong>Shaving:</strong> Underestimate returns in bad years (boosts current profit).</li>
-                </ul>
-            </div>
-            <div class="insight-card">
-                <h4>Analyst Correction</h4>
-                <p>We calculate the <strong>Average Rate</strong> of allowances over 3 years and apply that average to the current year to strip out manipulation.</p>
-            </div>
-        </div>
-    </div>
-
-    <!-- SLIDE 32: Levi's Analyst Calculation -->
-    <div class="slide">
-        <h2>Step 1: Calculate Average Rate</h2>
-        <p>Using Levi's data from 2020-2022.</p>
-        <div class="math-eq" style="width:100%; justify-content:center;">
-            <div class="fraction">
-                <span class="numerator">$763.1 + $732.2 + $600.0</span>
-                <span class="denominator">$6,931.7 + $6,496.1 + $5,052.6</span>
-            </div>
-            <span class="eq-symbol">=</span>
-            <span class="eq-result">11.338%</span>
-        </div>
-        <p style="text-align:center;">This is the "True" historical run rate of allowances.</p>
-    </div>
-
-    <!-- SLIDE 33: Levi's Adjusted Income Statement -->
-    <div class="slide">
-        <h2>Step 2: Adjust Income Statement</h2>
-        <p>Recalculating 2022 Net Income using the 11.338% average rate. <strong>Click lines to reveal.</strong></p>
-        <div style="display:flex; flex-direction:column; gap:10px;">
-             <div class="clickable-line" onclick="this.classList.add('revealed')">
-                <span>Reported Additions:</span> <span>$763.1</span>
-            </div>
-            <div class="clickable-line" onclick="this.classList.add('revealed')">
-                <span>Adjusted Additions (11.338%):</span> <span class="hidden-val">$785.9</span>
-            </div>
-            <div class="clickable-line" onclick="this.classList.add('revealed')">
-                <span style="color:var(--error); font-weight:bold;">Adjustment Required:</span> <span class="hidden-val">($22.8)</span>
-            </div>
-            <div class="clickable-line" onclick="this.classList.add('revealed')">
-                <span>Tax Effect (22%):</span> <span class="hidden-val">+$5.0</span>
-            </div>
-            <div class="clickable-line" onclick="this.classList.add('revealed')" style="background:#fee2e2;">
-                <span><strong>Net Income Reduction:</strong></span> <span class="hidden-val"><strong>($17.8)</strong></span>
-            </div>
-        </div>
-        <p style="margin-top:15px; font-size:0.9rem;">Levi's effectively boosted 2022 Net Income by $17.8M by using a lower allowance rate.</p>
-    </div>
-
-    <!-- SLIDE 34: Levi's Adjusted Balance Sheet -->
-    <div class="slide">
-        <h2>Step 3: Adjust Balance Sheet</h2>
-        <p>The Income Statement adjustment flows through to Retained Earnings.</p>
-        <table class="real-table">
-            <thead>
-                <tr><th>Account ($M)</th><th class="num">2022 Adjustment</th></tr>
-            </thead>
-            <tbody>
-                <tr><td>Sales Allowances (Liability)</td><td class="num">+$22.8</td></tr>
-                <tr><td>Deferred Tax Liability</td><td class="num">-$5.0</td></tr>
-                <tr style="background:#fee2e2;"><td><strong>Retained Earnings</strong></td><td class="num"><strong>-$17.8</strong></td></tr>
-            </tbody>
-        </table>
-    </div>
-
-    <!-- SLIDE 35: Deferred Revenue Intro -->
-    <div class="slide">
-        <h2>Deferred (Unearned) Revenue</h2>
-        <p>Cash received before work is performed.</p>
-        <ul>
-            <li><strong>Accounting:</strong> Liability on the Balance Sheet.</li>
-            <li><strong>Examples:</strong> Subscriptions, Plane Tickets, Tuition, Warranty Contracts.</li>
-        </ul>
-    </div>
-
-    <!-- SLIDE 36: Walmart Example -->
-    <div class="slide">
-        <h2>Walmart's Deferred Revenue</h2>
-        <p>Walmart collects cash for Sam's Club memberships and Gift Cards.</p>
-        <div class="problem-box">
-            <h4>Question</h4>
-            <p>Sam's Club membership is $120/year. Collected Jan 1. How much revenue is recognized in Jan?</p>
-            <button class="btn-reveal-sm" onclick="toggleAnswer(this)">Reveal Answer</button>
-            <div class="answer">$10. ($120 / 12 months). The rest sits in Deferred Revenue liability.</div>
-        </div>
-    </div>
-
-    <!-- SLIDE 37: Netflix Case Study -->
-    <div class="slide">
-        <h2>Netflix Case Study</h2>
-        <p>Analyzing the growth of the Deferred Revenue liability.</p>
-        
-        <div class="cols-2">
-            <div>
-                <div class="financial-data">
-                    <div class="data-row"><span class="data-label">2020 Growth:</span> <span class="data-val">20.9%</span></div>
-                    <div class="data-row"><span class="data-label">2022 Growth:</span> <span class="data-val">4.57%</span></div>
-                </div>
-                <div class="problem-box">
-                    <h4>Interpretation</h4>
-                    <p>What does this sharp decline in the <em>Liability</em> growth tell us about future <em>Revenue</em>?</p>
-                </div>
-                <button class="btn-reveal" onclick="toggleAnswer(this)" data-target="ans-netflix">Reveal Insight</button>
-            </div>
-            <div>
-                <div id="ans-netflix" class="answer">
-                    <h3 style="color:var(--error)">Slowdown Ahead</h3>
-                    <p>Deferred revenue is the "backlog" of future sales. If the backlog stops growing, recognized revenue will eventually stall.</p>
-                    <div style="background:white; padding:10px; margin-top:10px; border:1px solid #ccc; text-align:center;">
-                        <!-- Using an SVG for a simple declining bar chart representation -->
-                        <svg width="300" height="150" viewBox="0 0 300 150">
-                             <rect x="20" y="50" width="40" height="100" fill="#2ecc71" />
-                             <rect x="70" y="40" width="40" height="110" fill="#2ecc71" />
-                             <rect x="120" y="30" width="40" height="120" fill="#2ecc71" />
-                             <rect x="170" y="100" width="40" height="50" fill="#e74c3c" />
-                             <text x="140" y="20" font-family="Arial" font-size="12" fill="#555">Declining Growth</text>
-                        </svg>
-                        <p style="font-size:0.8rem;">Visualizing Growth Deceleration</p>
+                <div>
+                    <button class="btn btn-accent" onclick="toggleId('ans-manip')">Calculate the Boost</button>
+                    <div id="ans-manip" class="answer-box">
+                        <p><strong>True Revenue:</strong> $10M × 25% = $2.5M</p>
+                        <p><strong>Manipulated Revenue:</strong> $10M × 40% = $4.0M</p>
+                        <p style="color:var(--error); font-weight:bold; margin-top:10px;">Artificial Revenue Boost: $1.5 Million</p>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- SLIDE 38: Summary -->
-    <div class="slide">
-        <h2>Summary: Revenue & Operating Income</h2>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-            <div id="summary-1" class="summary-item">
-                <h3>Core Principle</h3>
-                <ul>
-                    <li>Revenue is recognized upon <strong>Transfer of Control</strong>.</li>
-                    <li>Not necessarily cash receipt.</li>
-                </ul>
-            </div>
-            <div id="summary-2" class="summary-item">
-                <h3>Adjustments</h3>
-                <ul>
-                    <li><strong>Net Sales</strong> = Gross Sales - Returns - Allowances.</li>
-                    <li>Watch for "Padding/Shaving" of estimates.</li>
-                </ul>
-            </div>
-            <div id="summary-3" class="summary-item">
-                <h3>Long-Term Contracts</h3>
-                <ul>
-                    <li>Use <strong>Cost-to-Cost</strong> method.</li>
-                    <li>% Complete = Costs Incurred / Total Est. Costs.</li>
-                </ul>
-            </div>
-            <div id="summary-4" class="summary-item">
-                <h3>Analysis</h3>
-                <ul>
-                    <li><strong>Deferred Revenue</strong> is a crystal ball.</li>
-                    <li>Growth in liability = Growth in future revenue.</li>
-                </ul>
+        <!-- SLIDE 22: Sales Allowances -->
+        <div class="slide">
+            <h2>Sales Allowances</h2>
+            <p>Gross Sales vs Net Sales.</p>
+            <ul>
+                <li><strong>Returns:</strong> Product comes back.</li>
+                <li><strong>Allowances:</strong> Customer keeps defective product for discount.</li>
+                <li><strong>Discounts:</strong> 2/10 Net 30.</li>
+            </ul>
+        </div>
+
+        <!-- SLIDE 23: Levi's Example -->
+        <div class="slide">
+            <h2>Sales Allowances: Levi Strauss</h2>
+            <div class="cols-2">
+                <div>
+                    <p><strong>Scenario:</strong> Levi's sells jeans for $130 (Cost $80). Expects 3% returns.</p>
+                    <div class="problem-box">
+                        <h4>Task</h4>
+                        <p>Calculate <strong>Net Sales</strong> and <strong>Gross Profit</strong> reported on the Income Statement.</p>
+                    </div>
+                    <button class="btn" onclick="toggleId('ans-levis')">Reveal Income Statement</button>
+                </div>
+                <div>
+                    <div id="ans-levis" class="answer-box">
+                        <table class="fin-table">
+                            <tr><td>Gross Sales</td><td class="num">$130.00</td></tr>
+                            <tr><td>(-) Returns (3%)</td><td class="num">($3.90)</td></tr>
+                            <tr style="border-top:1px solid #ccc"><td><strong>Net Sales</strong></td><td class="num"><strong>$126.10</strong></td></tr>
+                            <tr><td>(-) COGS ($80 - Adj)</td><td class="num">($77.60)</td></tr>
+                            <tr style="border-top:1px solid #000"><td><strong>Gross Profit</strong></td><td class="num" style="color:var(--success)"><strong>$48.50</strong></td></tr>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
-        <div style="text-align: center; margin-top: 40px;">
-            <button id="summary-btn" class="btn-reveal" onclick="revealSummaryStep()">Reveal Next</button>
-        </div>
-    </div>
 
-    <!-- SLIDE 39: QUIZ -->
-    <div class="slide">
-        <h2>Check Your Understanding</h2>
-        <div style="max-width: 800px; margin: 0 auto;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h3>Question <span id="quiz-progress">1</span> / 10</h3>
-                <button onclick="resetQuiz()" style="padding: 5px 10px; cursor: pointer;">Restart Quiz</button>
+        <!-- SLIDE 24: Reserve Adequacy -->
+        <div class="slide">
+            <h2>Adequacy of Reserves</h2>
+            <p>Compare the Expense (Additions) to the Actuals (Deductions).</p>
+            <div class="card" style="margin:20px 0;">
+                <table class="fin-table">
+                    <tr><td>Levi's 2022 Additions</td><td class="num">$763.1 M</td></tr>
+                    <tr><td>Levi's 2022 Deductions</td><td class="num">$792.1 M</td></tr>
+                    <tr class="highlight-row"><td><strong>Ratio</strong></td><td class="num"><strong>96.3%</strong></td></tr>
+                </table>
             </div>
+            <p>If the ratio is consistently below 100%, the company is <strong>under-reserving</strong> (Shaving), which boosts current income.</p>
+        </div>
 
-            <div id="quiz-container" class="problem-box" style="background: white; border: 1px solid var(--border);">
-                <p id="quiz-question" style="font-size: 1.3rem; margin-bottom: 20px; font-weight: bold;"></p>
-                <div id="quiz-options"></div>
-                <div id="quiz-feedback" class="quiz-explanation"></div>
-                <button id="next-q-btn" onclick="nextQuestion()" class="btn-reveal" style="display:none; margin-top: 15px;">Next Question</button>
+        <!-- SLIDE 25: The Cookie Jar -->
+        <div class="slide">
+            <h2>The "Cookie Jar" Effect</h2>
+            <div class="cols-2">
+                <div>
+                    <h3>Padding vs. Shaving</h3>
+                    <ul>
+                        <li><strong>Padding:</strong> Overestimate returns in good years (saves profit for later).</li>
+                        <li><strong>Shaving:</strong> Underestimate returns in bad years (boosts current profit).</li>
+                    </ul>
+                </div>
+                <div class="concept-box">
+                    <h4>Analyst Correction</h4>
+                    <p>We calculate the <strong>Average Rate</strong> of allowances over 3 years and apply that average to the current year to strip out manipulation.</p>
+                </div>
             </div>
         </div>
+
+        <!-- SLIDE 26: Step 1 Avg Rate -->
+        <div class="slide">
+            <h2>Step 1: Calculate Average Rate</h2>
+            <p>Using Levi's data from 2020-2022.</p>
+            <div class="math-eq" style="width:100%; justify-content:center;">
+                <div class="fraction">
+                    <span class="numerator">$763.1 + $732.2 + $600.0</span>
+                    <span class="denominator">$6,931.7 + $6,496.1 + $5,052.6</span>
+                </div>
+                <span class="eq-symbol">=</span>
+                <span class="eq-result">11.338%</span>
+            </div>
+            <p style="text-align:center; margin-top:20px;">This is the "True" historical run rate of allowances.</p>
+        </div>
+
+        <!-- SLIDE 27: Step 2 Income Adj -->
+        <div class="slide">
+            <h2>Step 2: Adjust Income Statement</h2>
+            <p>Recalculating 2022 Net Income using the 11.338% average rate. <strong>Click lines to reveal.</strong></p>
+            <div style="display:flex; flex-direction:column; gap:10px; max-width:800px; margin:0 auto;">
+                 <div class="clickable-line" onclick="this.classList.add('revealed')">
+                    <span>Reported Additions:</span> <span>$763.1</span>
+                </div>
+                <div class="clickable-line" onclick="this.classList.add('revealed')">
+                    <span>Adjusted Additions (11.338%):</span> <span class="hidden-val">$785.9</span>
+                </div>
+                <div class="clickable-line" onclick="this.classList.add('revealed')">
+                    <span style="color:var(--error); font-weight:bold;">Adjustment Required:</span> <span class="hidden-val">($22.8)</span>
+                </div>
+                <div class="clickable-line" onclick="this.classList.add('revealed')">
+                    <span>Tax Effect (22%):</span> <span class="hidden-val">+$5.0</span>
+                </div>
+                <div class="clickable-line" onclick="this.classList.add('revealed')" style="background:#fee2e2;">
+                    <span><strong>Net Income Reduction:</strong></span> <span class="hidden-val"><strong>($17.8)</strong></span>
+                </div>
+            </div>
+            <p style="margin-top:15px; font-size:0.9rem; text-align:center;">Levi's effectively boosted 2022 Net Income by $17.8M by using a lower allowance rate.</p>
+        </div>
+
+        <!-- SLIDE 28: Step 3 Balance Sheet -->
+        <div class="slide">
+            <h2>Step 3: Adjust Balance Sheet</h2>
+            <p>The Income Statement adjustment flows through to Retained Earnings.</p>
+            <table class="fin-table" style="max-width:800px; margin:20px auto;">
+                <thead>
+                    <tr><th>Account ($M)</th><th class="num">2022 Adjustment</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>Sales Allowances (Liability)</td><td class="num">+$22.8</td></tr>
+                    <tr><td>Deferred Tax Liability</td><td class="num">-$5.0</td></tr>
+                    <tr style="background:#fee2e2;"><td><strong>Retained Earnings</strong></td><td class="num"><strong>-$17.8</strong></td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- SLIDE 29: Deferred Revenue -->
+        <div class="slide">
+            <h2>Deferred Revenue</h2>
+            <p>Cash received before work is performed. (Liability)</p>
+            <div class="cols-2">
+                <div>
+                    <h4>Walmart Example</h4>
+                    <p>Sam's Club Membership ($120/yr).</p>
+                    <p>Collected Jan 1.</p>
+                    <p><strong>Jan Revenue:</strong> $10</p>
+                    <p><strong>Deferred Rev:</strong> $110</p>
+                </div>
+                <div class="card" style="text-align:center;">
+                    <i class="fas fa-crystal-ball" style="font-size:5rem; color:#8e44ad; margin-bottom:15px;"></i>
+                    <h3>The Crystal Ball</h3>
+                    <p>Deferred Revenue represents the <strong>backlog</strong> of future sales. Watch its growth rate!</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 30: Netflix Case -->
+        <div class="slide">
+            <h2>Netflix Case Study</h2>
+            <div class="cols-2">
+                <div>
+                    <p>Analyzing the growth of the Liability (Deferred Revenue).</p>
+                    <table class="fin-table">
+                        <tr><th>Year</th><th>Def Rev Growth</th></tr>
+                        <tr><td>2020</td><td class="num" style="color:var(--success)">20.9%</td></tr>
+                        <tr><td>2022</td><td class="num" style="color:var(--error)">4.57%</td></tr>
+                    </table>
+                    <div class="concept-box" style="margin-top:20px;">
+                        <strong>Insight:</strong> The slowdown in the liability growth predicted the future slowdown in Revenue growth.
+                    </div>
+                </div>
+                <!-- RESTORED CHART -->
+                <div style="background:white; padding:20px; border-radius:16px; box-shadow:var(--card-shadow); text-align:center;">
+                    <svg width="300" height="150" viewBox="0 0 300 150">
+                        <rect x="20" y="50" width="40" height="100" fill="#2ecc71" />
+                        <rect x="70" y="40" width="40" height="110" fill="#2ecc71" />
+                        <rect x="120" y="30" width="40" height="120" fill="#2ecc71" />
+                        <rect x="170" y="100" width="40" height="50" fill="#e74c3c" />
+                        <text x="140" y="20" font-family="Arial" font-size="12" fill="#555" font-weight="bold">Declining Growth</text>
+                    </svg>
+                    <p style="font-size:0.9rem; margin-top:10px; color:var(--text-light);">Visualizing Growth Deceleration</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 31: Revenue Recognition Pitfalls -->
+        <div class="slide">
+            <h2>Revenue Recognition Pitfalls</h2>
+            <div class="cols-2">
+                <div>
+                    <ul style="margin-top: 20px; list-style: none;">
+                        <li class="reveal-item" style="margin-bottom:20px; font-size:1.1rem;"><i class="fas fa-chevron-right" style="color: var(--accent); margin-right:10px;"></i> Audited revenues may comply with GAAP but misrepresent economic reality.</li>
+                        <li class="reveal-item" style="margin-bottom:20px; font-size:1.1rem;"><i class="fas fa-chevron-right" style="color: var(--accent); margin-right:10px;"></i> Pressure to meet targets drives aggressive (or fraudulent) tactics.</li>
+                    </ul>
+                    <div class="problem-box reveal-item" style="margin-top: 20px;">
+                        <h3>Quality of Earnings</h3>
+                        <p><strong>Round-Tripping:</strong> Selling an asset to another company and buying it back at a similar price to inflate revenue volume without real economic gain.</p>
+                    </div>
+                </div>
+                <div class="card" style="text-align:center; display:flex; flex-direction:column; justify-content:center;">
+                    <i class="fas fa-exclamation-triangle" style="font-size:5rem; color:var(--warning); margin-bottom:20px;"></i>
+                    <h3>The Danger Zone</h3>
+                    <p>Exceptional outward success can mask impending downward revisions. Executives may use "accounting magic" to sustain stock prices.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 32: Case Study - Keurig -->
+        <div class="slide">
+            <h2>Case Study: Keurig</h2>
+            <div class="cols-2">
+                <div>
+                    <p><strong>The Goal:</strong> Continue showing sales growth.</p>
+                    <p><strong>The Tactic:</strong> Changed accounting policies.</p>
+                    <div class="problem-box">
+                        <ul style="list-style-type: none; margin: 0;">
+                            <li class="reveal-item"><i class="fas fa-shipping-fast" style="color: var(--accent);"></i> <strong>Timing:</strong> Recognized revenue at <em>shipment</em> rather than <em>delivery</em>.</li>
+                            <br>
+                            <li class="reveal-item"><i class="fas fa-file-invoice-dollar" style="color: var(--accent);"></i> <strong>Classification:</strong> Treated customer incentives as <em>operating expenses</em> rather than a <em>reduction of sales</em>.</li>
+                        </ul>
+                    </div>
+                </div>
+                <div style="text-align: center;">
+                    <i class="fas fa-mug-hot" style="font-size: 10rem; color: #d97706;"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 33: Keurig Footnotes -->
+        <div class="slide">
+            <h2>Reading the Footnotes (Keurig)</h2>
+            <div class="problem-box">
+                <p style="font-size: 1rem;"><strong>10-K 2007 (Before):</strong></p>
+                <p style="background: rgba(2, 132, 199, 0.05); padding: 10px; font-style: italic;">"...sales is recognized upon <span style="text-decoration: underline; color: var(--success);">product delivery</span>... incentives are <span style="text-decoration: underline; color: var(--success);">netted against sales</span>."</p>
+                
+                <p style="font-size: 1rem; margin-top: 20px;"><strong>10-K 2008 (After):</strong></p>
+                <p style="background: rgba(249, 115, 22, 0.1); padding: 10px; font-style: italic;">"...sales is recognized upon product delivery, and <span style="background: var(--accent); color: #fff; font-weight: bold; padding: 0 4px;">in some cases upon product shipment</span>... incentives... are netted against sales <span style="background: var(--accent); color: #fff; font-weight: bold; padding: 0 4px;">or recorded in operating and selling expenses</span>."</p>
+            </div>
+            <p style="text-align: center; color: var(--error); margin-top:20px;"><strong>Impact:</strong> Inflated Top-Line Revenue by moving costs to OpEx and accelerating timing.</p>
+        </div>
+
+        <!-- SLIDE 34: Case Study - Under Armour -->
+        <div class="slide">
+            <h2>SEC Charges Under Armour</h2>
+            <div class="cols-2">
+                <div>
+                    <h3>The "Pull Forward" Scheme</h3>
+                    <p>Under Armour paid $9 million to settle SEC charges.</p>
+                    <div class="problem-box">
+                        <p><strong>The Issue:</strong> Facing warmer winters and missed projections, they "pulled forward" $408 million in existing orders.</p>
+                    </div>
+                </div>
+                <div class="flip-container" onclick="this.classList.toggle('flipped')">
+                    <div class="flip-inner">
+                        <div class="flip-front">
+                            <i class="fas fa-mask"></i>
+                            <h3>Disclosure Failure</h3>
+                            <p>Tap to reveal what they hid</p>
+                        </div>
+                        <div class="flip-back">
+                            <h3>The Lie</h3>
+                            <p>They attributed growth to "brand strength" rather than disclosing pull-forwards.</p>
+                            <hr style="width: 50%; border-color: var(--primary); margin: 15px auto;">
+                            <p>Result: Created significant uncertainty about future revenue capacity.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 35: AI Economy Diagram -->
+        <div class="slide" style="padding: 0; overflow: hidden;">
+            <iframe srcdoc='<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>2026 AI Circular Financing Model</title><style>:root{--nvidia-green:#15803d;--startup-color:#9333ea;--cloud-color:#0369a1;--bg-color:#f8fafc;--card-bg:#ffffff;--text-color:#1e293b}body{font-family:"Inter","Segoe UI",sans-serif;background-color:var(--bg-color);background-image:radial-gradient(circle at 50% 0%,#e2e8f0 0%,#f8fafc 70%);color:var(--text-color);display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;margin:0;overflow:hidden}h2{font-weight:800;letter-spacing:-0.5px;margin-bottom:10px;text-transform:uppercase;color:#0369a1;font-family:sans-serif;font-size:2rem}.sub-header{font-size:0.9rem;color:#64748b;margin-bottom:60px;max-width:600px;text-align:center;line-height:1.5;font-family:sans-serif}.diagram-container{position:relative;width:500px;height:450px}.node{position:absolute;width:140px;height:140px;border-radius:50%;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;backdrop-filter:blur(10px);background:var(--card-bg);border:1px solid #cbd5e1;box-shadow:0 10px 30px rgba(0,0,0,0.1);z-index:2;transition:transform 0.3s ease,box-shadow 0.3s ease;cursor:pointer;font-family:sans-serif}.node:hover{transform:scale(1.05);box-shadow:0 15px 40px rgba(0,0,0,0.15);border-color:#94a3b8}.node strong{font-size:1.1rem;display:block;margin-bottom:4px}.node span{font-size:0.8rem;opacity:0.7}#nvidia{top:0;left:50%;transform:translateX(-50%);border-top:3px solid var(--nvidia-green)}#nvidia:hover{box-shadow:0 0 30px rgba(21,128,61,0.2)}#startup{bottom:0;left:0;border-top:3px solid var(--startup-color)}#startup:hover{box-shadow:0 0 30px rgba(147,51,234,0.2)}#cloud{bottom:0;right:0;border-top:3px solid var(--cloud-color)}#cloud:hover{box-shadow:0 0 30px rgba(3,105,161,0.2)}svg{position:absolute;top:0;left:0;width:100%;height:100%;z-index:1;pointer-events:none}.flow-line{fill:none;stroke:#cbd5e1;stroke-width:2}.flow-active{fill:none;stroke:url(#gradient);stroke-width:3;stroke-dasharray:10,10;animation:dash 2s linear infinite;opacity:0.8}.arrow-head{fill:#94a3b8}.label-container{position:absolute;background:rgba(255,255,255,0.9);padding:5px 10px;border-radius:4px;font-size:0.75rem;color:#475569;border:1px solid #cbd5e1;white-space:nowrap;font-family:sans-serif}#lbl-invest{top:40%;left:20%;transform:rotate(-35deg)}#lbl-rent{bottom:10px;left:50%;transform:translateX(-50%)}#lbl-revenue{top:40%;right:20%;transform:rotate(35deg)}@keyframes dash{to{stroke-dashoffset:-20}}</style></head><body><h2>The AI Circular Economy</h2><p class="sub-header">In 2026, tech giants invest in startups, who then use that capital to rent cloud compute,<br>returning revenue to the investor via hardware purchases.</p><div class="diagram-container"><svg viewBox="0 0 500 450"><defs><linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" style="stop-color:#15803d;stop-opacity:1"/><stop offset="100%" style="stop-color:#0369a1;stop-opacity:1"/></linearGradient><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" class="arrow-head"/></marker></defs><path d="M220,100 L100,310" class="flow-line"/><path d="M220,100 L100,310" class="flow-active" marker-end="url(#arrow)"/><path d="M140,380 L360,380" class="flow-line"/><path d="M140,380 L360,380" class="flow-active" marker-end="url(#arrow)"/><path d="M400,310 L280,100" class="flow-line"/><path d="M400,310 L280,100" class="flow-active" marker-end="url(#arrow)"/></svg><div class="node" id="nvidia"><strong>Nvidia</strong><span>(Investor)</span></div><div class="node" id="startup"><strong>AI Startup</strong><span>(e.g. OpenAI)</span></div><div class="node" id="cloud"><strong>Cloud Provider</strong><span>(e.g. CoreWeave)</span></div><div class="label-container" id="lbl-invest">$$$ Investment</div><div class="label-container" id="lbl-rent">Cloud Rental Fees</div><div class="label-container" id="lbl-revenue">Chip Purchase (Revenue)</div></div></body></html>' style="width:100%; height:100%; border:none;"></iframe>
+        </div>
+
+        <!-- SLIDE 37: Interactive Simulation -->
+        <div class="slide" style="padding: 0; overflow: hidden;">
+            <iframe srcdoc='<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>2026 AI Circular Financing Engine</title><script src="https://cdn.tailwindcss.com"></script><style>:root{--bg-color:#f1f5f9;--card-bg:#ffffff;--nvidia-green:#16a34a;--azure-blue:#0284c7;--openai-purple:#9333ea;--text-color:#1e293b;--accent:#ea580c}body{font-family:"Inter",system-ui,-apple-system,sans-serif;background-color:var(--bg-color);color:var(--text-color);overflow-x:hidden}.glass{background:rgba(255,255,255,0.7);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(0,0,0,0.05);box-shadow:0 4px 6px -1px rgba(0,0,0,0.1)}.node{transition:all 0.3s cubic-bezier(0.4,0,0.2,1);box-shadow:0 4px 6px -1px rgba(0,0,0,0.1)}.node:hover{transform:translateY(-5px) scale(1.02);box-shadow:0 10px 15px -3px rgba(0,0,0,0.1)}@keyframes pulse-green{0%{box-shadow:0 0 0 0 rgba(22,163,74,0.7)}70%{box-shadow:0 0 0 15px rgba(22,163,74,0)}100%{box-shadow:0 0 0 0 rgba(22,163,74,0)}}.pulse-active{animation:pulse-green 2s infinite}.flow-path{fill:none;stroke:#cbd5e1;stroke-width:2}.flow-particle{fill:var(--nvidia-green);filter:drop-shadow(0 0 5px var(--nvidia-green));opacity:0}.risk-meter-bg{background:linear-gradient(90deg,#22c55e 0%,#eab308 50%,#ef4444 100%)}::-webkit-scrollbar{width:8px}::-webkit-scrollbar-track{background:var(--bg-color)}::-webkit-scrollbar-thumb{background:#94a3b8;border-radius:4px}</style></head><body class="flex flex-col min-h-screen"><header class="border-b border-slate-200 bg-white/50 backdrop-blur-md sticky top-0 z-50"><div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center"><div><h1 class="text-2xl font-bold tracking-tight text-slate-800">AI Circular Financing Engine</h1><p class="text-xs text-slate-500 mt-1 uppercase tracking-wider">Market Cycle 2026 Analysis</p></div><div class="flex gap-4"><button onclick="toggleInfo(&#39;overview&#39;)" class="text-sm font-medium hover:text-sky-600 text-slate-600 transition">Overview</button><button onclick="toggleInfo(&#39;risks&#39;)" class="text-sm font-medium hover:text-sky-600 text-slate-600 transition">Risks & Telecom Parallel</button></div></div></header><main class="flex-grow flex flex-col lg:flex-row gap-6 p-6 max-w-7xl mx-auto w-full"><div class="flex-grow relative glass rounded-2xl p-6 flex flex-col items-center justify-center min-h-[500px] bg-white"><svg class="absolute inset-0 w-full h-full pointer-events-none z-0" id="connection-layer"><defs><marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#64748b" /></marker></defs><path id="path-inv-startup" class="flow-path" marker-end="url(#arrowhead)"></path><path id="path-startup-cloud" class="flow-path" marker-end="url(#arrowhead)"></path><path id="path-cloud-inv" class="flow-path" marker-end="url(#arrowhead)"></path><circle id="particle" r="6" class="flow-particle"></circle></svg><div id="node-investor" class="node absolute top-10 left-1/2 -translate-x-1/2 w-48 p-4 rounded-xl bg-slate-50 border-t-4 border-green-600 z-10 text-center border-l border-r border-b border-slate-200"><div class="text-green-700 font-bold text-lg mb-1">Nvidia / Microsoft</div><div class="text-xs text-slate-500">Supplier & Investor</div><div class="mt-2 text-xs bg-slate-100 py-1 rounded text-green-700 font-mono font-bold" id="inv-rev">$0 Rev</div></div><div id="node-startup" class="node absolute bottom-10 left-10 w-48 p-4 rounded-xl bg-slate-50 border-t-4 border-purple-600 z-10 text-center border-l border-r border-b border-slate-200"><div class="text-purple-700 font-bold text-lg mb-1">AI Startup</div><div class="text-xs text-slate-500">OpenAI / Anthropic</div><div class="mt-2 text-xs bg-slate-100 py-1 rounded text-slate-700 font-mono font-bold" id="startup-cap">$0 Cap</div></div><div id="node-cloud" class="node absolute bottom-10 right-10 w-48 p-4 rounded-xl bg-slate-50 border-t-4 border-sky-600 z-10 text-center border-l border-r border-b border-slate-200"><div class="text-sky-700 font-bold text-lg mb-1">Cloud / Infra</div><div class="text-xs text-slate-500">CoreWeave / Azure</div><div class="mt-2 text-xs bg-slate-100 py-1 rounded text-slate-700 font-mono font-bold" id="cloud-contract">$0 Contract</div></div><div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none"><div class="text-4xl font-bold text-slate-200 opacity-50">THE LOOP</div></div><div class="absolute top-[35%] left-[25%] text-xs text-slate-500 bg-white/80 border border-slate-200 px-2 py-1 rounded">Equity / Credit</div><div class="absolute bottom-[20%] left-1/2 -translate-x-1/2 text-xs text-slate-500 bg-white/80 border border-slate-200 px-2 py-1 rounded">Compute Rental (10yr)</div><div class="absolute top-[35%] right-[25%] text-xs text-slate-500 bg-white/80 border border-slate-200 px-2 py-1 rounded">Hardware Purchase</div></div><div class="w-full lg:w-[400px] flex flex-col gap-6"><div class="glass p-6 rounded-2xl"><h3 class="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2"><span class="w-2 h-2 bg-green-500 rounded-full"></span> Live Simulation</h3><p class="text-sm text-slate-500 mb-6">Inject capital to see how "round-tripping" inflates revenue figures without external demand.</p><button onclick="injectCapital()" id="btn-inject" class="w-full bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-500 hover:to-blue-500 text-white font-bold py-3 px-4 rounded-lg shadow-lg transform transition active:scale-95 flex justify-center items-center gap-2"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>Sign $10B Deal</button><div class="mt-4 flex justify-between text-xs text-slate-500"><span>Transaction time: <span id="trans-time">0</span>ms</span><button onclick="resetSim()" class="text-red-500 hover:text-red-400 font-medium">Reset</button></div></div><div class="glass p-6 rounded-2xl"><h3 class="text-sm font-semibold text-slate-400 uppercase tracking-widest mb-4">Market Metrics</h3><div class="mb-5"><div class="flex justify-between mb-1"><span class="text-sm font-medium text-slate-600">Round-Tripped Revenue</span><span class="text-sm font-bold text-green-600" id="metric-revenue">$0B</span></div><div class="w-full bg-slate-200 rounded-full h-2"><div id="bar-revenue" class="bg-green-500 h-2 rounded-full transition-all duration-1000" style="width: 0%"></div></div></div><div class="mb-5"><div class="flex justify-between mb-1"><span class="text-sm font-medium text-slate-600">Infra Commitments</span><span class="text-sm font-bold text-blue-600" id="metric-commit">$0B</span></div><div class="w-full bg-slate-200 rounded-full h-2"><div id="bar-commit" class="bg-blue-500 h-2 rounded-full transition-all duration-1000" style="width: 0%"></div></div></div><div class="mt-8 border-t border-slate-200 pt-6"><div class="flex justify-between mb-2"><span class="text-sm font-bold text-slate-800">Systemic Risk Level</span><span id="risk-text" class="text-sm font-bold text-emerald-600">Stable</span></div><div class="w-full bg-slate-200 rounded-full h-4 overflow-hidden relative"><div class="absolute inset-0 risk-meter-bg opacity-30"></div><div id="bar-risk" class="h-full risk-meter-bg transition-all duration-500 w-[5%] relative"><div class="absolute right-0 top-0 bottom-0 w-1 bg-white shadow-[0_0_10px_white]"></div></div></div><p id="risk-desc" class="text-xs text-slate-500 mt-2">Healthy ecosystem. Revenue is driven by organic demand.</p></div></div></div></main><section class="max-w-7xl mx-auto px-6 pb-12 w-full grid md:grid-cols-2 gap-8"><div id="info-overview" class="glass p-6 rounded-2xl"><h3 class="text-xl font-bold text-slate-800 mb-3">How the Engine Works</h3><p class="text-slate-600 text-sm leading-relaxed mb-4">In the 2026 cycle, leading chip and cloud companies (Suppliers) provide capital—via equity or credit—to AI startups. These startups immediately use that capital to sign long-term contracts for cloud capacity. The cloud providers, in turn, use that guaranteed revenue to buy more chips from the original Supplier.</p><ul class="space-y-2 text-sm text-slate-500"><li class="flex items-start gap-2"><span class="text-green-600 font-bold">1.</span> Supplier invests in Startup.</li><li class="flex items-start gap-2"><span class="text-blue-600 font-bold">2.</span> Startup commits to 10-year cloud contract.</li><li class="flex items-start gap-2"><span class="text-purple-600 font-bold">3.</span> Cloud Provider buys hardware from Supplier.</li></ul></div><div id="info-risks" class="glass p-6 rounded-2xl border-l-4 border-red-500 bg-red-50"><h3 class="text-xl font-bold text-slate-800 mb-3">The Telecom Bubble Parallel</h3><p class="text-slate-600 text-sm leading-relaxed mb-4">This mirrors the late 1990s, where companies like <strong>Cisco and Lucent</strong> financed carriers to buy their own equipment. It created "artificial demand" and inflated revenues.</p><div class="bg-white p-3 rounded-lg border border-red-100"><h4 class="text-xs font-bold text-red-600 uppercase mb-2">The Danger Signal</h4><p class="text-xs text-slate-600">If end-user demand (actual AI adoption) doesn&#39;t grow as fast as the infrastructure debt, the cycle breaks. <br><br><em class="text-slate-800">"Limitless AI compute" becomes the new "Infinite Bandwidth."</em></p></div></div></section><script>let state={invested:0,committed:0,revenue:0,risk:5};const btnInject=document.getElementById("btn-inject");const nodeInv=document.getElementById("node-investor");const nodeStart=document.getElementById("node-startup");const nodeCloud=document.getElementById("node-cloud");const pathInvStart=document.getElementById("path-inv-startup");const pathStartCloud=document.getElementById("path-startup-cloud");const pathCloudInv=document.getElementById("path-cloud-inv");const particle=document.getElementById("particle");function updatePaths(){const getPos=(el)=>{const rect=el.getBoundingClientRect();const container=el.parentElement.getBoundingClientRect();return{x:rect.left+rect.width/2-container.left,y:rect.top+rect.height/2-container.top}};const p1=getPos(nodeInv);const p2=getPos(nodeStart);const p3=getPos(nodeCloud);drawCurve(pathInvStart,p1.x,p1.y+60,p2.x+40,p2.y-60);drawCurve(pathStartCloud,p2.x+80,p2.y,p3.x-80,p3.y);drawCurve(pathCloudInv,p3.x-40,p3.y-60,p1.x,p1.y+60)}function drawCurve(pathEl,x1,y1,x2,y2){const d=`M ${x1} ${y1} Q ${(x1+x2)/2} ${(y1+y2)/2+(y1>y2?-20:20)} ${x2} ${y2}`;pathEl.setAttribute("d",d)}window.addEventListener("resize",updatePaths);setTimeout(updatePaths,100);function updateMetrics(){document.getElementById("metric-revenue").innerText=`$${state.revenue}B`;document.getElementById("metric-commit").innerText=`$${state.committed}B`;document.getElementById("bar-revenue").style.width=Math.min(state.revenue,100)+"%";document.getElementById("bar-commit").style.width=Math.min(state.committed,100)+"%";document.getElementById("inv-rev").innerText=`$${state.revenue}B Rev`;document.getElementById("startup-cap").innerText=`$${state.invested}B Cap`;document.getElementById("cloud-contract").innerText=`$${state.committed}B Contract`;state.risk=5+(state.revenue*0.8);const riskBar=document.getElementById("bar-risk");const riskText=document.getElementById("risk-text");const riskDesc=document.getElementById("risk-desc");riskBar.style.width=Math.min(state.risk,100)+"%";if(state.risk<30){riskText.innerText="Stable";riskText.className="text-sm font-bold text-emerald-600";riskDesc.innerText="Healthy ecosystem. Revenue matches external demand."}else if(state.risk<70){riskText.innerText="Inflated";riskText.className="text-sm font-bold text-yellow-600";riskDesc.innerText="Warning: Vendor financing driving >50% of growth metrics."}else{riskText.innerText="BUBBLE RISK";riskText.className="text-sm font-bold text-red-600 animate-pulse";riskDesc.innerText="CRITICAL: &#39;Round-tripped&#39; revenue dominates. Debt servicing capability at risk. Telecom crash parallel imminent."}}function injectCapital(){if(btnInject.disabled)return;btnInject.disabled=true;btnInject.classList.add("opacity-50","cursor-not-allowed");nodeInv.classList.add("pulse-active");particle.style.opacity="1";animateParticle(pathInvStart,1000,()=>{nodeInv.classList.remove("pulse-active");state.invested+=10;nodeStart.classList.add("pulse-active");updateMetrics();setTimeout(()=>{animateParticle(pathStartCloud,1000,()=>{nodeStart.classList.remove("pulse-active");state.committed+=10;nodeCloud.classList.add("pulse-active");updateMetrics();setTimeout(()=>{animateParticle(pathCloudInv,1000,()=>{nodeCloud.classList.remove("pulse-active");state.revenue+=10;updateMetrics();particle.style.opacity="0";btnInject.disabled=false;btnInject.classList.remove("opacity-50","cursor-not-allowed")});},200)});},200)})}function animateParticle(pathEl,duration,callback){const length=pathEl.getTotalLength();const start=performance.now();function step(timestamp){const elapsed=timestamp-start;const progress=Math.min(elapsed/duration,1);const point=pathEl.getPointAtLength(progress*length);particle.setAttribute("cx",point.x);particle.setAttribute("cy",point.y);if(progress<1){window.requestAnimationFrame(step)}else{if(callback)callback()}}window.requestAnimationFrame(step)}function resetSim(){state={invested:0,committed:0,revenue:0,risk:5};updateMetrics()}function toggleInfo(id){document.getElementById(`info-${id}`).scrollIntoView({behavior:"smooth"})}</script></body></html>' style="width:100%; height:100%; border:none;"></iframe>
+        </div>
+
+        <!-- SLIDE 38: Summary -->
+        <div class="slide">
+            <h2>Summary</h2>
+            <div class="cols-2">
+                <div>
+                    <ul>
+                        <li><strong>ASC 606:</strong> Revenue = Transfer of Control.</li>
+                        <li><strong>5 Steps:</strong> <br>1. Identify Contract<br>2. Identify Obligations<br>3. Determine Price<br>4. Allocate Price<br>5. Recognize Revenue</li>
+                        <li><strong>Net Sales:</strong> Watch for manipulation of returns/allowances.</li>
+                    </ul>
+                </div>
+                <div>
+                    <ul>
+                        <li><strong>% Completion:</strong> Used for long-term contracts.</li>
+                        <li><strong>Contract Assets:</strong> Unbilled work.</li>
+                        <li><strong>Deferred Revenue:</strong> A leading indicator of future growth.</li>
+                        <li><strong>Quality of Earnings:</strong> Beware of "Round-tripping" and aggressive accounting (e.g., Keurig).</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 39: Quiz -->
+        <div class="slide">
+            <h2>Final Quiz</h2>
+            <div id="quiz-container">
+                <p id="q-text" style="font-size:1.2rem; font-weight:bold; margin-bottom:20px;"></p>
+                <div id="q-options"></div>
+                <div id="q-feedback" class="answer-box"></div>
+                <button id="next-btn" class="btn" onclick="nextQuestion()" style="display:none; margin-top:20px;">Next</button>
+            </div>
+        </div>
+
     </div>
 
     <!-- Controls -->
-    <div class="nav-bar">
-        <span class="page-num" id="page-num">Slide 1 / 39</span>
-        <div class="nav-controls">
-            <button onclick="changeSlide(-1)">Previous</button>
-            <button onclick="changeSlide(1)">Next</button>
+    <div class="controls">
+        <div class="slide-counter" id="slide-count">Slide 1 / 40</div>
+        <div>
+            <button class="nav-btn" onclick="changeSlide(-1)">Previous</button>
+            <button class="nav-btn" onclick="changeSlide(1)">Next</button>
         </div>
     </div>
 
@@ -1200,195 +1299,137 @@
 <script>
     let currentSlide = 0;
     const slides = document.querySelectorAll('.slide');
-    const pageNum = document.getElementById('page-num');
-    let summaryStep = 0;
+    const navItems = document.querySelectorAll('.nav-item');
+    const slideCount = document.getElementById('slide-count');
+    const sidebar = document.getElementById('sidebar');
 
     function updateSlide() {
-        slides.forEach((slide, index) => {
-            slide.classList.remove('active');
-            if (index === currentSlide) {
-                slide.classList.add('active');
-            }
+        slides.forEach((s, i) => {
+            s.classList.remove('active');
+            if(i === currentSlide) s.classList.add('active');
         });
-        pageNum.innerText = `Slide ${currentSlide + 1} / ${slides.length}`;
+        
+        navItems.forEach((n, i) => {
+            n.classList.remove('active');
+            if(i === currentSlide) n.classList.add('active');
+        });
+
+        slideCount.innerText = `Slide ${currentSlide + 1} / ${slides.length}`;
+        
+        // Auto scroll sidebar
+        if(navItems[currentSlide]) {
+            navItems[currentSlide].scrollIntoView({behavior: "smooth", block: "center"});
+        }
     }
 
-    function changeSlide(direction) {
-        currentSlide += direction;
-        if (currentSlide < 0) currentSlide = 0;
-        if (currentSlide >= slides.length) currentSlide = slides.length - 1;
+    function changeSlide(dir) {
+        currentSlide += dir;
+        if(currentSlide < 0) currentSlide = 0;
+        if(currentSlide >= slides.length) currentSlide = slides.length - 1;
         updateSlide();
     }
 
-    function toggleAnswer(btn) {
-        let answerDiv;
-        const targetId = btn.getAttribute('data-target');
-        if (targetId) {
-            answerDiv = document.getElementById(targetId);
-        } else {
-            answerDiv = btn.nextElementSibling;
-        }
-
-        if (answerDiv.classList.contains('visible')) {
-            answerDiv.classList.remove('visible');
-            btn.innerText = "Reveal Answer";
-        } else {
-            answerDiv.classList.add('visible');
-            btn.innerText = "Hide Answer";
-        }
+    function goToSlide(index) {
+        currentSlide = index;
+        updateSlide();
+        if(window.innerWidth < 1000) toggleMenu(); // Close menu on mobile/small screens
     }
 
-    function revealSummaryStep() {
-        summaryStep++;
-        const box = document.getElementById(`summary-${summaryStep}`);
-        if(box) {
-            box.classList.add('visible');
-        }
-        if(summaryStep >= 4) {
-            document.getElementById('summary-btn').style.display = 'none';
-        }
+    function toggleMenu() {
+        sidebar.classList.toggle('open');
     }
 
-    // --- QUIZ DATA ---
+    function toggleId(id) {
+        const el = document.getElementById(id);
+        el.classList.toggle('visible');
+    }
+
+    function nextSlide() { changeSlide(1); }
+
+    // --- Tab Functionality ---
+    function openTab(evt, tabName) {
+        // Hide all tab content
+        var i, tabcontent, tablinks;
+        tabcontent = document.getElementsByClassName("tab-content");
+        for (i = 0; i < tabcontent.length; i++) {
+            tabcontent[i].style.display = "none";
+            tabcontent[i].classList.remove('active');
+        }
+
+        // Deactivate all buttons
+        tablinks = document.getElementsByClassName("tab-btn");
+        for (i = 0; i < tablinks.length; i++) {
+            tablinks[i].className = tablinks[i].className.replace(" active", "");
+        }
+
+        // Show current tab and activate button
+        document.getElementById(tabName).style.display = "block";
+        // Small delay to allow display block to apply before adding active class for animation
+        setTimeout(() => {
+             document.getElementById(tabName).classList.add('active');
+        }, 10);
+       
+        evt.currentTarget.className += " active";
+    }
+
+    // --- Quiz Logic ---
     const quizData = [
-        {
-            q: "Revenue is recognized when:",
-            options: ["Cash is received", "The contract is signed", "Control is transferred to the customer", "The invoice is sent"],
-            correct: 2,
-            explanation: "According to ASC 606, revenue is recognized when the performance obligation is satisfied by transferring control."
-        },
-        {
-            q: "In the Cost-to-Cost method, if you have incurred 40% of total estimated costs, how much revenue do you recognize?",
-            options: ["0% until finished", "40% of the contract price", "100% of the contract price", "Only the costs incurred"],
-            correct: 1,
-            explanation: "Revenue is recognized in proportion to the work completed (costs incurred / total estimated costs)."
-        },
-        {
-            q: "Sales Allowances (returns, rebates) are deducted from:",
-            options: ["Net Income", "Gross Revenue", "Cost of Goods Sold", "Operating Expenses"],
-            correct: 1,
-            explanation: "Allowances are contra-revenue accounts deducted from Gross Revenue to arrive at Net Revenue."
-        },
-        {
-            q: "When a customer buys a Gift Card, the company records:",
-            options: ["Revenue", "Deferred Revenue (Liability)", "Cash and Equity", "Expense"],
-            correct: 1,
-            explanation: "It is a liability because the company owes the customer goods/services in the future."
-        },
-        {
-            q: "If Deferred Revenue growth slows down significantly, it usually predicts:",
-            options: ["A future spike in revenue", "A future slowdown in revenue", "Lower expenses", "Higher taxes"],
-            correct: 1,
-            explanation: "Deferred revenue represents the backlog of future sales. If the backlog stops growing, recognized revenue will eventually slow down."
-        },
-        {
-            q: "In a Consignment arrangement, the seller recognizes:",
-            options: ["The full price of the item", "Only the commission fee", "The cost of the item", "Nothing"],
-            correct: 1,
-            explanation: "The seller acts as an agent and does not take title to the goods, so they only recognize the commission."
-        },
-        {
-            q: "If a manager 'Shaves' sales return estimates in a bad year, what is the effect?",
-            options: ["Lowers Net Income", "Boosts current Net Income", "Increases Liabilities", "No effect"],
-            correct: 1,
-            explanation: "Underestimating returns reduces the deduction from Gross Sales, artificially inflating Net Sales and Income."
-        },
-        {
-            q: "Which step is NOT part of the 5-Step Revenue Model?",
-            options: ["Identify Contract", "Determine Transaction Price", "Collect Cash", "Allocate Price"],
-            correct: 2,
-            explanation: "Collecting cash is not a requirement for recognition (Sales on Credit are common)."
-        },
-        {
-            q: "For a license providing 'Right to Use' IP (like software on a device), revenue is usually recognized:",
-            options: ["At a point in time (when delivered)", "Over time (straight line)", "When cash is received", "Never"],
-            correct: 0,
-            explanation: "Right to Use implies the customer gets the value immediately, so revenue is recognized at that point."
-        },
-        {
-            q: "What is the 'Top Line' of the Income Statement?",
-            options: ["Net Income", "Gross Profit", "Revenue", "EBITDA"],
-            correct: 2,
-            explanation: "Revenue sits at the very top of the income statement."
-        }
+        { q: "Revenue is recognized when:", opts: ["Cash is received", "Control transfers", "Contract signed"], a: 1 },
+        { q: "Which account is a Liability?", opts: ["Accounts Receivable", "Contract Asset", "Deferred Revenue"], a: 2 },
+        { q: "Cost-to-Cost Method is used for:", opts: ["Retail Sales", "Long-term Contracts", "Licensing"], a: 1 },
+        { q: "If Allowances are Under-Reserved (Shaved):", opts: ["Net Income is artificially high", "Net Income is low", "No effect"], a: 0 },
+        { q: "Keurig's accounting change involved:", opts: ["Delaying expenses", "Recognizing revenue at shipment vs delivery", "Creating fake customers"], a: 1 },
+        { q: "Deferred Revenue Growth slowing down suggests:", opts: ["Future revenue will accelerate", "Future revenue will slow down", "Expenses are rising"], a: 1 }
     ];
+    let qIndex = 0;
 
-    let currentQ = 0;
-    
     function loadQuiz() {
-        const qData = quizData[currentQ];
-        document.getElementById('quiz-question').innerText = qData.q;
-        document.getElementById('quiz-progress').innerText = currentQ + 1;
-        const optsDiv = document.getElementById('quiz-options');
-        optsDiv.innerHTML = '';
-        document.getElementById('quiz-feedback').style.display = 'none';
-        document.getElementById('next-q-btn').style.display = 'none';
-
-        qData.options.forEach((opt, idx) => {
-            const div = document.createElement('div');
-            div.className = 'quiz-option';
-            div.innerText = opt;
-            div.onclick = () => checkAnswer(div, idx, qData.correct);
-            optsDiv.appendChild(div);
+        if(qIndex >= quizData.length) {
+            document.getElementById('quiz-container').innerHTML = "<h3 style='color:var(--success)'>Quiz Complete!</h3>";
+            return;
+        }
+        const q = quizData[qIndex];
+        document.getElementById('q-text').innerText = `${qIndex+1}. ${q.q}`;
+        const optsDiv = document.getElementById('q-options');
+        optsDiv.innerHTML = "";
+        q.opts.forEach((opt, i) => {
+            const d = document.createElement('div');
+            d.className = 'quiz-opt';
+            d.innerText = opt;
+            d.onclick = () => checkAnswer(d, i, q.a);
+            optsDiv.appendChild(d);
         });
+        document.getElementById('q-feedback').style.display = 'none';
+        document.getElementById('next-btn').style.display = 'none';
     }
 
-    function checkAnswer(el, idx, correctIdx) {
-        const opts = document.querySelectorAll('.quiz-option');
-        if (idx === correctIdx) {
+    function checkAnswer(el, i, correct) {
+        const opts = document.querySelectorAll('.quiz-opt');
+        opts.forEach(o => o.onclick = null); // disable clicks
+        if(i === correct) {
             el.classList.add('correct');
-            const fb = document.getElementById('quiz-feedback');
-            fb.innerText = "Correct! " + quizData[currentQ].explanation;
-            fb.style.display = 'block';
-            fb.style.backgroundColor = "#dcfce7";
-            fb.style.borderColor = "var(--success)";
-            opts.forEach(o => o.onclick = null);
-            document.getElementById('next-q-btn').style.display = 'inline-block';
+            document.getElementById('q-feedback').innerText = "Correct!";
+            document.getElementById('q-feedback').className = "answer-box visible";
+            document.getElementById('q-feedback').style.background = "#d1fae5";
         } else {
-            el.classList.add('incorrect');
-            const fb = document.getElementById('quiz-feedback');
-            fb.innerText = "Incorrect. Try again!";
-            fb.style.display = 'block';
-            fb.style.backgroundColor = "#fee2e2";
-            fb.style.borderColor = "var(--error)";
+            el.classList.add('wrong');
+            opts[correct].classList.add('correct');
+            document.getElementById('q-feedback').innerText = "Incorrect.";
+            document.getElementById('q-feedback').className = "answer-box visible";
+            document.getElementById('q-feedback').style.background = "#fee2e2";
         }
+        document.getElementById('next-btn').style.display = 'block';
     }
 
     function nextQuestion() {
-        currentQ++;
-        if (currentQ < quizData.length) {
-            loadQuiz();
-        } else {
-            document.getElementById('quiz-container').innerHTML = `
-                <h3 style="text-align:center; color:var(--success);">Quiz Complete!</h3>
-                <p style="text-align:center;">Great job reviewing Revenue Recognition.</p>
-                <div style="text-align:center; margin-top:20px;">
-                    <button class="btn-reveal" onclick="resetQuiz()">Start Over</button>
-                </div>
-            `;
-        }
-    }
-
-    function resetQuiz() {
-        currentQ = 0;
-        document.getElementById('quiz-container').innerHTML = `
-             <p id="quiz-question" style="font-size: 1.3rem; margin-bottom: 20px; font-weight: bold;"></p>
-                <div id="quiz-options"></div>
-                <div id="quiz-feedback" class="quiz-explanation"></div>
-                <button id="next-q-btn" onclick="nextQuestion()" class="btn-reveal" style="display:none; margin-top: 15px;">Next Question</button>
-        `;
+        qIndex++;
         loadQuiz();
     }
 
-    // Initialize
-    updateSlide();
+    // Init
     loadQuiz();
+    updateSlide();
 
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'ArrowRight') changeSlide(1);
-        if (e.key === 'ArrowLeft') changeSlide(-1);
-    });
 </script>
-
 </body>
 </html>
