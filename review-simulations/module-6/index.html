@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Financial Reporting and Analysis Simulation</title>
 
 <!-- React & ReactDOM -->
@@ -23,12 +23,14 @@
     
     body {
         font-family: 'Inter', sans-serif;
-        user-select: none; /* Anti-copy */
+        /* Prevent elastic scrolling on Mac/iOS */
+        overscroll-behavior: none; 
     }
     
     /* Custom scrollbar */
     .custom-scrollbar::-webkit-scrollbar {
-        width: 8px;
+        width: 6px;
+        height: 6px;
     }
     .custom-scrollbar::-webkit-scrollbar-track {
         background: #f1f5f9; 
@@ -51,6 +53,7 @@
         cursor: pointer;
         border-bottom: 1px dotted #2563eb;
         transition: all 0.2s;
+        white-space: nowrap;
     }
     .clickable-number:hover {
         background-color: #dbeafe;
@@ -61,8 +64,9 @@
         background-color: #bfdbfe;
     }
 
-    .input-focused {
-        ring: 2px solid #3b82f6;
+    /* Prevent iOS zoom on focus */
+    input[type="text"], input[type="password"], select {
+        font-size: 16px !important;
     }
     
     /* Instructor Toolbar Animation */
@@ -76,7 +80,7 @@
 
     /* Resizer Handle Styling */
     .resizer-handle {
-        width: 4px;
+        width: 6px;
         cursor: col-resize;
         transition: background-color 0.2s;
         z-index: 30;
@@ -89,9 +93,14 @@
     .resizer-handle:hover, .resizer-handle:active {
         background-color: #3b82f6;
     }
+
+    /* Mobile adjustments */
+    @media (max-width: 768px) {
+        .resizer-handle { display: none; }
+    }
 </style>
 </head>
-<body class="bg-gray-50 text-slate-900 h-screen overflow-hidden" oncontextmenu="return false">
+<body class="bg-gray-50 text-slate-900 h-[100dvh] overflow-hidden" oncontextmenu="return false">
 <div id="root" class="h-full"></div>
 
 <script type="text/babel">
@@ -450,11 +459,11 @@ const Icon = ({ name, className }) => {
 const Modal = ({ isOpen, title, children, onClose }) => {
     if (!isOpen) return null;
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[100]">
-            <div className="bg-white rounded-lg shadow-xl p-6 w-96 max-w-full m-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[100] p-4">
+            <div className="bg-white rounded-lg shadow-xl p-6 w-96 max-w-full m-auto relative">
                 <div className="flex justify-between items-center mb-4 border-b pb-2">
                     <h3 className="font-bold text-lg">{title}</h3>
-                    <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+                    <button onClick={onClose} className="text-gray-500 hover:text-gray-700 p-2">
                         <Icon name="x" className="w-5 h-5" />
                     </button>
                 </div>
@@ -463,8 +472,10 @@ const Modal = ({ isOpen, title, children, onClose }) => {
         </div>
     );
 };
+
 /* =========================================================
-   ✅ CALCULATOR COMPONENT (ADDED)
+   ✅ CALCULATOR COMPONENT
+   Updated for Mobile: Centered modal on small screens, fixed on desktop
 ========================================================= */
 const Calculator = ({ isOpen, onClose }) => {
     const [input, setInput] = React.useState("");
@@ -503,18 +514,15 @@ const Calculator = ({ isOpen, onClose }) => {
             setInput(String(res));
             return;
         }
-
         if (val === "C") {
             setInput("");
             setResult("");
             return;
         }
-
         if (val === "⌫") {
             setInput((prev) => prev.slice(0, -1));
             return;
         }
-
         setInput((prev) => prev + val);
     };
 
@@ -526,57 +534,69 @@ const Calculator = ({ isOpen, onClose }) => {
         "0",".","=","+"
     ];
 
+    // Mobile: Modal style overlay. Desktop: Fixed widget.
     return (
-        <div className="fixed top-20 right-4 z-[250] w-64 bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden instructor-toolbar">
-            <div className="bg-slate-50 p-2 border-b flex justify-between items-center">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-2">
-                    Calculator
-                </span>
-                <button
-                    onClick={onClose}
-                    className="p-1 hover:bg-slate-200 rounded text-slate-500"
-                    title="Close"
-                >
-                    <Icon name="x" className="w-4 h-4" />
-                </button>
-            </div>
-
-            <div className="p-4 bg-slate-900 text-right">
-                <div className="text-slate-400 text-xs h-4 mb-1 truncate">
-                    {result !== "" ? input : ""}
-                </div>
-                <div className="text-white text-2xl font-mono font-bold truncate">
-                    {result !== "" ? result : (input || "0")}
-                </div>
-            </div>
-
-            <div className="grid grid-cols-4 gap-px bg-slate-200 border-t border-slate-200">
-                {buttons.map((btn) => (
+        <>
+            {/* Mobile Overlay Background */}
+            <div className="fixed inset-0 bg-black/50 z-[240] md:hidden" onClick={onClose}></div>
+            
+            <div className="fixed z-[250] bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden instructor-toolbar 
+                            top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-[320px] 
+                            md:top-20 md:left-auto md:right-4 md:translate-x-0 md:translate-y-0 md:w-64">
+                
+                <div className="bg-slate-50 p-2 border-b flex justify-between items-center">
+                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-2">
+                        Calculator
+                    </span>
                     <button
-                        key={btn}
-                        onClick={() => handleClick(btn)}
-                        className={`p-3 text-sm font-bold transition-colors ${
-                            btn === "="
-                                ? "bg-blue-600 text-white hover:bg-blue-700"
-                                : ["C","⌫"].includes(btn)
-                                ? "bg-red-50 text-red-600 hover:bg-red-100"
-                                : ["/","*","-","+"].includes(btn)
-                                ? "bg-slate-100 text-slate-800 hover:bg-slate-200"
-                                : "bg-white text-slate-700 hover:bg-slate-50"
-                        }`}
+                        onClick={onClose}
+                        className="p-2 hover:bg-slate-200 rounded text-slate-500"
+                        title="Close"
                     >
-                        {btn}
+                        <Icon name="x" className="w-4 h-4" />
                     </button>
-                ))}
+                </div>
+
+                <div className="p-4 bg-slate-900 text-right">
+                    <div className="text-slate-400 text-xs h-4 mb-1 truncate">
+                        {result !== "" ? input : ""}
+                    </div>
+                    <div className="text-white text-2xl font-mono font-bold truncate">
+                        {result !== "" ? result : (input || "0")}
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-4 gap-px bg-slate-200 border-t border-slate-200">
+                    {buttons.map((btn) => (
+                        <button
+                            key={btn}
+                            onClick={() => handleClick(btn)}
+                            className={`p-4 md:p-3 text-lg md:text-sm font-bold transition-colors active:bg-opacity-80 touch-manipulation ${
+                                btn === "="
+                                    ? "bg-blue-600 text-white hover:bg-blue-700"
+                                    : ["C","⌫"].includes(btn)
+                                    ? "bg-red-50 text-red-600 hover:bg-red-100"
+                                    : ["/","*","-","+"].includes(btn)
+                                    ? "bg-slate-100 text-slate-800 hover:bg-slate-200"
+                                    : "bg-white text-slate-700 hover:bg-slate-50"
+                            }`}
+                        >
+                            {btn}
+                        </button>
+                    ))}
+                </div>
             </div>
-        </div>
+        </>
     );
 };
 
 const SmartInput = ({ id, value, onChange, isPct, correctValueEncoded, instructorMode, onFocus, isFocused }) => {
+    
+    // Evaluate math expressions typed in input
     const evaluateExpression = (expression) => {
         if (!expression) return { val: "", valid: false };
         let cleanExp = expression.toString().replace(/,/g, '');
+        // Convert '50%' to 0.5
         cleanExp = cleanExp.replace(/(\d+(\.\d+)?)%/g, (match, p1) => parseFloat(p1) / 100);
         
         if (!/^[\d\.\+\-\*\/\(\)\s]+$/.test(cleanExp)) return { val: expression, valid: false };
@@ -598,21 +618,37 @@ const SmartInput = ({ id, value, onChange, isPct, correctValueEncoded, instructo
         }
     };
 
+    // --- ENHANCED VALIDATION LOGIC ---
     let status = "neutral";
     const correctValue = d(correctValueEncoded);
 
     if (value !== "" && value !== undefined && correctValue !== undefined) {
         const numVal = parseFloat(value);
         if (!isNaN(numVal)) {
-            const errorMargin = Math.abs(correctValue * 0.02);
-            let diff = Math.abs(numVal - correctValue);
-            let isCorrect = diff <= errorMargin;
-            if (!isCorrect && isPct) {
-                const diffPct = Math.abs((numVal / 100) - correctValue);
-                if (diffPct <= errorMargin) {
+            const margin = Math.abs(correctValue * 0.02); // 2% Error Margin
+
+            // 1. Direct Comparison (within 2%)
+            let isCorrect = Math.abs(numVal - correctValue) <= margin;
+
+            // 2. Percentage Equivalence (e.g. 5 vs 0.05)
+            // If user entered 5 but answer is 0.05
+            if (!isCorrect) {
+                const asPercentDecimal = numVal / 100;
+                if (Math.abs(asPercentDecimal - correctValue) <= margin) {
                     isCorrect = true;
                 }
             }
+
+            // 3. Reverse (e.g. 0.05 vs 5 - "and all vice versa")
+            // If user entered 0.05 but answer is 5
+            if (!isCorrect) {
+                const asWholeNumber = numVal * 100;
+                // Margin must scale too
+                if (Math.abs(asWholeNumber - correctValue) <= (Math.abs(correctValue * 0.02))) {
+                    isCorrect = true;
+                }
+            }
+            
             status = isCorrect ? "correct" : "incorrect";
         }
     }
@@ -631,12 +667,13 @@ const SmartInput = ({ id, value, onChange, isPct, correctValueEncoded, instructo
                 onBlur={handleBlur}
                 onChange={handleChange}
                 onKeyDown={(e) => e.key === 'Enter' && e.target.blur()}
-                className={`w-full p-2 border rounded shadow-sm transition-all outline-none font-mono ${borderClass}`}
+                className={`w-full p-3 border rounded shadow-sm transition-all outline-none font-mono ${borderClass}`}
                 placeholder={isPct ? "0.0%" : "0"}
+                inputMode="decimal" 
             />
             {status === "correct" && (
-                <div className="absolute right-3 top-2.5 text-green-600 flex items-center gap-1 text-sm font-bold pointer-events-none">
-                    <Icon name="check" className="w-4 h-4" />
+                <div className="absolute right-3 top-3.5 text-green-600 flex items-center gap-1 text-sm font-bold pointer-events-none">
+                    <Icon name="check" className="w-5 h-5" />
                 </div>
             )}
              {instructorMode && correctValue !== undefined && (
@@ -661,7 +698,7 @@ const FieldWithHint = ({ id, label, isPct, answers, updateAnswer, correctValueEn
                 {hint && (
                     <button 
                         onClick={() => setShowHint(!showHint)}
-                        className={`text-gray-400 hover:text-blue-600 transition-colors ${showHint ? 'text-blue-600' : ''}`}
+                        className={`text-gray-400 hover:text-blue-600 transition-colors p-1 ${showHint ? 'text-blue-600' : ''}`}
                         title="Show Hint"
                     >
                         <Icon name="help-circle" className="w-4 h-4" />
@@ -693,8 +730,8 @@ const ReferenceItem = ({ data, onNumberClick }) => {
         if (numRegex.test(content) && content !== "-" && content !== "N/A") {
             return (
                 <span 
-                    className="clickable-number" 
-                    title="Click to insert"
+                    className="clickable-number px-1" 
+                    title="Tap to insert"
                     onMouseDown={(e) => {
                         e.preventDefault(); 
                         let clean = content.replace(/[^0-9\.-]/g, '');
@@ -712,21 +749,23 @@ const ReferenceItem = ({ data, onNumberClick }) => {
     if (data.type === 'simple-table') {
         return (
             <div className="overflow-x-auto mb-4 bg-white border border-gray-200 rounded shadow-sm">
-                {data.title && <div className="p-2 bg-gray-50 border-b text-xs font-bold text-gray-700">{data.title}</div>}
-                <table className="w-full text-xs text-left">
-                    <thead>
-                        <tr className="bg-gray-100 border-b">
-                            {data.headers.map((h, i) => <th key={i} className="py-2 px-2 font-semibold text-gray-600">{h}</th>)}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {data.rows.map((row, rIdx) => (
-                            <tr key={rIdx} className="border-b last:border-0 hover:bg-gray-50">
-                                {row.map((cell, cIdx) => <td key={cIdx} className="py-2 px-2 text-gray-800 font-mono">{renderCell(cell)}</td>)}
+                {data.title && <div className="p-2 bg-gray-50 border-b text-xs font-bold text-gray-700 sticky left-0">{data.title}</div>}
+                <div className="min-w-max">
+                    <table className="w-full text-xs text-left">
+                        <thead>
+                            <tr className="bg-gray-100 border-b">
+                                {data.headers.map((h, i) => <th key={i} className="py-2 px-3 font-semibold text-gray-600 whitespace-nowrap">{h}</th>)}
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            {data.rows.map((row, rIdx) => (
+                                <tr key={rIdx} className="border-b last:border-0 hover:bg-gray-50">
+                                    {row.map((cell, cIdx) => <td key={cIdx} className="py-3 px-3 text-gray-800 font-mono whitespace-nowrap">{renderCell(cell)}</td>)}
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
                 {data.footer && <div className="p-2 text-xs text-gray-500 italic bg-gray-50 border-t">{data.footer}</div>}
             </div>
         );
@@ -759,7 +798,6 @@ const ReferenceItem = ({ data, onNumberClick }) => {
 const ConceptCheck = ({ id, questions, instructorMode, answers, updateAnswer }) => {
     
     const handleSelect = (qId, option) => {
-        // Prevent changing if already answered or in instructor mode
         if (answers[qId] || instructorMode) return;
         updateAnswer(qId, option);
     };
@@ -773,37 +811,31 @@ const ConceptCheck = ({ id, questions, instructorMode, answers, updateAnswer }) 
                 return (
                     <div key={q.id} className="bg-white p-4 rounded-lg shadow border border-gray-200">
                         <div className="font-bold text-gray-800 mb-3 flex gap-2">
-                            <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-sm">Q{idx+1}</span>
-                            {q.text}
+                            <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-sm shrink-0 h-fit">Q{idx+1}</span>
+                            <span>{q.text}</span>
                         </div>
                         <div className="space-y-2 mb-4">
                             {q.options.map(opt => {
-                                let btnClass = "w-full text-left p-3 rounded text-sm transition-all border ";
+                                let btnClass = "w-full text-left p-3 rounded text-sm transition-all border active:scale-[0.99] touch-manipulation ";
                                 
                                 if (instructorMode) {
                                     if (opt === q.answer) {
-                                        // Instructor View: Highlight correct answer always
                                         btnClass += "bg-green-100 border-green-500 text-green-900 font-bold shadow-sm ring-2 ring-green-500/50";
                                     } else {
-                                        // Instructor View: Fade out incorrect answers
                                         btnClass += "border-gray-100 text-gray-400 opacity-60";
                                     }
                                 } else {
                                     if (isAnswered) {
                                         if (opt === userSelection) {
                                             if (opt === q.answer) {
-                                                // Student Correct
                                                 btnClass += "bg-green-100 border-green-500 text-green-900 font-bold";
                                             } else {
-                                                // Student Incorrect
                                                 btnClass += "bg-red-100 border-red-500 text-red-900 font-bold";
                                             }
                                         } else {
-                                            // Unselected options when answered
                                             btnClass += "border-gray-200 text-gray-400 opacity-50 cursor-not-allowed";
                                         }
                                     } else {
-                                        // Standard State
                                         btnClass += "hover:bg-gray-50 border-gray-200 text-gray-600";
                                     }
                                 }
@@ -839,13 +871,12 @@ const ConceptCheck = ({ id, questions, instructorMode, answers, updateAnswer }) 
 const App = () => {
     const [activeModule, setActiveModule] = React.useState('m1');
     const [answers, setAnswers] = React.useState({});
-    const [studentName, setStudentName] = React.useState("");
     const [activeInputId, setActiveInputId] = React.useState(null);
     const [instructorMode, setInstructorMode] = React.useState(false);
     const [showAuthModal, setShowAuthModal] = React.useState(false);
     const [showClearModal, setShowClearModal] = React.useState(false);
     const [passwordInput, setPasswordInput] = React.useState("");
-    const [navWidth, setNavWidth] = React.useState(256); // 64 * 4 = 256px default
+    const [navWidth, setNavWidth] = React.useState(256);
     const [showCalculator, setShowCalculator] = React.useState(false);
 
     const isResizing = React.useRef(false);
@@ -853,7 +884,7 @@ const App = () => {
     const updateAnswer = (id, val) => { setAnswers(prev => ({ ...prev, [id]: val })); };
     const handleInputFocus = (id) => { setActiveInputId(id); };
 
-    // --- SIDEBAR RESIZING ---
+    // --- SIDEBAR RESIZING (Desktop Only) ---
     const startResizing = React.useCallback(() => {
         isResizing.current = true;
         document.body.style.cursor = 'col-resize';
@@ -895,6 +926,7 @@ const App = () => {
             }
             return { ...prev, [activeInputId]: newValue };
         });
+        // Slight delay to allow focus shift
         setTimeout(() => {
             const el = document.getElementById(activeInputId);
             if (el) el.focus();
@@ -902,7 +934,6 @@ const App = () => {
     };
 
     const handleAuth = () => {
-        // Obfuscated: "review" in Base64
         if (btoa(passwordInput) === "cmV2aWV3") {
             setInstructorMode(true);
             setShowAuthModal(false);
@@ -951,21 +982,22 @@ const App = () => {
         const refs = MODULE_DATA[activeModule];
         
         return (
-            <div className="flex flex-col lg:flex-row gap-6 h-full">
+            <div className="flex flex-col lg:flex-row gap-6 h-full relative">
                 <div className="flex-1 overflow-y-auto custom-scrollbar lg:pr-4">
                     <h2 className="text-xl font-bold mb-4 text-blue-800 border-b pb-2 flex items-center gap-2 sticky top-0 bg-gray-50 pt-2 z-10">
                         <Icon name="pen-tool" className="w-5 h-5" /> 
                         {MODULES.find(m => m.id === activeModule)?.title}
                     </h2>
                     
-                    <div className="space-y-6 pb-20">
+                    <div className="space-y-6 pb-32 lg:pb-20">
                     {activeModule === 'm1' && (
-                        <div className="bg-white p-6 rounded-lg shadow border border-gray-200">
+                        <div className="bg-white p-4 md:p-6 rounded-lg shadow border border-gray-200">
                             <h3 className="text-lg font-bold text-gray-800 mb-4">Inventory Costing Comparison</h3>
                             
                             {/* FIFO Table */}
-                            <div className="mb-8">
-                                <h4 className="font-bold text-blue-800 mb-2">1. FIFO</h4>
+                            <div className="mb-8 overflow-x-auto">
+                                <h4 className="font-bold text-blue-800 mb-2 sticky left-0">1. FIFO</h4>
+                                <div className="min-w-[600px]">
                                 <table className="w-full text-sm border-collapse border border-gray-300">
                                     <thead className="bg-gray-100">
                                         <tr>
@@ -1002,11 +1034,13 @@ const App = () => {
                                         </tr>
                                     </tbody>
                                 </table>
+                                </div>
                             </div>
 
                             {/* LIFO Table */}
-                            <div className="mb-8">
-                                <h4 className="font-bold text-blue-800 mb-2">2. LIFO</h4>
+                            <div className="mb-8 overflow-x-auto">
+                                <h4 className="font-bold text-blue-800 mb-2 sticky left-0">2. LIFO</h4>
+                                <div className="min-w-[600px]">
                                 <table className="w-full text-sm border-collapse border border-gray-300">
                                     <thead className="bg-gray-100">
                                         <tr>
@@ -1049,11 +1083,13 @@ const App = () => {
                                         </tr>
                                     </tbody>
                                 </table>
+                                </div>
                             </div>
 
                             {/* Average Cost Table */}
-                            <div>
-                                <h4 className="font-bold text-blue-800 mb-2">3. Average Cost</h4>
+                            <div className="overflow-x-auto">
+                                <h4 className="font-bold text-blue-800 mb-2 sticky left-0">3. Average Cost</h4>
+                                <div className="min-w-[600px]">
                                 <table className="w-full text-sm border-collapse border border-gray-300">
                                     <thead className="bg-gray-100">
                                         <tr>
@@ -1078,11 +1114,12 @@ const App = () => {
                                         </tr>
                                     </tbody>
                                 </table>
+                                </div>
                             </div>
                         </div>
                     )}
                     {activeModule === 'm2' && (
-                        <div className="bg-white p-6 rounded-lg shadow border border-gray-200 space-y-8">
+                        <div className="bg-white p-4 md:p-6 rounded-lg shadow border border-gray-200 space-y-8">
                             
                             {/* 6-2.1 LCM */}
                             <div>
@@ -1100,6 +1137,7 @@ const App = () => {
                             <div>
                                 <h3 className="font-bold text-blue-800 border-b pb-2 mb-4">6-2.2 LIFO Liquidation Scenarios</h3>
                                 <div className="overflow-x-auto">
+                                    <div className="min-w-[400px]">
                                     <table className="w-full text-sm border-collapse border border-gray-300">
                                         <thead className="bg-gray-100">
                                             <tr>
@@ -1121,6 +1159,7 @@ const App = () => {
                                             </tr>
                                         </tbody>
                                     </table>
+                                    </div>
                                 </div>
                                 <div className="mt-4 max-w-md">
                                     {renderInput("m2_q2_profit_diff", "Increase in Gross Profit (Scen 2 vs 1)")}
@@ -1146,8 +1185,8 @@ const App = () => {
                         </div>
                     )}
                     {activeModule === 'm3' && (
-                        <div className="bg-white p-6 rounded-lg shadow border border-gray-200">
-                            <div className="grid grid-cols-2 gap-8 mb-6">
+                        <div className="bg-white p-4 md:p-6 rounded-lg shadow border border-gray-200">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-6">
                                 <div>
                                     <h3 className="font-bold mb-2 text-gray-800 border-b pb-1">2022 Data</h3>
                                     {renderInput("m3_gp_2022", "Gross Profit Margin", true)}
@@ -1169,7 +1208,7 @@ const App = () => {
                         </div>
                     )}
                     {activeModule === 'm4' && (
-                        <div className="bg-white p-6 rounded-lg shadow border border-gray-200 space-y-6">
+                        <div className="bg-white p-4 md:p-6 rounded-lg shadow border border-gray-200 space-y-6">
                             <div>
                                 <h3 className="font-bold text-blue-800 border-b pb-2 mb-4">REVIEW 6-4 LO6-4: Depreciation</h3>
                                 <div className="bg-gray-50 p-4 rounded border border-gray-200 text-sm text-gray-700 space-y-2 mb-4">
@@ -1181,23 +1220,23 @@ const App = () => {
                                     </ul>
                                 </div>
                             </div>
-                            <div className="grid grid-cols-2 gap-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 {renderInput("m4_dep_exp", "Depreciation Exp (Annual)")}
                                 {renderInput("m4_bv_y3", "Book Value (End of Year 3)")}
                             </div>
                         </div>
                     )}
                     {activeModule === 'm5' && (
-                        <div className="bg-white p-6 rounded-lg shadow border border-gray-200 space-y-6">
+                        <div className="bg-white p-4 md:p-6 rounded-lg shadow border border-gray-200 space-y-6">
                              {/* Part 1: Impairment */}
                              <div>
                                  <h3 className="font-bold text-blue-800 border-b pb-2 mb-4">REVIEW 6-5 LO6-5 Part 1: Asset Impairment</h3>
                                  <p className="text-sm text-gray-600 mb-4">
-                                     Refer to Home Depot data in Review 6-4. Assume straight-line depreciation. 
-                                     At the end of year 3, cash flows = $40,000 (undiscounted) and Fair Value = $36,000.
-                                     Is the equipment impaired? If so, calculate the loss.
+                                      Refer to Home Depot data in Review 6-4. Assume straight-line depreciation. 
+                                      At the end of year 3, cash flows = $40,000 (undiscounted) and Fair Value = $36,000.
+                                      Is the equipment impaired? If so, calculate the loss.
                                  </p>
-                                 <div className="grid grid-cols-2 gap-6">
+                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                      {renderInput("m5_cv_y3", "Step 1: Carrying Value at End of Year 3")}
                                      {renderInput("m5_imp_loss", "Step 2: Impairment Loss Amount")}
                                  </div>
@@ -1205,7 +1244,7 @@ const App = () => {
                         </div>
                     )}
                     {activeModule === 'm6' && (
-                         <div className="bg-white p-6 rounded-lg shadow border border-gray-200 space-y-8">
+                         <div className="bg-white p-4 md:p-6 rounded-lg shadow border border-gray-200 space-y-8">
                             <div>
                                 <h3 className="font-bold text-blue-800 border-b pb-2 mb-4">REVIEW 6-6 LO6-6: PP&E Analysis</h3>
                                 <div className="bg-gray-50 p-4 rounded border border-gray-200 text-sm text-gray-700 space-y-2 mb-4">
@@ -1219,14 +1258,14 @@ const App = () => {
                             </div>
                             <div>
                                 <h3 className="font-bold text-gray-800 border-b pb-2 mb-4">1. PPE Turnover (2022)</h3>
-                                <div className="grid grid-cols-2 gap-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     {renderInput("m6_avg_ppe_2022", "Average Net PPE")}
                                     {renderInput("m6_turn_2022", "PPE Turnover Ratio")}
                                 </div>
                             </div>
                             <div>
                                 <h3 className="font-bold text-gray-800 border-b pb-2 mb-4">2. Average Useful Life (2022)</h3>
-                                <div className="grid grid-cols-2 gap-6 mb-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
                                     {renderInput("m6_dep_base_2022", "Depreciable Base 2022")}
                                     {renderInput("m6_dep_base_2021", "Depreciable Base 2021")}
                                     {renderInput("m6_avg_dep_base_2022", "Average Depreciable Base")}
@@ -1235,14 +1274,14 @@ const App = () => {
                             </div>
                             <div>
                                 <h3 className="font-bold text-gray-800 border-b pb-2 mb-4">3. Percent Used Up (2022)</h3>
-                                <div className="grid grid-cols-2 gap-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     {renderInput("m6_used_2022", "Percent Used Up", true)}
                                 </div>
                             </div>
                          </div>
                     )}
                     {activeModule === 'm7' && (
-                         <div className="bg-white p-6 rounded-lg shadow border border-gray-200 space-y-6">
+                         <div className="bg-white p-4 md:p-6 rounded-lg shadow border border-gray-200 space-y-6">
                             <h3 className="font-bold text-blue-800 border-b pb-2 mb-4">REVIEW 6-7 LO6-7: Impairment Assessment</h3>
                             <p className="text-sm text-gray-600 mb-4">
                                 <strong>Background:</strong> On Feb 14, 2022, AMD acquired Xilinx. Refer to the "Acquisition Details" in the Data Source for initial values and useful lives.
@@ -1252,6 +1291,7 @@ const App = () => {
                             </p>
                             
                             <div className="overflow-x-auto">
+                                <div className="min-w-[400px]">
                                 <table className="w-full text-sm text-left border-collapse border border-slate-300">
                                     <thead className="bg-slate-100">
                                         <tr>
@@ -1282,6 +1322,7 @@ const App = () => {
                                         </tr>
                                     </tbody>
                                 </table>
+                                </div>
                             </div>
                          </div>
                     )}
@@ -1289,11 +1330,12 @@ const App = () => {
 
                     {/* Instructor Answer Key Table */}
                     {instructorMode && (
-                        <div className="mt-12 border-t-2 border-dashed border-purple-300 pt-8 mb-20">
+                        <div className="mt-12 border-t-2 border-dashed border-purple-300 pt-8 mb-32">
                             <h3 className="text-lg font-bold text-purple-900 mb-4 flex items-center gap-2">
                                 <Icon name="key" className="w-5 h-5" /> Master Answer Key
                             </h3>
                             <div className="bg-white rounded-lg shadow border border-purple-200 overflow-hidden">
+                                <div className="overflow-x-auto">
                                 <table className="w-full text-sm text-left">
                                     <thead className="bg-purple-50 text-purple-900">
                                         <tr>
@@ -1312,12 +1354,14 @@ const App = () => {
                                         ))}
                                     </tbody>
                                 </table>
+                                </div>
                             </div>
                         </div>
                     )}
                 </div>
 
-                <div className="lg:w-80 flex-shrink-0 flex flex-col">
+                {/* Right Panel: Data Source */}
+                <div className="lg:w-80 flex-shrink-0 flex flex-col mb-20 lg:mb-0">
                     <div className="bg-slate-100 p-4 rounded-lg border border-slate-200 h-full overflow-y-auto custom-scrollbar sticky top-4">
                         <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
                             <Icon name="database" className="w-4 h-4" /> Data Source
@@ -1328,7 +1372,7 @@ const App = () => {
                         
                         <div className="mt-4 p-3 bg-blue-50 text-blue-800 text-xs rounded border border-blue-100 flex gap-2">
                             <Icon name="mouse-pointer-click" className="w-4 h-4 shrink-0" />
-                            <span>Click any number in the table to insert it into your selected answer field.</span>
+                            <span>Tap any number in the table to insert it into your selected answer field.</span>
                         </div>
                     </div>
                 </div>
@@ -1348,24 +1392,24 @@ const App = () => {
     );
 
     return (
-        <div className="flex flex-col h-screen">
-            <header className="bg-slate-900 text-white p-4 flex justify-between items-center shadow-md sticky-header z-50">
+        <div className="flex flex-col h-full">
+            <header className="bg-slate-900 text-white p-3 md:p-4 flex justify-between items-center shadow-md sticky-header z-50 shrink-0">
                 <div className="flex items-center gap-3">
                     <div className="p-2 bg-blue-600 rounded-lg"><Icon name="bar-chart-3" className="w-6 h-6 text-white" /></div>
                     <div>
-                        <h1 className="text-xl font-bold tracking-tight">Financial Sim</h1>
+                        <h1 className="text-lg md:text-xl font-bold tracking-tight">Financial Sim</h1>
                     </div>
                 </div>
-                <div className="flex items-center gap-3">
-                    <input type="text" placeholder="Student Name" className="bg-slate-800 border-slate-700 px-3 py-1 rounded text-sm text-white" />
+                <div className="flex items-center gap-2 md:gap-3">
+                    <input type="text" placeholder="Your Name" className="bg-slate-800 border-slate-700 px-3 py-1 rounded text-sm text-white w-28 md:w-auto" />
                     <button
-    onClick={() => setShowCalculator(prev => !prev)}
-    className="bg-white/10 hover:bg-white/20 text-white px-3 py-2 rounded text-sm font-medium flex items-center gap-2 transition"
-    title="Open Calculator"
->
-    <Icon name="calculator" className="w-4 h-4" />
-    Calc
-</button>
+                        onClick={() => setShowCalculator(prev => !prev)}
+                        className="bg-white/10 hover:bg-white/20 text-white px-3 py-2 rounded text-sm font-medium flex items-center gap-2 transition"
+                        title="Open Calculator"
+                    >
+                        <Icon name="calculator" className="w-4 h-4" />
+                        <span className="hidden md:inline">Calc</span>
+                    </button>
  
                     <button 
                         onClick={() => instructorMode ? setInstructorMode(false) : setShowAuthModal(true)}
@@ -1378,23 +1422,36 @@ const App = () => {
 
             {/* Sticky Instructor Toolbar */}
             {instructorMode && (
-                <div className="bg-purple-700 text-white p-2 shadow-md flex items-center justify-between z-40 instructor-toolbar shrink-0">
-                    <div className="flex items-center gap-3 px-4">
+                <div className="bg-purple-700 text-white p-2 shadow-md flex items-center justify-between z-40 instructor-toolbar shrink-0 overflow-x-auto">
+                    <div className="flex items-center gap-2 md:gap-3 px-2 md:px-4 shrink-0">
                         <span className="bg-white/20 p-1.5 rounded"><Icon name="graduation-cap" className="w-4 h-4"/></span>
-                        <span className="font-bold tracking-wide text-sm">INSTRUCTOR MODE</span>
+                        <span className="font-bold tracking-wide text-xs md:text-sm">INSTRUCTOR</span>
                     </div>
-                    <div className="flex gap-2 px-4">
-                        <button onClick={autoFillAll} className="flex items-center gap-2 px-3 py-1 bg-green-500 hover:bg-green-600 rounded text-sm font-bold transition">
-                            <Icon name="wand-2" className="w-4 h-4" /> Auto-Fill All
+                    <div className="flex gap-2 px-2 md:px-4 shrink-0">
+                        <button onClick={autoFillAll} className="flex items-center gap-1 md:gap-2 px-2 md:px-3 py-1 bg-green-500 hover:bg-green-600 rounded text-xs md:text-sm font-bold transition">
+                            <Icon name="wand-2" className="w-3 h-3 md:w-4 md:h-4" /> Fill
                         </button>
-                        <button onClick={() => setShowClearModal(true)} className="flex items-center gap-2 px-3 py-1 bg-red-500 hover:bg-red-600 rounded text-sm font-bold transition">
-                            <Icon name="log-out" className="w-4 h-4" /> Clear & Exit
+                        <button onClick={() => setShowClearModal(true)} className="flex items-center gap-1 md:gap-2 px-2 md:px-3 py-1 bg-red-500 hover:bg-red-600 rounded text-xs md:text-sm font-bold transition">
+                            <Icon name="log-out" className="w-3 h-3 md:w-4 md:h-4" /> Clear
                         </button>
                     </div>
                 </div>
             )}
 
-            <div className="flex flex-1 overflow-hidden relative">
+            <div className="flex flex-col md:flex-row flex-1 overflow-hidden relative">
+                
+                {/* Mobile Dropdown Nav */}
+                <div className="md:hidden bg-white border-b p-3 shrink-0">
+                     <select 
+                        value={activeModule} 
+                        onChange={(e) => setActiveModule(e.target.value)}
+                        className="w-full p-2 border border-gray-300 rounded bg-gray-50 font-medium text-slate-800"
+                    >
+                        {MODULES.map(mod => <option key={mod.id} value={mod.id}>{mod.reviewId}: {mod.title}</option>)}
+                    </select>
+                </div>
+
+                {/* Desktop Sidebar Nav */}
                 <nav 
                     className="bg-white border-r border-gray-200 overflow-y-auto custom-scrollbar flex-shrink-0 hidden md:block relative"
                     style={{ width: navWidth }}
@@ -1414,7 +1471,7 @@ const App = () => {
                                 <span className={`w-6 h-6 flex items-center justify-center rounded text-xs font-bold ${mod.type === 'concept' ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-500'}`}>
                                     {mod.type === 'concept' ? '?' : mod.reviewId}
                                 </span>
-                                {mod.title}
+                                <span className="truncate">{mod.title}</span>
                             </button>
                         ))}
                     </div>
@@ -1422,25 +1479,15 @@ const App = () => {
                     <div className="resizer-handle" onMouseDown={startResizing}></div>
                 </nav>
 
-                <main className="flex-1 overflow-hidden relative bg-gray-50 p-6">
-                    <div className="md:hidden mb-4">
-                        <select 
-                            value={activeModule} 
-                            onChange={(e) => setActiveModule(e.target.value)}
-                            className="w-full p-2 border rounded bg-white"
-                        >
-                            {MODULES.map(mod => <option key={mod.id} value={mod.id}>{mod.title}</option>)}
-                        </select>
-                    </div>
-
+                <main className="flex-1 overflow-hidden relative bg-gray-50 p-3 md:p-6">
                     {renderModuleContent()}
                 </main>
             </div>
             {/* Calculator Widget */}
-<Calculator
-    isOpen={showCalculator}
-    onClose={() => setShowCalculator(false)}
-/>
+            <Calculator 
+                isOpen={showCalculator} 
+                onClose={() => setShowCalculator(false)} 
+            />
 
             {/* Login Modal */}
             <Modal isOpen={showAuthModal} title="System Access" onClose={() => setShowAuthModal(false)}>
