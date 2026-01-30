@@ -342,7 +342,7 @@
             "m3_cs_is_sales_22": "MTAwLjA=", "m3_cs_is_sales_21": "MTAwLjA=",
             "m3_cs_is_cos_22": "NzEuOA==", "m3_cs_is_cos_21": "NzIuOA==",
             "m3_cs_is_gp_22": "MjguMg==", "m3_cs_is_gp_21": "MjcuMg==",
-            "m3_cs_is_sga_22": "TenLjM=", "m3_cs_is_sga_21": "MTAuNg==",
+            "m3_cs_is_sga_22": "MTAuMw==", "m3_cs_is_sga_21": "MTAuNg==", // Fixed SG&A to 10.3 (MTAuMw==)
             "m3_cs_is_gain_22": "MC4w", "m3_cs_is_gain_21": "LTAuOA==",
             "m3_cs_is_opinc_22": "MTguMA==", "m3_cs_is_opinc_21": "MTcuMw==",
             "m3_cs_is_int_exp_22": "MS42", "m3_cs_is_int_exp_21": "MS43",
@@ -354,7 +354,14 @@
             "m3_cs_is_nic_22": "OC4z", "m3_cs_is_nic_21": "MTIuMg==",
             "m3_ph_sta_p_22": "NDYuNA==", "m3_ph_lta_p_22": "NTMuNg==",
             "m3_ph_le_22": "MS45Mw==", "m3_ph_roa_22": "NS43",
-            "m4_ph_mkt_cap": "MzE3NDUzMTY="
+            "m4_ph_mkt_cap": "MzE3NDUzMTY=",
+            // Simplified BS Amounts (Added Answer Keys)
+            "m3_cs_bs_sta_val": "MTIsMDQ2LDY0NA==", // 12,046,644
+            "m3_cs_bs_lta_val": "MTMsODk3LDI5OQ==", // 13,897,299
+            "m3_cs_bs_ta_val": "MjUsOTQzLDk0Mw==",  // 25,943,943
+            "m3_cs_bs_stl_val": "NSw4NTksMzE4",     // 5,859,318
+            "m3_cs_bs_ltl_val": "MTEsMjI0LDcwNQ==", // 11,224,705
+            "m3_cs_bs_te_val": "OCw4NTksOTIw"       // 8,859,920
         };
 
         // Helper to populate matrix from case data (obfuscation through runtime generation)
@@ -449,15 +456,8 @@
                 const cleanCorrect = String(correctValue).toLowerCase().replace(/,/g, '').trim();
                 
                 // Numeric comparison with 2% tolerance
-                // ... inside useMemo ...
-// OLD:
-// const numVal = parseFloat(cleanVal);
-// const numCorrect = parseFloat(cleanCorrect);
-
-// NEW: Use the global parseMoney function
-const numVal = parseMoney(String(value)); 
-const numCorrect = parseMoney(String(correctValue));
-// ...
+                const numVal = parseMoney(String(value)); 
+                const numCorrect = parseMoney(String(correctValue));
                 
                 if (!isNaN(numVal) && !isNaN(numCorrect)) {
                     if (numCorrect === 0) return Math.abs(numVal) < 0.1;
@@ -1500,15 +1500,20 @@ const numCorrect = parseMoney(String(correctValue));
                 if (activeInputId && val) {
                     const currentVal = inputs[activeInputId] || "";
                     // Remove commas from the inserted value to make math valid
-                    const cleanVal = val.replace(/,/g, '');
-                    handleInputChange(activeInputId, currentVal + cleanVal);
+                    const cleanVal = String(val).replace(/,/g, '');
+                    const newVal = currentVal + cleanVal;
                     
+                    handleInputChange(activeInputId, newVal);
+                    
+                    // Increased timeout to 50ms to ensure React render cycle completes and cursor is placed at end
                     setTimeout(() => {
                         const el = document.getElementById(activeInputId);
                         if(el) {
                             el.focus();
+                            const len = el.value.length;
+                            el.setSelectionRange(len, len);
                         }
-                    }, 0);
+                    }, 50);
                 }
             };
 
@@ -1983,15 +1988,20 @@ const numCorrect = parseMoney(String(correctValue));
                     const currentVal = inputs[activeInputId] || "";
                     // Remove commas from the inserted value to make math valid
                     const cleanVal = String(val).replace(/,/g, '');
-                    handleInputChange(activeInputId, currentVal + cleanVal);
+                    const newVal = currentVal + cleanVal;
+                    
+                    handleInputChange(activeInputId, newVal);
                     
                     // Force focus back to the input immediately so typing can continue
                     setTimeout(() => {
                         const el = document.getElementById(activeInputId);
                         if(el) {
                             el.focus();
+                            // FIX: Ensure cursor is at the end so next operator appends correctly
+                            const len = el.value.length;
+                            el.setSelectionRange(len, len);
                         }
-                    }, 0);
+                    }, 50);
                 }
             };
 
