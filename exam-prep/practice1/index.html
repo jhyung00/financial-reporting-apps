@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financial Analysis & Valuation Study Guide</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc; /* Slate 50 */
+            color: #1e293b; /* Slate 800 */
+        }
+        
+        /* Sidebar Scrollbar */
+        .sidebar-scroll::-webkit-scrollbar {
+            width: 6px;
+        }
+        .sidebar-scroll::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .sidebar-scroll::-webkit-scrollbar-thumb {
+            background-color: #cbd5e1;
+            border-radius: 20px;
+        }
+
+        .card {
+            transition: all 0.2s ease-in-out;
+        }
+        
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.02);
+        }
+        
+        .answer-section {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease-out, opacity 0.4s ease-out;
+            opacity: 0;
+        }
+        
+        .answer-section.visible {
+            max-height: 800px; 
+            overflow-y: auto;
+            opacity: 1;
+        }
+
+        .option-btn {
+            transition: all 0.2s;
+        }
+        
+        .option-btn:hover {
+            background-color: #f1f5f9; /* Slate 100 */
+            border-color: #94a3b8;
+        }
+
+        .option-btn.selected {
+            background-color: #ccfbf1; /* Teal 100 */
+            border-color: #0d9488; /* Teal 600 */
+            color: #0f766e; /* Teal 700 */
+        }
+
+        .nav-item.active {
+            background-color: #f0f9ff;
+            color: #0d9488;
+            border-right: 4px solid #0d9488;
+        }
+
+        /* FSET Specific Styles */
+        .fset-header {
+            font-family: 'Courier New', Courier, monospace;
+            font-weight: 700;
+            font-size: 0.75rem;
+            color: #334155;
+            background-color: #e2e8f0;
+            padding: 0.75rem;
+            border-radius: 0.375rem;
+            text-align: center;
+            overflow-x: auto;
+            white-space: nowrap;
+            margin-bottom: 0.5rem;
+            line-height: 1.5;
+        }
+        .fset-select {
+            width: 100%;
+            padding: 0.35rem;
+            border: 1px solid #cbd5e1;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            margin-bottom: 0.25rem;
+        }
+        .correct-input {
+            border-color: #10b981 !important;
+            background-color: #ecfdf5 !important;
+            color: #065f46 !important;
+        }
+        .incorrect-input {
+            border-color: #f43f5e !important;
+            background-color: #fff1f2 !important;
+            color: #881337 !important;
+        }
+        .fset-col {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 110px; /* Wider for full text */
+        }
+        .fset-label {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            font-weight: 700;
+            color: #64748b;
+            margin-bottom: 2px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body class="h-screen flex flex-col md:flex-row overflow-hidden">
+
+    <!-- Mobile Header -->
+    <header class="md:hidden bg-white border-b border-slate-200 p-4 flex justify-between items-center z-20">
+        <div class="flex items-center gap-2 font-bold text-slate-800">
+            <i data-lucide="book-open" class="text-teal-600"></i>
+            <span>Study Guide</span>
+        </div>
+        <button onclick="toggleMobileMenu()" class="text-slate-500 hover:text-slate-800">
+            <i data-lucide="menu" class="w-6 h-6"></i>
+        </button>
+    </header>
+
+    <!-- Sidebar Navigation -->
+    <aside id="sidebar" class="bg-white w-full md:w-72 border-r border-slate-200 flex-col absolute md:relative z-10 h-full hidden md:flex transition-transform duration-300">
+        <div class="p-6 border-b border-slate-100 hidden md:flex items-center gap-2 font-bold text-xl text-slate-800">
+            <i data-lucide="book-open" class="text-teal-600"></i>
+            <span>Study Guide</span>
+        </div>
+        
+        <div class="p-4 overflow-y-auto flex-1 sidebar-scroll space-y-2">
+            <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 px-3">Modules</div>
+            
+            <button onclick="filterQuestions('all')" id="btn-all" class="nav-item w-full text-left px-4 py-3 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors active">
+                All Modules
+            </button>
+            <button onclick="filterQuestions('Module 1')" id="btn-mod1" class="nav-item w-full text-left px-4 py-3 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors">
+                Module 1: Framework
+            </button>
+            <button onclick="filterQuestions('Module 2')" id="btn-mod2" class="nav-item w-full text-left px-4 py-3 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors">
+                Module 2: Business Activities
+            </button>
+            <button onclick="filterQuestions('Module 3')" id="btn-mod3" class="nav-item w-full text-left px-4 py-3 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors">
+                Module 3: Profitability
+            </button>
+
+            <div class="mt-8 border-t border-slate-100 pt-4">
+                <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 px-3">Tools</div>
+                
+                <!-- Formulas Button -->
+                <button onclick="toggleFormulas()" class="w-full text-left px-4 py-3 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors flex items-center gap-2">
+                    <i data-lucide="sigma" class="w-4 h-4"></i> Formulas
+                </button>
+
+                <button onclick="toggleCalculator()" class="w-full text-left px-4 py-3 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors flex items-center gap-2">
+                    <i data-lucide="calculator" class="w-4 h-4"></i> Calculator
+                </button>
+                <button onclick="toggleAllAnswers()" id="toggleAllSideBtn" class="w-full text-left px-4 py-3 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors flex items-center gap-2">
+                    <i data-lucide="eye" class="w-4 h-4"></i> Show All Answers
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 overflow-y-auto h-full p-4 md:p-8 bg-slate-50 scroll-smooth">
+        
+        <!-- Questions Feed -->
+        <div id="questions-container" class="max-w-4xl mx-auto space-y-6 pb-20">
+            <!-- Questions injected here -->
+        </div>
+    </main>
+
+    <!-- Floating Formula Modal (Hidden by default) -->
+    <div id="formula-modal" class="fixed inset-0 z-50 hidden">
+        <!-- Backdrop -->
+        <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm transition-opacity" onclick="toggleFormulas()"></div>
+        
+        <!-- Modal Content -->
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-11/12 max-w-5xl bg-white rounded-xl shadow-2xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                <h3 class="font-bold text-slate-800 flex items-center gap-2 text-lg">
+                    <i data-lucide="sigma" class="w-5 h-5 text-teal-600"></i> Key Ratio and Acronym Definitions
+                </h3>
+                <button onclick="toggleFormulas()" class="text-slate-400 hover:text-slate-800 transition-colors p-2 hover:bg-slate-200 rounded-full">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            
+            <div class="p-6 overflow-y-auto bg-white">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-y-6 gap-x-12 text-sm text-slate-600">
+                    <div class="space-y-3">
+                        <div class="bg-slate-50 p-4 rounded-lg border border-slate-100">
+                            <span class="font-bold text-slate-800 block text-xs uppercase tracking-wide mb-1">ROE: Return on Equity</span>
+                            Net Income / Average Equity
+                        </div>
+                        <div class="bg-slate-50 p-4 rounded-lg border border-slate-100">
+                            <span class="font-bold text-slate-800 block text-xs uppercase tracking-wide mb-1">ROA: Return on Assets</span>
+                            Net Income / Average Assets
+                        </div>
+                        <div class="bg-slate-50 p-4 rounded-lg border border-slate-100">
+                            <span class="font-bold text-slate-800 block text-xs uppercase tracking-wide mb-1">Financial Leverage</span>
+                            Average Assets / Average Equity
+                        </div>
+                        <div class="bg-slate-50 p-4 rounded-lg border border-slate-100">
+                            <span class="font-bold text-slate-800 block text-xs uppercase tracking-wide mb-1">Profit Margin</span>
+                            Net Income / Sales
+                        </div>
+                        <div class="bg-slate-50 p-4 rounded-lg border border-slate-100">
+                            <span class="font-bold text-slate-800 block text-xs uppercase tracking-wide mb-1">Asset Turnover</span>
+                            Sales / Average Assets
+                        </div>
+                    </div>
+
+                    <div class="space-y-3">
+                        <div class="bg-slate-50 p-4 rounded-lg border border-slate-100">
+                            <span class="font-bold text-slate-800 block text-xs uppercase tracking-wide mb-1">NOA: Net Operating Assets</span>
+                            Operating assets - Operating liabilities
+                        </div>
+                        <div class="bg-slate-50 p-4 rounded-lg border border-slate-100">
+                            <span class="font-bold text-slate-800 block text-xs uppercase tracking-wide mb-1">NOPBT: Net Operating Profit Before Tax</span>
+                            Revenue - Operating expenses including Cost of Goods Sold
+                        </div>
+                        <div class="bg-slate-50 p-4 rounded-lg border border-slate-100">
+                            <span class="font-bold text-slate-800 block text-xs uppercase tracking-wide mb-1">NNE: Net Nonoperating Expense After Tax</span>
+                            Pretax net nonoperating expense × (1 - Tax%)
+                        </div>
+                        <div class="bg-slate-50 p-4 rounded-lg border border-slate-100">
+                            <span class="font-bold text-slate-800 block text-xs uppercase tracking-wide mb-1">NOPAT: Net Operating Profit After Tax</span>
+                            <div>1. NOPBT - Tax on operating profit</div>
+                            <div class="mt-1 border-t border-slate-200 pt-1">2. Net income + NNE</div>
+                        </div>
+                        <div class="bg-slate-50 p-4 rounded-lg border border-slate-100">
+                            <span class="font-bold text-slate-800 block text-xs uppercase tracking-wide mb-1">RNOA: Return on Net Operating Assets</span>
+                            NOPAT / Average Net Operating Assets
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="p-4 border-t border-slate-100 bg-slate-50 text-right">
+                <button onclick="toggleFormulas()" class="px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-700 font-medium text-sm transition-colors">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Floating Calculator Widget -->
+    <div id="calculator-container" class="fixed bottom-8 right-8 z-50 hidden shadow-2xl">
+        <div class="bg-slate-800 p-4 rounded-2xl border border-slate-700 w-72">
+            <div class="flex justify-between items-center mb-3">
+                <span class="text-slate-400 text-xs font-medium uppercase tracking-wider">Calculator</span>
+                <button onclick="toggleCalculator()" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-4 h-4"></i></button>
+            </div>
+            <div class="bg-slate-100 rounded-lg mb-4 p-3 text-right text-2xl font-mono h-16 flex items-center justify-end overflow-hidden text-slate-800" id="calc-display">0</div>
+            <div class="grid grid-cols-4 gap-2">
+                <button onclick="clearCalc()" class="calc-btn bg-rose-500 text-white p-3 rounded-lg hover:bg-rose-600 font-bold col-span-2 shadow-sm">C</button>
+                <button onclick="backspace()" class="calc-btn bg-slate-600 text-white p-3 rounded-lg hover:bg-slate-500 font-bold shadow-sm">⌫</button>
+                <button onclick="appendOp('/')" class="calc-btn bg-teal-600 text-white p-3 rounded-lg hover:bg-teal-500 font-bold shadow-sm">÷</button>
+                <button onclick="appendNum('7')" class="calc-btn bg-slate-700 text-white p-3 rounded-lg hover:bg-slate-600 font-bold shadow-sm">7</button>
+                <button onclick="appendNum('8')" class="calc-btn bg-slate-700 text-white p-3 rounded-lg hover:bg-slate-600 font-bold shadow-sm">8</button>
+                <button onclick="appendNum('9')" class="calc-btn bg-slate-700 text-white p-3 rounded-lg hover:bg-slate-600 font-bold shadow-sm">9</button>
+                <button onclick="appendOp('*')" class="calc-btn bg-teal-600 text-white p-3 rounded-lg hover:bg-teal-500 font-bold shadow-sm">×</button>
+                <button onclick="appendNum('4')" class="calc-btn bg-slate-700 text-white p-3 rounded-lg hover:bg-slate-600 font-bold shadow-sm">4</button>
+                <button onclick="appendNum('5')" class="calc-btn bg-slate-700 text-white p-3 rounded-lg hover:bg-slate-600 font-bold shadow-sm">5</button>
+                <button onclick="appendNum('6')" class="calc-btn bg-slate-700 text-white p-3 rounded-lg hover:bg-slate-600 font-bold shadow-sm">6</button>
+                <button onclick="appendOp('-')" class="calc-btn bg-teal-600 text-white p-3 rounded-lg hover:bg-teal-500 font-bold shadow-sm">-</button>
+                <button onclick="appendNum('1')" class="calc-btn bg-slate-700 text-white p-3 rounded-lg hover:bg-slate-600 font-bold shadow-sm">1</button>
+                <button onclick="appendNum('2')" class="calc-btn bg-slate-700 text-white p-3 rounded-lg hover:bg-slate-600 font-bold shadow-sm">2</button>
+                <button onclick="appendNum('3')" class="calc-btn bg-slate-700 text-white p-3 rounded-lg hover:bg-slate-600 font-bold shadow-sm">3</button>
+                <button onclick="appendOp('+')" class="calc-btn bg-teal-600 text-white p-3 rounded-lg hover:bg-teal-500 font-bold shadow-sm">+</button>
+                <button onclick="appendNum('0')" class="calc-btn bg-slate-700 text-white p-3 rounded-lg hover:bg-slate-600 font-bold col-span-2 shadow-sm">0</button>
+                <button onclick="appendNum('.')" class="calc-btn bg-slate-700 text-white p-3 rounded-lg hover:bg-slate-600 font-bold shadow-sm">.</button>
+                <button onclick="calculate()" class="calc-btn bg-emerald-500 text-white p-3 rounded-lg hover:bg-emerald-400 font-bold shadow-sm">=</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Data and Script -->
+    <script>
+        const ACCOUNT_OPTIONS = [
+            "Not Affected",
+            ...[
+                "Accounts Payable", "Accounts Receivable", "Accumulated Depreciation", 
+                "Cash", "Common Stock", "Cost of Goods Sold", "Depreciation Expense", 
+                "Equipment", "Insurance Expense", "Inventory", "Maintenance Expense", 
+                "Notes Payable", "Prepaid Insurance", "Retained Earnings", 
+                "Sales Revenue", "Service Revenue", "Supplies", "Supplies Expense", 
+                "Unearned Revenue", "Utilities Expense", "Utilities Payable", 
+                "Wages Expense", "Wages Payable"
+            ].sort()
+        ];
+
+        const questions = [
+            // --- MODULE 1 (34 Questions - renumbered consecutively 101-134) ---
+            { id: 101, module: "Module 1", type: "True/False", topic: "Users of Financial Information", lo: "LO2", question: "Shareholders demand financial information primarily to assess profitability and risk whereas bankers demand information primarily to assess cash flows to repay loan interest and principal.", options: ["True", "False"], answer: "True", rationale: "Shareholders focus on profitability; bankers focus on solvency." },
+            { id: 102, module: "Module 1", type: "Multiple Choice", topic: "Public Reporting", lo: "LO2", question: "How do publicly traded companies provide quarterly financial reports to the public?", options: ["A) Directly via email", "B) Through the SEC (EDGAR)", "C) Only in printed newspapers", "D) Not required"], answer: "B", rationale: "Companies file electronically with the Securities and Exchange Commission (SEC)." },
+            { id: 103, module: "Module 1", type: "Multiple Choice", topic: "Users of Information", lo: "LO2", question: "Which group is primarily interested in the company's ability to pay taxes?", options: ["A) Shareholders", "B) Competitors", "C) IRS / Taxing Agencies", "D) Employees"], answer: "C", rationale: "Taxing agencies focus on tax liability and compliance." },
+            { id: 104, module: "Module 1", type: "True/False", topic: "SEC Filings", lo: "LO2", question: "Publicly traded companies must provide to the Securities and Exchange Commission (SEC) annual audited financial statements (10-K) and quarterly audited financial statements (10-Q).", options: ["True", "False"], answer: "False", rationale: "Quarterly reports (10-Q) are reviewed but generally not audited." },
+            { id: 105, module: "Module 1", type: "Short Answer", topic: "Balance Sheet Calculation", lo: "LO3", question: "Kelty Company reported the following: January 1 Retained Earnings of $11,425, Net Income of $3,160, and Dividends of $205. Calculate December 31 Retained Earnings.", answer: "14380", rationale: "$11,425 + $3,160 - $205 = $14,380." },
+            { id: 106, module: "Module 1", type: "Multiple Choice", topic: "Balance Sheet", lo: "LO3", question: "Which statement is true regarding the Balance Sheet?", options: ["A) It shows position over a period of time", "B) It shows position at a point in time", "C) It reports cash flows", "D) It only lists liabilities"], answer: "B", rationale: "Balance sheet is a snapshot at a specific date." },
+            { id: 107, module: "Module 1", type: "Short Answer", topic: "Liabilities Calculation", lo: "LO3", question: "Starstruck Corporation reported Total Assets of $21,494.3 and Total Equity of $8,836.1. Calculate Total Liabilities. (Enter number)", answer: "12658.2", rationale: "Total Assets - Total Equity = Total Liabilities. $21,494.3 - $8,836.1 = $12658.2." },
+            { id: 108, module: "Module 1", type: "Short Answer", topic: "Total Assets Calculation", lo: "LO3", question: "Snap-Tite reported Total Equity of $2,635.2 and Total Liabilities of $2,088.0. Calculate Total Assets. (Enter number)", answer: "4723.2", rationale: "$2,635.2 + $2,088.0 = $4,723.2." },
+            { id: 109, module: "Module 1", type: "Short Answer", topic: "Nonowner Financing", lo: "LO3", question: "Kehl’s Corporation reported Total Assets of $20,362 and Total Liabilities of $12,596. Calculate percentage of nonowner financing (1 decimal).", answer: "61.9", rationale: "Total Liabilities / Total Assets = $12,596 / $20,362 = 61.9%." },
+            { id: 110, module: "Module 1", type: "Short Answer", topic: "Net Income Interpretation", lo: "LO3", question: "Tread Company reported Sales of $22,737, Cost of Goods Sold of $16,458, and Other Expenses of $4,353. Calculate Net Income. (Enter whole number)", answer: "1926", rationale: "$22,737 - $16,458 - $4,353 = $1926." },
+            { id: 111, module: "Module 1", type: "Short Answer", topic: "Cost of Goods Sold", lo: "LO3", question: "Tully Corporation reported Sales of $118,774 and Gross Profit of $72,382. Calculate Cost of Goods Sold.", answer: "46392", rationale: "Sales - Gross Profit = Cost of Goods Sold. $118,774 - $72,382 = $46,392." },
+            { id: 112, module: "Module 1", type: "Short Answer", topic: "Growth Rate", lo: "LO3", question: "Sleek Corporation reported Net Income of $2,759.3 in Year 1 and $2,875.3 in Year 2. Calculate the growth rate percentage (1 decimal).", answer: "4.2", rationale: "(2875.3 - 2759.3) / 2759.3 = 4.2%." },
+            { id: 113, module: "Module 1", type: "Multiple Choice", topic: "ROA Definition", lo: "LO4", question: "Return on Assets (ROA) is calculated as:", options: ["A) Net Income / Sales", "B) Net Income / Average Assets", "C) Sales / Average Assets", "D) Gross Profit / Average Assets"], answer: "B", rationale: "Return on Assets (ROA) measures profit per dollar of assets." },
+            { id: 114, module: "Module 1", type: "Short Answer", topic: "ROA Calculation", lo: "LO4", question: "A company reported Sales of $296,024, Net Income of $22,965, and Average Assets of $163,628. Calculate Return on Assets (ROA) % (1 decimal).", answer: "14.0", rationale: "$22,965 / $163,628 = 14.0%." },
+            { id: 115, module: "Module 1", type: "Short Answer", topic: "ROE Calculation", lo: "LO4", question: "A company reported Sales of $341,126, Net Income of $38,441, and Average Equity of $123,650. Calculate Return on Equity (ROE) % (1 decimal).", answer: "31.1", rationale: "$38,441 / $123,650 = 31.1%." },
+            { id: 116, module: "Module 1", type: "Short Answer", topic: "ROA Derived", lo: "LO4", question: "A company reported Sales of $997,279, a Profit Margin of 18%, and Average Assets of $647,770. Calculate Return on Assets (ROA) % (1 decimal).", answer: "27.7", rationale: "Net Income = 997279 * 0.18 = 179510. ROA = 179510 / 647770 = 27.7%." },
+            { id: 117, module: "Module 1", type: "Multiple Choice", topic: "Porter's Forces", lo: "LO5", question: "Which is NOT one of Porter's Five Forces?", options: ["A) Threat of Entry", "B) Supplier Power", "C) Threat of Substitution", "D) Threat of Regulation"], answer: "D", rationale: "Regulation is an external factor but not one of the standard 5 competitive forces." },
+            { id: 118, module: "Module 1", type: "Multiple Choice", topic: "Audit Opinion", lo: "LO7", question: "A 'clean' audit opinion asserts that:", options: ["A) The auditor prepared the statements", "B) The company is guaranteed to be profitable", "C) Statements present fairly the financial condition", "D) There are absolutely no errors"], answer: "C", rationale: "It confirms fair presentation, not error-free status or profitability." },
+            { id: 119, module: "Module 1", type: "Multiple Choice", topic: "GAAP", lo: "LO7", question: "Who establishes Generally Accepted Accounting Principles (GAAP) in the US?", options: ["A) Internal Revenue Service (IRS)", "B) Financial Accounting Standards Board (FASB)", "C) PCAOB", "D) Congress"], answer: "B", rationale: "Financial Accounting Standards Board (FASB)." },
+            { id: 120, module: "Module 1", type: "True/False", topic: "Asset Turnover Interpretation", lo: "LO4", question: "If Company A has higher Asset Turnover than B (all else equal), Company A is more efficient.", options: ["True", "False"], answer: "True", rationale: "Higher turnover means more sales generated per dollar of assets." },
+            { id: 121, module: "Module 1", type: "Multiple Choice", topic: "Market Efficiency", lo: "LO7", question: "Market efficiency implies that:", options: ["A) Prices reflect all available information", "B) Prices are always rising", "C) Insider trading is legal", "D) Financial statements are useless"], answer: "A", rationale: "Efficient markets incorporate information into prices quickly." },
+            { id: 122, module: "Module 1", type: "Short Answer", topic: "Balance Sheet Identity", lo: "LO3", question: "If Total Equity is $500 and Total Liabilities are $300, what are Total Assets?", answer: "800", rationale: "Total Assets = Total Liabilities + Total Equity." },
+            { id: 123, module: "Module 1", type: "Short Answer", topic: "Net Income Derivation", lo: "LO3", question: "If Revenues are $1000, Expenses are $600, and Dividends are $100, what is Net Income?", answer: "400", rationale: "Revenue - Expenses = Net Income. Dividends are not expenses." },
+            { id: 124, module: "Module 1", type: "Multiple Choice", topic: "10-K vs 10-Q", lo: "LO2", question: "Which report is filed annually?", options: ["A) 10-Q", "B) 8-K", "C) 10-K", "D) S-1"], answer: "C", rationale: "10-K is annual." },
+            { id: 125, module: "Module 1", type: "Multiple Choice", topic: "Regulator", lo: "LO2", question: "Which body oversees the US securities markets?", options: ["A) FASB", "B) Securities and Exchange Commission (SEC)", "C) AICPA", "D) GAAP"], answer: "B", rationale: "Securities and Exchange Commission (SEC)." },
+            { id: 126, module: "Module 1", type: "Short Answer", topic: "Simple ROA", lo: "LO4", question: "A company reported Net Income of $10 and Average Assets of $100. Calculate Return on Assets (ROA) %.", answer: "10", rationale: "10/100 = 10%." },
+            { id: 127, module: "Module 1", type: "Multiple Choice", topic: "Profit Margin vs Turnover", lo: "Deep Thinking", question: "Two companies in the same industry have identical Return on Assets (ROA). Company A has a much higher Net Profit Margin than Company B. What does this likely imply about their business strategies?", options: ["A) Company A is more efficient at using its assets to generate sales volume.", "B) Company B likely follows a 'low cost, high volume' strategy while Company A follows a 'differentiation/premium price' strategy.", "C) Company A has significantly more financial leverage than Company B.", "D) Company B is generating more profit for every dollar of sales than Company A."], answer: "B", rationale: "ROA is the product of Profit Margin and Asset Turnover. If ROA is equal but Company A has a higher margin, it must have a lower asset turnover (fewer sales per dollar of assets). This aligns with a differentiation strategy (high price, lower volume). Company B must have a higher turnover to compensate for the lower margin, aligning with a low-cost/high-volume strategy." },
+            { id: 128, module: "Module 1", type: "Multiple Choice", topic: "Earnings Quality", lo: "Deep Thinking", question: "Which of the following scenarios best illustrates a situation where a company's 'Net Income' might be high, but its 'Earnings Quality' is considered low?", options: ["A) Cash Flow from Operations is significantly higher than Net Income due to high depreciation charges.", "B) Net Income is driven primarily by a one-time gain from selling a factory, while operating income is negative.", "C) Revenue growth is consistent with cash collection growth.", "D) The company uses conservative accounting estimates for warranty allowances."], answer: "B", rationale: "High earnings quality implies that income is derived from sustainable, recurring core operations. A one-time gain boosts Net Income temporarily but does not reflect the company's long-term profitability or operational health, signaling lower quality of the reported 'bottom line' number for predictive purposes." },
+            { id: 129, module: "Module 1", type: "Multiple Choice", topic: "Creditor Analysis", lo: "Deep Thinking", question: "Why might a long-term creditor (like a bondholder) be more focused on the 'Times Interest Earned' ratio than a short-term creditor (like a supplier)?", options: ["A) Suppliers are only interested in the company's profitability over the next 10 years.", "B) Bondholders are primarily concerned with the company's ability to generate enough operating income to cover long-term interest payments, whereas suppliers care more about immediate liquidity (current ratio).", "C) Times Interest Earned measures the liquidation value of the company, which is critical for bondholders.", "D) Short-term creditors do not care if a company is profitable."], answer: "B", rationale: "Long-term creditors are exposed to the risk of default over a long period and need assurance that the company's ongoing operations can service the debt (interest). Short-term creditors (suppliers) are more concerned with immediate liquidity (cash on hand, current assets) to get paid in the next 30-90 days." },
+            { id: 130, module: "Module 1", type: "Multiple Choice", topic: "Solvency Stakeholders", lo: "Deep Thinking", question: "Select all that apply: Which of the following stakeholders would be most interested in a company's Solvency ratios (e.g., Debt-to-Equity)?", options: ["A) A supplier deciding whether to sell goods on 30-day credit.", "B) A bank considering lending the company $10 million for a 10-year term.", "C) A credit rating agency (like Moody's) assigning a bond rating.", "D) A customer buying a small retail item for cash."], answer: "B and C", rationale: "Solvency refers to long-term debt-paying ability. Banks (long-term loans) and rating agencies are directly assessing this risk. Suppliers focus on short-term liquidity. Customers generally don't analyze solvency for small purchases." },
+            { id: 131, module: "Module 1", type: "Multiple Choice", topic: "Market vs Book Value", lo: "Deep Thinking", question: "If a company's Book Value of Equity is significantly lower than its Market Value of Equity, what is the most plausible interpretation?", options: ["A) The company is on the verge of bankruptcy.", "B) Investors expect strong future growth and profitability that is not yet captured by historical accounting costs.", "C) The company has overstated its assets on the balance sheet.", "D) The company has issued too much common stock recently."], answer: "B", rationale: "Market value reflects future expectations. A high Market-to-Book ratio suggests investors believe the company's intangible value (brand, growth prospects, intellectual property) is worth far more than the historical cost of its net assets reported under GAAP." },
+            { id: 132, module: "Module 1", type: "Multiple Choice", topic: "Matching Principle", lo: "Deep Thinking", question: "How does the 'Revenue Recognition Principle' directly affect the 'Matching Principle'?", options: ["A) It doesn't; they are unrelated concepts.", "B) Expenses must be recorded before revenue is recognized to ensure conservatism.", "C) Once revenue is recognized in a specific period, the Matching Principle dictates that all costs incurred to generate that specific revenue must also be recorded as expenses in the same period.", "D) Revenue and expenses are simply recorded when cash changes hands."], answer: "C", rationale: "The Matching Principle is dependent on the timing of revenue recognition. You first determine when revenue is earned, and then you match the associated costs (like COGS, commissions) to that same period to properly measure profitability." },
+            { id: 133, module: "Module 1", type: "Multiple Choice", topic: "Unearned Revenue", lo: "Deep Thinking", question: "A company collects cash from a customer for a service to be performed next year. How does this transaction affect the Accounting Equation interpretively?", options: ["A) Assets increase, Revenue increases immediately.", "B) Assets increase, but the company now has an obligation (Liability) to perform work, so Equity does not change yet.", "C) Liabilities decrease because the customer has paid.", "D) Assets increase, and Retained Earnings increases immediately."], answer: "B", rationale: "Cash (Asset) goes up. However, since the service hasn't been provided, revenue cannot be recognized. Instead, a liability ('Unearned Revenue') is created, representing the obligation to do the work. Equity (Net Income) is unaffected until the work is actually done." },
+            { id: 134, module: "Module 1", type: "Multiple Choice", topic: "Retained Earnings Impacts", lo: "Deep Thinking", question: "Select all that apply: Which of the following events would decrease Retained Earnings?", options: ["A) Declaring and paying a cash dividend.", "B) Reporting a Net Loss for the year.", "C) Issuing new shares of common stock.", "D) Repaying the principal on a long-term loan."], answer: "A and B", rationale: "Retained Earnings is increased by Net Income and decreased by Net Losses and Dividends. Issuing stock affects Contributed Capital. Repaying a loan affects Cash and Liabilities, not Equity directly (aside from interest expense already in NI)." },
+
+
+            // --- MODULE 2 (34 Questions - renumbered consecutively 201-234) ---
+            { id: 201, module: "Module 2", type: "True/False", topic: "Asset Criteria", lo: "LO1", question: "To be an asset, it must be owned/controlled and provide future benefits.", options: ["True", "False"], answer: "True", rationale: "Standard definition." },
+            { id: 202, module: "Module 2", type: "Multiple Choice", topic: "Asset Order", lo: "LO1", question: "Assets are ordered on the balance sheet by:", options: ["A) Magnitude", "B) Liquidity", "C) Alphabetical", "D) Age"], answer: "B", rationale: "Liquidity (cash conversion speed)." },
+            // Removed 203, 205
+            { id: 203, module: "Module 2", type: "Short Answer", topic: "Net Working Capital", lo: "LO1", question: "ABC Auto reported Current Assets of $10,838 and Current Liabilities of $8,296. Calculate Net Working Capital.", answer: "2542", rationale: "10838 - 8296 = 2542." },
+            { id: 204, module: "Module 2", type: "Multiple Choice", topic: "Current Liability", lo: "LO1", question: "Which of the following is NOT a current liability?", options: ["A) Accounts Payable", "B) Wages Payable", "C) Wage Expense", "D) Taxes Payable"], answer: "C", rationale: "Wage Expense is on the Income Statement." },
+            { id: 205, module: "Module 2", type: "Multiple Choice", topic: "Equity Component", lo: "LO1", question: "Which of the following is a component of Stockholders' Equity?", options: ["A) Retained Earnings", "B) Cash", "C) Accounts Payable", "D) Inventory"], answer: "A", rationale: "Retained Earnings belongs to equity." },
+            { id: 206, module: "Module 2", type: "Short Answer", topic: "Cost of Goods Sold", lo: "LO2", question: "Macur Inc reported Sales of $10,913,300 and Gross Profit of $5,108,782. Calculate Cost of Goods Sold.", answer: "5804518", rationale: "Sales - Gross Profit = Cost of Goods Sold." },
+            // Removed 209
+            
+            // FSET Questions (Interactive)
+            { 
+                id: 207, 
+                module: "Module 2", 
+                type: "FSET", 
+                topic: "FSET Analysis (Cash Expense)", 
+                lo: "LO2", 
+                question: "Werner Realty Company paid $2,000 cash for maintenance expenses.",
+                amountOptions: ["-2000", "+2000", "-1000", "+1000", "No Effect"],
+                correct: { cash: -2000, noncash: 0, liab: 0, cc: 0, ec: -2000, rev: 0, exp: 2000 },
+                accounts: { exp: "Maintenance Expense", noncash: "Not Affected", liab: "Not Affected", rev: "Not Affected" },
+                rationale: "Paying expense: Cash decreases (-2000), Expenses increase (2000), which reduces Net Income and Earned Capital (-2000)."
+            },
+            { 
+                id: 208, 
+                module: "Module 2", 
+                type: "FSET", 
+                topic: "FSET Analysis (Accrued Expense)", 
+                lo: "LO2", 
+                question: "Werner Realty received a $500 utility bill for the current month, to be paid next month.",
+                amountOptions: ["+500", "-500", "+1000", "-1000", "No Effect"],
+                correct: { cash: 0, noncash: 0, liab: 500, cc: 0, ec: -500, rev: 0, exp: 500 },
+                accounts: { liab: "Utilities Payable", exp: "Utilities Expense", noncash: "Not Affected", rev: "Not Affected" },
+                rationale: "Accrued Expense: Liability increases (500), Expense increases (500), reducing Net Income and Earned Capital."
+            },
+            { 
+                id: 209, 
+                module: "Module 2", 
+                type: "FSET", 
+                topic: "FSET Analysis (Accrued Revenue)", 
+                lo: "LO2", 
+                question: "Werner Realty performed services for customers on account for $5,000.",
+                amountOptions: ["+5000", "-5000", "+2500", "-2500", "No Effect"],
+                correct: { cash: 0, noncash: 5000, liab: 0, cc: 0, ec: 5000, rev: 5000, exp: 0 },
+                accounts: { noncash: "Accounts Receivable", rev: "Service Revenue", liab: "Not Affected", exp: "Not Affected" },
+                rationale: "Revenue earned on account: Assets (Accounts Receivable) increase (5000), Revenue increases (5000), increasing Net Income and Earned Capital."
+            },
+            { 
+                id: 210, 
+                module: "Module 2", 
+                type: "FSET", 
+                topic: "FSET Analysis (Depreciation)", 
+                lo: "LO3", 
+                question: "Werner Realty records depreciation of $1,000 on equipment.",
+                amountOptions: ["-1000", "+1000", "-500", "+500", "No Effect"],
+                correct: { cash: 0, noncash: -1000, liab: 0, cc: 0, ec: -1000, rev: 0, exp: 1000 },
+                accounts: { noncash: "Accumulated Depreciation", exp: "Depreciation Expense", liab: "Not Affected", rev: "Not Affected" },
+                rationale: "Adjusting entry: Non-Cash Assets decrease (Contra-Asset Accumulated Depreciation -1000), Expense increases (1000), reducing Earned Capital."
+            },
+
+            { id: 211, module: "Module 2", type: "Short Answer", topic: "Dividends", lo: "LO5", question: "ABC Corporation reported Net Income of $445, Ending Retained Earnings of $10,018, and Beginning Retained Earnings of $9,863. Calculate Dividends.", answer: "290", rationale: "9863 + 445 - Dividends = 10018." },
+            { id: 212, module: "Module 2", type: "Short Answer", topic: "Beginning Retained Earnings", lo: "LO5", question: "Balance Inc reported a Net Loss of $(134), Ending Retained Earnings of $54,754, and Dividends of $3,604. Calculate Beginning Retained Earnings.", answer: "58492", rationale: "Beg - 134 - 3604 = 54754. Beg = 58492." },
+            { id: 213, module: "Module 2", type: "Short Answer", topic: "Cash Flow Linkage", lo: "LO4", question: "Naperville reported Ending Cash of $6,276, Operating Cash Flow of $6,192, Investing Cash Flow of $(2,068), and Financing Cash Flow of $(5,552). Calculate Beginning Cash.", answer: "7704", rationale: "End = Beg + Changes. 6276 = Beg - 1428." },
+            { id: 214, module: "Module 2", type: "Multiple Choice", topic: "Accounts Receivable Collection", lo: "LO1", question: "Collecting Accounts Receivable affects the balance sheet by:", options: ["A) Increasing Cash, Decreasing Accounts Receivable", "B) Increasing Cash, Increasing Revenue", "C) Increasing Liabilities", "D) Decreasing Equity"], answer: "A", rationale: "Asset exchange (Cash up, AR down)." },
+            { id: 215, module: "Module 2", type: "Short Answer", topic: "Cash Conversion Cycle", lo: "LO1", question: "Prestige Company reported Days Inventory Outstanding of 85.4, Days Payable Outstanding of 113.6, and Days Sales Outstanding of 182.6. Calculate the Cash Conversion Cycle.", answer: "154.4", rationale: "DSO + DIO - DPO." },
+            { id: 216, module: "Module 2", type: "Short Answer", topic: "Gross Profit Margin", lo: "LO2", question: "Stanley Inc reported Sales of $11,406.9 and Gross Profit of $4,338.6. Calculate Gross Profit Margin % (1 decimal).", answer: "38.0", rationale: "Gross Profit / Sales." },
+            { id: 217, module: "Module 2", type: "Multiple Choice", topic: "Accrual Concept", lo: "LO2", question: "Accrual accounting records expense when:", options: ["A) Cash is paid", "B) Incurred", "C) Budgeted", "D) Convenient"], answer: "B", rationale: "Matching principle." },
+            { id: 218, module: "Module 2", type: "True/False", topic: "Prepaid Expense", lo: "LO3", question: "Expenses paid in advance are assets (Prepaid Expense) until used.", options: ["True", "False"], answer: "True", rationale: "They provide future benefit." },
+            { id: 219, module: "Module 2", type: "Short Answer", topic: "Inventory Adjustment", lo: "LO3", question: "Unadjusted Inventory is $76,000. A physical count shows $69,728. Calculate Shrinkage Expense.", answer: "6272", rationale: "76000 - 69728 = 6272." },
+            { id: 220, module: "Module 2", type: "Short Answer", topic: "Supplies Expense", lo: "LO3", question: "A company purchased $7,200 of supplies. The end count shows $4,480 remaining. Calculate Supplies Expense.", answer: "2720", rationale: "7200 - 4480 = 2720." },
+            // Removed 224
+            { id: 221, module: "Module 2", type: "Multiple Choice", topic: "Unearned Revenue", lo: "LO3", question: "Unearned revenue is classified as:", options: ["A) Asset", "B) Liability", "C) Equity", "D) Revenue"], answer: "B", rationale: "Obligation to perform service." },
+            { id: 222, module: "Module 2", type: "Short Answer", topic: "Unearned Adjustment", lo: "LO3", question: "A company collected $5,760 for 6 months of service in advance. What is the adjustment entry amount for 1 month?", answer: "960", rationale: "5760 / 6 = 960." },
+            { id: 223, module: "Module 2", type: "Short Answer", topic: "Insurance Adjustment", lo: "LO3", question: "A company paid $10,080 for insurance coverage for the next 36 months on January 1st. By the end of January 31st, how much Insurance Expense should be recognized?", answer: "280", rationale: "10080 / 36 = 280." },
+            { id: 224, module: "Module 2", type: "Short Answer", topic: "Net Income", lo: "LO2", question: "A company billed customers for $396,800 in Revenue and incurred $155,200 in Expenses during the period. Calculate the Net Income under accrual accounting.", answer: "241600", rationale: "396800 - 155200 = 241600." },
+            { id: 225, module: "Module 2", type: "Multiple Choice", topic: "Credit Purchase", lo: "LO2", question: "Purchase inventory on credit effects:", options: ["A) Increase Inventory, Increase Accounts Payable", "B) Decrease Cash, Increase Inventory", "C) Increase Expense, Increase Accounts Payable", "D) No effect"], answer: "A", rationale: "Asset up, Liability up." },
+            { id: 226, module: "Module 2", type: "Short Answer", topic: "Current Assets Calculation", lo: "LO1", question: "Davidson reported Total Liabilities of $6,376, Total Equity of $1,536, and Long-Term Assets of $4,829. Calculate Current Assets.", answer: "3083", rationale: "Total Assets = 7912. 7912 - 4829 = 3083." },
+            
+            // New Mod 2
+            { id: 227, module: "Module 2", type: "Multiple Choice", topic: "Unearned Revenue Analysis", lo: "Deep Thinking", question: "You observe that a company's 'Unearned Revenue' balance has increased by 50% year-over-year. Assuming the company is not just failing to deliver products, how would an analyst interpret this trend?", options: ["A) The company is losing future business.", "B) The company is collecting less cash upfront from customers.", "C) The company has a growing backlog of secured future sales, suggesting strong future revenue potential.", "D) The company is aggressively recognizing revenue early to boost current profits."], answer: "C", rationale: "Unearned Revenue represents cash collected for future obligations. A rising balance means customers are committing to more future business/subscriptions, which is a positive leading indicator for future revenue recognition." },
+            { id: 228, module: "Module 2", type: "Multiple Choice", topic: "Capitalization Effects", lo: "Deep Thinking", question: "A company switches from expensing R&D costs to capitalizing them (hypothetically, or under IFRS development rules). What is the immediate impact on the current year's financial statements?", options: ["A) Assets decrease, Net Income increases.", "B) Assets increase, Net Income decreases.", "C) Assets increase, Net Income increases.", "D) Assets decrease, Net Income decreases."], answer: "C", rationale: "Capitalizing treats the cost as an asset (Balance Sheet) rather than an immediate expense (Income Statement). This lowers current expenses, boosting Net Income and Assets." },
+            { id: 229, module: "Module 2", type: "Multiple Choice", topic: "Cash Flow Lifecycle", lo: "Deep Thinking", question: "While analyzing a Statement of Cash Flows, you see: Positive Operating Cash Flow, Negative Investing Cash Flow, and Negative Financing Cash Flow. What 'lifecycle stage' does this pattern typically suggest?", options: ["A) Start-up/Growth (burning cash to grow).", "B) Mature/Cash Cow (generating cash, reinvesting moderately, paying down debt/dividends).", "C) Decline (selling off assets to pay bills).", "D) Financial Distress (borrowing to cover operating losses)."], answer: "B", rationale: "The company is profitable (Positive OCF), investing in maintenance or modest growth (Negative ICF), and returning value to shareholders or repaying debt (Negative Financing CF via dividends/buybacks/repayments). This is characteristic of a mature, stable company." },
+            { id: 230, module: "Module 2", type: "Multiple Choice", topic: "Earnings Quality Red Flag", lo: "Deep Thinking", question: "A company reports rising Net Income but consistently falling Cash Flow from Operations over several quarters. What is a plausible 'red flag' interpretation?", options: ["A) The company is growing too fast and investing heavily in new equipment (CAPEX).", "B) The company is extremely efficient at collecting receivables.", "C) The company may be recording 'paper profits' (aggressive revenue recognition) that are not converting to cash, or inventory is piling up unsellable.", "D) The company is paying off its debt rapidly."], answer: "C", rationale: "Sustainable earnings generate cash. If NI is up but OCF is down, the difference is often trapped in working capital accounts like Accounts Receivable (sales booked but not paid) or Inventory (goods produced but not sold). This divergence often signals earnings quality issues." },
+            { id: 231, module: "Module 2", type: "Multiple Choice", topic: "Depreciation in Cash Flow", lo: "Deep Thinking", question: "Why does Depreciation Expense appear as a positive adjustment (add-back) in the Operating section of the Indirect Cash Flow Statement?", options: ["A) Depreciation is a source of new cash inflow.", "B) Depreciation is a non-cash expense that reduced Net Income; adding it back removes its effect to show actual cash generated.", "C) The company sold old assets for cash.", "D) Depreciation represents cash set aside for future replacement."], answer: "B", rationale: "Net Income includes the deduction of depreciation (an expense). However, no cash actually left the company for depreciation this year (the cash left when the asset was bought years ago). To get from Accrual NI to Cash Flow, we must 'undo' that non-cash deduction by adding it back." },
+            { id: 232, module: "Module 2", type: "Multiple Choice", topic: "Net Working Capital", lo: "Deep Thinking", question: "Select all that apply: Which of the following transactions would increase the 'Net Working Capital' of a company?", options: ["A) Issuing long-term debt and keeping the proceeds in Cash.", "B) Buying Inventory on credit (Accounts Payable).", "C) Collecting cash from Accounts Receivable.", "D) Selling long-term equipment for Cash."], answer: "A and D", rationale: "NWC = Current Assets - Current Liabilities. A: Increases Cash (CA) without increasing CL (NWC increases). B: Increases Inventory (CA) and AP (CL) by same amount (NWC unchanged). C: Swaps AR (CA) for Cash (CA) (NWC unchanged). D: Increases Cash (CA) by reducing Non-current Asset (NWC increases)." },
+            { id: 233, module: "Module 2", type: "Multiple Choice", topic: "Allowance for Doubtful Accounts", lo: "Deep Thinking", question: "A company reduces its 'Allowance for Doubtful Accounts' estimate as a percentage of sales. How does this interpretively affect the financial statements?", options: ["A) It conservatively lowers Net Income.", "B) It aggressively boosts reported Net Income and Net Accounts Receivable, potentially masking credit risk.", "C) It increases Cash Flow from Operations.", "D) It decreases the company's Tax Liability."], answer: "B", rationale: "Lowering the allowance (bad debt expense estimate) reduces the expense on the income statement (boosting NI) and increases the net value of AR on the balance sheet. This can be used to artificially inflate earnings if the credit risk hasn't actually improved." },
+            { id: 234, module: "Module 2", type: "Multiple Choice", topic: "Current Ratio Impact", lo: "Deep Thinking", question: "If a company purchases Inventory on credit, what is the immediate effect on the Current Ratio? (Assume the current ratio is currently 2.0).", options: ["A) It increases.", "B) It decreases.", "C) It stays exactly the same.", "D) It becomes negative."], answer: "B", rationale: "When the Current Ratio is > 1.0, adding the same amount to both numerator (Inventory) and denominator (AP) pushes the ratio down towards 1.0. (e.g., 200/100 = 2.0. Add 50: 250/150 = 1.67)." },
+            
+            // Added Question 1 (Module 2)
+            { id: 235, module: "Module 2", type: "Multiple Choice", topic: "Statement of Cash Flows", lo: "LO4", question: "A company reports the following cash flow information for the year (in $ thousands):<br>Cash Flow from Operating Activities (CFO): +620<br>Cash Flow from Investing Activities (CFI): –470<br>Cash Flow from Financing Activities (CFF): ?<br>The company’s beginning cash balance was 310, and its ending cash balance was 540.<br>Calculate Cash Flow from Financing Activities (CFF).", options: ["A) –80", "B) +80", "C) –120", "D) +120", "E) +390"], answer: "B) +80", rationale: "Cash flow identity: Beg Cash + CFO + CFI + CFF = End Cash.<br>310 + 620 - 470 + CFF = 540<br>460 + CFF = 540<br>CFF = 540 - 460 = +80." },
+            
+            // Added Question 2 (Module 2)
+            { id: 236, module: "Module 2", type: "Multiple Choice", topic: "Gross Margin & COGS", lo: "LO2", question: "A company reports net sales of $2,000,000. Its gross margin percentage is 0.25.<br>What is COGS?", options: ["A) $500,000", "B) $1,250,000", "C) $1,500,000", "D) $1,750,000", "E) $2,000,000"], answer: "C) $1,500,000", rationale: "Gross Profit = Sales * GM% = 2,000,000 * 0.25 = 500,000.<br>COGS = Sales - Gross Profit = 2,000,000 - 500,000 = 1,500,000." },
+
+
+            // --- MODULE 3 (32 Questions - renumbered consecutively 301-332) ---
+            { id: 301, module: "Module 3", type: "Short Answer", topic: "ROE Calculation", lo: "LO1", question: "Pointe Company reported Average Equity of $7,997 and Net Income of $2,513. Calculate Return on Equity (ROE) % (1 decimal).", answer: "31.4", rationale: "2513 / 7997." },
+            // 302 removed
+            { id: 302, module: "Module 3", type: "Short Answer", topic: "Net Operating Assets Calculation", lo: "LO4", question: "Star Inc reported Operating Assets of $5,253 and Operating Liabilities of $2,822. Calculate Net Operating Assets.", answer: "2431", rationale: "5253 - 2822." },
+            { id: 303, module: "Module 3", type: "Short Answer", topic: "Tax Shield", lo: "LO5", question: "A company reported Net Nonoperating Expense of $87,593 and a Tax Rate of 37%. Calculate Tax Shield (whole number).", answer: "32409", rationale: "87593 * 0.37." },
+            // 305 removed
+            { id: 304, module: "Module 3", type: "Short Answer", topic: "Return on Net Operating Assets Calculation", lo: "LO6", question: "Time Company reported Net Operating Profit After Tax of $48,032 and Average Net Operating Assets of $357,958. Calculate Return on Net Operating Assets % (1 decimal).", answer: "13.4", rationale: "48032 / 357958." },
+            { id: 305, module: "Module 3", type: "Short Answer", topic: "Net Operating Profit Margin Calculation", lo: "LO7", question: "Walter Company reported Revenue of $55,743 and Net Operating Profit After Tax of $9,954. Calculate Net Operating Profit Margin % (1 decimal).", answer: "17.9", rationale: "9954 / 55743." },
+            { id: 306, module: "Module 3", type: "Short Answer", topic: "Net Operating Asset Turnover Calculation", lo: "LO7", question: "Grandier reported Sales of $115,004 and Average Net Operating Assets of 40,665.5. Calculate Net Operating Asset Turnover (2 decimals).", answer: "2.83", rationale: "115004 / 40665.5." },
+            { id: 307, module: "Module 3", type: "Short Answer", topic: "Net Operating Asset Turnover Calculation", lo: "LO7", question: "Kreeger reported Sales of $115,568 and Average Net Operating Assets of $18,616. Calculate Net Operating Asset Turnover (2 decimals).", answer: "6.21", rationale: "115568 / 18616." },
+            // 310 removed
+            // 311 removed
+            { id: 308, module: "Module 3", type: "Multiple Choice", topic: "DuPont Analysis", lo: "LO2", question: "DuPont components are:", options: ["A) Profitability, Productivity, Financial Leverage", "B) Sales, Cost of Goods Sold, Tax", "C) Assets, Liabilities, Equity", "D) Cash, Investing, Financing"], answer: "A", rationale: "Profit Margin x Asset Turnover x Financial Leverage." },
+            { id: 309, module: "Module 3", type: "Multiple Choice", topic: "RNOA vs ROE", lo: "LO6", question: "Return on Net Operating Assets focuses on which activities?", options: ["A) Operating activities", "B) Financing activities", "C) Tax activities", "D) Investing activities only"], answer: "A", rationale: "Return on Net Operating Assets." },
+            { id: 310, module: "Module 3", type: "Multiple Choice", topic: "Net Operating Asset Turnover Concept", lo: "LO7", question: "Net Operating Asset Turnover measures:", options: ["A) Efficiency/Productivity", "B) Profitability", "C) Liquidity", "D) Solvency"], answer: "A", rationale: "Sales per dollar of operating assets." },
+            { id: 311, module: "Module 3", type: "True/False", topic: "Treasury Stock", lo: "LO1", question: "Buying back stock generally increases Return on Equity.", options: ["True", "False"], answer: "True", rationale: "Reduces equity denominator." },
+            { id: 312, module: "Module 3", type: "Short Answer", topic: "Complex RNOA (Travail Inc)", lo: "LO6", question: "Travail, Inc. reported Net Sales of $4,384,456, Consolidated Net Income of $42,205, Nonoperating Expense (Pretax) of $2,660, Average Net Nonoperating Obligations of $108,995, and Average Total Equity of $77,577. The Tax Rate is 22%. Calculate Return on Net Operating Assets % (1 decimal).", answer: "23.7", rationale: "NOPAT = NI + (Nonop Exp * (1-tax)) = 42,205 + (2,660 * 0.78) = 44,279.8. <br>Avg NOA = NNO + Equity = 108,995 + 77,577 = 186,572. <br>RNOA = 44,279.8 / 186,572 = 23.73%." },
+            { id: 313, module: "Module 3", type: "Short Answer", topic: "Net Operating Profit After Tax from Sales", lo: "LO5", question: "A company reported Sales of $200 and a Net Operating Profit Margin of 10%. Calculate Net Operating Profit After Tax.", answer: "20", rationale: "200 * 0.10." },
+            // 318 removed
+            { id: 314, module: "Module 3", type: "Short Answer", topic: "Return on Net Operating Assets Simple", lo: "LO6", question: "A company reported Net Operating Profit After Tax of $10 and Average Net Operating Assets of $50. Calculate Return on Net Operating Assets %.", answer: "20", rationale: "10/50 = 20%." },
+            { id: 315, module: "Module 3", type: "Short Answer", topic: "Net Operating Asset Turnover Simple", lo: "LO7", question: "A company reported Sales of $500 and Average Net Operating Assets of $100. Calculate Net Operating Asset Turnover.", answer: "5", rationale: "500/100." },
+            { id: 316, module: "Module 3", type: "Multiple Choice", topic: "Operating Item", lo: "LO4", question: "Which is an Operating Asset?", options: ["A) Accounts Receivable", "B) Cash (excess)", "C) Investment in Bonds", "D) Land held for sale"], answer: "A", rationale: "Accounts Receivable arises from core operations." },
+            { id: 317, module: "Module 3", type: "Multiple Choice", topic: "Nonoperating Item", lo: "LO4", question: "Which is a Nonoperating Liability?", options: ["A) Bonds Payable", "B) Accounts Payable", "C) Wages Payable", "D) Unearned Revenue"], answer: "A", rationale: "Debt is financing/nonoperating." },
+            { id: 318, module: "Module 3", type: "Short Answer", topic: "Net Nonoperating Expense Calculation", lo: "LO5", question: "A company reported Interest Expense of $100, Interest Income of $20, and a Tax Rate of 25%. Calculate Net Nonoperating Expense (Net Nonoperating Expense, after tax).", answer: "60", rationale: "(100-20)*(1-0.25) = 80*0.75 = 60." },
+            // 324 removed
+            { id: 319, module: "Module 3", type: "Multiple Choice", topic: "Return on Net Operating Assets Decomposition", lo: "LO7", question: "Return on Net Operating Assets = ?", options: ["A) Net Operating Profit Margin x Net Operating Asset Turnover", "B) Profit Margin x Asset Turnover", "C) Return on Equity x Financial Leverage", "D) Net Income / Sales"], answer: "A", rationale: "Standard disaggregation." },
+            { id: 320, module: "Module 3", type: "Short Answer", topic: "Tax on Operating Profit", lo: "LO5", question: "A company reported Tax Expense of $50 and Tax Shield of $10. Calculate Tax on Operating Profit.", answer: "60", rationale: "Tax Expense + Tax Shield." },
+            // 327 removed
+            { id: 321, module: "Module 3", type: "Short Answer", topic: "Operating Liability", lo: "LO4", question: "A company reported Total Liabilities of $1000 and Debt of $400. Calculate Operating Liabilities.", answer: "600", rationale: "1000-400." },
+            { id: 322, module: "Module 3", type: "Short Answer", topic: "Net Operating Profit Margin Derived", lo: "LO7", question: "A company has a Return on Net Operating Assets of 10% and a Net Operating Asset Turnover of 2. Calculate Net Operating Profit Margin %.", answer: "5", rationale: "10 / 2 = 5%." },
+            { id: 323, module: "Module 3", type: "Multiple Choice", topic: "Profitability", lo: "LO3", question: "Which ratio primarily measures profitability?", options: ["A) Net Operating Profit Margin", "B) Net Operating Asset Turnover", "C) Current Ratio", "D) Debt/Equity"], answer: "A", rationale: "Margin measures profit." },
+            // New Mod 3
+            { id: 324, module: "Module 3", type: "Multiple Choice", topic: "ROE Decomposition", lo: "Deep Thinking", question: "Company A and Company B have the same Return on Assets (ROA). However, Company A has a much higher Return on Equity (ROE). What must be true?", options: ["A) Company A is more profitable operationally.", "B) Company A is using significantly more Financial Leverage (debt) than Company B.", "C) Company A pays higher taxes.", "D) Company B has a higher Asset Turnover."], answer: "B", rationale: "Since ROE ≈ ROA × Leverage (Equity Multiplier), if ROA is the same, the only way for A to have a higher ROE is to have a higher Leverage multiplier (more debt relative to equity)." },
+            { id: 325, module: "Module 3", type: "Multiple Choice", topic: "Tax Shield Concept", lo: "Deep Thinking", question: "Interpret the 'Tax Shield' concept in the context of operating profit analysis. Why do we add back the 'Tax Shield' when calculating Tax on Operating Profit?", options: ["A) To show that the company paid more taxes than it legally owed.", "B) Because interest expense reduces taxable income, the actual tax bill is 'too low' relative to operating profit. Adding the shield reveals the theoretical tax burden of the operations alone.", "C) To account for tax credits from R&D.", "D) To increase the Net Nonoperating Expense (NNE)."], answer: "B", rationale: "The actual tax provision is suppressed because interest expense (a non-operating item) lowers taxable income. To evaluate operating performance (NOPAT), we need to know what taxes would have been if the company had no debt. Adding the shield (Tax savings from interest) back to the tax expense gives us the 'Tax on Operating Profit.'" },
+            { id: 326, module: "Module 3", type: "Multiple Choice", topic: "NOAT Analysis", lo: "Deep Thinking", question: "A company has a Net Operating Asset Turnover (NOAT) of 3.5, while its main competitor has a NOAT of 2.0. Both have similar Profit Margins. What is the interpretation?", options: ["A) The competitor is more efficient.", "B) The company is generating $3.50 of sales for every $1 of operating capital invested, indicating superior efficiency/productivity compared to the competitor.", "C) The company has too much idle cash.", "D) The company is taking on dangerous levels of financial leverage."], answer: "B", rationale: "NOAT measures productivity. A higher NOAT means the company extracts more revenue from its operating asset base (inventory, PPE, etc.). This efficiency drives a higher RNOA given equal margins." },
+            { id: 327, module: "Module 3", type: "Multiple Choice", topic: "RNOA vs ROA Utility", lo: "Deep Thinking", question: "What is the primary analytical advantage of using RNOA (Return on Net Operating Assets) instead of ROA?", options: ["A) RNOA is easier to calculate.", "B) RNOA separates the performance of the core business operations from the effects of financing decisions (debt/cash levels).", "C) RNOA always yields a higher percentage.", "D) RNOA includes the impact of one-time restructuring charges."], answer: "B", rationale: "ROA muddles operating performance with financing (cash holdings, interest expense). RNOA isolates the return generated purely by the assets used to run the business (NOA), providing a clearer view of operational skill vs. financial engineering." },
+            { id: 328, module: "Module 3", type: "Multiple Choice", topic: "Leverage Effect", lo: "Deep Thinking", question: "If a company's RNOA is 12% and its After-Tax Cost of Debt is 4%, what happens if it borrows money to expand operations (assuming the new operations perform similarly)?", options: ["A) ROE will decrease because of the interest expense.", "B) ROE will increase because of positive financial leverage.", "C) RNOA will increase significantly.", "D) There is no impact on shareholder returns."], answer: "B", rationale: "When the return on operations (12%) exceeds the cost of borrowing (4%), the excess return (spread) accrues to the shareholders, leveraging up the ROE." },
+            { id: 329, module: "Module 3", type: "Multiple Choice", topic: "NOA Adjustments", lo: "Deep Thinking", question: "Select all that apply: Which of the following would reduce a company's Net Operating Assets (NOA) without reducing its operating capability?", options: ["A) Extending the time taken to pay suppliers (increasing Accounts Payable).", "B) Buying more expensive equipment.", "C) Reducing Inventory levels through 'Just-in-Time' management (while maintaining sales).", "D) Paying off long-term bonds."], answer: "A and C", rationale: "NOA = Operating Assets - Operating Liabilities. A: Increasing Operating Liabilities (AP) reduces NOA. (Using supplier credit to fund assets). B: Increases Operating Assets. C: Reduces Operating Assets (Inventory). D: Affects Non-operating liabilities, not NOA." },
+            { id: 330, module: "Module 3", type: "Multiple Choice", topic: "Negative NNO", lo: "Deep Thinking", question: "Interpret 'Net Nonoperating Obligations' (NNO). If NNO is negative, what does this imply about the company's balance sheet?", options: ["A) The company is bankrupt.", "B) The company has more Nonoperating Assets (like Cash and Investments) than it has Debt.", "C) The company has zero Operating Assets.", "D) The company has made a calculation error."], answer: "B", rationale: "NNO = Debt - Cash/Investments. If NNO is negative, it means Cash/Investments > Debt. The company is in a 'net cash' position, which is common for tech giants (like Apple or Google in certain years) but rare for utilities." },
+            { id: 331, module: "Module 3", type: "Multiple Choice", topic: "Pricing Strategy Impact", lo: "Deep Thinking", question: "A retailer decides to slash prices to clear out excess inventory. How will this decision interpretively affect its NOPM and NOAT in the short term?", options: ["A) NOPM increases, NOAT decreases.", "B) NOPM decreases, NOAT increases.", "C) Both NOPM and NOAT decrease.", "D) Both NOPM and NOAT increase."], answer: "B", rationale: "Lower prices mean lower margins (Profit/Sales drops -> NOPM down). However, the 'fire sale' increases sales volume and reduces the asset base (Inventory drops), which increases turnover (Sales/Assets -> NOAT up). This is the classic margin-turnover trade-off." },
+            { id: 332, module: "Module 3", type: "Multiple Choice", topic: "High ROE Risk", lo: "Deep Thinking", question: "Why might a company with a high ROE but negative Cash Flow from Operations be considered a high-risk investment?", options: ["A) Negative cash flow always leads to immediate bankruptcy.", "B) The high ROE suggests they are over-leveraged.", "C) Earnings may be driven by non-cash accruals (low quality), and without cash generation, the company cannot sustain operations, pay dividends, or service debt long-term.", "D) High ROE is unsustainable for more than 1 year."], answer: "C", rationale: "While high ROE looks good, 'Cash is King.' If the profits aren't turning into cash, the company might be stuffing channels, facing collection issues, or simply unable to fund its own growth, leading to a liquidity crisis despite 'paper profits.'" }
+        ];
+
+        let answersVisible = false;
+        let currentFilter = 'all';
+
+        function toggleMobileMenu() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('hidden');
+            sidebar.classList.toggle('absolute');
+            sidebar.classList.toggle('h-[calc(100vh-65px)]');
+            sidebar.classList.toggle('w-full');
+            sidebar.style.top = "65px"; // Height of header
+        }
+        
+        // --- FORMULA MODAL LOGIC ---
+        function toggleFormulas() {
+            const modal = document.getElementById('formula-modal');
+            const isHidden = modal.classList.contains('hidden');
+            
+            if (isHidden) {
+                modal.classList.remove('hidden');
+                // Small animation delay to allow display:block to render before opacity transition
+                setTimeout(() => {
+                    modal.querySelector('.absolute.inset-0').classList.remove('opacity-0');
+                    modal.querySelector('.absolute.inset-0').classList.add('opacity-100');
+                }, 10);
+            } else {
+                modal.classList.add('hidden');
+            }
+            lucide.createIcons();
+        }
+
+        function filterQuestions(filter) {
+            currentFilter = filter;
+            
+            // Update UI buttons
+            document.querySelectorAll('.nav-item').forEach(btn => {
+                btn.classList.remove('active', 'bg-f0f9ff', 'text-teal-700', 'border-r-4', 'border-teal-600');
+                btn.classList.add('text-slate-600');
+            });
+
+            // Map filter to button ID
+            let btnId = 'btn-all';
+            if (filter === 'Module 1') btnId = 'btn-mod1';
+            if (filter === 'Module 2') btnId = 'btn-mod2';
+            if (filter === 'Module 3') btnId = 'btn-mod3';
+            
+            const activeBtn = document.getElementById(btnId);
+            activeBtn.classList.add('active');
+
+            renderQuestions();
+        }
+
+        function checkShortAnswer(input, id) {
+            const q = questions.find(q => q.id === id);
+            
+            // Clean input: remove %, spaces, etc.
+            let cleanInput = input.value.replace(/[^0-9.-]/g, '');
+            let userVal = parseFloat(cleanInput);
+            let correctVal = parseFloat(q.answer);
+            
+            // If input is empty or NaN, return (or mark wrong, but let's just wait)
+            if (isNaN(userVal)) return;
+
+            const feedbackIcon = document.getElementById(`feedback-${id}`);
+            
+            // Tolerances
+            const tolerance = 0.2; // Absolute difference allowed
+            
+            // Check 1: Direct match (e.g. User: 10, Ans: 10)
+            let isCorrect = Math.abs(userVal - correctVal) < tolerance;
+            
+            // Check 2: User entered decimal, Ans is percent (e.g. User: 0.1, Ans: 10)
+            if (!isCorrect) {
+                if (Math.abs((userVal * 100) - correctVal) < tolerance) isCorrect = true;
+            }
+            
+            // Check 3: User entered percent, Ans is decimal (e.g. User: 10, Ans: 0.1) - Rare in this dataset but possible
+            if (!isCorrect) {
+                if (Math.abs((userVal / 100) - correctVal) < tolerance) isCorrect = true;
+            }
+
+            if (isCorrect) {
+                input.classList.add('border-emerald-500', 'bg-emerald-50', 'text-emerald-900');
+                input.classList.remove('border-rose-500', 'bg-rose-50', 'text-rose-900', 'border-slate-300');
+                feedbackIcon.innerHTML = '<i data-lucide="check" class="w-5 h-5 text-emerald-500"></i>';
+            } else {
+                input.classList.add('border-rose-500', 'bg-rose-50', 'text-rose-900');
+                input.classList.remove('border-emerald-500', 'bg-emerald-50', 'text-emerald-900', 'border-slate-300');
+                feedbackIcon.innerHTML = '<i data-lucide="x" class="w-5 h-5 text-rose-500"></i>';
+            }
+            lucide.createIcons();
+        }
+
+        function checkFSET(id, field) {
+            const q = questions.find(q => q.id === id);
+            const input = document.getElementById(`q${id}_${field}`);
+            const val = field.includes('acc') ? input.value : parseFloat(input.value);
+            
+            let correct = false;
+            
+            if (field === 'cash') correct = val === q.correct.cash;
+            else if (field === 'noncash') correct = val === q.correct.noncash;
+            else if (field === 'liab') correct = val === q.correct.liab;
+            else if (field === 'cc') correct = val === q.correct.cc;
+            else if (field === 'ec') correct = val === q.correct.ec;
+            else if (field === 'rev') correct = val === q.correct.rev;
+            else if (field === 'exp') correct = val === q.correct.exp;
+            else if (field === 'noncash_acc') correct = val === (q.accounts.noncash || "");
+            else if (field === 'liab_acc') correct = val === (q.accounts.liab || "");
+            else if (field === 'exp_acc') correct = val === (q.accounts.exp || "");
+            else if (field === 'rev_acc') correct = val === (q.accounts.rev || "");
+
+            if (correct) {
+                input.classList.add('correct-input');
+                input.classList.remove('incorrect-input');
+            } else {
+                input.classList.add('incorrect-input');
+                input.classList.remove('correct-input');
+            }
+        }
+
+        function renderQuestions() {
+            const container = document.getElementById('questions-container');
+            container.innerHTML = '';
+            
+            const filteredQuestions = currentFilter === 'all' 
+                ? questions 
+                : questions.filter(q => q.module === currentFilter);
+            
+            filteredQuestions.forEach((q, index) => {
+                const card = document.createElement('div');
+                card.className = "card bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden";
+                
+                let contentHtml = '';
+                
+                if (q.type === 'FSET') {
+                    // Generate Amount Options HTML
+                    const amountOptionsHtml = q.amountOptions.map(opt => `<option value="${opt === 'No Effect' ? 0 : opt}">${opt}</option>`).join('');
+                    const accountOptionsHtml = ACCOUNT_OPTIONS.map(opt => `<option value="${opt}">${opt === "" ? "- Select Account -" : opt}</option>`).join('');
+                    
+                    contentHtml = `
+                        <div class="mt-4 space-y-4">
+                            <div class="fset-header">
+                                Cash + Non-Cash Assets = Liabilities + Contributed Capital + Earned Capital | Revenue - Expense = Net Income
+                                <div class="text-slate-500 font-normal mt-1 normal-case">Select 'No Effect' and 'Not Affected' for unchanged categories.</div>
+                            </div>
+                            <div class="grid grid-cols-7 gap-1 overflow-x-auto pb-2">
+                                <div class="fset-col">
+                                    <label class="fset-label">Cash</label>
+                                    <select id="q${q.id}_cash" class="fset-select" onchange="checkFSET(${q.id}, 'cash')">
+                                        <option value="">- Amt -</option>${amountOptionsHtml}
+                                    </select>
+                                </div>
+                                <div class="fset-col">
+                                    <label class="fset-label">Non-Cash</label>
+                                    <select id="q${q.id}_noncash" class="fset-select" onchange="checkFSET(${q.id}, 'noncash')">
+                                        <option value="">- Amt -</option>${amountOptionsHtml}
+                                    </select>
+                                    <select id="q${q.id}_noncash_acc" class="fset-select" onchange="checkFSET(${q.id}, 'noncash_acc')">
+                                        ${accountOptionsHtml}
+                                    </select>
+                                </div>
+                                <div class="fset-col">
+                                    <label class="fset-label">Liabilities</label>
+                                    <select id="q${q.id}_liab" class="fset-select" onchange="checkFSET(${q.id}, 'liab')">
+                                        <option value="">- Amt -</option>${amountOptionsHtml}
+                                    </select>
+                                    <select id="q${q.id}_liab_acc" class="fset-select" onchange="checkFSET(${q.id}, 'liab_acc')">
+                                        ${accountOptionsHtml}
+                                    </select>
+                                </div>
+                                <div class="fset-col">
+                                    <label class="fset-label">Contributed Capital</label>
+                                    <select id="q${q.id}_cc" class="fset-select" onchange="checkFSET(${q.id}, 'cc')">
+                                        <option value="">- Amt -</option>${amountOptionsHtml}
+                                    </select>
+                                </div>
+                                <div class="fset-col">
+                                    <label class="fset-label">Earned Capital</label>
+                                    <select id="q${q.id}_ec" class="fset-select" onchange="checkFSET(${q.id}, 'ec')">
+                                        <option value="">- Amt -</option>${amountOptionsHtml}
+                                    </select>
+                                </div>
+                                <div class="fset-col border-l border-slate-200 pl-1">
+                                    <label class="fset-label">Revenue</label>
+                                    <select id="q${q.id}_rev" class="fset-select" onchange="checkFSET(${q.id}, 'rev')">
+                                        <option value="">- Amt -</option>${amountOptionsHtml}
+                                    </select>
+                                    <select id="q${q.id}_rev_acc" class="fset-select" onchange="checkFSET(${q.id}, 'rev_acc')">
+                                        ${accountOptionsHtml}
+                                    </select>
+                                </div>
+                                <div class="fset-col">
+                                    <label class="fset-label">Expense</label>
+                                    <select id="q${q.id}_exp" class="fset-select" onchange="checkFSET(${q.id}, 'exp')">
+                                        <option value="">- Amt -</option>${amountOptionsHtml}
+                                    </select>
+                                    <select id="q${q.id}_exp_acc" class="fset-select" onchange="checkFSET(${q.id}, 'exp_acc')">
+                                        ${accountOptionsHtml}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } else if (q.type === 'Short Answer') {
+                    contentHtml = `
+                        <div class="mt-4">
+                            <label class="block text-sm font-medium text-slate-600 mb-1">Your Answer:</label>
+                            <div class="flex items-center gap-2">
+                                <input type="text" 
+                                    class="w-full max-w-xs p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none transition-all"
+                                    placeholder="Enter value..."
+                                    onchange="checkShortAnswer(this, ${q.id})"
+                                >
+                                <div id="feedback-${q.id}" class="w-6 h-6 flex items-center justify-center"></div>
+                            </div>
+                        </div>
+                    `;
+                } else if (q.options) {
+                    contentHtml = `<div class="mt-4 space-y-2">
+                        ${q.options.map(opt => `
+                            <div class="option-btn p-3 rounded-lg border border-slate-200 text-slate-700 text-sm cursor-pointer" onclick="this.classList.toggle('selected')">
+                                ${opt}
+                            </div>
+                        `).join('')}
+                    </div>`;
+                }
+
+                card.innerHTML = `
+                    <div class="p-6">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="flex gap-2">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-teal-50 text-teal-700 border border-teal-100">
+                                    ${q.module}
+                                </span>
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200">
+                                    ${q.lo}
+                                </span>
+                            </div>
+                            <span class="text-xs text-slate-400 font-mono">Q${q.id}</span>
+                        </div>
+                        
+                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wide mb-2">${q.topic}</h3>
+                        <p class="text-slate-800 font-medium text-lg leading-relaxed">${q.question}</p>
+                        
+                        ${contentHtml}
+                        
+                        <div class="mt-6 pt-4 border-t border-slate-100 flex justify-between items-center">
+                            <button onclick="toggleAnswer(${q.id})" class="text-teal-600 hover:text-teal-700 text-sm font-bold flex items-center gap-1 focus:outline-none transition-colors">
+                                <span>Show Answer</span>
+                                <i data-lucide="chevron-down" class="w-4 h-4 transition-transform" id="icon-${q.id}"></i>
+                            </button>
+                        </div>
+                        
+                        <div id="ans-${q.id}" class="answer-section mt-4 bg-slate-50 rounded-lg p-5 border border-slate-200">
+                            <div class="flex gap-3">
+                                <div class="flex-shrink-0 mt-0.5">
+                                    <i data-lucide="check-circle" class="w-5 h-5 text-emerald-500"></i>
+                                </div>
+                                <div>
+                                    <p class="font-bold text-slate-900 mb-1">Answer: ${q.type === 'FSET' ? 'Check template inputs above against logic in rationale.' : q.answer}</p>
+                                    <p class="text-slate-600 text-sm leading-relaxed">${q.rationale}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+            
+            lucide.createIcons();
+        }
+
+        function toggleAnswer(id) {
+            const answerDiv = document.getElementById(`ans-${id}`);
+            const icon = document.getElementById(`icon-${id}`);
+            const isVisible = answerDiv.classList.contains('visible');
+            const btnSpan = answerDiv.previousElementSibling.querySelector('span');
+            
+            if (isVisible) {
+                answerDiv.classList.remove('visible');
+                icon.style.transform = 'rotate(0deg)';
+                btnSpan.textContent = "Show Answer";
+            } else {
+                answerDiv.classList.add('visible');
+                icon.style.transform = 'rotate(180deg)';
+                btnSpan.textContent = "Hide Answer";
+            }
+        }
+
+        function toggleAllAnswers() {
+            answersVisible = !answersVisible;
+            const btn = document.getElementById('toggleAllSideBtn');
+            const btnSpan = btn.querySelector('span'); 
+            
+            if (answersVisible) {
+                btn.innerHTML = '<i data-lucide="eye-off" class="w-4 h-4"></i> Hide All Answers';
+            } else {
+                btn.innerHTML = '<i data-lucide="eye" class="w-4 h-4"></i> Show All Answers';
+            }
+            lucide.createIcons();
+
+            const filteredQuestions = currentFilter === 'all' 
+                ? questions 
+                : questions.filter(q => q.module === currentFilter);
+
+            filteredQuestions.forEach((q, i) => {
+                const answerDiv = document.getElementById(`ans-${q.id}`);
+                const icon = document.getElementById(`icon-${q.id}`);
+                const individualBtnSpan = answerDiv.previousElementSibling.querySelector('span');
+
+                if (answersVisible) {
+                    answerDiv.classList.add('visible');
+                    if(icon) icon.style.transform = 'rotate(180deg)';
+                    if(individualBtnSpan) individualBtnSpan.textContent = "Hide Answer";
+                } else {
+                    answerDiv.classList.remove('visible');
+                    if(icon) icon.style.transform = 'rotate(0deg)';
+                    if(individualBtnSpan) individualBtnSpan.textContent = "Show Answer";
+                }
+            });
+        }
+
+        // --- CALCULATOR LOGIC ---
+        let calcInput = "";
+        
+        function toggleCalculator() {
+            const calc = document.getElementById('calculator-container');
+            calc.classList.toggle('hidden');
+        }
+
+        function updateDisplay() {
+            const display = document.getElementById('calc-display');
+            display.innerText = calcInput === "" ? "0" : calcInput;
+            display.scrollLeft = display.scrollWidth;
+        }
+
+        function appendNum(num) {
+            calcInput += num;
+            updateDisplay();
+        }
+
+        function appendOp(op) {
+            const lastChar = calcInput.slice(-1);
+            if (['+', '-', '*', '/'].includes(lastChar)) {
+                calcInput = calcInput.slice(0, -1) + op;
+            } else if (calcInput !== "") {
+                calcInput += op;
+            }
+            updateDisplay();
+        }
+
+        function backspace() {
+            calcInput = calcInput.slice(0, -1);
+            updateDisplay();
+        }
+
+        function clearCalc() {
+            calcInput = "";
+            updateDisplay();
+        }
+
+        function calculate() {
+            try {
+                if (calcInput === "") return;
+                const result = eval(calcInput); 
+                
+                if (!isFinite(result) || isNaN(result)) {
+                    calcInput = "Error";
+                } else {
+                    calcInput = String(Math.round(result * 1000000) / 1000000);
+                }
+            } catch (e) {
+                calcInput = "Error";
+            }
+            updateDisplay();
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            renderQuestions();
+        });
+    </script>
+</body>
+</html>
