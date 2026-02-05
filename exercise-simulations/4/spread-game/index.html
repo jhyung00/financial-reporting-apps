@@ -1,0 +1,1068 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>THE SPREAD - Dupont Survival (Fixed Seed)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
+        
+        body {
+            font-family: 'JetBrains Mono', monospace;
+            background-color: #000;
+            color: #fff;
+            user-select: none; /* Prevents text selection */
+            -webkit-user-select: none;
+        }
+
+        /* Marquee Animation */
+        @keyframes marquee {
+            0% { transform: translateX(100%); }
+            100% { transform: translateX(-100%); }
+        }
+        .animate-marquee {
+            display: inline-block;
+            white-space: nowrap;
+            animation: marquee 20s linear infinite;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #000; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #333; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #db2777; 
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel" data-type="module">
+        import React, { useState, useEffect, useMemo } from 'https://esm.sh/react@18.2.0';
+        import { createRoot } from 'https://esm.sh/react-dom@18.2.0/client';
+        import { 
+            TrendingUp, 
+            TrendingDown, 
+            DollarSign, 
+            Activity, 
+            AlertTriangle, 
+            Skull, 
+            Trophy, 
+            Users, 
+            ArrowRight, 
+            ShieldAlert, 
+            BarChart3, 
+            Briefcase, 
+            Landmark, 
+            Wallet, 
+            Send, 
+            CheckCircle, 
+            XCircle,
+            Lock
+        } from 'https://esm.sh/lucide-react@0.263.1';
+
+        // --- CONFIGURATION ---
+        
+        // PASTE YOUR GOOGLE APPS SCRIPT WEB APP URL HERE
+        const LEADERBOARD_URL = "https://script.google.com/macros/s/AKfycbz6fuOTfmtJx5pFeFQS_qTwrSkpaiIqaRB7ipqKsRejjZzXJv8f3-qYuxyvFMX6LNY/exec" 
+
+        // --- DETERMINISTIC GAME DATA ---
+        
+        // Interest Rates for each turn (Turn 1 to Turn 10)
+        // Note the spike at Turn 3 (Inflation) and drop at Turn 10 (Recession stimulus)
+        const FIXED_RATES = [0.04, 0.042, 0.065, 0.07, 0.07, 0.065, 0.06, 0.055, 0.05, 0.02];
+
+        // Market Conditions (Efficiency Multipliers) for each turn
+        // 1.0 is normal. Note the drops in later turns (Recession/Recall).
+        const FIXED_MARKET = [1.0, 1.1, 0.95, 0.95, 1.05, 0.85, 0.9, 0.8, 0.75, 0.6];
+
+        const INITIAL_STATE = {
+            cash: 50, // in millions
+            debt: 100,
+            operatingAssets: 200,
+            equity: 150, // Assets (250) - Debt (100) = 150
+            turn: 1,
+            maxTurns: 10,
+            history: [],
+            isEliminated: false,
+            eliminationReason: null,
+            gameWon: false,
+        };
+
+        // 10 Unique Scenarios representing the lifecycle of a modern tech giant
+        const SCENARIOS = [
+            {
+                id: 1,
+                title: "The AI Pivot",
+                description: "Omega Tech is lagging in AI. Engineers demand a massive compute cluster to train 'OmegaLLM'. It's expensive but necessary for future growth.",
+                impact: "Massive NOA increase. RNOA will drop initially (lower Asset Turnover) before potential rebound.",
+                company: "Internal Strategy",
+                choices: [
+                { 
+                    label: "Issue Bonds to Build (Leverage Up)", 
+                    cost: 100, 
+                    assetGain: 120, 
+                    revenueImpact: 1.4, 
+                    risk: "high",
+                    type: "debt",
+                    rnoaEffect: "📉 Dip (Asset Bloat)",
+                    nonOpEffect: "📈 High Leverage (FLEV ↑)" 
+                },
+                { 
+                    label: "Partner with Cloud Provider (OpEx)", 
+                    cost: 30, 
+                    assetGain: 10, 
+                    revenueImpact: 1.1, 
+                    risk: "low",
+                    type: "cash",
+                    rnoaEffect: "➡️ Stable (Low Asset Impact)",
+                    nonOpEffect: "➡️ Neutral" 
+                }
+                ]
+            },
+            {
+                id: 2,
+                title: "Supply Chain Fracture",
+                description: "A geopolitical crisis in Asia has halted chip shipments. Competitors are out of stock. You can secure a strategic stockpile at a premium.",
+                impact: "Increases NOA (Inventory). RNOA suffers (lower Turnover) unless margins expand significantly.",
+                company: "Global Logistics",
+                choices: [
+                { 
+                    label: "Corner the Market (Buy Inventory)", 
+                    cost: 40, 
+                    assetGain: 40, 
+                    revenueImpact: 1.2, 
+                    risk: "med",
+                    type: "cash",
+                    rnoaEffect: "📉 Lower Turnover",
+                    nonOpEffect: "➡️ Neutral"
+                },
+                { 
+                    label: "Wait it out (Conserve Cash)", 
+                    cost: 0, 
+                    assetGain: -10, 
+                    revenueImpact: 0.9, 
+                    risk: "high",
+                    type: "hold",
+                    rnoaEffect: "📉 Drop (Revenue Loss)",
+                    nonOpEffect: "➡️ Neutral"
+                }
+                ]
+            },
+            {
+                id: 3,
+                title: "The Inflation Spike",
+                description: "CPI hits 8%. The Fed responds aggressively. Interest rates on your variable debt are about to jump.",
+                impact: "Increases Net Borrowing Cost. Directly reduces Spread and Non-Operating Return.",
+                company: "Macro Economy",
+                choices: [
+                { 
+                    label: "Deleverage Now (Pay Debt)", 
+                    cost: 60, 
+                    assetGain: -20, 
+                    revenueImpact: 0.95, 
+                    risk: "low",
+                    type: "repay",
+                    rnoaEffect: "📈 Rise (Asset Lean)",
+                    nonOpEffect: "📉 Lower Leverage (FLEV ↓)" 
+                },
+                { 
+                    label: "Hedge with Derivatives", 
+                    cost: 10, 
+                    assetGain: 0, 
+                    revenueImpact: 1.0, 
+                    debtDetails: { amount: 0, rateDelta: -0.015 }, // Lock in lower rate
+                    risk: "med",
+                    type: "debt_only",
+                    rnoaEffect: "➡️ Neutral",
+                    nonOpEffect: "🛡️ Protects Spread"
+                }
+                ]
+            },
+            {
+                id: 4,
+                title: "Antitrust Litigation",
+                description: " Regulators sue Omega Tech for monopolistic app store practices. They demand a breakup or a massive fine.",
+                impact: "Equity hit increases Leverage (FLEV). No gain to RNOA, increasing risk to Non-Operating Return.",
+                company: "Legal Dept",
+                choices: [
+                { 
+                    label: "Settle Immediately", 
+                    cost: 30, 
+                    assetGain: 0, 
+                    revenueImpact: 1.0, 
+                    risk: "safe",
+                    type: "cash",
+                    rnoaEffect: "➡️ Neutral",
+                    nonOpEffect: "⚠️ Equity Drop (FLEV ↑)" 
+                },
+                { 
+                    label: "Fight to the Death", 
+                    cost: 5, 
+                    assetGain: 0, 
+                    revenueImpact: 1.0, 
+                    randomOutcome: true, 
+                    risk: "extreme",
+                    type: "gamble",
+                    rnoaEffect: "➡️ Neutral",
+                    nonOpEffect: "🎲 Volatile Equity"
+                }
+                ]
+            },
+            {
+                id: 5,
+                title: "Distressed Competitor",
+                description: "Your rival 'AlphaCorp' is insolvent. Their IP and user base are for sale for pennies on the dollar.",
+                impact: "Increases NOA cheaply. High potential to boost RNOA via improved Asset Turnover.",
+                company: "M&A Opportunity",
+                choices: [
+                { 
+                    label: "Acquire (Leveraged Buyout)", 
+                    cost: 80, 
+                    assetGain: 150, 
+                    revenueImpact: 1.3, 
+                    risk: "high",
+                    type: "debt",
+                    rnoaEffect: "📈 High Potential (Turnover)",
+                    nonOpEffect: "📈 Max Leverage (High Risk)"
+                },
+                { 
+                    label: "Pass", 
+                    cost: 0, 
+                    assetGain: 0, 
+                    revenueImpact: 1.0, 
+                    risk: "safe",
+                    type: "hold",
+                    rnoaEffect: "➡️ Neutral",
+                    nonOpEffect: "➡️ Neutral"
+                }
+                ]
+            },
+            {
+                id: 6,
+                title: "Data Breach Scandal",
+                description: "Hackers leaked user data. Advertisers are pulling out. Revenue efficiency is dropping.",
+                impact: "Lower Efficiency reduces NOPAT. Direct negative impact on RNOA.",
+                company: "Security Crisis",
+                choices: [
+                { 
+                    label: "Massive PR & Security Overhaul", 
+                    cost: 50, 
+                    assetGain: 10, 
+                    revenueImpact: 1.1, 
+                    risk: "med",
+                    type: "cash",
+                    rnoaEffect: "🔄 Recovery (Long Term)",
+                    nonOpEffect: "➡️ Neutral"
+                },
+                { 
+                    label: "Cover Up & Deny", 
+                    cost: 5, 
+                    assetGain: 0, 
+                    revenueImpact: 0.8, 
+                    risk: "high",
+                    type: "hold",
+                    rnoaEffect: "📉 Collapse (Revenue)",
+                    nonOpEffect: "➡️ Neutral" 
+                }
+                ]
+            },
+            {
+                id: 7,
+                title: "The Talent War",
+                description: "Startups are poaching your best engineers. You need to raise salaries by 40% to retain talent.",
+                impact: "Higher expenses reduce Margin. Direct negative impact on RNOA.",
+                company: "HR Dept",
+                choices: [
+                { 
+                    label: "Raise Salaries (Hit Margins)", 
+                    cost: 20, 
+                    assetGain: 0, 
+                    revenueImpact: 1.05, 
+                    risk: "safe",
+                    type: "cash",
+                    rnoaEffect: "📉 Margin Squeeze",
+                    nonOpEffect: "➡️ Neutral" 
+                },
+                { 
+                    label: "Automate (CapEx instead of OpEx)", 
+                    cost: 60, 
+                    assetGain: 60, 
+                    revenueImpact: 1.1, 
+                    risk: "high",
+                    type: "debt",
+                    rnoaEffect: "📉 Asset Bloat",
+                    nonOpEffect: "📈 Leverage Increase" 
+                }
+                ]
+            },
+            {
+                id: 8,
+                title: "Currency Crash",
+                description: "The dollar strengthens rapidly. Your overseas assets are worth 20% less in reporting currency.",
+                impact: "Write-down lowers NOA. RNOA may artificially rise (denominator effect), but Equity drops.",
+                company: "Treasury",
+                choices: [
+                { 
+                    label: "Absorb the Loss", 
+                    cost: 0, 
+                    assetGain: -40, 
+                    revenueImpact: 1.0, 
+                    risk: "med",
+                    type: "hold",
+                    rnoaEffect: "📈 Artificial Rise (NOA ↓)",
+                    nonOpEffect: "⚠️ Equity Hit (FLEV ↑)" 
+                },
+                { 
+                    label: "Repatriate Cash (Tax Hit)", 
+                    cost: 15, 
+                    assetGain: 0, 
+                    revenueImpact: 1.0, 
+                    debtDetails: { amount: -20, rateDelta: 0 }, 
+                    risk: "low",
+                    type: "debt_only",
+                    rnoaEffect: "➡️ Neutral",
+                    nonOpEffect: "📉 Lower Debt" 
+                }
+                ]
+            },
+            {
+                id: 9,
+                title: "Product Recall",
+                description: "Your flagship device battery is exploding. Total recall required.",
+                impact: "Inventory loss lowers NOA. Lower sales crush NOPAT. RNOA likely falls.",
+                company: "Operations",
+                choices: [
+                { 
+                    label: "Full Refund & Replace", 
+                    cost: 60, 
+                    assetGain: -20, 
+                    revenueImpact: 1.0, 
+                    risk: "high",
+                    type: "cash",
+                    rnoaEffect: "📉 Drop (Margin & Turnover)",
+                    nonOpEffect: "➡️ Neutral" 
+                },
+                { 
+                    label: "Software Fix Patch", 
+                    cost: 5, 
+                    assetGain: 0, 
+                    revenueImpact: 0.9, 
+                    risk: "med",
+                    type: "cash",
+                    rnoaEffect: "📉 Slow Decay",
+                    nonOpEffect: "➡️ Neutral" 
+                }
+                ]
+            },
+            {
+                id: 10,
+                title: "Global Recession",
+                description: "Demand is crashing worldwide. Cash is king. Survival is the only metric.",
+                impact: "Revenue crash destroys NOPAT and RNOA. Non-Operating Return turns negative (Leverage penalty).",
+                company: "Macro End-Game",
+                choices: [
+                { 
+                    label: "Liquidation Mode (Sell Assets)", 
+                    cost: 0, 
+                    assetGain: -80, 
+                    revenueImpact: 0.8, 
+                    debtDetails: { amount: -50, rateDelta: 0 }, 
+                    risk: "safe",
+                    type: "debt_only",
+                    rnoaEffect: "⚠️ Volatile",
+                    nonOpEffect: "📉 De-Leverage (Safety)" 
+                },
+                { 
+                    label: "Hold the Line", 
+                    cost: 20, 
+                    assetGain: 0, 
+                    revenueImpact: 0.7, 
+                    risk: "extreme", 
+                    type: "cash",
+                    rnoaEffect: "📉 Massive Drop",
+                    nonOpEffect: "⚠️ High Leverage Risk" 
+                }
+                ]
+            }
+        ];
+
+        // --- Helper Functions ---
+
+        const calculateDupont = (state, baseRate = 0.05, marketCondition = 1.0) => {
+            const NOA = state.operatingAssets;
+            const NFO = state.debt;
+            const Equity = state.equity; 
+            const efficiency = 0.5 * marketCondition; 
+            const Revenue = NOA * efficiency;
+            const margin = 0.20; 
+            const NOPAT = Revenue * margin; 
+            const RNOA = NOA > 0 ? NOPAT / NOA : 0;
+            const leverageRatio = Equity > 0 ? NFO / Equity : 100;
+            const riskPremium = Math.max(0, (leverageRatio - 1) * 0.02); 
+            const NBC = baseRate + riskPremium;
+            const Spread = RNOA - NBC;
+            const NonOperatingReturn = Spread * (Equity > 0 ? NFO / Equity : 0);
+            const ROE = RNOA + NonOperatingReturn;
+
+            return { NOA, NFO, Equity, NOPAT, RNOA, NBC, Spread, NonOperatingReturn, ROE, Revenue, leverageRatio };
+        };
+
+        const getFundingLabel = (type) => {
+            switch(type) {
+                case 'cash': return 'Cash Reserves';
+                case 'debt': return 'New Debt Issuance';
+                case 'repay': return 'Debt Repayment';
+                case 'debt_only': return 'Financial Structuring'; 
+                case 'hold': return 'No Funding Needed';
+                case 'gamble': return 'Legal Contingency Fund';
+                default: return 'General Capital';
+            }
+        };
+
+        const getFundingIcon = (type) => {
+            switch(type) {
+                case 'cash': return <Wallet size={14} className="text-green-400"/>;
+                case 'debt': return <Landmark size={14} className="text-orange-400"/>;
+                default: return <DollarSign size={14}/>;
+            }
+        }
+
+        // --- Components ---
+
+        const Card = ({ children, className = "" }) => (
+            <div className={`bg-gray-900 border border-gray-700 rounded-lg p-4 shadow-xl ${className}`}>
+                {children}
+            </div>
+        );
+
+        const Metric = ({ label, value, sub, color = "text-white", warning = false }) => (
+            <div className="flex flex-col">
+                <span className="text-xs uppercase tracking-widest text-gray-500 font-bold">{label}</span>
+                <span className={`text-2xl font-mono font-bold ${warning ? 'text-red-500 animate-pulse' : color}`}>
+                    {value}
+                </span>
+                {sub && <span className="text-xs text-gray-400">{sub}</span>}
+            </div>
+        );
+
+        const ProgressBar = ({ value, max, label, color = "bg-pink-600" }) => (
+            <div className="w-full mb-2">
+                {label && (
+                    <div className="flex justify-between text-xs mb-1">
+                    <span className="text-gray-400">{label}</span>
+                    <span className="text-gray-400">{value}/{max}</span>
+                    </div>
+                )}
+                <div className="h-2 w-full bg-gray-800 rounded-full overflow-hidden">
+                    <div 
+                        className={`h-full ${color} transition-all duration-500`} 
+                        style={{ width: `${Math.min((Math.abs(value)/max)*100, 100)}%` }}
+                    />
+                </div>
+            </div>
+        );
+
+        const App = () => {
+            const [gameState, setGameState] = useState("menu"); 
+            const [playerState, setPlayerState] = useState(INITIAL_STATE);
+            const [playerName, setPlayerName] = useState("");
+            
+            // Initializing with Turn 1 Fixed Data
+            const [marketRate, setMarketRate] = useState(FIXED_RATES[0]);
+            const [marketCondition, setMarketCondition] = useState(FIXED_MARKET[0]);
+            
+            const [currentScenario, setCurrentScenario] = useState(null);
+            const [logs, setLogs] = useState([]);
+            const [isSubmitting, setIsSubmitting] = useState(false);
+            const [submitStatus, setSubmitStatus] = useState(null);
+
+            // Disable Right Click for Security
+            useEffect(() => {
+                const handleContextMenu = (e) => {
+                    e.preventDefault();
+                    return false;
+                };
+                document.addEventListener("contextmenu", handleContextMenu);
+                return () => document.removeEventListener("contextmenu", handleContextMenu);
+            }, []);
+
+            const metrics = useMemo(() => {
+                return calculateDupont(playerState, marketRate, marketCondition);
+            }, [playerState, marketRate, marketCondition]);
+
+            const startGame = () => {
+                if (!playerName) return;
+                setPlayerState(INITIAL_STATE);
+                setGameState("playing");
+                setSubmitStatus(null);
+                setLogs(["Game Started. Role: CFO of Omega Tech."]);
+                nextTurn(1);
+            };
+
+            const submitToLeaderboard = async (status) => {
+                if(!LEADERBOARD_URL || LEADERBOARD_URL.includes("PASTE_YOUR")) {
+                    alert("Leaderboard URL not configured in code.");
+                    return;
+                }
+                
+                setIsSubmitting(true);
+                
+                const payload = {
+                    name: playerName,
+                    status: status, 
+                    equity: playerState.equity.toFixed(2),
+                    roe: (metrics.ROE * 100).toFixed(2) + "%",
+                    turn: playerState.turn
+                };
+
+                try {
+                    await fetch(LEADERBOARD_URL, {
+                        method: "POST",
+                        mode: "no-cors", 
+                        headers: {
+                            "Content-Type": "text/plain",
+                        },
+                        body: JSON.stringify(payload),
+                    });
+                    setSubmitStatus('success');
+                } catch (error) {
+                    console.error("Submission error", error);
+                    setSubmitStatus('error');
+                } finally {
+                    setIsSubmitting(false);
+                }
+            };
+
+            const nextTurn = (turnNum) => {
+                if (turnNum > 10) {
+                    setGameState("win");
+                    return;
+                }
+                
+                // Get Scenario
+                const scenarioIdx = (turnNum - 1) % SCENARIOS.length;
+                setCurrentScenario(SCENARIOS[scenarioIdx]);
+
+                // Set Deterministic Market Variables from Fixed Arrays
+                const arrayIndex = turnNum - 1; 
+                
+                // Use the Fixed Arrays instead of Math.random()
+                if (arrayIndex < FIXED_RATES.length) {
+                    setMarketRate(FIXED_RATES[arrayIndex]);
+                    setMarketCondition(FIXED_MARKET[arrayIndex]);
+                }
+            };
+
+            const handleDecision = (choice) => {
+                let newState = { ...playerState };
+                let logMsg = `Turn ${newState.turn}: Selected ${choice.label}.`;
+                
+                if (choice.type === "cash") {
+                    if (newState.cash < choice.cost) {
+                        setLogs(prev => [`Insufficient Cash for ${choice.label}!`, ...prev]);
+                        return; 
+                    }
+                    newState.cash -= choice.cost;
+                    newState.operatingAssets += choice.assetGain;
+                } else if (choice.type === "debt") {
+                    newState.cash += choice.cost; 
+                    newState.debt += choice.cost;
+                    newState.cash -= choice.cost;
+                    newState.operatingAssets += choice.assetGain;
+                } else if (choice.type === "repay") {
+                    newState.cash -= choice.cost;
+                    newState.debt -= choice.cost;
+                    newState.operatingAssets += choice.assetGain; 
+                } else if (choice.type === "debt_only") {
+                    newState.debt += choice.debtDetails.amount;
+                    newState.cash += choice.debtDetails.amount; 
+                    // Special case for hedging: manually adjust current rate if needed, 
+                    // though next turn will reset it to the Fixed Array value.
+                    // This allows a temporary advantage for the current turn calculation below.
+                    if(choice.debtDetails.rateDelta) {
+                        // Note: We don't change the global marketRate state here permanently
+                        // because nextTurn() re-sets it. This effect applies to the calculation *now*.
+                    }
+                } else if (choice.type === "gamble") {
+                    newState.cash -= choice.cost;
+                    // Note: This is one of the few places randomness remains (the court verdict).
+                    // If you want this deterministic too, replace Math.random() with a check on (turn % 2).
+                    if (Math.random() > 0.5) {
+                        logMsg += " SUCCESS! Case Dismissed.";
+                        newState.equity += 20; 
+                    } else {
+                        logMsg += " FAILURE. Massive fine levied.";
+                        newState.cash -= 60;
+                        newState.equity -= 60;
+                    }
+                }
+
+                // Apply Revenue Impact (Temporary for this calculation)
+                let currentEfficiency = marketCondition;
+                if (choice.revenueImpact) {
+                    currentEfficiency = currentEfficiency * choice.revenueImpact;
+                }
+                
+                // Adjust rate temporarily if they hedged this turn
+                let effectiveRate = marketRate;
+                if (choice.type === 'debt_only' && choice.debtDetails?.rateDelta) {
+                    effectiveRate += choice.debtDetails.rateDelta;
+                }
+
+                const periodMetrics = calculateDupont(newState, effectiveRate, currentEfficiency);
+                const netIncome = periodMetrics.NOPAT - (periodMetrics.NFO * periodMetrics.NBC);
+                
+                newState.cash += netIncome;
+                newState.equity += netIncome; 
+
+                if (newState.equity <= 0) {
+                    setGameState("eliminated");
+                    setPlayerState({ ...newState, eliminationReason: "INSOLVENCY (Equity < 0)" });
+                    return;
+                }
+                if (newState.cash < 0) {
+                    logMsg += " Cash negative! Forced asset sale.";
+                    newState.operatingAssets -= 50;
+                    newState.cash += 40; 
+                    if (newState.operatingAssets < 0) {
+                        setGameState("eliminated");
+                        setPlayerState({ ...newState, eliminationReason: "BANKRUPTCY (No Assets)" });
+                        return;
+                    }
+                }
+                
+                newState.turn += 1;
+                newState.history.push({
+                    turn: newState.turn - 1,
+                    roe: periodMetrics.ROE,
+                    spread: periodMetrics.Spread,
+                    equity: newState.equity
+                });
+                
+                setPlayerState(newState);
+                setLogs(prev => [logMsg, ...prev]);
+                nextTurn(newState.turn);
+            };
+
+            if (gameState === "menu") {
+                return (
+                    <div className="min-h-screen flex flex-col items-center justify-center p-4 relative overflow-hidden">
+                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-pink-600 to-green-500"></div>
+                        <div className="absolute -left-20 top-20 w-64 h-64 bg-pink-600 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse"></div>
+                        <div className="absolute -right-20 bottom-20 w-64 h-64 bg-green-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse"></div>
+
+                        <div className="max-w-md w-full z-10 text-center space-y-8">
+                            <div className="flex justify-center mb-6">
+                                <div className="relative">
+                                    <ShieldAlert size={80} className="text-pink-600" />
+                                    <DollarSign size={32} className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-white" />
+                                </div>
+                            </div>
+                        
+                        <div>
+                            <h1 className="text-5xl font-black tracking-tighter mb-2">THE SPREAD</h1>
+                            <p className="text-gray-400 text-sm uppercase tracking-widest">Dupont Survival Simulation</p>
+                        </div>
+
+                        <div className="bg-gray-900 border border-gray-800 p-6 rounded-xl text-left space-y-4 shadow-2xl">
+                            <h2 className="text-xl font-bold text-pink-500 flex items-center gap-2 mb-2">
+                            <AlertTriangle size={20}/> WAIVER FORM
+                            </h2>
+                            <div className="bg-black/50 p-2 mb-4 rounded border border-gray-700 flex items-center gap-2">
+                                <Briefcase size={16} className="text-blue-400"/>
+                                <span className="text-sm font-bold text-gray-200">ROLE ASSIGNED: CFO, OMEGA TECH</span>
+                            </div>
+                            <p className="text-sm text-gray-300">
+                            I, the undersigned, agree to participate in The Spread. I understand that:
+                            </p>
+                            <ul className="text-sm text-gray-400 list-disc list-inside space-y-1">
+                            <li>My goal is to maximize <span className="text-green-400 font-bold">ROE</span>.</li>
+                            <li>I must maintain a positive <span className="text-white font-bold">Spread</span>.</li>
+                            <li>If my Equity hits zero, I am <span className="text-pink-500 font-bold">ELIMINATED</span>.</li>
+                            </ul>
+                            
+                            <input 
+                            type="text" 
+                            placeholder="Enter Player Name (e.g. Player 456)" 
+                            className="w-full bg-black border border-gray-700 p-3 rounded text-white focus:outline-none focus:border-pink-500 transition-colors mt-4"
+                            value={playerName}
+                            onChange={(e) => setPlayerName(e.target.value)}
+                            />
+                        </div>
+
+                        <button 
+                            onClick={startGame}
+                            disabled={!playerName}
+                            className={`w-full py-4 text-xl font-bold uppercase tracking-widest transition-all duration-300 transform hover:scale-105 ${
+                            playerName 
+                            ? "bg-gradient-to-r from-pink-600 to-pink-700 text-white shadow-[0_0_20px_rgba(219,39,119,0.5)]" 
+                            : "bg-gray-800 text-gray-500 cursor-not-allowed"
+                            }`}
+                        >
+                            Join Game
+                        </button>
+                        </div>
+                    </div>
+                );
+            }
+
+            if (gameState === "eliminated") {
+                return (
+                    <div className="min-h-screen flex flex-col items-center justify-center p-4">
+                        <Skull size={100} className="text-pink-600 mb-6 animate-bounce" />
+                        <h1 className="text-6xl font-black text-pink-600 mb-2">ELIMINATED</h1>
+                        <p className="text-2xl text-gray-400 mb-8">Player: {playerName}</p>
+                        
+                        <div className="bg-gray-900 p-6 rounded border border-red-900 max-w-md w-full text-center">
+                            <h3 className="text-red-500 font-bold uppercase mb-2">Cause of Death</h3>
+                            <p className="text-xl">{playerState.eliminationReason}</p>
+                            <div className="mt-4 pt-4 border-t border-gray-800 grid grid-cols-2 gap-4">
+                                <Metric label="Final Equity" value={playerState.equity.toFixed(1)} color="text-red-400" />
+                                <Metric label="Last Spread" value={(playerState.history[playerState.history.length-1]?.spread * 100).toFixed(2) + "%"} color="text-gray-400" />
+                            </div>
+                            
+                            <div className="mt-6 pt-4 border-t border-gray-800">
+                                {!submitStatus ? (
+                                    <button 
+                                        onClick={() => submitToLeaderboard("Eliminated")}
+                                        disabled={isSubmitting}
+                                        className="w-full py-3 bg-gray-800 hover:bg-gray-700 flex items-center justify-center gap-2 text-white rounded transition-colors"
+                                    >
+                                        {isSubmitting ? "Sending..." : <><Send size={16}/> Submit Final Score</>}
+                                    </button>
+                                ) : (
+                                    <div className="flex items-center justify-center gap-2 text-green-400 py-2">
+                                        <CheckCircle size={18} /> Score Submitted
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        <button 
+                            onClick={() => setGameState("menu")}
+                            className="mt-8 px-8 py-3 bg-gray-800 hover:bg-gray-700 text-white rounded uppercase tracking-widest transition-colors"
+                        >
+                            Try Again
+                        </button>
+                    </div>
+                );
+            }
+
+            if (gameState === "win") {
+                const finalEquity = playerState.equity.toFixed(1);
+                const avgRoe = (playerState.history.reduce((a, b) => a + b.roe, 0) / playerState.history.length * 100).toFixed(1);
+                
+                return (
+                    <div className="min-h-screen flex flex-col items-center justify-center p-4">
+                        <Trophy size={80} className="text-yellow-400 mb-6 animate-pulse" />
+                        <h1 className="text-5xl font-black text-white mb-2">SURVIVOR</h1>
+                        <p className="text-green-400 text-xl mb-8">You mastered the Spread.</p>
+                        
+                        <div className="grid grid-cols-2 gap-4 w-full max-w-md mb-8">
+                            <Card className="text-center bg-black border-yellow-600">
+                                <div className="text-gray-400 text-xs uppercase">Final Equity</div>
+                                <div className="text-3xl text-yellow-400 font-bold">${finalEquity}M</div>
+                            </Card>
+                            <Card className="text-center bg-black border-green-600">
+                                <div className="text-gray-400 text-xs uppercase">Avg ROE</div>
+                                <div className="text-3xl text-green-400 font-bold">{avgRoe}%</div>
+                            </Card>
+                        </div>
+
+                        <div className="w-full max-w-md mb-8">
+                            {!submitStatus ? (
+                                <button 
+                                    onClick={() => submitToLeaderboard("Survivor")}
+                                    disabled={isSubmitting}
+                                    className="w-full py-4 bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white font-bold rounded shadow-lg flex items-center justify-center gap-2 transform transition-transform hover:scale-105"
+                                >
+                                    {isSubmitting ? "Transmitting..." : <><Send size={20}/> Submit to Class Leaderboard</>}
+                                </button>
+                            ) : (
+                                <div className="w-full py-4 bg-gray-800 border border-green-500 text-green-400 font-bold rounded flex items-center justify-center gap-2">
+                                    <CheckCircle size={20} /> Data Transmitted Successfully
+                                </div>
+                            )}
+                        </div>
+
+                        {/* --- CHEAT SHEET SECTION --- */}
+                        <div className="bg-gray-900 border border-gray-700 p-4 rounded-lg max-w-md w-full mb-6 text-left relative overflow-hidden">
+                            <div className="absolute top-0 right-0 p-2 opacity-10">
+                                <Lock size={64} className="text-gray-500"/>
+                            </div>
+                            <h3 className="text-pink-500 font-bold uppercase tracking-widest mb-3 text-xs flex items-center gap-2 border-b border-gray-800 pb-2">
+                                <ShieldAlert size={14}/> CFO's Secret Playbook
+                            </h3>
+                            <ul className="text-[11px] text-gray-400 space-y-2 font-mono leading-tight">
+                                <li className="flex gap-2">
+                                    <span className="text-green-400 font-bold min-w-[80px]">Turns 1-2:</span> 
+                                    <span>Boom Times. Aggressive Leverage (Issue Debt) > Cash.</span>
+                                </li>
+                                <li className="flex gap-2">
+                                    <span className="text-red-400 font-bold min-w-[80px]">Turn 3:</span> 
+                                    <span>Inflation Spike. HEDGE or DELEVERAGE immediately.</span>
+                                </li>
+                                <li className="flex gap-2">
+                                    <span className="text-blue-400 font-bold min-w-[80px]">Turns 4-9:</span> 
+                                    <span>Stability. Protect RNOA/Margins. Don't bloat assets.</span>
+                                </li>
+                                <li className="flex gap-2">
+                                    <span className="text-yellow-400 font-bold min-w-[80px]">Turn 10:</span> 
+                                    <span>Recession Crash. LIQUIDATE. Sell assets to survive.</span>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <div className="bg-black p-4 rounded w-full max-w-md border border-gray-800 h-48 overflow-y-auto">
+                            <h3 className="text-gray-500 text-xs uppercase mb-2">Performance Log</h3>
+                            {playerState.history.map((h, i) => (
+                                <div key={i} className="flex justify-between text-sm py-1 border-b border-gray-800">
+                                    <span>Turn {h.turn + 1}</span>
+                                    <span className={h.spread > 0 ? "text-green-400" : "text-red-400"}>
+                                        Spread: {(h.spread * 100).toFixed(2)}%
+                                    </span>
+                                    <span className="text-gray-300">ROE: {(h.roe * 100).toFixed(1)}%</span>
+                                </div>
+                            ))}
+                        </div>
+
+                        <button 
+                            onClick={() => setGameState("menu")}
+                            className="mt-8 px-8 py-3 bg-green-600 hover:bg-green-700 text-white rounded uppercase tracking-widest shadow-lg"
+                        >
+                            Play Again
+                        </button>
+                    </div>
+                );
+            }
+
+            const isDanger = metrics.Spread < 0;
+            const isCritical = metrics.Equity < 50;
+
+            return (
+                <div className="min-h-screen flex flex-col md:flex-row">
+                    {/* LEFT: DASHBOARD */}
+                    <div className="w-full md:w-1/3 p-4 md:p-6 bg-black border-b md:border-r border-gray-800 flex flex-col gap-6 overflow-y-auto">
+                        
+                        {/* Header */}
+                        <div className="flex justify-between items-center">
+                            <div>
+                                <h2 className="text-pink-600 font-black text-xl tracking-tighter">CFO: {playerName}</h2>
+                                <span className="text-xs text-gray-500">TURN {playerState.turn} / {playerState.maxTurns}</span>
+                            </div>
+                            <div className="bg-gray-900 px-3 py-1 rounded border border-gray-700 flex items-center gap-2">
+                                <div className={`w-2 h-2 rounded-full ${isDanger ? 'bg-red-500 animate-pulse' : 'bg-green-500'}`}></div>
+                                <span className="text-xs font-bold">{isDanger ? "NEGATIVE SPREAD" : "STABLE"}</span>
+                            </div>
+                        </div>
+
+                        {/* Primary Metrics */}
+                        <div className="grid grid-cols-2 gap-4">
+                            <Card className="border-pink-900/50 bg-pink-900/10">
+                                <Metric 
+                                    label="ROE (Goal)" 
+                                    value={`${(metrics.ROE * 100).toFixed(2)}%`} 
+                                    color={metrics.ROE > 0.15 ? "text-pink-400" : "text-white"}
+                                />
+                            </Card>
+                            <Card className="border-green-900/50 bg-green-900/10">
+                                <Metric 
+                                    label="Equity (Life)" 
+                                    value={`$${metrics.Equity.toFixed(1)}M`} 
+                                    color={metrics.Equity < 50 ? "text-red-500" : "text-green-400"}
+                                    warning={isCritical}
+                                />
+                            </Card>
+                        </div>
+
+                        {/* The Dupont Tree Visualization */}
+                        <div className="space-y-4">
+                            <div className="bg-gray-900 p-2 rounded mb-2 text-center border border-gray-700">
+                            <span className="text-[10px] text-gray-500 uppercase tracking-widest">Dupont Identity</span>
+                            <div className="flex justify-center items-center gap-2 text-sm font-bold mt-1">
+                                <span className="text-pink-400">ROE</span>
+                                <span className="text-gray-500">=</span>
+                                <span className="text-blue-400">RNOA</span>
+                                <span className="text-gray-500">+</span>
+                                <span className="text-green-400">Non-Op Return</span>
+                            </div>
+                            </div>
+                            
+                            {/* RNOA Section */}
+                            <div className="space-y-1">
+                                <div className="flex justify-between items-end">
+                                    <span className="text-sm text-blue-300">RNOA (Operating)</span>
+                                    <span className="text-xl font-bold text-blue-400">{(metrics.RNOA * 100).toFixed(2)}%</span>
+                                </div>
+                                <div className="flex justify-between text-xs text-gray-500">
+                                    <span>NOPAT: ${metrics.NOPAT.toFixed(1)}</span>
+                                    <span>NOA: ${metrics.NOA.toFixed(1)}</span>
+                                </div>
+                                <ProgressBar value={metrics.RNOA * 100} max={20} label="" color="bg-blue-500" />
+                            </div>
+
+                            {/* Non-Operating Return Section */}
+                            <div className="space-y-1 mt-4">
+                                <div className="flex justify-between items-end">
+                                    <span className="text-sm text-green-300">Non-Operating Return</span>
+                                    <span className={`text-xl font-bold ${metrics.NonOperatingReturn > 0 ? 'text-green-400' : 'text-red-500'}`}>
+                                        {(metrics.NonOperatingReturn * 100).toFixed(2)}%
+                                    </span>
+                                </div>
+                                <div className="flex justify-between text-xs text-gray-500 mb-1">
+                                <span>FLEV: {metrics.leverageRatio.toFixed(2)}x</span>
+                                <span>Spread: {(metrics.Spread * 100).toFixed(2)}%</span>
+                                </div>
+                                <div className="text-[10px] text-gray-500 mb-1 italic">
+                                    = FLEV × Spread
+                                </div>
+                                <ProgressBar 
+                                    value={metrics.NonOperatingReturn * 100} 
+                                    max={10} 
+                                    label="" 
+                                    color={metrics.NonOperatingReturn > 0 ? "bg-green-500" : "bg-red-500"} 
+                                />
+                            </div>
+
+                            {/* Detail Box for Spread Breakdown */}
+                            <div className="bg-gray-900 p-3 rounded border border-gray-700 mt-2">
+                                <h4 className="text-[10px] uppercase text-gray-500 font-bold mb-2 border-b border-gray-800 pb-1">Spread Breakdown</h4>
+                                <div className="flex justify-between items-center text-xs mb-1">
+                                    <span className="text-blue-300">RNOA</span>
+                                    <span>{(metrics.RNOA * 100).toFixed(2)}%</span>
+                                </div>
+                                <div className="flex justify-between items-center text-xs mb-1">
+                                    <span className="text-orange-300">(-) Net Borrowing Cost</span>
+                                    <span>{(metrics.NBC * 100).toFixed(2)}%</span>
+                                </div>
+                                <div className="border-t border-gray-700 mt-1 pt-1 flex justify-between items-center">
+                                    <span className="text-xs font-bold text-white">Spread</span>
+                                    <span className={`font-bold ${metrics.Spread > 0 ? 'text-green-400' : 'text-red-500'}`}>
+                                        {(metrics.Spread * 100).toFixed(2)}%
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Resources */}
+                        <div className="grid grid-cols-2 gap-4 mt-auto">
+                            <div className="flex items-center gap-2 text-sm text-gray-400">
+                                <DollarSign size={16} /> Cash: ${playerState.cash.toFixed(1)}
+                            </div>
+                            <div className="flex items-center gap-2 text-sm text-gray-400">
+                                <BarChart3 size={16} /> Assets: ${playerState.operatingAssets.toFixed(1)}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* RIGHT: GAMEPLAY AREA */}
+                    <div className="w-full md:w-2/3 p-4 md:p-8 flex flex-col relative">
+                        
+                        {/* Market News Ticker */}
+                        <div className="absolute top-0 left-0 w-full bg-pink-900/20 border-b border-pink-900/50 p-2 overflow-hidden flex z-10">
+                            <div className="animate-marquee text-pink-400 text-xs font-bold tracking-widest">
+                                MARKET UPDATE: INTEREST RATES {(marketRate * 100).toFixed(2)}% /// SECTOR DEMAND: {(marketCondition * 100).toFixed(0)}% /// SURVIVE THE SPREAD /// DO NOT INSOLVE
+                            </div>
+                        </div>
+
+                        {/* Scenario Card */}
+                        <div className="mt-8 flex-grow flex flex-col justify-center max-w-2xl mx-auto w-full">
+                            <div className="mb-6">
+                                <h3 className="text-pink-500 font-bold uppercase tracking-widest mb-1 flex items-center gap-2">
+                                    <Activity size={18}/> Current Scenario
+                                </h3>
+                                <h2 className="text-3xl font-bold text-white mb-2">{currentScenario?.title}</h2>
+                                <div className="flex items-center gap-2 mb-4 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                                    <Briefcase size={12} /> Source: {currentScenario?.company}
+                                </div>
+                                <p className="text-gray-300 text-lg leading-relaxed border-l-4 border-pink-600 pl-4 bg-gray-900/50 py-2">
+                                    {currentScenario?.description}
+                                </p>
+                                <div className="mt-2 text-sm text-blue-400 font-bold flex items-center gap-2">
+                                    <TrendingUp size={14}/> Impact: {currentScenario?.impact}
+                                </div>
+                            </div>
+
+                            {/* Decisions */}
+                            <div className="grid gap-4">
+                                {currentScenario?.choices.map((choice, idx) => (
+                                    <button
+                                        key={idx}
+                                        onClick={() => handleDecision(choice)}
+                                        className="group relative overflow-hidden bg-gray-900 border border-gray-700 hover:border-pink-500 p-6 rounded-xl text-left transition-all duration-300 hover:transform hover:translate-x-1 hover:shadow-[0_0_15px_rgba(236,72,153,0.3)]"
+                                    >
+                                        <div className="flex justify-between items-start mb-2">
+                                            <span className="font-bold text-lg text-white group-hover:text-pink-400 transition-colors">
+                                                {choice.label}
+                                            </span>
+                                            <span className={`text-xs px-2 py-1 rounded uppercase font-bold ${
+                                                choice.risk === 'high' ? 'bg-red-900 text-red-300' :
+                                                choice.risk === 'safe' ? 'bg-green-900 text-green-300' :
+                                                choice.risk === 'extreme' ? 'bg-purple-900 text-purple-300' :
+                                                'bg-yellow-900 text-yellow-300'
+                                            }`}>
+                                                {choice.risk} Risk
+                                            </span>
+                                        </div>
+                                        <div className="flex gap-4 text-xs text-gray-500 font-mono items-center">
+                                            <span>COST: ${choice.cost}M</span>
+                                            <span>ASSETS: {choice.assetGain > 0 ? '+' : ''}{choice.assetGain}M</span>
+                                            
+                                            <div className="flex items-center gap-1 ml-auto border-l border-gray-700 pl-4">
+                                                {getFundingIcon(choice.type)}
+                                                <span className={choice.type === 'debt' ? 'text-orange-300' : choice.type === 'cash' ? 'text-green-300' : 'text-gray-400'}>
+                                                    {getFundingLabel(choice.type)}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        {/* PROJECTED IMPACTS */}
+                                        <div className="mt-3 pt-3 border-t border-gray-800 grid grid-cols-2 gap-4">
+                                        <div className="flex flex-col">
+                                            <span className="text-[10px] uppercase text-gray-500 font-bold mb-1">RNOA Impact</span>
+                                            <span className="text-xs font-bold text-blue-300">{choice.rnoaEffect}</span>
+                                        </div>
+                                        <div className="flex flex-col">
+                                            <span className="text-[10px] uppercase text-gray-500 font-bold mb-1">Non-Op Impact</span>
+                                            <span className="text-xs font-bold text-green-300">{choice.nonOpEffect}</span>
+                                        </div>
+                                        </div>
+
+                                        <div className="absolute right-4 bottom-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <ArrowRight className="text-pink-500" />
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Action Log */}
+                        <div className="mt-8 h-32 overflow-y-auto bg-black border border-gray-800 rounded p-4 font-mono text-xs text-gray-400">
+                            {logs.map((log, i) => (
+                                <div key={i} className="mb-1 border-b border-gray-900 pb-1">
+                                    <span className="text-pink-800 mr-2">[{new Date().toLocaleTimeString()}]</span>
+                                    {log}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
