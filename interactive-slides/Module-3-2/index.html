@@ -163,11 +163,20 @@
         .def-table .name { font-weight: 600; color: white; width: 220px; }
         .def-table .formula { font-family: 'Fira Code', monospace; color: #e2e8f0; font-size: 0.95rem; }
 
-        .scenario-footer { margin-top: 15px; padding: 15px; background: rgba(255,255,255,0.05); border-radius: 12px; border: 1px dashed rgba(255,255,255,0.2); display: flex; justify-content: space-around; position: relative; }
-        .scenario-footer::after { content: ''; position: absolute; left: 50%; top: 10%; bottom: 10%; width: 1px; background: rgba(255,255,255,0.2); }
-        .scenario-footer div { text-align: center; width: 45%; }
+        .scenario-footer { margin-top: 15px; padding: 15px; background: rgba(255,255,255,0.05); border-radius: 12px; border: 1px dashed rgba(255,255,255,0.2); display: flex; flex-direction: column; justify-content: center; position: relative; }
+        .scenario-footer div { text-align: center; width: 100%; margin-bottom: 10px; }
         .scenario-footer p { font-size: 0.8rem; margin-bottom: 5px; font-family: 'Fira Code', monospace; color: #a5b4fc; }
         .scenario-footer h5 { font-size: 1rem; color: white; font-family: 'Fira Code', monospace; }
+        
+        .formula-highlight {
+            background: rgba(16, 185, 129, 0.2);
+            border: 1px solid var(--success);
+            color: #064e3b; 
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 8px;
+            font-size: 0.95rem;
+        }
 
         .quadrant-grid {
             display: grid;
@@ -309,6 +318,21 @@
             font-weight: bold;
             transition: height 0.6s, background 0.6s;
             z-index: 10;
+        }
+        
+        .tax-overlay-dashed-compare {
+            position: absolute;
+            top: 0;
+            width: 110%;
+            left: -5%;
+            height: 0; /* Dynamic */
+            border: 3px dotted #1e293b; /* Dark Dotted Line for Tax on Op Inc */
+            background: rgba(255,255,255,0.2);
+            border-radius: 8px;
+            z-index: 11;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.4s, height 0.6s, top 0.6s;
         }
 
         /* Bridge Arrow - FIXED WIDTH */
@@ -675,27 +699,6 @@
         </div>
     </div>
 
-    <!-- NEW INTERLEAVED QUIZ 1 -->
-    <div class="slide">
-        <h2>Checkpoint 1: Classification</h2>
-        <div class="card" style="max-width: 800px; margin: 0 auto;">
-            <p style="font-size: 1.3rem; margin-bottom: 2rem;">A company has $100M in a savings account earning 2% interest. How is this classified?</p>
-            <div class="quiz-option" onclick="checkInterQuiz(this, false)">
-                <div class="quiz-circle">A</div>
-                <div>Operating Asset (It's an asset owned by the company)</div>
-            </div>
-            <div class="quiz-option" onclick="checkInterQuiz(this, true)">
-                <div class="quiz-circle">B</div>
-                <div>Non-Operating Asset (It earns passive interest, not from customers)</div>
-            </div>
-            <div class="quiz-option" onclick="checkInterQuiz(this, false)">
-                <div class="quiz-circle">C</div>
-                <div>Operating Liability (It is owed to the bank)</div>
-            </div>
-            <p class="inter-quiz-fb font-bold mt-4"></p>
-        </div>
-    </div>
-
     <!-- Slide 7: Pfizer NOA Case Study -->
     <div class="slide">
         <h2>Case Study: Pfizer's NOA (2022)</h2>
@@ -729,10 +732,10 @@
             <!-- Controls -->
             <div style="display:flex; justify-content:center; gap: 15px; margin-bottom: 30px;">
                 <button class="btn btn-outline" id="btn-debt" onclick="updateTaxViz('debt')" style="width: 200px;">
-                    <i class="fas fa-arrow-down mr-2"></i> High Debt Scenario
+                    <i class="fas fa-arrow-down mr-2"></i> High Debt Scenario<br><span style="font-size:0.7rem;">(positive NNO)</span>
                 </button>
                 <button class="btn btn-outline" id="btn-cash" onclick="updateTaxViz('cash')" style="width: 200px;">
-                    <i class="fas fa-arrow-up mr-2"></i> Excess Cash Scenario
+                    <i class="fas fa-arrow-up mr-2"></i> Excess Cash Scenario<br><span style="font-size:0.7rem;">(Negative NNO)</span>
                 </button>
             </div>
 
@@ -767,10 +770,12 @@
                         <div id="taxable-bar" class="bridge-bar result-bar" style="height: 160px;">
                             <span id="taxable-val" class="bar-val">$80</span>
                         </div>
-                        <!-- Actual Tax Overlay -->
+                        <!-- Solid Red Overlay: Now represents ACTUAL Tax -->
                         <div id="actual-tax-overlay" class="tax-overlay-actual" style="height: 32px;">
                             <span id="actual-tax-label">Actual Tax ($16)</span>
                         </div>
+                        <!-- Dotted Box: Now represents Tax on Op Inc -->
+                        <div id="tax-overlay-dashed-compare" class="tax-overlay-dashed-compare"></div>
                     </div>
                 </div>
 
@@ -780,27 +785,6 @@
             <div id="bridge-analysis" class="analysis-box">
                 <!-- JS Populates this -->
             </div>
-        </div>
-    </div>
-
-    <!-- NEW INTERLEAVED QUIZ 2 -->
-    <div class="slide">
-        <h2>Checkpoint 2: Tax Logic</h2>
-        <div class="card" style="max-width: 800px; margin: 0 auto;">
-            <p style="font-size: 1.3rem; margin-bottom: 2rem;">If a company has high Interest Expense, their Taxable Income is LOWER than their Operating Income. This means their Reported Tax is _________ than the tax owed on operating income.</p>
-            <div class="quiz-option" onclick="checkInterQuiz(this, true)">
-                <div class="quiz-circle">A</div>
-                <div>Lower (Positive Tax Shield)</div>
-            </div>
-            <div class="quiz-option" onclick="checkInterQuiz(this, false)">
-                <div class="quiz-circle">B</div>
-                <div>Higher (Negative Tax Shield)</div>
-            </div>
-            <div class="quiz-option" onclick="checkInterQuiz(this, false)">
-                <div class="quiz-circle">C</div>
-                <div>The same</div>
-            </div>
-            <p class="inter-quiz-fb font-bold mt-4"></p>
         </div>
     </div>
 
@@ -906,7 +890,11 @@
                 <div class="scenario-footer">
                     <div>
                         <p>Top Down Calculation</p>
-                        <h5 class="reveal-blur" onclick="this.classList.add('revealed')">$1,000 - ($180 + $20 Tax Shield)</h5>
+                        <!-- Updated Summary Text with Darker Color -->
+                         <div class="formula-highlight reveal-blur" onclick="this.classList.add('revealed')" style="color: #064e3b; font-weight: bold; background: white;">
+                            Tax on Op Inc = Actual Tax + Tax Shield<br>
+                            $200 = $180 + $20 (Positive Shield)
+                         </div>
                     </div>
                     <div>
                         <p>Bottom Up Calculation</p>
@@ -951,8 +939,11 @@
                 <div class="scenario-footer">
                     <div>
                         <p>Top Down Calculation</p>
-                        <!-- Updated Text -->
-                        <h5 class="reveal-blur" onclick="this.classList.add('revealed')">$1,000 - ($220 - $20 Negative Tax Shield)</h5>
+                        <!-- Updated Summary Text with Darker Color -->
+                         <div class="formula-highlight reveal-blur" onclick="this.classList.add('revealed')" style="border-color: var(--error); color: #7f1d1d; font-weight: bold; background: white;">
+                            Tax on Op Inc = Actual Tax + Tax Shield<br>
+                            $200 = $220 + (-$20) (Negative Shield)
+                         </div>
                     </div>
                     <div>
                         <p>Bottom Up Calculation</p>
@@ -1071,27 +1062,6 @@
                 <circle cx="450" cy="310" r="6" fill="#64748b" opacity="0.6" />
                 <circle cx="550" cy="320" r="6" fill="#64748b" opacity="0.6" />
             </svg>
-        </div>
-    </div>
-
-    <!-- NEW INTERLEAVED QUIZ 3 -->
-    <div class="slide">
-        <h2>Checkpoint 3: Drivers</h2>
-        <div class="card" style="max-width: 800px; margin: 0 auto;">
-            <p style="font-size: 1.3rem; margin-bottom: 2rem;">If a company wants to increase RNOA without changing its product margins (NOPM), what must it do?</p>
-            <div class="quiz-option" onclick="checkInterQuiz(this, true)">
-                <div class="quiz-circle">A</div>
-                <div>Increase Asset Turnover (Generate more sales per dollar of assets)</div>
-            </div>
-            <div class="quiz-option" onclick="checkInterQuiz(this, false)">
-                <div class="quiz-circle">B</div>
-                <div>Increase Leverage (Borrow more money)</div>
-            </div>
-            <div class="quiz-option" onclick="checkInterQuiz(this, false)">
-                <div class="quiz-circle">C</div>
-                <div>Decrease Tax Rate</div>
-            </div>
-            <p class="inter-quiz-fb font-bold mt-4"></p>
         </div>
     </div>
 
@@ -1503,6 +1473,8 @@
         const actualTaxOverlay = document.getElementById('actual-tax-overlay');
         const actualTaxLabel = document.getElementById('actual-tax-label');
         
+        const dashedOverlay = document.getElementById('tax-overlay-dashed-compare');
+        
         const analysisBox = document.getElementById('bridge-analysis');
 
         // Logic
@@ -1522,10 +1494,16 @@
             arrow.className = 'bridge-arrow arrow-down';
             bridgeVal.innerText = '- $20 Int. Exp';
             
-            // Actual Tax ($80 * 20% = $16)
-            actualTaxOverlay.style.height = '32px'; // $16 * 2
-            actualTaxOverlay.style.background = '#f43f5e'; // Red implies tax paid
+            // Solid Red Bar = Actual Tax ($16 -> 32px)
+            actualTaxOverlay.style.height = '32px'; 
+            actualTaxOverlay.style.background = '#f43f5e'; 
             actualTaxLabel.innerText = 'Actual Tax ($16)';
+            
+            // Dotted Box = Tax on Op Inc ($20 -> 40px)
+            // Since 40px (dotted) > 32px (solid), the dotted box is taller.
+            dashedOverlay.style.opacity = '1';
+            dashedOverlay.style.height = '40px'; 
+            dashedOverlay.style.top = '0px'; 
 
             // Analysis Content
             analysisBox.style.borderLeftColor = 'var(--success)';
@@ -1538,13 +1516,12 @@
                     <div class="math-row" style="color: var(--accent);"><span>(Less) Tax Expense (20%)</span> <span>($16.00)</span></div>
                     <div class="math-row" style="font-weight:800; border-top: 3px double #333; font-size: 1.1rem;"><span>= Net Income</span> <span>$64.00</span></div>
                 </div>
-                <p>
-                    <strong>The Result:</strong> Tax on Operating Income ($20 = $100 × 20%) is <strong>higher</strong> than Actual Tax ($16). <br>
-                    <strong>$20 (Tax on Operating Income) = $16 (Actual) + $4 (Tax Shield)</strong><br>
-                    <span style="font-size:0.9rem; opacity:0.9; display:block; margin-top:10px; color:#1e1b4b; background:#f1f5f9; padding:10px; border-radius:8px;">The tax shield is added back because calculating Tax on Operating Income effectively removes the tax benefit provided by the non-operating interest expense that was used to calculate Net Income.</span>
-                </p>
-                <div style="margin-top: 10px; background: #d1fae5; color: #065f46; padding: 10px; border-radius: 6px; text-align: center; font-weight: bold;">
-                    Tax Shield = +$4.00 (Positive)
+                <div class="formula-highlight">
+                    <strong>Tax on Op Income = Actual Tax + Tax Shield</strong><br>
+                    $20 (Tax on Op Inc) = $16 (Actual) + $4 (Shield)
+                </div>
+                <div style="margin-top: 10px; font-size: 0.85rem; color: #64748b;">
+                    The dashed outline ($20 Tax on Op Inc) is taller than the solid red bar ($16 Actual Tax). The gap is your tax savings (Tax Shield).
                 </div>
             `;
 
@@ -1563,10 +1540,16 @@
             arrow.className = 'bridge-arrow arrow-up';
             bridgeVal.innerText = '+ $20 Int. Inc';
 
-            // Actual Tax ($120 * 20% = $24)
-            actualTaxOverlay.style.height = '48px'; // $24 * 2
+            // Solid Red Bar = Actual Tax ($24 -> 48px)
+            actualTaxOverlay.style.height = '48px'; 
             actualTaxOverlay.style.background = '#f43f5e';
             actualTaxLabel.innerText = 'Actual Tax ($24)';
+            
+            // Dotted Box = Tax on Op Inc ($20 -> 40px)
+            // Since 48px (solid) > 40px (dotted), the solid bar is taller.
+            dashedOverlay.style.opacity = '1';
+            dashedOverlay.style.height = '40px';
+            dashedOverlay.style.top = '0px';
 
             // Analysis Content
             analysisBox.style.borderLeftColor = 'var(--error)';
@@ -1579,13 +1562,12 @@
                     <div class="math-row" style="color: var(--accent);"><span>(Less) Tax Expense (20%)</span> <span>($24.00)</span></div>
                     <div class="math-row" style="font-weight:800; border-top: 3px double #333; font-size: 1.1rem;"><span>= Net Income</span> <span>$96.00</span></div>
                 </div>
-                <p>
-                    <strong>The Result:</strong> Tax on Operating Income ($20 = $100 × 20%) is <strong>lower</strong> than Actual Tax ($24). <br>
-                    <strong>$20 (Tax on Operating Income) = $24 (Actual) - $4 (Negative Tax Shield)</strong><br>
-                    <span style="font-size:0.85rem; opacity:0.8;">We subtract the negative tax shield to remove the extra tax burden caused by the non-operating interest income.</span>
-                </p>
-                <div style="margin-top: 10px; background: #fee2e2; color: #991b1b; padding: 10px; border-radius: 6px; text-align: center; font-weight: bold;">
-                    Negative Tax Shield = ($4.00)
+                <div class="formula-highlight" style="border-color: var(--error); color: #7f1d1d; background: rgba(239, 68, 68, 0.1);">
+                    <strong>Tax on Op Income = Actual Tax + Tax Shield</strong><br>
+                    $20 (Tax on Op Inc) = $24 (Actual) + (-$4) (Negative Shield)
+                </div>
+                <div style="margin-top: 10px; font-size: 0.85rem; color: #64748b;">
+                    The solid red bar ($24 Actual Tax) is taller than the dashed outline ($20 Tax on Op Inc). You paid extra tax on the interest income.
                 </div>
             `;
         }
