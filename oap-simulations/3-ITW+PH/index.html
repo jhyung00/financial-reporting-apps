@@ -288,7 +288,18 @@
             fl: { title: "Financial Leverage", def: "Avg Total Assets / Avg Stockholders' Equity" },
             ncir: { title: "NCIR", def: "Net Income / Net Income Attributable to Parent" },
             roa_decomp: { title: "ROA Decomposition", def: "Profit Margin × Asset Turnover" },
-            op_v_nonop: { title: "Operating vs Nonoperating ROE", def: "ROE = [RNOA + (Spread × FLEV)] × NCIR" },
+            op_v_nonop: { 
+                title: "Operating vs Nonoperating ROE Definitions", 
+                def: (
+                    <div className="space-y-2 leading-tight">
+                        <div><strong>NNO</strong> Net nonoperating obligations (Nonoperating liabilities – Nonoperating assets)</div>
+                        <div><strong>FLEV</strong> Financial leverage (Average NNO / Average total stockholders’ equity)</div>
+                        <div><strong>NNE</strong> Net nonoperating expense after tax (NOPAT – Total net income; or [Nonoperating expenses × (1 – Statutory Tax Rate)])</div>
+                        <div><strong>NNEP</strong> Net nonoperating expense % (NNE / Average NNO)</div>
+                        <div><strong>Spread</strong> Operational Spread (RNOA – NNEP)</div>
+                    </div>
+                )
+            },
             rnoa: { title: "RNOA", def: "NOPAT / Average Net Operating Assets (NOA)" },
             nnep: { title: "NNEP", def: "Net Nonoperating Expense / Average NNO" },
             flev_op: { title: "Operating FLEV", def: "Average NNO / Average Total Equity" },
@@ -384,13 +395,13 @@
                 const tol = 0.5;
                 
                 if (isPercentage) {
-                     if (Math.abs(numVal - correctNum) < tol) {
-                          finalVal = numVal.toFixed(2);
-                      } else if (Math.abs((numVal * 100) - correctNum) < tol) {
-                          finalVal = (numVal * 100).toFixed(2); 
-                      } else {
-                          finalVal = numVal.toFixed(2);
-                      }
+                      if (Math.abs(numVal - correctNum) < tol) {
+                           finalVal = numVal.toFixed(2);
+                       } else if (Math.abs((numVal * 100) - correctNum) < tol) {
+                           finalVal = (numVal * 100).toFixed(2); 
+                       } else {
+                           finalVal = numVal.toFixed(2);
+                       }
                 } else {
                     if (Number.isInteger(numVal)) {
                         finalVal = numVal.toString();
@@ -749,7 +760,7 @@
                                 <button onClick={toggleTeacher} className={`p-2 transition-opacity ${teacherMode ? 'text-green-600 opacity-100' : 'text-slate-400 opacity-20 hover:opacity-100'}`}>
                                     {teacherMode ? <Icons.Unlock /> : <Icons.Lock />}
                                 </button>
-                            </div>
+                             </div>
                         </div>
 
                         <div className="flex-1 overflow-y-auto custom-scrollbar bg-slate-50 p-4 md:p-8">
@@ -828,19 +839,7 @@
                                     <h3 className="font-bold text-base sm:text-lg text-slate-800 mb-4">4b. NNE & NOPAT Derivation (2022)</h3>
                                     <div className="space-y-6">
                                         <div className="bg-slate-50 p-3 sm:p-4 rounded border">
-                                            <h4 className="font-bold text-xs sm:text-sm text-slate-700 mb-2">Method 1: Net Income Approach</h4>
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 mb-2">
-                                                <div className="text-xs sm:text-sm">Step 1: Calculate NNE (Net Nonoperating Expense)</div>
-                                                <SmartInput id="nne_calc" value={currentInputs.nne_calc} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={currentData._DATA_MATRIX.nne_calc} teacherMode={teacherMode} placeholder="$" />
-                                            </div>
-                                            <div className="text-[10px] text-slate-500 mb-2 ml-1 italic">(Tax Shield = Nonoperating items before tax × Tax Rate)</div>
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4">
-                                                <div className="text-xs sm:text-sm">Step 2: NOPAT (Net Income + NNE)</div>
-                                                <SmartInput id="nopat_m1" value={currentInputs.nopat_m1} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={currentData._DATA_MATRIX.nopat_m1} teacherMode={teacherMode} placeholder="$" />
-                                            </div>
-                                        </div>
-                                        <div className="bg-slate-50 p-3 sm:p-4 rounded border">
-                                            <h4 className="font-bold text-xs sm:text-sm text-slate-700 mb-2">Method 2: Operating Income Approach</h4>
+                                            <h4 className="font-bold text-xs sm:text-sm text-slate-700 mb-2">Method 1: Operating Income Approach</h4>
                                             <div className="text-[10px] sm:text-xs text-slate-500 mb-2 font-mono">
                                                 Formula: Operating Income - Tax on Operating Profit <br/>
                                                 <span className="text-[9px] text-slate-400">where Tax on Operating Profit = Tax Expense + Tax Shield</span>
@@ -848,6 +847,24 @@
                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4">
                                                 <div className="text-xs sm:text-sm">NOPAT Calculation</div>
                                                 <SmartInput id="nopat_m2" value={currentInputs.nopat_m2} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={currentData._DATA_MATRIX.nopat_m2} teacherMode={teacherMode} placeholder="$" />
+                                            </div>
+                                        </div>
+
+                                        <div className="bg-slate-50 p-3 sm:p-4 rounded border">
+                                            <h4 className="font-bold text-xs sm:text-sm text-slate-700 mb-2">Method 2: Net Income Approach</h4>
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 mb-2">
+                                                <div className="text-xs sm:text-sm">
+                                                    Step 1: Calculate NNE (Net Nonoperating Expense)
+                                                    <div className="text-[10px] text-slate-500 font-normal mt-1 leading-tight">
+                                                        <strong>NNE</strong> Net nonoperating expense after tax (NOPAT – Total net income; or [Nonoperating expenses × (1 – Statutory Tax Rate)])
+                                                    </div>
+                                                </div>
+                                                <SmartInput id="nne_calc" value={currentInputs.nne_calc} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={currentData._DATA_MATRIX.nne_calc} teacherMode={teacherMode} placeholder="$" />
+                                            </div>
+                                            <div className="text-[10px] text-slate-500 mb-2 ml-1 italic">(Tax Shield = Nonoperating items before tax × Tax Rate)</div>
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4">
+                                                <div className="text-xs sm:text-sm">Step 2: NOPAT (Net Income + NNE)</div>
+                                                <SmartInput id="nopat_m1" value={currentInputs.nopat_m1} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={currentData._DATA_MATRIX.nopat_m1} teacherMode={teacherMode} placeholder="$" />
                                             </div>
                                         </div>
                                     </div>
