@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>DuPont Disaggregation Analysis</title>
+    <title>DuPont Disaggregation Analysis v2</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
@@ -231,12 +231,12 @@
                     { id: "cash", label: "Cash and equivalents", val22: 535799, val21: 733117, type: "asset", correct: "non-op" },
                     { id: "mkt", label: "Marketable securities", val22: 27862, val21: 39116, type: "asset", correct: "non-op" },
                     { id: "ar", label: "Trade receivables", val22: 2341504, val21: 2183594, type: "asset", correct: "op" },
-                    { id: "notes_r", label: "Non-trade notes rec", val22: 543757, val21: 326315, type: "asset", correct: "op" },
+                    { id: "notes_r", label: "Non-trade notes rec", val22: 543757, val21: 326315, type: "asset", correct: "non-op" },
                     { id: "inv", label: "Inventories", val22: 2214553, val21: 2090642, type: "asset", correct: "op" },
                     { id: "pre", label: "Prepaid expenses & other", val22: 6383169, val21: 243966, type: "asset", correct: "op" },
                     { id: "ppe", label: "Net PPE", val22: 2122758, val21: 2266476, type: "asset", correct: "op" },
                     { id: "def_a", label: "Deferred income taxes (A)", val22: 110585, val21: 104251, type: "asset", correct: "op" },
-                    { id: "invest", label: "Investments/Other", val22: 788057, val21: 774239, type: "asset", correct: "op" },
+                    { id: "invest", label: "Investments/Other", val22: 788057, val21: 774239, type: "asset", correct: "non-op" },
                     { id: "int", label: "Intangibles", val22: 3135817, val21: 3519797, type: "asset", correct: "op" },
                     { id: "good", label: "Goodwill", val22: 7740082, val21: 8059687, type: "asset", correct: "op" },
                     { id: "notes_pay", label: "Notes payable", val22: 1724310, val21: 2824, type: "liab", correct: "non-op" },
@@ -258,15 +258,15 @@
                     "ncir_2022": "MS4wMDEx", "ncir_2021": "MS4wMDE2",
                     "pm_2022": "OC4zMA==", "pm_2021": "MTIuMTg=",
                     "at_2022": "MC42OQ==", "at_2021": "MC43MQ==",
-                    "avg_noa_2022": "MTU5MjAzOTk=", "avg_noa_2021": "MTMxNjg3MTc=",
-                    "avg_nno_2022": "NzI4MzYwNA==", "avg_nno_2021": "NTg0MDk5Nw==",
+                    "avg_noa_2022": "MTQ3MDQyMTU=", "avg_noa_2021": "MTMxNjg3MTc=",
+                    "avg_nno_2022": "NjA2NzQyMA==", "avg_nno_2021": "NTg0MDk5Nw==",
                     "nne_calc": "OTY3Mjk0", "nopat_m1": "MjI4MzQ4MA==", "nopat_m2": "MjI4MzQ4MA==",
-                    "rnoa_2022": "MTQuMzQ=", "rnoa_2021": "MTQuNjU=",
-                    "nnep_2022": "MTMuMjg=", "nnep_2021": "My4xMQ==",
-                    "spread_2022": "MS4wNg==", "spread_2021": "MTEuNTM=",
-                    "flev_2022": "MC44NDM=", "flev_2021": "MC43OTc=",
+                    "rnoa_2022": "MTUuNTM=", "rnoa_2021": "MTQuNjU=",
+                    "nnep_2022": "MTUuOTQ=", "nnep_2021": "My4xMQ==",
+                    "spread_2022": "LTAuNDE=", "spread_2021": "MTEuNTM=",
+                    "flev_2022": "MC43MDI=", "flev_2021": "MC43OTc=",
                     "nopm_2022": "MTQuNDA=", "nopm_2021": "MTMuNDQ=",
-                    "noat_2022": "MC45OTYz", "noat_2021": "MS4wODk1"
+                    "noat_2022": "MS4wOA==", "noat_2021": "MS4wODk1"
                 }
             }
         };
@@ -342,11 +342,9 @@
                     let expr = inputVal.toString().replace(/,/g, '');
 
                     // Handle percentages: convert "22%" or "22.5 %" to "(22/100)"
-                    // This regex looks for a number (int or float) followed optionally by spaces and then %
                     expr = expr.replace(/(\d+(\.\d+)?)\s*%/g, '($1/100)');
 
                     // Pre-process: replace multiple dashes (--) with + to handle "subtract negative" scenario
-                    // e.g., -52--11 becomes -52+11
                     let cleanExpr = expr.replace(/[^\d\.\+\-\*\/\(\)]/g, '');
                     cleanExpr = cleanExpr.replace(/--/g, '+'); 
                     
@@ -366,16 +364,29 @@
                 if (!valid) return false;
                 const correctNum = parseFloat(decodedCorrect.replace(/,/g, ''));
                 const valNum = parseFloat(result);
-                const tol = 0.5;
-                if (Math.abs(valNum - correctNum) < tol) return true;
-                if (isPercentage && Math.abs((valNum * 100) - correctNum) < tol) return true;
+                
+                // --- UPDATE: TOLERANCE LOGIC ---
+                // Allow exact matches within 0.5 (for rounding) OR within 1% relative error
+                const diff = Math.abs(valNum - correctNum);
+                const percentDiff = correctNum !== 0 ? Math.abs(diff / correctNum) : 0;
+                
+                if (diff < 0.5) return true;
+                if (isPercentage) {
+                    // If user typed 22.5 for 22.5%, check if 22.5 vs 22.5
+                    // Or if they typed 0.225 for 22.5%
+                    const percentValCheck = Math.abs((valNum * 100) - correctNum);
+                     if (percentValCheck < 0.5 || (correctNum !== 0 && (percentValCheck / correctNum) < 0.01)) return true;
+                }
+                
+                // 1% tolerance for large numbers
+                if (percentDiff < 0.01) return true;
+
                 return false;
             }, [value, decodedCorrect, isPercentage]);
 
             const handleCommit = () => {
                 if (readOnly) return;
                 
-                // Fix for empty input
                 if (!value || value.toString().trim() === '') {
                     onChange(id, value);
                     return;
@@ -388,16 +399,15 @@
                     return;
                 }
                 
-                // Ensure result is treated as a number
                 const numVal = Number(result);
                 let finalVal = result;
                 const correctNum = parseFloat(decodedCorrect.replace(/,/g, ''));
-                const tol = 0.5;
                 
+                // Improved formatter to keep user input style if close enough, but standardize if calc
                 if (isPercentage) {
-                      if (Math.abs(numVal - correctNum) < tol) {
+                      if (Math.abs(numVal - correctNum) < 0.5) {
                            finalVal = numVal.toFixed(2);
-                       } else if (Math.abs((numVal * 100) - correctNum) < tol) {
+                       } else if (Math.abs((numVal * 100) - correctNum) < 0.5) {
                            finalVal = (numVal * 100).toFixed(2); 
                        } else {
                            finalVal = numVal.toFixed(2);
