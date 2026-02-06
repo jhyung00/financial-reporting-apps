@@ -225,7 +225,7 @@
             {
                 id: "3-5",
                 title: "3-5: NOPAT",
-                description: "Calculate NOPAT. Method 1: NOPBT - Tax on Operating Profit. Method 2 (Alternative): Net Income + Net Nonoperating Expense (NNE).",
+                description: "Calculate NOPAT. Method 1: Net Income + Net Nonoperating Expense (NNE). Method 2: NOPBT - Tax on Operating Profit. Note: NNE (Net nonoperating expense after tax) = NOPAT – Total net income; or [Nonoperating expenses × (1 – Statutory Tax Rate)].",
                 type: "nopat_detailed",
                 inputs: [
                     { id: "sales", label: "Sales", correct: "NTkyODM=" },
@@ -238,12 +238,12 @@
                 checks: [
                     { id: "nopbt", label: "NOPBT", correctVal: "MTc5NDU=", tolerance: 10, unit: "$M" },
                     { id: "tax_op", label: "Tax on Operating Profit", correctVal: "MjI0OC4yMg==", tolerance: 1, unit: "$M" },
-                    { id: "nopat", label: "NOPAT (Method 1)", correctVal: "MTU2OTYuNzg=", tolerance: 1, unit: "$M" },
+                    { id: "nopat_alt", label: "NOPAT (Method 1)", correctVal: "MTU2OTYuNzg=", tolerance: 1, unit: "$M" },
                     { id: "nne", label: "NNE (Net Non-Op Exp)", correctVal: "MTE3MC43OA==", tolerance: 1, unit: "$M" },
-                    { id: "nopat_alt", label: "NOPAT (Method 2)", correctVal: "MTU2OTYuNzg=", tolerance: 1, unit: "$M" }
+                    { id: "nopat", label: "NOPAT (Method 2)", correctVal: "MTU2OTYuNzg=", tolerance: 1, unit: "$M" }
                 ],
-                formulaDisplay: "Method 1: NOPBT - Tax on Ops | Method 2: Net Income + NNE",
-                solutionNote: "Method 1: NOPBT (17,945) - Tax on Ops (2248.22) = 15,696.78. Method 2: NNE = 1501 * (1-0.22) = 1170.78. NOPAT = NI (14526) + NNE (1170.78) = 15,696.78."
+                formulaDisplay: "Method 1: Net Income + NNE | Method 2: NOPBT - Tax on Ops",
+                solutionNote: "Method 1: NNE = 1501 * (1-0.22) = 1170.78. NOPAT = NI (14526) + NNE (1170.78) = 15,696.78. Method 2: NOPBT (17,945) - Tax on Ops (2248.22) = 15,696.78."
             },
             {
                 id: "3-6",
@@ -301,7 +301,15 @@
                     { id: "spread", label: "Spread (RNOA - NNEP)", correctVal: "MTguODg=", tolerance: 0.2, unit: "%" },
                     { id: "roe_check", label: "Check: ROE= RNOA + (FLEV × Spread)", correctVal: "MzQuNQ==", tolerance: 0.5, unit: "%" }
                 ],
-                formulaDisplay: "FLEV = Avg NNO / Avg Equity | NNE = NonOpExp * (1-Tax) | NNEP = NNE / Avg NNO | Spread = RNOA - NNEP",
+                formulaDisplay: (
+                    <div className="space-y-2 text-xs">
+                        <div><strong>NNO</strong>: Net nonoperating obligations (Nonoperating liabilities – Nonoperating assets)</div>
+                        <div><strong>FLEV</strong>: Financial leverage (Average NNO / Average total stockholders’ equity)</div>
+                        <div><strong>NNE</strong>: Net nonoperating expense after tax (NOPAT – Total net income; or [Nonoperating expenses × (1 – Statutory Tax Rate)])</div>
+                        <div><strong>NNEP</strong>: Net nonoperating expense % (NNE / Average NNO)</div>
+                        <div><strong>Spread</strong>: Operational Spread (RNOA – NNEP)</div>
+                    </div>
+                ),
                 solutionNote: "NNE = 1501 * (1-0.22) = 1170.78. FLEV = 23,797.5 / 42,157.5 = 0.5645. NNEP = 1,170.78 / 23,797.5 = 4.92%. Spread = 23.8% - 4.92% = 18.88%. Implication: Positive spread means debt is effectively boosting ROE."
             }
         ];
@@ -531,16 +539,16 @@
                                 </button>
                                 {expandedSection === 'income' && (
                                     <table className="w-full text-xs text-left text-slate-400">
-                                        <tbody>
-                                            {FINANCIAL_DATA.incomeStatement.map((row, idx) => (
-                                                <tr key={idx} className="border-b border-slate-700/50 hover:bg-slate-700/30">
-                                                    <td className="py-2 pl-1">{row.item}</td>
-                                                    <td className="py-2 pr-1 text-right font-mono text-slate-200">
-                                                        <ClickableNumber value={row.value} onClick={onDataClick} />
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
+                                            <tbody>
+                                                {FINANCIAL_DATA.incomeStatement.map((row, idx) => (
+                                                    <tr key={idx} className="border-b border-slate-700/50 hover:bg-slate-700/30">
+                                                        <td className="py-2 pl-1">{row.item}</td>
+                                                        <td className="py-2 pr-1 text-right font-mono text-slate-200">
+                                                            <ClickableNumber value={row.value} onClick={onDataClick} />
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
                                     </table>
                                 )}
                             </div>
@@ -551,26 +559,26 @@
                                 </button>
                                 {expandedSection === 'assets' && (
                                     <table className="w-full text-xs text-left text-slate-400">
-                                        <thead>
-                                            <tr className="text-slate-500 border-b border-slate-600">
-                                                <th className="pb-1 font-normal">Item</th>
-                                                <th className="pb-1 text-right font-normal">2022</th>
-                                                <th className="pb-1 text-right font-normal">2021</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {FINANCIAL_DATA.balanceSheet.assets.map((row, idx) => (
-                                                <tr key={idx} className={`border-b border-slate-700/50 hover:bg-slate-700/30 ${row.bold ? 'font-bold text-white bg-slate-700/50' : ''}`}>
-                                                    <td className="py-2 pl-1">{row.item}</td>
-                                                    <td className="py-2 text-right font-mono text-slate-200">
-                                                        <ClickableNumber value={row.value22} onClick={onDataClick} />
-                                                    </td>
-                                                    <td className="py-2 pr-1 text-right font-mono text-slate-400">
-                                                        <ClickableNumber value={row.value21} onClick={onDataClick} />
-                                                    </td>
+                                            <thead>
+                                                <tr className="text-slate-500 border-b border-slate-600">
+                                                    <th className="pb-1 font-normal">Item</th>
+                                                    <th className="pb-1 text-right font-normal">2022</th>
+                                                    <th className="pb-1 text-right font-normal">2021</th>
                                                 </tr>
-                                            ))}
-                                        </tbody>
+                                            </thead>
+                                            <tbody>
+                                                {FINANCIAL_DATA.balanceSheet.assets.map((row, idx) => (
+                                                    <tr key={idx} className={`border-b border-slate-700/50 hover:bg-slate-700/30 ${row.bold ? 'font-bold text-white bg-slate-700/50' : ''}`}>
+                                                        <td className="py-2 pl-1">{row.item}</td>
+                                                        <td className="py-2 text-right font-mono text-slate-200">
+                                                            <ClickableNumber value={row.value22} onClick={onDataClick} />
+                                                        </td>
+                                                        <td className="py-2 pr-1 text-right font-mono text-slate-400">
+                                                            <ClickableNumber value={row.value21} onClick={onDataClick} />
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
                                     </table>
                                 )}
                             </div>
@@ -581,26 +589,26 @@
                                 </button>
                                 {expandedSection === 'liab' && (
                                     <table className="w-full text-xs text-left text-slate-400">
-                                        <thead>
-                                            <tr className="text-slate-500 border-b border-slate-600">
-                                                <th className="pb-1 font-normal">Item</th>
-                                                <th className="pb-1 text-right font-normal">2022</th>
-                                                <th className="pb-1 text-right font-normal">2021</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {FINANCIAL_DATA.balanceSheet.liabilitiesAndEquity.map((row, idx) => (
-                                                <tr key={idx} className={`border-b border-slate-700/50 hover:bg-slate-700/30 ${row.bold ? 'font-bold text-white bg-slate-700/50' : ''} ${row.isDouble ? 'border-t-4 border-double border-slate-600' : ''}`}>
-                                                    <td className="py-2 pl-1">{row.item}</td>
-                                                    <td className="py-2 text-right font-mono text-slate-200">
-                                                        <ClickableNumber value={row.value22} onClick={onDataClick} />
-                                                    </td>
-                                                    <td className="py-2 pr-1 text-right font-mono text-slate-400">
-                                                        <ClickableNumber value={row.value21} onClick={onDataClick} />
-                                                    </td>
+                                            <thead>
+                                                <tr className="text-slate-500 border-b border-slate-600">
+                                                    <th className="pb-1 font-normal">Item</th>
+                                                    <th className="pb-1 text-right font-normal">2022</th>
+                                                    <th className="pb-1 text-right font-normal">2021</th>
                                                 </tr>
-                                            ))}
-                                        </tbody>
+                                            </thead>
+                                            <tbody>
+                                                {FINANCIAL_DATA.balanceSheet.liabilitiesAndEquity.map((row, idx) => (
+                                                    <tr key={idx} className={`border-b border-slate-700/50 hover:bg-slate-700/30 ${row.bold ? 'font-bold text-white bg-slate-700/50' : ''} ${row.isDouble ? 'border-t-4 border-double border-slate-600' : ''}`}>
+                                                        <td className="py-2 pl-1">{row.item}</td>
+                                                        <td className="py-2 text-right font-mono text-slate-200">
+                                                            <ClickableNumber value={row.value22} onClick={onDataClick} />
+                                                        </td>
+                                                        <td className="py-2 pr-1 text-right font-mono text-slate-400">
+                                                            <ClickableNumber value={row.value21} onClick={onDataClick} />
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
                                     </table>
                                 )}
                             </div>
@@ -775,28 +783,28 @@
                                 <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Inputs</h4>
                                 {exercise.type === "classification_sum" ? (
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        <div className="border rounded p-3 bg-slate-50/50">
-                                            <h5 className="font-bold text-xs text-slate-500 uppercase mb-2">Assets</h5>
-                                            <div className="space-y-1 max-h-48 overflow-y-auto pr-1 scrollbar-hide">
-                                                {FINANCIAL_DATA.balanceSheet.assets.map((item, idx) => !item.bold && (
-                                                    <label key={idx} className="flex items-center space-x-2 text-xs cursor-pointer hover:bg-slate-100 p-2 rounded active:bg-slate-200">
-                                                        <input type="checkbox" checked={!!inputs[`asset_${item.item}`]} onChange={(e) => updateInput(exercise.id, `asset_${item.item}`, e.target.checked)} className="rounded text-blue-600 w-4 h-4" />
-                                                        <div className="flex-1 flex justify-between"><span>{item.item}</span><span className="font-mono">{item.value22.toLocaleString()}</span></div>
-                                                    </label>
-                                                ))}
+                                            <div className="border rounded p-3 bg-slate-50/50">
+                                                <h5 className="font-bold text-xs text-slate-500 uppercase mb-2">Assets</h5>
+                                                <div className="space-y-1 max-h-48 overflow-y-auto pr-1 scrollbar-hide">
+                                                    {FINANCIAL_DATA.balanceSheet.assets.map((item, idx) => !item.bold && (
+                                                        <label key={idx} className="flex items-center space-x-2 text-xs cursor-pointer hover:bg-slate-100 p-2 rounded active:bg-slate-200">
+                                                            <input type="checkbox" checked={!!inputs[`asset_${item.item}`]} onChange={(e) => updateInput(exercise.id, `asset_${item.item}`, e.target.checked)} className="rounded text-blue-600 w-4 h-4" />
+                                                            <div className="flex-1 flex justify-between"><span>{item.item}</span><span className="font-mono">{item.value22.toLocaleString()}</span></div>
+                                                        </label>
+                                                    ))}
+                                                </div>
                                             </div>
-                                        </div>
-                                        <div className="border rounded p-3 bg-slate-50/50">
-                                            <h5 className="font-bold text-xs text-slate-500 uppercase mb-2">Liabilities</h5>
-                                            <div className="space-y-1 max-h-48 overflow-y-auto pr-1 scrollbar-hide">
-                                                {FINANCIAL_DATA.balanceSheet.liabilitiesAndEquity.map((item, idx) => !item.bold && !item.item.includes("Total") && (
-                                                    <label key={idx} className="flex items-center space-x-2 text-xs cursor-pointer hover:bg-slate-100 p-2 rounded active:bg-slate-200">
-                                                        <input type="checkbox" checked={!!inputs[`liab_${item.item}`]} onChange={(e) => updateInput(exercise.id, `liab_${item.item}`, e.target.checked)} className="rounded text-blue-600 w-4 h-4" />
-                                                        <div className="flex-1 flex justify-between"><span>{item.item}</span><span className="font-mono">{item.value22.toLocaleString()}</span></div>
-                                                    </label>
-                                                ))}
+                                            <div className="border rounded p-3 bg-slate-50/50">
+                                                <h5 className="font-bold text-xs text-slate-500 uppercase mb-2">Liabilities</h5>
+                                                <div className="space-y-1 max-h-48 overflow-y-auto pr-1 scrollbar-hide">
+                                                    {FINANCIAL_DATA.balanceSheet.liabilitiesAndEquity.map((item, idx) => !item.bold && !item.item.includes("Total") && (
+                                                        <label key={idx} className="flex items-center space-x-2 text-xs cursor-pointer hover:bg-slate-100 p-2 rounded active:bg-slate-200">
+                                                            <input type="checkbox" checked={!!inputs[`liab_${item.item}`]} onChange={(e) => updateInput(exercise.id, `liab_${item.item}`, e.target.checked)} className="rounded text-blue-600 w-4 h-4" />
+                                                            <div className="flex-1 flex justify-between"><span>{item.item}</span><span className="font-mono">{item.value22.toLocaleString()}</span></div>
+                                                        </label>
+                                                    ))}
+                                                </div>
                                             </div>
-                                        </div>
                                     </div>
                                 ) : (
                                     exercise.inputs.map((input) => (
