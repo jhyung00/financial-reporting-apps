@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>THE SPREAD - Dupont Survival (Fixed Seed)</title>
+    <title>THE SPREAD - Educational Edition</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <style>
@@ -13,7 +13,7 @@
             font-family: 'JetBrains Mono', monospace;
             background-color: #000;
             color: #fff;
-            user-select: none; /* Prevents text selection */
+            user-select: none;
             -webkit-user-select: none;
         }
 
@@ -42,13 +42,22 @@
         ::-webkit-scrollbar-thumb:hover {
             background: #db2777; 
         }
+
+        /* Preview Ghosting Animation */
+        .ghost-value {
+            animation: pulse-ghost 1.5s infinite;
+        }
+        @keyframes pulse-ghost {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
     </style>
 </head>
 <body>
     <div id="root"></div>
 
     <script type="text/babel" data-type="module">
-        import React, { useState, useEffect, useMemo } from 'https://esm.sh/react@18.2.0';
+        import React, { useState, useEffect, useMemo, useRef } from 'https://esm.sh/react@18.2.0';
         import { createRoot } from 'https://esm.sh/react-dom@18.2.0/client';
         import { 
             TrendingUp, 
@@ -68,29 +77,24 @@
             Send, 
             CheckCircle, 
             XCircle,
-            Lock
+            Lock,
+            RotateCcw,
+            Eye,
+            Calculator
         } from 'https://esm.sh/lucide-react@0.263.1';
 
         // --- CONFIGURATION ---
-        
-        // PASTE YOUR GOOGLE APPS SCRIPT WEB APP URL HERE
         const LEADERBOARD_URL = "https://script.google.com/macros/s/AKfycbz6fuOTfmtJx5pFeFQS_qTwrSkpaiIqaRB7ipqKsRejjZzXJv8f3-qYuxyvFMX6LNY/exec" 
 
         // --- DETERMINISTIC GAME DATA ---
-        
-        // Interest Rates for each turn (Turn 1 to Turn 10)
-        // Note the spike at Turn 3 (Inflation) and drop at Turn 10 (Recession stimulus)
         const FIXED_RATES = [0.04, 0.042, 0.065, 0.07, 0.07, 0.065, 0.06, 0.055, 0.05, 0.02];
-
-        // Market Conditions (Efficiency Multipliers) for each turn
-        // 1.0 is normal. Note the drops in later turns (Recession/Recall).
         const FIXED_MARKET = [1.0, 1.1, 0.95, 0.95, 1.05, 0.85, 0.9, 0.8, 0.75, 0.6];
 
         const INITIAL_STATE = {
-            cash: 50, // in millions
+            cash: 50,
             debt: 100,
             operatingAssets: 200,
-            equity: 150, // Assets (250) - Debt (100) = 150
+            equity: 150, 
             turn: 1,
             maxTurns: 10,
             history: [],
@@ -99,7 +103,6 @@
             gameWon: false,
         };
 
-        // 10 Unique Scenarios representing the lifecycle of a modern tech giant
         const SCENARIOS = [
             {
                 id: 1,
@@ -181,7 +184,7 @@
                     cost: 10, 
                     assetGain: 0, 
                     revenueImpact: 1.0, 
-                    debtDetails: { amount: 0, rateDelta: -0.015 }, // Lock in lower rate
+                    debtDetails: { amount: 0, rateDelta: -0.015 }, 
                     risk: "med",
                     type: "debt_only",
                     rnoaEffect: "➡️ Neutral",
@@ -192,7 +195,7 @@
             {
                 id: 4,
                 title: "Antitrust Litigation",
-                description: " Regulators sue Omega Tech for monopolistic app store practices. They demand a breakup or a massive fine.",
+                description: "Regulators sue Omega Tech for monopolistic app store practices. They demand a breakup or a massive fine.",
                 impact: "Equity hit increases Leverage (FLEV). No gain to RNOA, increasing risk to Non-Operating Return.",
                 company: "Legal Dept",
                 choices: [
@@ -415,7 +418,7 @@
             const NonOperatingReturn = Spread * (Equity > 0 ? NFO / Equity : 0);
             const ROE = RNOA + NonOperatingReturn;
 
-            return { NOA, NFO, Equity, NOPAT, RNOA, NBC, Spread, NonOperatingReturn, ROE, Revenue, leverageRatio };
+            return { NOA, NFO, Equity, NOPAT, RNOA, NBC, Spread, NonOperatingReturn, ROE, Revenue, leverageRatio, efficiency };
         };
 
         const getFundingLabel = (type) => {
@@ -446,39 +449,150 @@
             </div>
         );
 
-        const Metric = ({ label, value, sub, color = "text-white", warning = false }) => (
-            <div className="flex flex-col">
-                <span className="text-xs uppercase tracking-widest text-gray-500 font-bold">{label}</span>
-                <span className={`text-2xl font-mono font-bold ${warning ? 'text-red-500 animate-pulse' : color}`}>
-                    {value}
-                </span>
-                {sub && <span className="text-xs text-gray-400">{sub}</span>}
-            </div>
-        );
+        // Modified Metric to support "Preview" Mode
+        const Metric = ({ label, value, sub, color = "text-white", warning = false, previewValue = null }) => {
+            // Determine if we are in preview mode for this specific metric
+            const isPreview = previewValue !== null && previewValue !== undefined;
+            
+            // Format numbers for display if they are strings/numbers
+            const displayValue = value; 
+            const displayPreview = previewValue;
 
-        const ProgressBar = ({ value, max, label, color = "bg-pink-600" }) => (
-            <div className="w-full mb-2">
-                {label && (
-                    <div className="flex justify-between text-xs mb-1">
-                    <span className="text-gray-400">{label}</span>
-                    <span className="text-gray-400">{value}/{max}</span>
+            // Determine delta color
+            let deltaColor = "text-gray-400";
+            let arrow = "";
+            
+            if (isPreview) {
+                // Parse numbers to compare
+                const valNum = parseFloat(value.replace(/[^0-9.-]+/g,""));
+                const prevNum = parseFloat(previewValue.replace(/[^0-9.-]+/g,""));
+                
+                if (!isNaN(valNum) && !isNaN(prevNum)) {
+                    if (prevNum > valNum) {
+                        deltaColor = "text-green-400";
+                        arrow = "▲";
+                    } else if (prevNum < valNum) {
+                        deltaColor = "text-red-400";
+                        arrow = "▼";
+                    } else {
+                        deltaColor = "text-gray-500";
+                        arrow = "—";
+                    }
+                }
+            }
+
+            return (
+                <div className="flex flex-col relative">
+                    <span className="text-xs uppercase tracking-widest text-gray-500 font-bold">{label}</span>
+                    <div className="flex items-center gap-2">
+                        <span className={`text-2xl font-mono font-bold ${warning ? 'text-red-500 animate-pulse' : color} ${isPreview ? 'opacity-40' : 'opacity-100'} transition-all`}>
+                            {displayValue}
+                        </span>
+                        
+                        {/* Preview Overlay */}
+                        {isPreview && (
+                            <span className={`absolute left-0 top-6 text-2xl font-mono font-bold ghost-value ${deltaColor} bg-black/80 px-1 rounded`}>
+                                {displayPreview}
+                            </span>
+                        )}
                     </div>
-                )}
-                <div className="h-2 w-full bg-gray-800 rounded-full overflow-hidden">
-                    <div 
-                        className={`h-full ${color} transition-all duration-500`} 
-                        style={{ width: `${Math.min((Math.abs(value)/max)*100, 100)}%` }}
-                    />
+
+                    {isPreview ? (
+                         <span className={`text-xs font-bold ${deltaColor} flex items-center gap-1`}>
+                            {arrow} Projected
+                         </span>
+                    ) : (
+                        sub && <span className="text-xs text-gray-400">{sub}</span>
+                    )}
                 </div>
-            </div>
-        );
+            );
+        };
+
+        const ProgressBar = ({ value, max, label, color = "bg-pink-600", previewValue = null }) => {
+            const width = Math.min((Math.abs(value)/max)*100, 100);
+            const previewWidth = previewValue !== null ? Math.min((Math.abs(previewValue)/max)*100, 100) : null;
+
+            return (
+                <div className="w-full mb-2 relative">
+                    {label && (
+                        <div className="flex justify-between text-xs mb-1">
+                        <span className="text-gray-400">{label}</span>
+                        <span className="text-gray-400">{value.toFixed(1)}/{max}</span>
+                        </div>
+                    )}
+                    <div className="h-2 w-full bg-gray-800 rounded-full overflow-hidden relative">
+                        {/* Current Value Bar */}
+                        <div 
+                            className={`h-full ${color} transition-all duration-500 absolute top-0 left-0 ${previewWidth !== null ? 'opacity-30' : 'opacity-100'}`} 
+                            style={{ width: `${width}%` }}
+                        />
+                        {/* Preview Value Bar (Ghost) */}
+                        {previewWidth !== null && (
+                            <div 
+                                className={`h-full ${color} transition-all duration-300 absolute top-0 left-0 ghost-value`} 
+                                style={{ width: `${previewWidth}%` }}
+                            />
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        // Component to show the math changing
+        const ImpactAnalysis = ({ current, projected }) => {
+            if (!projected) return null;
+
+            const renderDiff = (label, currentVal, projectedVal, isPercentage = false, inverse = false) => {
+                const diff = projectedVal - currentVal;
+                const isPositive = diff > 0.001;
+                const isNegative = diff < -0.001;
+                const isNeutral = !isPositive && !isNegative;
+
+                // Color logic: Usually higher is better (Green), unless 'inverse' (like Debt Cost) where lower is better
+                let colorClass = "text-gray-500";
+                if (isPositive) colorClass = inverse ? "text-red-400" : "text-green-400";
+                if (isNegative) colorClass = inverse ? "text-green-400" : "text-red-400";
+                
+                const fmt = (n) => isPercentage ? (n*100).toFixed(2) + '%' : n.toFixed(1);
+
+                return (
+                    <div className="flex justify-between items-center text-xs py-1 border-b border-gray-800 last:border-0">
+                        <span className="text-gray-400">{label}</span>
+                        <div className="flex items-center gap-2">
+                             <span className="text-gray-600 line-through decoration-pink-500/50">{fmt(currentVal)}</span>
+                             <ArrowRight size={10} className="text-gray-600"/>
+                             <span className={`font-bold ${colorClass}`}>{fmt(projectedVal)}</span>
+                        </div>
+                    </div>
+                );
+            };
+
+            return (
+                <div className="bg-gray-900 border border-gray-700 rounded-lg p-3 mt-4 animate-in fade-in slide-in-from-bottom-2">
+                    <div className="flex items-center gap-2 mb-2 pb-2 border-b border-gray-700">
+                        <Calculator size={14} className="text-pink-500"/>
+                        <span className="text-xs font-bold uppercase text-white tracking-widest">Projection Analysis</span>
+                    </div>
+                    
+                    <div className="space-y-1">
+                        {renderDiff("Operating Assets (NOA)", current.NOA, projected.NOA)}
+                        {renderDiff("Net Debt (NFO)", current.NFO, projected.NFO, false, true)}
+                        {renderDiff("Asset Efficiency", current.efficiency, projected.efficiency, true)}
+                        {renderDiff("RNOA (Operating)", current.RNOA, projected.RNOA, true)}
+                        {renderDiff("Borrowing Cost (NBC)", current.NBC, projected.NBC, true, true)}
+                        {renderDiff("Equity Multiplier (FLEV)", current.leverageRatio, projected.leverageRatio, false)}
+                    </div>
+                </div>
+            );
+        };
 
         const App = () => {
             const [gameState, setGameState] = useState("menu"); 
             const [playerState, setPlayerState] = useState(INITIAL_STATE);
+            const [historyStack, setHistoryStack] = useState([]); // STACK FOR UNDO
             const [playerName, setPlayerName] = useState("");
             
-            // Initializing with Turn 1 Fixed Data
+            // Market state
             const [marketRate, setMarketRate] = useState(FIXED_RATES[0]);
             const [marketCondition, setMarketCondition] = useState(FIXED_MARKET[0]);
             
@@ -486,6 +600,9 @@
             const [logs, setLogs] = useState([]);
             const [isSubmitting, setIsSubmitting] = useState(false);
             const [submitStatus, setSubmitStatus] = useState(null);
+
+            // Preview State
+            const [hoveredChoice, setHoveredChoice] = useState(null);
 
             // Disable Right Click for Security
             useEffect(() => {
@@ -497,17 +614,96 @@
                 return () => document.removeEventListener("contextmenu", handleContextMenu);
             }, []);
 
+            // --- CALCULATIONS ---
+
+            // Current Real Metrics
             const metrics = useMemo(() => {
                 return calculateDupont(playerState, marketRate, marketCondition);
             }, [playerState, marketRate, marketCondition]);
 
+            // Projected Metrics (Ghost State)
+            const projectedMetrics = useMemo(() => {
+                if (!hoveredChoice) return null;
+
+                // 1. Create a deep copy of state to simulate change
+                let simState = { ...playerState };
+                const choice = hoveredChoice;
+
+                // 2. Apply Logic (Mirrors handleDecision)
+                if (choice.type === "cash") {
+                    simState.cash -= choice.cost;
+                    simState.operatingAssets += choice.assetGain;
+                } else if (choice.type === "debt") {
+                    // Net effect: Debt increases, Assets increase (Cash neutral: +Debt, -Cost)
+                    simState.debt += choice.cost;
+                    simState.operatingAssets += choice.assetGain;
+                } else if (choice.type === "repay") {
+                    simState.cash -= choice.cost;
+                    simState.debt -= choice.cost;
+                    simState.operatingAssets += choice.assetGain; 
+                } else if (choice.type === "debt_only") {
+                    simState.debt += choice.debtDetails.amount;
+                    simState.cash += choice.debtDetails.amount; 
+                }
+                
+                // Note: For "Gamble", we can't perfectly predict random, 
+                // so we show the "Safe" path or Average outcome for the preview.
+                if (choice.type === "gamble") {
+                     simState.cash -= choice.cost;
+                     // Show worst case in preview for safety? Or average? Let's show neutral/current to imply uncertainty.
+                }
+
+                // 3. Apply Revenue Impact 
+                let simEfficiency = marketCondition;
+                if (choice.revenueImpact) {
+                    simEfficiency = simEfficiency * choice.revenueImpact;
+                }
+                
+                // 4. Adjust rate 
+                let simRate = marketRate;
+                if (choice.type === 'debt_only' && choice.debtDetails?.rateDelta) {
+                    simRate += choice.debtDetails.rateDelta;
+                }
+
+                // 5. Calculate Immediate Metric Shift
+                const pMetrics = calculateDupont(simState, simRate, simEfficiency);
+                
+                // 6. Calculate Net Income Impact (to show Equity shift)
+                const netIncome = pMetrics.NOPAT - (pMetrics.NFO * pMetrics.NBC);
+                simState.equity += netIncome; // Add income to equity for the projection
+
+                // Re-calculate final metrics with new equity
+                return calculateDupont(simState, simRate, simEfficiency);
+
+            }, [hoveredChoice, playerState, marketRate, marketCondition]);
+
+
+            // --- ACTIONS ---
+
             const startGame = () => {
                 if (!playerName) return;
                 setPlayerState(INITIAL_STATE);
+                setHistoryStack([]); // Clear history
                 setGameState("playing");
                 setSubmitStatus(null);
                 setLogs(["Game Started. Role: CFO of Omega Tech."]);
                 nextTurn(1);
+            };
+
+            const undoTurn = () => {
+                if (historyStack.length === 0) return;
+
+                // Pop the last state
+                const previousEntry = historyStack[historyStack.length - 1];
+                const newStack = historyStack.slice(0, -1);
+                
+                // Restore State
+                setPlayerState(previousEntry.state);
+                setLogs(previousEntry.logs);
+                setHistoryStack(newStack);
+
+                // Recalculate Environment (Market Rates/Scenario) based on the restored Turn
+                nextTurn(previousEntry.state.turn);
             };
 
             const submitToLeaderboard = async (status) => {
@@ -515,9 +711,7 @@
                     alert("Leaderboard URL not configured in code.");
                     return;
                 }
-                
                 setIsSubmitting(true);
-                
                 const payload = {
                     name: playerName,
                     status: status, 
@@ -525,14 +719,11 @@
                     roe: (metrics.ROE * 100).toFixed(2) + "%",
                     turn: playerState.turn
                 };
-
                 try {
                     await fetch(LEADERBOARD_URL, {
                         method: "POST",
                         mode: "no-cors", 
-                        headers: {
-                            "Content-Type": "text/plain",
-                        },
+                        headers: { "Content-Type": "text/plain" },
                         body: JSON.stringify(payload),
                     });
                     setSubmitStatus('success');
@@ -549,15 +740,10 @@
                     setGameState("win");
                     return;
                 }
-                
-                // Get Scenario
                 const scenarioIdx = (turnNum - 1) % SCENARIOS.length;
                 setCurrentScenario(SCENARIOS[scenarioIdx]);
 
-                // Set Deterministic Market Variables from Fixed Arrays
                 const arrayIndex = turnNum - 1; 
-                
-                // Use the Fixed Arrays instead of Math.random()
                 if (arrayIndex < FIXED_RATES.length) {
                     setMarketRate(FIXED_RATES[arrayIndex]);
                     setMarketCondition(FIXED_MARKET[arrayIndex]);
@@ -565,12 +751,21 @@
             };
 
             const handleDecision = (choice) => {
+                // 1. SAVE HISTORY FOR UNDO
+                setHistoryStack(prev => [...prev, {
+                    state: JSON.parse(JSON.stringify(playerState)),
+                    logs: [...logs]
+                }]);
+
+                // 2. PROCESS TURN
                 let newState = { ...playerState };
                 let logMsg = `Turn ${newState.turn}: Selected ${choice.label}.`;
                 
                 if (choice.type === "cash") {
                     if (newState.cash < choice.cost) {
                         setLogs(prev => [`Insufficient Cash for ${choice.label}!`, ...prev]);
+                        // Remove the history entry we just added because move failed
+                        setHistoryStack(prev => prev.slice(0, -1));
                         return; 
                     }
                     newState.cash -= choice.cost;
@@ -587,17 +782,8 @@
                 } else if (choice.type === "debt_only") {
                     newState.debt += choice.debtDetails.amount;
                     newState.cash += choice.debtDetails.amount; 
-                    // Special case for hedging: manually adjust current rate if needed, 
-                    // though next turn will reset it to the Fixed Array value.
-                    // This allows a temporary advantage for the current turn calculation below.
-                    if(choice.debtDetails.rateDelta) {
-                        // Note: We don't change the global marketRate state here permanently
-                        // because nextTurn() re-sets it. This effect applies to the calculation *now*.
-                    }
                 } else if (choice.type === "gamble") {
                     newState.cash -= choice.cost;
-                    // Note: This is one of the few places randomness remains (the court verdict).
-                    // If you want this deterministic too, replace Math.random() with a check on (turn % 2).
                     if (Math.random() > 0.5) {
                         logMsg += " SUCCESS! Case Dismissed.";
                         newState.equity += 20; 
@@ -608,13 +794,11 @@
                     }
                 }
 
-                // Apply Revenue Impact (Temporary for this calculation)
                 let currentEfficiency = marketCondition;
                 if (choice.revenueImpact) {
                     currentEfficiency = currentEfficiency * choice.revenueImpact;
                 }
                 
-                // Adjust rate temporarily if they hedged this turn
                 let effectiveRate = marketRate;
                 if (choice.type === 'debt_only' && choice.debtDetails?.rateDelta) {
                     effectiveRate += choice.debtDetails.rateDelta;
@@ -653,7 +837,10 @@
                 setPlayerState(newState);
                 setLogs(prev => [logMsg, ...prev]);
                 nextTurn(newState.turn);
+                setHoveredChoice(null); // Clear preview
             };
+
+            // --- VIEWS ---
 
             if (gameState === "menu") {
                 return (
@@ -672,7 +859,7 @@
                         
                         <div>
                             <h1 className="text-5xl font-black tracking-tighter mb-2">THE SPREAD</h1>
-                            <p className="text-gray-400 text-sm uppercase tracking-widest">Dupont Survival Simulation</p>
+                            <p className="text-gray-400 text-sm uppercase tracking-widest">Dupont Survival Simulator (EDU)</p>
                         </div>
 
                         <div className="bg-gray-900 border border-gray-800 p-6 rounded-xl text-left space-y-4 shadow-2xl">
@@ -796,47 +983,6 @@
                             )}
                         </div>
 
-                        {/* --- CHEAT SHEET SECTION --- */}
-                        <div className="bg-gray-900 border border-gray-700 p-4 rounded-lg max-w-md w-full mb-6 text-left relative overflow-hidden">
-                            <div className="absolute top-0 right-0 p-2 opacity-10">
-                                <Lock size={64} className="text-gray-500"/>
-                            </div>
-                            <h3 className="text-pink-500 font-bold uppercase tracking-widest mb-3 text-xs flex items-center gap-2 border-b border-gray-800 pb-2">
-                                <ShieldAlert size={14}/> CFO's Secret Playbook
-                            </h3>
-                            <ul className="text-[11px] text-gray-400 space-y-2 font-mono leading-tight">
-                                <li className="flex gap-2">
-                                    <span className="text-green-400 font-bold min-w-[80px]">Turns 1-2:</span> 
-                                    <span>Boom Times. Aggressive Leverage (Issue Debt) > Cash.</span>
-                                </li>
-                                <li className="flex gap-2">
-                                    <span className="text-red-400 font-bold min-w-[80px]">Turn 3:</span> 
-                                    <span>Inflation Spike. HEDGE or DELEVERAGE immediately.</span>
-                                </li>
-                                <li className="flex gap-2">
-                                    <span className="text-blue-400 font-bold min-w-[80px]">Turns 4-9:</span> 
-                                    <span>Stability. Protect RNOA/Margins. Don't bloat assets.</span>
-                                </li>
-                                <li className="flex gap-2">
-                                    <span className="text-yellow-400 font-bold min-w-[80px]">Turn 10:</span> 
-                                    <span>Recession Crash. LIQUIDATE. Sell assets to survive.</span>
-                                </li>
-                            </ul>
-                        </div>
-
-                        <div className="bg-black p-4 rounded w-full max-w-md border border-gray-800 h-48 overflow-y-auto">
-                            <h3 className="text-gray-500 text-xs uppercase mb-2">Performance Log</h3>
-                            {playerState.history.map((h, i) => (
-                                <div key={i} className="flex justify-between text-sm py-1 border-b border-gray-800">
-                                    <span>Turn {h.turn + 1}</span>
-                                    <span className={h.spread > 0 ? "text-green-400" : "text-red-400"}>
-                                        Spread: {(h.spread * 100).toFixed(2)}%
-                                    </span>
-                                    <span className="text-gray-300">ROE: {(h.roe * 100).toFixed(1)}%</span>
-                                </div>
-                            ))}
-                        </div>
-
                         <button 
                             onClick={() => setGameState("menu")}
                             className="mt-8 px-8 py-3 bg-green-600 hover:bg-green-700 text-white rounded uppercase tracking-widest shadow-lg"
@@ -861,9 +1007,21 @@
                                 <h2 className="text-pink-600 font-black text-xl tracking-tighter">CFO: {playerName}</h2>
                                 <span className="text-xs text-gray-500">TURN {playerState.turn} / {playerState.maxTurns}</span>
                             </div>
-                            <div className="bg-gray-900 px-3 py-1 rounded border border-gray-700 flex items-center gap-2">
-                                <div className={`w-2 h-2 rounded-full ${isDanger ? 'bg-red-500 animate-pulse' : 'bg-green-500'}`}></div>
-                                <span className="text-xs font-bold">{isDanger ? "NEGATIVE SPREAD" : "STABLE"}</span>
+                            
+                            <div className="flex gap-2">
+                                <button 
+                                    onClick={undoTurn} 
+                                    disabled={historyStack.length === 0}
+                                    className={`p-2 rounded border transition-colors flex items-center gap-1 ${historyStack.length === 0 ? 'border-gray-800 text-gray-700 cursor-not-allowed' : 'border-blue-700 text-blue-400 hover:bg-blue-900/50'}`}
+                                    title="Undo Last Decision"
+                                >
+                                    <RotateCcw size={16} /> 
+                                    <span className="text-xs font-bold hidden md:inline">UNDO</span>
+                                </button>
+                                <div className="bg-gray-900 px-3 py-1 rounded border border-gray-700 flex items-center gap-2">
+                                    <div className={`w-2 h-2 rounded-full ${isDanger ? 'bg-red-500 animate-pulse' : 'bg-green-500'}`}></div>
+                                    <span className="text-xs font-bold">{isDanger ? "NEG SPREAD" : "STABLE"}</span>
+                                </div>
                             </div>
                         </div>
 
@@ -873,6 +1031,7 @@
                                 <Metric 
                                     label="ROE (Goal)" 
                                     value={`${(metrics.ROE * 100).toFixed(2)}%`} 
+                                    previewValue={projectedMetrics ? `${(projectedMetrics.ROE * 100).toFixed(2)}%` : null}
                                     color={metrics.ROE > 0.15 ? "text-pink-400" : "text-white"}
                                 />
                             </Card>
@@ -880,6 +1039,7 @@
                                 <Metric 
                                     label="Equity (Life)" 
                                     value={`$${metrics.Equity.toFixed(1)}M`} 
+                                    previewValue={projectedMetrics ? `$${projectedMetrics.Equity.toFixed(1)}M` : null}
                                     color={metrics.Equity < 50 ? "text-red-500" : "text-green-400"}
                                     warning={isCritical}
                                 />
@@ -903,13 +1063,18 @@
                             <div className="space-y-1">
                                 <div className="flex justify-between items-end">
                                     <span className="text-sm text-blue-300">RNOA (Operating)</span>
-                                    <span className="text-xl font-bold text-blue-400">{(metrics.RNOA * 100).toFixed(2)}%</span>
+                                    <div className="flex flex-col items-end">
+                                        <span className="text-xl font-bold text-blue-400">{(metrics.RNOA * 100).toFixed(2)}%</span>
+                                    </div>
                                 </div>
-                                <div className="flex justify-between text-xs text-gray-500">
-                                    <span>NOPAT: ${metrics.NOPAT.toFixed(1)}</span>
-                                    <span>NOA: ${metrics.NOA.toFixed(1)}</span>
-                                </div>
-                                <ProgressBar value={metrics.RNOA * 100} max={20} label="" color="bg-blue-500" />
+                                
+                                <ProgressBar 
+                                    value={metrics.RNOA * 100} 
+                                    previewValue={projectedMetrics ? projectedMetrics.RNOA * 100 : null}
+                                    max={20} 
+                                    label="" 
+                                    color="bg-blue-500" 
+                                />
                             </div>
 
                             {/* Non-Operating Return Section */}
@@ -921,39 +1086,21 @@
                                     </span>
                                 </div>
                                 <div className="flex justify-between text-xs text-gray-500 mb-1">
-                                <span>FLEV: {metrics.leverageRatio.toFixed(2)}x</span>
-                                <span>Spread: {(metrics.Spread * 100).toFixed(2)}%</span>
-                                </div>
-                                <div className="text-[10px] text-gray-500 mb-1 italic">
-                                    = FLEV × Spread
+                                    <span>FLEV: {metrics.leverageRatio.toFixed(2)}x</span>
+                                    <span>Spread: {(metrics.Spread * 100).toFixed(2)}%</span>
                                 </div>
                                 <ProgressBar 
                                     value={metrics.NonOperatingReturn * 100} 
+                                    previewValue={projectedMetrics ? projectedMetrics.NonOperatingReturn * 100 : null}
                                     max={10} 
                                     label="" 
                                     color={metrics.NonOperatingReturn > 0 ? "bg-green-500" : "bg-red-500"} 
                                 />
                             </div>
-
-                            {/* Detail Box for Spread Breakdown */}
-                            <div className="bg-gray-900 p-3 rounded border border-gray-700 mt-2">
-                                <h4 className="text-[10px] uppercase text-gray-500 font-bold mb-2 border-b border-gray-800 pb-1">Spread Breakdown</h4>
-                                <div className="flex justify-between items-center text-xs mb-1">
-                                    <span className="text-blue-300">RNOA</span>
-                                    <span>{(metrics.RNOA * 100).toFixed(2)}%</span>
-                                </div>
-                                <div className="flex justify-between items-center text-xs mb-1">
-                                    <span className="text-orange-300">(-) Net Borrowing Cost</span>
-                                    <span>{(metrics.NBC * 100).toFixed(2)}%</span>
-                                </div>
-                                <div className="border-t border-gray-700 mt-1 pt-1 flex justify-between items-center">
-                                    <span className="text-xs font-bold text-white">Spread</span>
-                                    <span className={`font-bold ${metrics.Spread > 0 ? 'text-green-400' : 'text-red-500'}`}>
-                                        {(metrics.Spread * 100).toFixed(2)}%
-                                    </span>
-                                </div>
-                            </div>
                         </div>
+
+                         {/* DYNAMIC IMPACT ANALYSIS */}
+                         <ImpactAnalysis current={metrics} projected={projectedMetrics} />
 
                         {/* Resources */}
                         <div className="grid grid-cols-2 gap-4 mt-auto">
@@ -999,6 +1146,8 @@
                                 {currentScenario?.choices.map((choice, idx) => (
                                     <button
                                         key={idx}
+                                        onMouseEnter={() => setHoveredChoice(choice)}
+                                        onMouseLeave={() => setHoveredChoice(null)}
                                         onClick={() => handleDecision(choice)}
                                         className="group relative overflow-hidden bg-gray-900 border border-gray-700 hover:border-pink-500 p-6 rounded-xl text-left transition-all duration-300 hover:transform hover:translate-x-1 hover:shadow-[0_0_15px_rgba(236,72,153,0.3)]"
                                     >
@@ -1039,8 +1188,8 @@
                                         </div>
                                         </div>
 
-                                        <div className="absolute right-4 bottom-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <ArrowRight className="text-pink-500" />
+                                        <div className="absolute right-4 bottom-4 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 text-pink-500 text-xs font-bold">
+                                            <Eye size={12} /> PREVIEW
                                         </div>
                                     </button>
                                 ))}
