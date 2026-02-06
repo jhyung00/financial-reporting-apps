@@ -85,9 +85,11 @@
             cleanExpr = cleanExpr.replace(/(\d+(\.\d+)?)%/g, '($1/100)');
 
             try {
+                // Security check: ensure only math characters are present
                 if (!/^[\d\.\+\-\*\/\(\)]+$/.test(cleanExpr)) {
                     return expression;
                 }
+                // eslint-disable-next-line no-new-func
                 return new Function('return ' + cleanExpr)();
             } catch (e) {
                 return expression;
@@ -357,7 +359,14 @@
                 }
             }, [value]);
 
-            // --- IMPROVED VALIDATION LOGIC ---
+            const handleChange = (e) => {
+                const newVal = e.target.value;
+                setLocalValue(newVal);
+                // CRITICAL FIX: Propagate changes immediately to parent state 
+                // so handleDataClick can see the current typed value
+                onChange(newVal); 
+            };
+
             const validate = (val) => {
                 if (val === "" || val === undefined || val === null) {
                     setStatus("neutral");
@@ -369,32 +378,20 @@
                     return;
                 }
                 
-                // 2% Tolerance calculation
                 const tolerance = 0.02; 
-
-                // Helper to check if two numbers are within tolerance relative difference
                 const isCloseEnough = (input, target) => {
-                    if (Math.abs(target) < 0.00001) return Math.abs(input) < 0.001; // Handle zero case
+                    if (Math.abs(target) < 0.00001) return Math.abs(input) < 0.001; 
                     const diff = Math.abs(input - target);
                     const percentageDiff = diff / Math.abs(target);
                     return percentageDiff <= tolerance;
                 };
 
                 let isCorrect = false;
-
-                // 1. Direct match (e.g. Input 22, Target 22)
                 if (isCloseEnough(numVal, correctValue)) isCorrect = true;
-
-                // 2. Percentage/Decimal interchangeability
-                // If answer is 22%, accept 0.22. Or if answer is 0.22, accept 22.
                 if (!isCorrect) {
-                      // Check if user input * 100 matches target (User: 0.22, Target: 22)
                       if (isCloseEnough(numVal * 100, correctValue)) isCorrect = true;
-                      
-                      // Check if user input / 100 matches target (User: 22, Target: 0.22)
                       if (isCloseEnough(numVal / 100, correctValue)) isCorrect = true;
                 }
-
                 setStatus(isCorrect ? "correct" : "incorrect");
             };
 
@@ -428,7 +425,7 @@
                         type="text"
                         inputMode="decimal" 
                         value={localValue}
-                        onChange={(e) => setLocalValue(e.target.value)}
+                        onChange={handleChange}
                         onBlur={handleBlur}
                         onFocus={onFocus}
                         onKeyDown={(e) => e.key === 'Enter' && e.target.blur()}
@@ -484,10 +481,6 @@
             const [expandedSection, setExpandedSection] = useState('assets');
             const isResizing = useRef(false);
 
-            // --- Mobile vs Desktop Handling ---
-            // On mobile, the sidebar acts as a full-height overlay or slide-over
-            // On desktop, it pushes content or sits side-by-side
-
             const startResizing = useCallback(() => {
                 isResizing.current = true;
                 document.body.style.cursor = 'col-resize';
@@ -515,12 +508,9 @@
                 };
             }, [resize, stopResizing]);
 
-            // Determine styles based on state
             const mobileClasses = `fixed inset-y-0 left-0 z-40 bg-slate-800 transition-transform transform ${isOpen ? 'translate-x-0' : '-translate-x-full'} w-3/4 max-w-xs shadow-2xl md:hidden`;
             const desktopClasses = `hidden md:flex relative h-full border-r border-slate-700 bg-slate-800 transition-all duration-300 ease-out shrink-0`;
             const desktopStyle = { width: isOpen ? `${width}px` : '48px' };
-
-            // Mobile Backdrop
             const backdrop = isOpen ? <div className="fixed inset-0 bg-black/50 z-30 md:hidden" onClick={toggleSidebar}></div> : null;
 
             const SidebarContent = () => (
@@ -633,12 +623,9 @@
             return (
                 <>
                     {backdrop}
-                    {/* Mobile Drawer */}
                     <aside className={mobileClasses}>
                         <SidebarContent />
                     </aside>
-                    
-                    {/* Desktop Sidebar */}
                     <div className={desktopClasses} style={desktopStyle}>
                         <SidebarContent />
                         {isOpen && <div className="resizer-handle absolute right-0 top-0 bottom-0" onMouseDown={startResizing}></div>}
@@ -694,7 +681,6 @@
                     if (!id) return 0;
                     let val = parseFloat(inputs[id] || 0);
                     const isPctField = exercise.inputs?.[idx]?.isPct;
-                    // Standardize math logic: if pct is entered as whole (22), treat as decimal (0.22)
                     if (isPctField && Math.abs(val) > 1) return val / 100;
                     return val;
                 };
@@ -754,12 +740,10 @@
                 return { result: 0 };
             }, [inputs, exercise]);
 
-            // Re-using the robust validation logic here for display purposes
             const checkDisplay = (val, correctEnc, tol) => {
                 const numVal = Number(val) || 0;
                 const correctValue = Number(d(correctEnc)) || 0;
                 
-                // Flexible tolerance logic (same as SmartInput)
                 const isCloseEnough = (input, target) => {
                     if (Math.abs(target) < 0.00001) return Math.abs(input) < 0.001; 
                     const diff = Math.abs(input - target);
@@ -1014,10 +998,29 @@
                 if (!activeInput) return;
                 const { exerciseId, inputId } = activeInput;
                 const currentVal = inputs[exerciseId]?.[inputId] || "";
+                
+                // Safety check and conversion
                 const valStr = val.toString();
                 const strVal = currentVal.toString();
+                
+                // Check if the current value is empty
+                if (strVal.trim() === "") {
+                    updateInput(exerciseId, inputId, valStr);
+                    return;
+                }
+
+                // Check for operator or parenthesis at the end of the current string
+                // \s* allows for optional spaces
                 const isOperatorLast = /[\+\-\*\/\(]\s*$/.test(strVal);
-                updateInput(exerciseId, inputId, isOperatorLast ? strVal + " " + valStr : valStr);
+
+                if (isOperatorLast) {
+                    // Append mode: If there is already a space, append directly, otherwise add space
+                    const separator = strVal.endsWith(" ") ? "" : " ";
+                    updateInput(exerciseId, inputId, strVal + separator + valStr);
+                } else {
+                    // Replace mode: If user didn't type an operator, assume they want to replace the number
+                    updateInput(exerciseId, inputId, valStr);
+                }
             };
 
             const handleExport = () => {
