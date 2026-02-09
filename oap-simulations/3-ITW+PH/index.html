@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>DuPont Disaggregation Analysis v2</title>
+    <title>DuPont Disaggregation Analysis v3</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
@@ -44,6 +44,10 @@
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         .animate-fade-in { animation: fadeIn 0.2s ease-out; }
 
+        .tab-active { border-bottom: 2px solid #2563eb; color: #1e40af; font-weight: 600; }
+        .tab-inactive { border-bottom: 2px solid transparent; color: #64748b; }
+        .tab-inactive:hover { color: #334155; }
+
         /* Prevent text selection while resizing */
         .resizing { cursor: col-resize; user-select: none; }
     </style>
@@ -69,7 +73,9 @@
             Download: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>,
             Briefcase: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>,
             Menu: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>,
-            X: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            X: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
+            Chart: () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>,
+            Pen: () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
         };
 
         // --- DATA SETS ---
@@ -124,7 +130,8 @@
                             ["Tax Shield (22%)", "(11)", "33"],
                             ["Average Equity", "3,358", "3,404"],
                             ["Average NOA", "10,543", "9,826"], 
-                            ["Average NNO", "7,185", "6,422"]
+                            ["Average NNO", "7,185", "6,422"],
+                            ["Average Total Assets", "?", "15,845"]
                         ]
                     }
                 },
@@ -153,6 +160,7 @@
                     { id: "other_l", label: "Other liabilities", val22: 812, val21: 920, type: "liab", correct: "op" },
                 ],
                 _DATA_MATRIX: {
+                    "avg_ta_2022": "MTU3NDkuNQ==",
                     "roe_2022": "OTAuMzk=", "roe_2021": "NzkuMTc=",
                     "roa_2022": "MTkuMjY=", "roa_2021": "MTcuMDA=",
                     "fl_2022": "NC42OQ==", "fl_2021": "NC42NQ==",
@@ -168,6 +176,11 @@
                     "flev_2022": "Mi4xNDA=", "flev_2021": "MS44ODY=",
                     "nopm_2022": "MTguNzk=", "nopm_2021": "MTkuNDU=",
                     "noat_2022": "MS41MTEy", "noat_2021": "MS40NzEy"
+                },
+                _INTERPRETATION: {
+                    q1: "ROE (90.4%) is significantly higher than RNOA (28.4%). This large positive difference indicates that ITW is effectively using financial leverage (debt) to amplify returns to equity holders.",
+                    q2: "RNOA remained relatively stable (28.4% vs 28.6%). NOPM decreased slightly (18.8% vs 19.5%), while NOAT improved (1.51 vs 1.47). The slight decline in profitability was mostly offset by better asset efficiency.",
+                    q3: "The Spread is positive (29.0%), meaning the return on operating assets is far higher than the net nonoperating expense percentage. This confirms that the company's debt structure is accretive to shareholder value."
                 }
             },
             PH: {
@@ -223,7 +236,8 @@
                             ["Tax Shield (22%)", "272,826", "51,267"],
                             ["Average Equity", "8,636,795", "7,327,720"],
                             ["Average NOA", "15,920,399", "13,168,717"],
-                            ["Average NNO", "7,283,604", "5,840,997"]
+                            ["Average NNO", "7,283,604", "5,840,997"],
+                            ["Average Total Assets", "?", "20,114,477"]
                         ]
                     }
                 },
@@ -252,6 +266,7 @@
                     { id: "other_l", label: "Other liabilities", val22: 421560, val21: 545451, type: "liab", correct: "op" }
                 ],
                 _DATA_MATRIX: {
+                    "avg_ta_2022": "MjMxNDI1NzEuNQ==",
                     "roe_2022": "MTUuMjY=", "roe_2021": "MjMuODg=",
                     "roa_2022": "NS42OQ==", "roa_2021": "OC42OA==",
                     "fl_2022": "Mi42OA==", "fl_2021": "Mi43NA==",
@@ -261,12 +276,18 @@
                     "avg_noa_2022": "MTU5MjAzOTk=", "avg_noa_2021": "MTMxNjg3MTc=",
                     "avg_nno_2022": "NzI4MzYwMy41", "avg_nno_2021": "NTg0MDk5Nw==",
                     "nne_calc": "OTY3Mjk0", "nopat_m1": "MjI4MzQ4MA==", "nopat_m2": "MjI4MzQ4MA==",
-                    "rnoa_2022": "MTUuNTM=", "rnoa_2021": "MTQuNjU=",
-                    "nnep_2022": "MTUuOTQ=", "nnep_2021": "My4xMQ==",
-                    "spread_2022": "LTAuNDE=", "spread_2021": "MTEuNTM=",
-                    "flev_2022": "MC43MDI=", "flev_2021": "MC43OTc=",
+                    "rnoa_2022": "MTQuMzQ=", "rnoa_2021": "MTQuNjU=",
+                    "nnep_2022": "MTMuMjg=", "nnep_2021": "My4xMQ==",
+                    "spread_2022": "MS4wNg==", "spread_2021": "MTEuNTM=",
+                    "flev_2022": "MC44NDM=", "flev_2021": "MC43OTc=",
                     "nopm_2022": "MTQuNDA=", "nopm_2021": "MTMuNDQ=",
-                    "noat_2022": "MS4wOA==", "noat_2021": "MS4wODk1"
+                    "noat_2022": "MC45OTYz", // Updated to 0.9963
+                    "noat_2021": "MS4wODk1"
+                },
+                _INTERPRETATION: {
+                    q1: "ROE (15.3%) is only slightly higher than RNOA (14.3%). Compared to 2021, the \"leverage kick\" has diminished significantly, primarily due to high non-operating expenses reducing the spread.",
+                    q2: "RNOA remained flat (14.3% vs 14.7%). NOPM actually improved (14.4% vs 13.4%), but NOAT declined (1.00 vs 1.09). The efficiency of asset usage dropped, counteracting the margin improvement.",
+                    q3: "The Spread collapsed to 1.06% (from 11.53% in 2021). This is due to a spike in NNEP (13.3%), driven by significant non-operating losses (forward contracts). The debt structure added very little value this year compared to last."
                 }
             }
         };
@@ -345,7 +366,7 @@
                     // Handle percentages: convert "22%" or "22.5 %" to "(22/100)"
                     expr = expr.replace(/(\d+(\.\d+)?)\s*%/g, '($1/100)');
 
-                    // Pre-process: replace multiple dashes (--) with + to handle "subtract negative" scenario
+                    // Pre-process: replace multiple dashes (--) with +
                     let cleanExpr = expr.replace(/[^\d\.\+\-\*\/\(\)]/g, '');
                     cleanExpr = cleanExpr.replace(/--/g, '+'); 
                     
@@ -366,23 +387,38 @@
                 const correctNum = parseFloat(decodedCorrect.replace(/,/g, ''));
                 const valNum = parseFloat(result);
                 
-                // --- UPDATE: TOLERANCE LOGIC ---
-                // Allow exact matches within 0.5 (for rounding) OR within 1% relative error
-                const diff = Math.abs(valNum - correctNum);
-                const percentDiff = correctNum !== 0 ? Math.abs(diff / correctNum) : 0;
+                // Tolerance: 0.5% relative error OR 0.5 absolute for very small numbers (to handle rounding of leverage etc)
+                // However, user requested specifically "reduce margin of error... to 0.5%"
+                // We will use 0.5% relative error for larger numbers, and a tighter absolute check for small ones.
                 
-                if (diff < 0.5) return true;
-                if (isPercentage) {
-                    // If user typed 22.5 for 22.5%, check if 22.5 vs 22.5
-                    // Or if they typed 0.225 for 22.5%
-                    const percentValCheck = Math.abs((valNum * 100) - correctNum);
-                      if (percentValCheck < 0.5 || (correctNum !== 0 && (percentValCheck / correctNum) < 0.01)) return true;
+                // If it is a percentage input, e.g. correct is 14.34
+                // User might input 0.1434 (valNum = 0.1434) OR 14.34 (valNum = 14.34)
+                
+                let matches = false;
+                const relativeTolerance = 0.005; // 0.5%
+
+                // Direct Match (e.g. 14.34 vs 14.34)
+                if (correctNum !== 0) {
+                     if (Math.abs((valNum - correctNum) / correctNum) < relativeTolerance) matches = true;
+                } else {
+                     if (Math.abs(valNum) < 0.001) matches = true;
+                }
+
+                // Percent Decimal Match (e.g. 0.1434 vs 14.34)
+                if (!matches && isPercentage) {
+                    const scaledVal = valNum * 100;
+                     if (correctNum !== 0) {
+                         if (Math.abs((scaledVal - correctNum) / correctNum) < relativeTolerance) matches = true;
+                     }
                 }
                 
-                // 1% tolerance for large numbers
-                if (percentDiff < 0.01) return true;
+                // Keep the small absolute tolerance for integers or rounding differences (e.g. 15749.5 vs 15750)
+                // But restrict it more than before (was 0.5 absolute).
+                // Let's stick to the relative tolerance as primary.
+                // Exception: Leverage (e.g. 0.843). 0.5% of 0.843 is 0.004. So 0.839-0.847.
+                
+                return matches;
 
-                return false;
             }, [value, decodedCorrect, isPercentage]);
 
             const handleCommit = () => {
@@ -404,15 +440,14 @@
                 let finalVal = result;
                 const correctNum = parseFloat(decodedCorrect.replace(/,/g, ''));
                 
-                // Improved formatter to keep user input style if close enough, but standardize if calc
+                // Formatting
                 if (isPercentage) {
-                      if (Math.abs(numVal - correctNum) < 0.5) {
+                      // Heuristic: if they typed 0.14 and correct is 14, format as 14.00
+                      if (Math.abs(numVal - correctNum) > Math.abs((numVal * 100) - correctNum)) {
+                           finalVal = (numVal * 100).toFixed(2);
+                      } else {
                            finalVal = numVal.toFixed(2);
-                        } else if (Math.abs((numVal * 100) - correctNum) < 0.5) {
-                           finalVal = (numVal * 100).toFixed(2); 
-                        } else {
-                           finalVal = numVal.toFixed(2);
-                        }
+                      }
                 } else {
                     if (Number.isInteger(numVal)) {
                         finalVal = numVal.toString();
@@ -475,7 +510,7 @@
                                         <tr key={i} className="hover:bg-blue-50/30">
                                             <td className="p-2 font-medium text-slate-700">{row[0]}</td>
                                             {row.slice(1).map((cell, j) => (
-                                                <td key={j} onMouseDown={(e) => { e.preventDefault(); onValueClick(cell); }} className="p-2 text-right font-mono text-slate-600 clickable-cell" title="Click to insert">{cell}</td>
+                                                <td key={j} onMouseDown={(e) => { e.preventDefault(); if(cell !== '?' && cell !== 'Calculate') onValueClick(cell); }} className={`p-2 text-right font-mono text-slate-600 ${cell !== '?' && cell !== 'Calculate' ? 'clickable-cell' : 'cursor-default text-slate-400'}`} title="Click to insert">{cell}</td>
                                             ))}
                                         </tr>
                                     ))}
@@ -569,9 +604,10 @@
             const [showNamePrompt, setShowNamePrompt] = useState(false);
             const [studentName, setStudentName] = useState("");
             const [password, setPassword] = useState("");
+            const [activeTab, setActiveTab] = useState("analysis"); // analysis | interpretation
             
             // Sidebar Resizing State
-            const [sidebarWidth, setSidebarWidth] = useState(30); // Use percentage
+            const [sidebarWidth, setSidebarWidth] = useState(30); 
             const [isResizing, setIsResizing] = useState(false);
             const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -585,12 +621,11 @@
                 setSelections({ PH: initPH, ITW: initITW });
             }, []);
             
-            // Resize Logic
             useEffect(() => {
                 const handleMouseMove = (e) => {
                     if (!isResizing) return;
                     const newWidth = (e.clientX / window.innerWidth) * 100;
-                    if (newWidth > 20 && newWidth < 50) setSidebarWidth(newWidth); // Min/Max limits
+                    if (newWidth > 20 && newWidth < 50) setSidebarWidth(newWidth); 
                 };
                 const handleMouseUp = () => setIsResizing(false);
 
@@ -643,7 +678,6 @@
                     };
                 });
                 setTimeout(() => document.getElementById(activeInput)?.focus(), 0);
-                // On mobile, close sidebar after clicking a value
                 if (window.innerWidth < 768) setMobileMenuOpen(false);
             };
 
@@ -658,8 +692,6 @@
             };
 
             const toggleTeacher = () => teacherMode ? setTeacherMode(false) : setShowLogin(true);
-            
-            // CHECK PASSWORD 
             
             const checkPassword = () => { 
                 if(btoa(password) === 'T0FQMy1LZXk3WA==') { 
@@ -680,7 +712,6 @@
                         currentData.CLASSIFICATION_ITEMS.forEach(i => defaultSels[i.id] = 'op');
                         setSelections(prev => ({ ...prev, [selectedCase]: defaultSels }));
                     } else {
-                        // Decode answers for autofill
                         const decodedAnswers = {};
                         Object.keys(currentData._DATA_MATRIX).forEach(k => {
                             decodedAnswers[k] = d(currentData._DATA_MATRIX[k]);
@@ -736,7 +767,7 @@
                         </div>
                     </div>
 
-                    {/* Resizer Handle (Desktop Only) */}
+                    {/* Resizer Handle */}
                     <div
                         className="hidden md:block w-1 hover:w-2 bg-slate-200 hover:bg-blue-400 cursor-col-resize transition-all z-20 flex-shrink-0"
                         onMouseDown={() => setIsResizing(true)}
@@ -774,156 +805,251 @@
                              </div>
                         </div>
 
+                        {/* Tabs */}
+                        <div className="bg-white px-4 border-b border-slate-200 flex gap-6 sticky top-[60px] z-10">
+                            <button 
+                                onClick={() => setActiveTab('analysis')}
+                                className={`py-3 text-sm flex items-center gap-2 transition-colors ${activeTab === 'analysis' ? 'tab-active' : 'tab-inactive'}`}
+                            >
+                                <Icons.Chart /> Quantitative Analysis
+                            </button>
+                            <button 
+                                onClick={() => setActiveTab('interpretation')}
+                                className={`py-3 text-sm flex items-center gap-2 transition-colors ${activeTab === 'interpretation' ? 'tab-active' : 'tab-inactive'}`}
+                            >
+                                <Icons.Pen /> Interpretation
+                            </button>
+                        </div>
+
                         <div className="flex-1 overflow-y-auto custom-scrollbar bg-slate-50 p-4 md:p-8">
                              <div className="max-w-4xl mx-auto space-y-6">
-                                <p className="text-sm text-slate-500 sm:hidden mb-4">{currentData.name} - 2022 Analysis</p>
                                 
-                                {/* 2. ROE */}
-                                <div className="bg-white rounded shadow-sm border p-4 sm:p-6">
-                                    <div className="flex justify-between items-start"><h3 className="font-bold text-base sm:text-lg text-slate-800">2. Return on Equity (ROE)</h3><HintBox id="roe"/></div>
-                                    <div className="grid grid-cols-3 gap-2 sm:gap-4 mt-2">
-                                        <div></div><div className="text-center font-bold text-slate-500 text-xs sm:text-sm">2022</div><div className="text-center font-bold text-slate-500 text-xs sm:text-sm">2021</div>
-                                        <div className="font-medium text-xs sm:text-sm flex items-center">ROE (%)</div>
-                                        <SmartInput id="roe_2022" value={currentInputs.roe_2022} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={currentData._DATA_MATRIX.roe_2022} teacherMode={teacherMode} placeholder="%" isPercentage={true} />
-                                        <SmartInput id="roe_2021" value={currentInputs.roe_2021} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={currentData._DATA_MATRIX.roe_2021} teacherMode={teacherMode} placeholder="%" isPercentage={true} />
-                                    </div>
-                                </div>
-
-                                {/* 3. DuPont */}
-                                <div className="bg-white rounded shadow-sm border p-4 sm:p-6">
-                                    <div className="flex justify-between items-start"><h3 className="font-bold text-base sm:text-lg text-slate-800">3. DuPont Disaggregation</h3><HintBox id="dupont"/></div>
-                                    <div className="grid grid-cols-3 gap-2 sm:gap-4 mt-2">
-                                        <div className="font-medium text-xs sm:text-sm flex items-center">ROA (%)</div>
-                                        <SmartInput id="roa_2022" value={currentInputs.roa_2022} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={currentData._DATA_MATRIX.roa_2022} teacherMode={teacherMode} placeholder="%" isPercentage={true} />
-                                        <SmartInput id="roa_2021" value={currentInputs.roa_2021} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={currentData._DATA_MATRIX.roa_2021} teacherMode={teacherMode} placeholder="%" isPercentage={true} />
-                                        
-                                        <div className="font-medium text-xs sm:text-sm flex items-center">Fin. Lev</div>
-                                        <SmartInput id="fl_2022" value={currentInputs.fl_2022} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={currentData._DATA_MATRIX.fl_2022} teacherMode={teacherMode} placeholder="x" />
-                                        <SmartInput id="fl_2021" value={currentInputs.fl_2021} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={currentData._DATA_MATRIX.fl_2021} teacherMode={teacherMode} placeholder="x" />
-                                        
-                                        <div className="font-medium text-xs sm:text-sm flex items-center">NCIR</div>
-                                        <SmartInput id="ncir_2022" value={currentInputs.ncir_2022} correctValue={currentData._DATA_MATRIX.ncir_2022} readOnly={true} teacherMode={teacherMode} />
-                                        <SmartInput id="ncir_2021" value={currentInputs.ncir_2021} correctValue={currentData._DATA_MATRIX.ncir_2021} readOnly={true} teacherMode={teacherMode} />
-                                    </div>
-                                </div>
-
-                                {/* 4. ROA Decomp */}
-                                <div className="bg-white rounded shadow-sm border p-4 sm:p-6">
-                                    <div className="flex justify-between items-start"><h3 className="font-bold text-base sm:text-lg text-slate-800">4. ROA Decomposition</h3><HintBox id="roa_decomp"/></div>
-                                    <div className="grid grid-cols-3 gap-2 sm:gap-4 mt-2">
-                                        <div className="font-medium text-xs sm:text-sm flex items-center">PM (%)</div>
-                                        <SmartInput id="pm_2022" value={currentInputs.pm_2022} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={currentData._DATA_MATRIX.pm_2022} teacherMode={teacherMode} placeholder="%" isPercentage={true} />
-                                        <SmartInput id="pm_2021" value={currentInputs.pm_2021} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={currentData._DATA_MATRIX.pm_2021} teacherMode={teacherMode} placeholder="%" isPercentage={true} />
-                                        
-                                        <div className="font-medium text-xs sm:text-sm flex items-center">Asset T/O</div>
-                                        <SmartInput id="at_2022" value={currentInputs.at_2022} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={currentData._DATA_MATRIX.at_2022} teacherMode={teacherMode} placeholder="x" />
-                                        <SmartInput id="at_2021" value={currentInputs.at_2021} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={currentData._DATA_MATRIX.at_2021} teacherMode={teacherMode} placeholder="x" />
-                                    </div>
-                                </div>
-
-                                {/* 4a. Classify */}
-                                <div className="bg-white rounded shadow-sm border p-4 sm:p-6">
-                                    <h3 className="font-bold text-base sm:text-lg text-slate-800 mb-2">4a. Classify & Calculate NOA/NNO</h3>
-                                    <p className="text-xs sm:text-sm text-slate-500 mb-4">Classify items to calculate NOA and NNO.</p>
-                                    <ClassificationTable 
-                                        items={currentData.CLASSIFICATION_ITEMS} 
-                                        selections={currentSelections} 
-                                        onToggle={handleToggle} 
-                                        teacherMode={teacherMode} 
-                                    />
-                                    <div className="p-4 bg-slate-50 border-t border-slate-200 rounded-b">
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 pt-2">
-                                            <div>
-                                                <label className="text-xs font-bold text-slate-600 block mb-1">Calculate Average NOA</label>
-                                                <SmartInput id="avg_noa_2022" value={currentInputs.avg_noa_2022} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={currentData._DATA_MATRIX.avg_noa_2022} teacherMode={teacherMode} placeholder="(NOA22+NOA21)/2" />
-                                            </div>
-                                            <div>
-                                                <label className="text-xs font-bold text-slate-600 block mb-1">Calculate Average NNO</label>
-                                                <SmartInput id="avg_nno_2022" value={currentInputs.avg_nno_2022} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={currentData._DATA_MATRIX.avg_nno_2022} teacherMode={teacherMode} placeholder="(NNO22+NNO21)/2" />
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* 4b. NOPAT */}
-                                <div className="bg-white rounded shadow-sm border p-4 sm:p-6">
-                                    <h3 className="font-bold text-base sm:text-lg text-slate-800 mb-4">4b. NNE & NOPAT Derivation (2022)</h3>
-                                    <div className="space-y-6">
-                                        <div className="bg-slate-50 p-3 sm:p-4 rounded border">
-                                            <h4 className="font-bold text-xs sm:text-sm text-slate-700 mb-2">Method 1: Operating Income Approach</h4>
-                                            <div className="text-[10px] sm:text-xs text-slate-500 mb-2 font-mono">
-                                                Formula: Operating Income - Tax on Operating Profit <br/>
-                                                <span className="text-[9px] text-slate-400">where Tax on Operating Profit = Tax Expense + Tax Shield</span>
-                                            </div>
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4">
-                                                <div className="text-xs sm:text-sm">NOPAT Calculation</div>
-                                                <SmartInput id="nopat_m2" value={currentInputs.nopat_m2} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={currentData._DATA_MATRIX.nopat_m2} teacherMode={teacherMode} placeholder="$" />
+                                {activeTab === 'analysis' ? (
+                                    <>
+                                        {/* 1. Prelim */}
+                                        <div className="bg-white rounded shadow-sm border p-4 sm:p-6">
+                                            <div className="flex justify-between items-start"><h3 className="font-bold text-base sm:text-lg text-slate-800">1. Data Preparation</h3></div>
+                                            <p className="text-xs text-slate-500 mb-4">Calculate missing average values needed for subsequent steps.</p>
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                                <div>
+                                                    <label className="block text-xs font-bold text-slate-500 mb-1">Average Total Assets (2022)</label>
+                                                    <SmartInput id="avg_ta_2022" value={currentInputs.avg_ta_2022} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={currentData._DATA_MATRIX.avg_ta_2022} teacherMode={teacherMode} placeholder="Calculate Average" />
+                                                </div>
                                             </div>
                                         </div>
 
-                                        <div className="bg-slate-50 p-3 sm:p-4 rounded border">
-                                            <h4 className="font-bold text-xs sm:text-sm text-slate-700 mb-2">Method 2: Net Income Approach</h4>
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 mb-2">
-                                                <div className="text-xs sm:text-sm">
-                                                    Step 1: Calculate NNE (Net Nonoperating Expense)
-                                                    <div className="text-[10px] text-slate-500 font-normal mt-1 leading-tight">
-                                                        <strong>NNE</strong> Net nonoperating expense after tax (NOPAT – Total net income; or [Nonoperating expenses × (1 – Statutory Tax Rate)])
+                                        {/* 2. ROE */}
+                                        <div className="bg-white rounded shadow-sm border p-4 sm:p-6">
+                                            <div className="flex justify-between items-start"><h3 className="font-bold text-base sm:text-lg text-slate-800">2. Return on Equity (ROE)</h3><HintBox id="roe"/></div>
+                                            <div className="grid grid-cols-3 gap-2 sm:gap-4 mt-2">
+                                                <div></div><div className="text-center font-bold text-slate-500 text-xs sm:text-sm">2022</div><div className="text-center font-bold text-slate-500 text-xs sm:text-sm">2021</div>
+                                                <div className="font-medium text-xs sm:text-sm flex items-center">ROE (%)</div>
+                                                <SmartInput id="roe_2022" value={currentInputs.roe_2022} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={currentData._DATA_MATRIX.roe_2022} teacherMode={teacherMode} placeholder="%" isPercentage={true} />
+                                                <SmartInput id="roe_2021" value={currentInputs.roe_2021} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={currentData._DATA_MATRIX.roe_2021} teacherMode={teacherMode} placeholder="%" isPercentage={true} />
+                                            </div>
+                                        </div>
+
+                                        {/* 3. DuPont */}
+                                        <div className="bg-white rounded shadow-sm border p-4 sm:p-6">
+                                            <div className="flex justify-between items-start"><h3 className="font-bold text-base sm:text-lg text-slate-800">3. DuPont Disaggregation</h3><HintBox id="dupont"/></div>
+                                            <div className="grid grid-cols-3 gap-2 sm:gap-4 mt-2">
+                                                <div className="font-medium text-xs sm:text-sm flex items-center">ROA (%)</div>
+                                                <SmartInput id="roa_2022" value={currentInputs.roa_2022} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={currentData._DATA_MATRIX.roa_2022} teacherMode={teacherMode} placeholder="%" isPercentage={true} />
+                                                <SmartInput id="roa_2021" value={currentInputs.roa_2021} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={currentData._DATA_MATRIX.roa_2021} teacherMode={teacherMode} placeholder="%" isPercentage={true} />
+                                                
+                                                <div className="font-medium text-xs sm:text-sm flex items-center">Fin. Lev</div>
+                                                <SmartInput id="fl_2022" value={currentInputs.fl_2022} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={currentData._DATA_MATRIX.fl_2022} teacherMode={teacherMode} placeholder="x" />
+                                                <SmartInput id="fl_2021" value={currentInputs.fl_2021} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={currentData._DATA_MATRIX.fl_2021} teacherMode={teacherMode} placeholder="x" />
+                                                
+                                                <div className="font-medium text-xs sm:text-sm flex items-center">NCIR</div>
+                                                <SmartInput id="ncir_2022" value={currentInputs.ncir_2022} correctValue={currentData._DATA_MATRIX.ncir_2022} readOnly={true} teacherMode={teacherMode} />
+                                                <SmartInput id="ncir_2021" value={currentInputs.ncir_2021} correctValue={currentData._DATA_MATRIX.ncir_2021} readOnly={true} teacherMode={teacherMode} />
+                                            </div>
+                                        </div>
+
+                                        {/* 4. ROA Decomp */}
+                                        <div className="bg-white rounded shadow-sm border p-4 sm:p-6">
+                                            <div className="flex justify-between items-start"><h3 className="font-bold text-base sm:text-lg text-slate-800">4. ROA Decomposition</h3><HintBox id="roa_decomp"/></div>
+                                            <div className="grid grid-cols-3 gap-2 sm:gap-4 mt-2">
+                                                <div className="font-medium text-xs sm:text-sm flex items-center">PM (%)</div>
+                                                <SmartInput id="pm_2022" value={currentInputs.pm_2022} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={currentData._DATA_MATRIX.pm_2022} teacherMode={teacherMode} placeholder="%" isPercentage={true} />
+                                                <SmartInput id="pm_2021" value={currentInputs.pm_2021} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={currentData._DATA_MATRIX.pm_2021} teacherMode={teacherMode} placeholder="%" isPercentage={true} />
+                                                
+                                                <div className="font-medium text-xs sm:text-sm flex items-center">Asset T/O</div>
+                                                <SmartInput id="at_2022" value={currentInputs.at_2022} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={currentData._DATA_MATRIX.at_2022} teacherMode={teacherMode} placeholder="x" />
+                                                <SmartInput id="at_2021" value={currentInputs.at_2021} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={currentData._DATA_MATRIX.at_2021} teacherMode={teacherMode} placeholder="x" />
+                                            </div>
+                                        </div>
+
+                                        {/* 4a. Classify */}
+                                        <div className="bg-white rounded shadow-sm border p-4 sm:p-6">
+                                            <h3 className="font-bold text-base sm:text-lg text-slate-800 mb-2">4a. Classify & Calculate NOA/NNO</h3>
+                                            <p className="text-xs sm:text-sm text-slate-500 mb-4">Classify items to calculate NOA and NNO. Treat all "Other" items as Operating items.</p>
+                                            <ClassificationTable 
+                                                items={currentData.CLASSIFICATION_ITEMS} 
+                                                selections={currentSelections} 
+                                                onToggle={handleToggle} 
+                                                teacherMode={teacherMode} 
+                                            />
+                                            <div className="p-4 bg-slate-50 border-t border-slate-200 rounded-b">
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 pt-2">
+                                                    <div>
+                                                        <label className="text-xs font-bold text-slate-600 block mb-1">Calculate Average NOA</label>
+                                                        <SmartInput id="avg_noa_2022" value={currentInputs.avg_noa_2022} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={currentData._DATA_MATRIX.avg_noa_2022} teacherMode={teacherMode} placeholder="(NOA22+NOA21)/2" />
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-xs font-bold text-slate-600 block mb-1">Calculate Average NNO</label>
+                                                        <SmartInput id="avg_nno_2022" value={currentInputs.avg_nno_2022} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={currentData._DATA_MATRIX.avg_nno_2022} teacherMode={teacherMode} placeholder="(NNO22+NNO21)/2" />
                                                     </div>
                                                 </div>
-                                                <SmartInput id="nne_calc" value={currentInputs.nne_calc} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={currentData._DATA_MATRIX.nne_calc} teacherMode={teacherMode} placeholder="$" />
                                             </div>
-                                            <div className="text-[10px] text-slate-500 mb-2 ml-1 italic">(Tax Shield = Nonoperating items before tax × Tax Rate)</div>
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4">
-                                                <div className="text-xs sm:text-sm">Step 2: NOPAT (Net Income + NNE)</div>
-                                                <SmartInput id="nopat_m1" value={currentInputs.nopat_m1} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={currentData._DATA_MATRIX.nopat_m1} teacherMode={teacherMode} placeholder="$" />
+                                        </div>
+
+                                        {/* 4b. NOPAT */}
+                                        <div className="bg-white rounded shadow-sm border p-4 sm:p-6">
+                                            <h3 className="font-bold text-base sm:text-lg text-slate-800 mb-4">4b. NNE & NOPAT Derivation (2022)</h3>
+                                            <div className="space-y-6">
+                                                <div className="bg-slate-50 p-3 sm:p-4 rounded border">
+                                                    <h4 className="font-bold text-xs sm:text-sm text-slate-700 mb-2">Method 1: Operating Income Approach</h4>
+                                                    <div className="text-[10px] sm:text-xs text-slate-500 mb-2 font-mono">
+                                                        Formula: Operating Income - Tax on Operating Profit <br/>
+                                                        <span className="text-[9px] text-slate-400">where Tax on Operating Profit = Tax Expense + Tax Shield</span>
+                                                    </div>
+                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4">
+                                                        <div className="text-xs sm:text-sm">NOPAT Calculation</div>
+                                                        <SmartInput id="nopat_m2" value={currentInputs.nopat_m2} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={currentData._DATA_MATRIX.nopat_m2} teacherMode={teacherMode} placeholder="$" />
+                                                    </div>
+                                                </div>
+
+                                                <div className="bg-slate-50 p-3 sm:p-4 rounded border">
+                                                    <h4 className="font-bold text-xs sm:text-sm text-slate-700 mb-2">Method 2: Net Income Approach</h4>
+                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 mb-2">
+                                                        <div className="text-xs sm:text-sm">
+                                                            Step 1: Calculate NNE (Net Nonoperating Expense)
+                                                            <div className="text-[10px] text-slate-500 font-normal mt-1 leading-tight">
+                                                                <strong>NNE</strong> Net nonoperating expense after tax (NOPAT – Total net income; or [Nonoperating expenses × (1 – Statutory Tax Rate)])
+                                                            </div>
+                                                        </div>
+                                                        <SmartInput id="nne_calc" value={currentInputs.nne_calc} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={currentData._DATA_MATRIX.nne_calc} teacherMode={teacherMode} placeholder="$" />
+                                                    </div>
+                                                    <div className="text-[10px] text-slate-500 mb-2 ml-1 italic">(Tax Shield = Nonoperating items before tax × Tax Rate)</div>
+                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4">
+                                                        <div className="text-xs sm:text-sm">Step 2: NOPAT (Net Income + NNE)</div>
+                                                        <SmartInput id="nopat_m1" value={currentInputs.nopat_m1} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={currentData._DATA_MATRIX.nopat_m1} teacherMode={teacherMode} placeholder="$" />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* 5. Operating ROE */}
+                                        <div className="bg-white rounded shadow-sm border p-4 sm:p-6 mb-6">
+                                            <div className="flex justify-between items-start"><h3 className="font-bold text-base sm:text-lg text-slate-800">5. Operating vs Nonoperating ROE</h3><HintBox id="op_v_nonop"/></div>
+                                            <div className="mt-2 mb-4 p-2 bg-yellow-50 text-yellow-800 text-xs border border-yellow-200 rounded flex gap-2 items-start">
+                                                <Icons.Info />
+                                                <span><strong>Note:</strong> FLEV here is Net Nonoperating Obligations / Equity.</span>
+                                            </div>
+                                            <div className="grid grid-cols-3 gap-2 sm:gap-4 mt-4">
+                                                <div className="font-medium text-xs sm:text-sm flex items-center">RNOA (%)</div>
+                                                <SmartInput id="rnoa_2022" value={currentInputs.rnoa_2022} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={currentData._DATA_MATRIX.rnoa_2022} teacherMode={teacherMode} placeholder="%" isPercentage={true} />
+                                                <SmartInput id="rnoa_2021" value={currentInputs.rnoa_2021} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={currentData._DATA_MATRIX.rnoa_2021} teacherMode={teacherMode} placeholder="%" isPercentage={true} />
+                                                
+                                                <div className="font-medium text-xs sm:text-sm flex items-center">NNEP (%)</div>
+                                                <SmartInput id="nnep_2022" value={currentInputs.nnep_2022} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={currentData._DATA_MATRIX.nnep_2022} teacherMode={teacherMode} placeholder="%" isPercentage={true} />
+                                                <SmartInput id="nnep_2021" value={currentInputs.nnep_2021} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={currentData._DATA_MATRIX.nnep_2021} teacherMode={teacherMode} placeholder="%" isPercentage={true} />
+
+                                                <div className="font-medium text-xs sm:text-sm flex items-center">Spread (%)</div>
+                                                <SmartInput id="spread_2022" value={currentInputs.spread_2022} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={currentData._DATA_MATRIX.spread_2022} teacherMode={teacherMode} placeholder="%" isPercentage={true} />
+                                                <SmartInput id="spread_2021" value={currentInputs.spread_2021} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={currentData._DATA_MATRIX.spread_2021} teacherMode={teacherMode} placeholder="%" isPercentage={true} />
+
+                                                <div className="font-medium text-xs sm:text-sm flex items-center">FLEV</div>
+                                                <SmartInput id="flev_2022" value={currentInputs.flev_2022} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={currentData._DATA_MATRIX.flev_2022} teacherMode={teacherMode} placeholder="x" />
+                                                <SmartInput id="flev_2021" value={currentInputs.flev_2021} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={currentData._DATA_MATRIX.flev_2021} teacherMode={teacherMode} placeholder="x" />
+                                                
+                                                <div className="font-medium text-xs sm:text-sm flex items-center">NCIR</div>
+                                                <SmartInput id="ncir_2022" value={currentInputs.ncir_2022} correctValue={currentData._DATA_MATRIX.ncir_2022} readOnly={true} teacherMode={teacherMode} />
+                                                <SmartInput id="ncir_2021" value={currentInputs.ncir_2021} correctValue={currentData._DATA_MATRIX.ncir_2021} readOnly={true} teacherMode={teacherMode} />
+                                            </div>
+                                        </div>
+
+                                        {/* 6. RNOA Decomp */}
+                                        <div className="bg-white rounded shadow-sm border p-4 sm:p-6 mb-6">
+                                            <div className="flex justify-between items-start"><h3 className="font-bold text-base sm:text-lg text-slate-800">6. RNOA Decomposition</h3><HintBox id="rnoa_decomp"/></div>
+                                            <div className="grid grid-cols-3 gap-2 sm:gap-4 mt-4">
+                                                <div className="font-medium text-xs sm:text-sm flex items-center">NOPM (%)</div>
+                                                <SmartInput id="nopm_2022" value={currentInputs.nopm_2022} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={currentData._DATA_MATRIX.nopm_2022} teacherMode={teacherMode} placeholder="%" isPercentage={true} />
+                                                <SmartInput id="nopm_2021" value={currentInputs.nopm_2021} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={currentData._DATA_MATRIX.nopm_2021} teacherMode={teacherMode} placeholder="%" isPercentage={true} />
+                                                
+                                                <div className="font-medium text-xs sm:text-sm flex items-center">NOAT</div>
+                                                <SmartInput id="noat_2022" value={currentInputs.noat_2022} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={currentData._DATA_MATRIX.noat_2022} teacherMode={teacherMode} placeholder="x" />
+                                                <SmartInput id="noat_2021" value={currentInputs.noat_2021} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={currentData._DATA_MATRIX.noat_2021} teacherMode={teacherMode} placeholder="x" />
+                                            </div>
+                                        </div>
+                                    </>
+                                ) : (
+                                    /* INTERPRETATION TAB */
+                                    <div className="space-y-6">
+                                        <div className="bg-white rounded shadow-sm border p-4 sm:p-6">
+                                            <h3 className="font-bold text-lg text-slate-800 mb-2">Interpretation & Analysis</h3>
+                                            <p className="text-sm text-slate-600 mb-6">Answer the following questions based on your calculated ratios.</p>
+
+                                            <div className="space-y-6">
+                                                <div className="bg-slate-50 p-4 rounded border">
+                                                    <h4 className="font-bold text-sm text-slate-800 mb-2">1. Operating vs. Total ROE</h4>
+                                                    <p className="text-xs text-slate-600 mb-3">Compare RNOA (Operating ROE) to the total ROE. What does the difference tell you about the impact of the company's financial leverage?</p>
+                                                    <textarea 
+                                                        className="w-full p-3 text-sm border rounded focus:ring-2 ring-blue-500 outline-none" 
+                                                        rows="3" 
+                                                        placeholder="Write your analysis here..."
+                                                        value={currentInputs.q1 || ""}
+                                                        onChange={(e) => handleInputChange('q1', e.target.value)}
+                                                    ></textarea>
+                                                    {teacherMode && currentData._INTERPRETATION && (
+                                                        <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded text-sm text-green-800 animate-fade-in">
+                                                            <strong className="block mb-1 text-green-900">Teacher's Key:</strong>
+                                                            {currentData._INTERPRETATION.q1}
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                <div className="bg-slate-50 p-4 rounded border">
+                                                    <h4 className="font-bold text-sm text-slate-800 mb-2">2. Drivers of RNOA</h4>
+                                                    <p className="text-xs text-slate-600 mb-3">Analyze the decomposition of RNOA into NOPM (Margin) and NOAT (Turnover). Which component is the primary driver of the change from 2021 to 2022?</p>
+                                                    <textarea 
+                                                        className="w-full p-3 text-sm border rounded focus:ring-2 ring-blue-500 outline-none" 
+                                                        rows="3" 
+                                                        placeholder="Write your analysis here..."
+                                                        value={currentInputs.q2 || ""}
+                                                        onChange={(e) => handleInputChange('q2', e.target.value)}
+                                                    ></textarea>
+                                                    {teacherMode && currentData._INTERPRETATION && (
+                                                        <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded text-sm text-green-800 animate-fade-in">
+                                                            <strong className="block mb-1 text-green-900">Teacher's Key:</strong>
+                                                            {currentData._INTERPRETATION.q2}
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                <div className="bg-slate-50 p-4 rounded border">
+                                                    <h4 className="font-bold text-sm text-slate-800 mb-2">3. Analysis of "Spread"</h4>
+                                                    <p className="text-xs text-slate-600 mb-3">Assess the Spread (RNOA - NNEP). Is the company creating value through its debt financing structure? Explain.</p>
+                                                    <textarea 
+                                                        className="w-full p-3 text-sm border rounded focus:ring-2 ring-blue-500 outline-none" 
+                                                        rows="3" 
+                                                        placeholder="Write your analysis here..."
+                                                        value={currentInputs.q3 || ""}
+                                                        onChange={(e) => handleInputChange('q3', e.target.value)}
+                                                    ></textarea>
+                                                    {teacherMode && currentData._INTERPRETATION && (
+                                                        <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded text-sm text-green-800 animate-fade-in">
+                                                            <strong className="block mb-1 text-green-900">Teacher's Key:</strong>
+                                                            {currentData._INTERPRETATION.q3}
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-
-                                {/* 5. Operating ROE */}
-                                <div className="bg-white rounded shadow-sm border p-4 sm:p-6 mb-6">
-                                    <div className="flex justify-between items-start"><h3 className="font-bold text-base sm:text-lg text-slate-800">5. Operating vs Nonoperating ROE</h3><HintBox id="op_v_nonop"/></div>
-                                    <div className="mt-2 mb-4 p-2 bg-yellow-50 text-yellow-800 text-xs border border-yellow-200 rounded flex gap-2 items-start">
-                                        <Icons.Info />
-                                        <span><strong>Note:</strong> FLEV here is Net Nonoperating Obligations / Equity.</span>
-                                    </div>
-                                    <div className="grid grid-cols-3 gap-2 sm:gap-4 mt-4">
-                                        <div className="font-medium text-xs sm:text-sm flex items-center">RNOA (%)</div>
-                                        <SmartInput id="rnoa_2022" value={currentInputs.rnoa_2022} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={currentData._DATA_MATRIX.rnoa_2022} teacherMode={teacherMode} placeholder="%" isPercentage={true} />
-                                        <SmartInput id="rnoa_2021" value={currentInputs.rnoa_2021} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={currentData._DATA_MATRIX.rnoa_2021} teacherMode={teacherMode} placeholder="%" isPercentage={true} />
-                                        
-                                        <div className="font-medium text-xs sm:text-sm flex items-center">NNEP (%)</div>
-                                        <SmartInput id="nnep_2022" value={currentInputs.nnep_2022} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={currentData._DATA_MATRIX.nnep_2022} teacherMode={teacherMode} placeholder="%" isPercentage={true} />
-                                        <SmartInput id="nnep_2021" value={currentInputs.nnep_2021} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={currentData._DATA_MATRIX.nnep_2021} teacherMode={teacherMode} placeholder="%" isPercentage={true} />
-
-                                        <div className="font-medium text-xs sm:text-sm flex items-center">Spread (%)</div>
-                                        <SmartInput id="spread_2022" value={currentInputs.spread_2022} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={currentData._DATA_MATRIX.spread_2022} teacherMode={teacherMode} placeholder="%" isPercentage={true} />
-                                        <SmartInput id="spread_2021" value={currentInputs.spread_2021} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={currentData._DATA_MATRIX.spread_2021} teacherMode={teacherMode} placeholder="%" isPercentage={true} />
-
-                                        <div className="font-medium text-xs sm:text-sm flex items-center">FLEV</div>
-                                        <SmartInput id="flev_2022" value={currentInputs.flev_2022} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={currentData._DATA_MATRIX.flev_2022} teacherMode={teacherMode} placeholder="x" />
-                                        <SmartInput id="flev_2021" value={currentInputs.flev_2021} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={currentData._DATA_MATRIX.flev_2021} teacherMode={teacherMode} placeholder="x" />
-                                        
-                                        <div className="font-medium text-xs sm:text-sm flex items-center">NCIR</div>
-                                        <SmartInput id="ncir_2022" value={currentInputs.ncir_2022} correctValue={currentData._DATA_MATRIX.ncir_2022} readOnly={true} teacherMode={teacherMode} />
-                                        <SmartInput id="ncir_2021" value={currentInputs.ncir_2021} correctValue={currentData._DATA_MATRIX.ncir_2021} readOnly={true} teacherMode={teacherMode} />
-                                    </div>
-                                </div>
-
-                                {/* 6. RNOA Decomp */}
-                                <div className="bg-white rounded shadow-sm border p-4 sm:p-6 mb-6">
-                                    <div className="flex justify-between items-start"><h3 className="font-bold text-base sm:text-lg text-slate-800">6. RNOA Decomposition</h3><HintBox id="rnoa_decomp"/></div>
-                                    <div className="grid grid-cols-3 gap-2 sm:gap-4 mt-4">
-                                        <div className="font-medium text-xs sm:text-sm flex items-center">NOPM (%)</div>
-                                        <SmartInput id="nopm_2022" value={currentInputs.nopm_2022} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={currentData._DATA_MATRIX.nopm_2022} teacherMode={teacherMode} placeholder="%" isPercentage={true} />
-                                        <SmartInput id="nopm_2021" value={currentInputs.nopm_2021} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={currentData._DATA_MATRIX.nopm_2021} teacherMode={teacherMode} placeholder="%" isPercentage={true} />
-                                        
-                                        <div className="font-medium text-xs sm:text-sm flex items-center">NOAT</div>
-                                        <SmartInput id="noat_2022" value={currentInputs.noat_2022} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={currentData._DATA_MATRIX.noat_2022} teacherMode={teacherMode} placeholder="x" />
-                                        <SmartInput id="noat_2021" value={currentInputs.noat_2021} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={currentData._DATA_MATRIX.noat_2021} teacherMode={teacherMode} placeholder="x" />
-                                    </div>
-                                </div>
+                                )}
                             </div>
                         </div>
                     </div>
