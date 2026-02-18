@@ -1,0 +1,1444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Equity Decoded & Stock-Based Compensation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0a0a0a; /* Neutral 950 - Darker for contrast */
+            color: #f1f5f9;
+            overflow: hidden;
+            font-size: 18px;
+        }
+
+        /* Slide Transition Effects */
+        .slide-container {
+            transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Flip Card Effect */
+        .perspective-1000 {
+            perspective: 1000px;
+        }
+        .flip-card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+            cursor: pointer;
+        }
+        .flip-card.flipped .flip-card-inner {
+            transform: rotateY(180deg);
+        }
+        /* Generic Flip Card Styles */
+        .flip-card-front, .flip-card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .flip-card-front {
+            background: linear-gradient(135deg, #171717 0%, #262626 100%);
+            color: white;
+            border: 1px solid #404040;
+        }
+        .flip-card-front:hover {
+            border-color: #facc15;
+            box-shadow: 0 0 15px rgba(250, 204, 21, 0.2);
+        }
+        .flip-card-back {
+            background: linear-gradient(135deg, #eab308 0%, #a16207 100%);
+            color: white;
+            transform: rotateY(180deg);
+            border: 1px solid #facc15;
+        }
+        .flip-card-back.wrong {
+             background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+             border-color: #ef4444;
+        }
+
+        /* Custom Scrollbar for TOC */
+        .toc-scroll::-webkit-scrollbar {
+            width: 8px;
+        }
+        .toc-scroll::-webkit-scrollbar-track {
+            background: #171717;
+        }
+        .toc-scroll::-webkit-scrollbar-thumb {
+            background: #404040;
+            border-radius: 4px;
+        }
+
+        /* Confetti Canvas */
+        #confetti-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 50;
+        }
+
+        .glass-panel {
+            background: rgba(23, 23, 23, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        .quiz-btn {
+            transition: all 0.2s;
+            font-size: 1.1rem;
+            padding: 1.25rem;
+        }
+        .quiz-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+            background-color: #262626;
+            border-color: #facc15;
+        }
+        .quiz-btn.correct {
+            background-color: #16a34a;
+            border-color: #16a34a;
+        }
+        .quiz-btn.incorrect {
+            background-color: #dc2626;
+            border-color: #dc2626;
+            opacity: 0.8;
+        }
+
+        /* Table Styling */
+        .equity-table th {
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            color: #d4d4d4;
+        }
+        .equity-table td {
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* Animations */
+        .fade-in {
+            animation: fadeIn 0.5s ease-in forwards;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Custom Backface Visibility for inline styles */
+        .backface-hidden {
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+        }
+        .rotate-y-180 {
+            transform: rotateY(180deg);
+        }
+        .transform-style-3d {
+            transform-style: preserve-3d;
+        }
+
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col font-sans text-lg text-neutral-200">
+
+    <!-- Confetti Canvas -->
+    <canvas id="confetti-canvas"></canvas>
+
+    <!-- Header / Nav -->
+    <header class="h-16 bg-neutral-900 border-b border-neutral-800 flex items-center justify-between px-6 z-40 relative shadow-xl shrink-0">
+        <div class="flex items-center space-x-3">
+            <div class="w-8 h-8 bg-gradient-to-br from-yellow-400 to-lime-500 rounded-lg flex items-center justify-center text-black font-bold shadow-lg shadow-yellow-500/20">
+                <i class="fa-solid fa-layer-group text-sm"></i>
+            </div>
+            <h1 class="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-yellow-300 to-lime-400 tracking-tight hidden md:block">
+                Equity Decoded
+            </h1>
+        </div>
+        
+        <div class="flex items-center space-x-6">
+            <div class="text-sm text-neutral-400 font-medium">Slide <span id="current-slide-num" class="text-white">1</span> <span class="text-neutral-600 mx-1">/</span> <span id="total-slides">30</span></div>
+            <button onclick="toggleTOC()" class="p-2 hover:bg-neutral-800 rounded-full transition-colors group">
+                <i class="fas fa-list-ul text-neutral-400 group-hover:text-yellow-400 text-base"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Table of Contents Overlay -->
+    <div id="toc-overlay" class="fixed inset-y-0 right-0 w-96 bg-neutral-900/95 backdrop-blur-xl border-l border-neutral-800 transform translate-x-full transition-transform duration-300 z-50 shadow-2xl flex flex-col">
+        <div class="p-6 border-b border-neutral-800 flex justify-between items-center bg-neutral-800/50">
+            <h2 class="font-bold text-xl text-yellow-400">Course Outline</h2>
+            <button onclick="toggleTOC()" class="text-neutral-400 hover:text-white transition-transform hover:rotate-90"><i class="fas fa-times text-xl"></i></button>
+        </div>
+        <div class="flex-1 overflow-y-auto p-6 toc-scroll space-y-3" id="toc-list">
+            <!-- TOC Items injected by JS -->
+        </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 relative overflow-hidden bg-black">
+        <!-- Background Ambient Glow -->
+        <div class="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
+            <div class="absolute -top-1/2 -left-1/4 w-[1000px] h-[1000px] bg-yellow-600/10 rounded-full blur-3xl"></div>
+            <div class="absolute -bottom-1/2 -right-1/4 w-[1000px] h-[1000px] bg-lime-600/10 rounded-full blur-3xl"></div>
+        </div>
+
+        <!-- Slides Container -->
+        <div id="slides-wrapper" class="w-full h-full flex slide-container">
+            <!-- Slides will be injected here by JS -->
+        </div>
+        
+        <!-- Navigation Buttons -->
+        <button onclick="prevSlide()" class="absolute left-6 top-1/2 -translate-y-1/2 w-14 h-14 rounded-full bg-neutral-800/50 border border-neutral-700 hover:bg-yellow-500 hover:text-black hover:border-yellow-400 text-white flex items-center justify-center backdrop-blur-md shadow-2xl transition-all z-30 group">
+            <i class="fas fa-chevron-left text-xl group-hover:-translate-x-1 transition-transform"></i>
+        </button>
+        <button onclick="nextSlide()" class="absolute right-6 top-1/2 -translate-y-1/2 w-14 h-14 rounded-full bg-neutral-800/50 border border-neutral-700 hover:bg-yellow-500 hover:text-black hover:border-yellow-400 text-white flex items-center justify-center backdrop-blur-md shadow-2xl transition-all z-30 group">
+            <i class="fas fa-chevron-right text-xl group-hover:translate-x-1 transition-transform"></i>
+        </button>
+    </main>
+
+    <!-- JavaScript Data & Logic -->
+    <script>
+        // --- HELPER FUNCTIONS ---
+        function revealElement(id) {
+            const el = document.getElementById(id);
+            const btn = document.getElementById('reveal-btn-' + id);
+            if(el) {
+                el.classList.remove('hidden');
+                el.classList.add('fade-in');
+            }
+            if(btn) {
+                btn.style.display = 'none';
+            }
+        }
+
+        function revealTableRows(tableId) {
+            const rows = document.querySelectorAll(`#${tableId} .opacity-0`);
+            if(rows.length > 0) {
+                rows[0].classList.remove('opacity-0');
+                rows[0].classList.add('fade-in');
+            }
+            
+            const remaining = document.querySelectorAll(`#${tableId} .opacity-0`);
+            if(remaining.length === 0) {
+                const btn = document.getElementById('reveal-rows-btn');
+                const btn2 = document.getElementById('reveal-rows-btn-2');
+                if(btn) {
+                    btn.innerText = "All Revealed";
+                    btn.disabled = true;
+                    btn.classList.add('opacity-50');
+                }
+                if(btn2) {
+                    btn2.style.display = 'none';
+                }
+            }
+        }
+
+        // --- DATA ---
+        const slidesData = [
+            {
+                title: "Welcome",
+                type: "intro",
+                content: `
+                    <div class="text-center max-w-4xl mx-auto pt-10">
+                        <div class="mb-6 inline-block p-6 rounded-full bg-neutral-800/50 border border-neutral-700 shadow-xl">
+                            <i class="fa-solid fa-chart-line text-7xl text-yellow-400"></i>
+                        </div>
+                        <h1 class="text-6xl font-black mb-6 bg-clip-text text-transparent bg-gradient-to-r from-yellow-300 via-lime-300 to-green-400 tracking-tight leading-tight">Equity Decoded</h1>
+                        <p class="text-2xl text-neutral-300 mb-10 font-light leading-relaxed">Decoding the Financial Autobiography of a Business <br>& The Hidden Costs of Stock Compensation</p>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-left mb-10">
+                            <div class="glass-panel p-8 rounded-2xl border-l-8 border-yellow-500 hover:translate-y-[-4px] transition-transform duration-300">
+                                <div class="flex items-center mb-4">
+                                    <i class="fa-solid fa-magnifying-glass-dollar text-2xl text-yellow-400 mr-3"></i>
+                                    <h3 class="font-bold text-xl text-white">Part 1: Equity Analysis</h3>
+                                </div>
+                                <p class="text-lg text-neutral-400">Master Book Value, The Two Pillars of Equity, and critical ROE Adjustments.</p>
+                            </div>
+                            <div class="glass-panel p-8 rounded-2xl border-l-8 border-lime-500 hover:translate-y-[-4px] transition-transform duration-300">
+                                <div class="flex items-center mb-4">
+                                    <i class="fa-solid fa-hand-holding-dollar text-2xl text-lime-400 mr-3"></i>
+                                    <h3 class="font-bold text-xl text-white">Part 2: Stock Comp</h3>
+                                </div>
+                                <p class="text-lg text-neutral-400">Uncover the "Hidden" cash costs behind Stock-Based Compensation.</p>
+                            </div>
+                        </div>
+                        
+                        <button onclick="nextSlide()" class="px-10 py-4 bg-gradient-to-r from-yellow-500 to-lime-500 hover:from-yellow-400 hover:to-lime-400 rounded-full font-bold text-black text-lg shadow-lg shadow-yellow-500/20 transition-all transform hover:scale-105 flex items-center mx-auto border border-yellow-300/30">
+                            Start Learning <i class="fas fa-arrow-right ml-3"></i>
+                        </button>
+                    </div>
+                `
+            },
+            {
+                title: "The Basic Equation",
+                type: "content",
+                content: `
+                    <h2 class="text-4xl font-extrabold mb-10 text-center text-white">The Foundation</h2>
+                    <div class="flex flex-col items-center justify-center space-y-10 w-full max-w-5xl">
+                        <div class="text-5xl font-mono glass-panel p-10 rounded-2xl shadow-2xl border border-neutral-700">
+                            <span class="text-lime-400 font-bold">Assets</span> = <span class="text-red-400 font-bold">Liabilities</span> + <span class="text-yellow-400 font-bold">Equity</span>
+                        </div>
+                        <p class="text-center text-neutral-300 text-xl max-w-3xl leading-relaxed">
+                            Stockholders' Equity is more than an accounting plug. It is the narrative of a company's funding, profitability, and relationship with its owners.
+                        </p>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-8 w-full">
+                            ${createFlipCard("Assets", "What the company owns (Cash, Inventory, IP).", "fa-solid fa-boxes-stacked")}
+                            ${createFlipCard("Liabilities", "What the company owes to outsiders (Debt, Payables).", "fa-solid fa-file-invoice-dollar")}
+                            ${createFlipCard("Equity", "What is left for the owners (Net Assets).", "fa-solid fa-scale-balanced")}
+                        </div>
+                    </div>
+                `
+            },
+            {
+                title: "J&J Balance Sheet",
+                type: "content",
+                content: `
+                    <h2 class="text-4xl font-extrabold mb-8 text-center">Case Study: Johnson & Johnson (2022)</h2>
+                    <div class="flex flex-col md:flex-row gap-8 items-stretch justify-center w-full max-w-6xl h-full">
+                        <div class="glass-panel p-8 rounded-2xl w-full md:w-3/5 border border-neutral-700 shadow-2xl flex flex-col justify-center">
+                            <h3 class="text-neutral-400 text-sm font-bold uppercase tracking-widest mb-6">Stockholders' Equity Section ($ Millions)</h3>
+                            <ul class="space-y-5 text-lg font-mono">
+                                <li class="flex justify-between border-b border-neutral-700/50 pb-3">
+                                    <span class="text-neutral-300">Common Stock (Par Value)</span>
+                                    <span class="font-bold text-white">$3,120</span>
+                                </li>
+                                <li class="flex justify-between border-b border-neutral-700/50 pb-3 text-neutral-400">
+                                    <span>Accumulated Other Comp. Income</span>
+                                    <span class="text-red-400 font-bold">(12,967)</span>
+                                </li>
+                                <li class="flex justify-between border-b border-neutral-700/50 pb-3 text-lime-400">
+                                    <span>Retained Earnings</span>
+                                    <span class="font-bold">128,345</span>
+                                </li>
+                                <li class="flex justify-between border-b border-neutral-700/50 pb-3 text-red-400">
+                                    <span>Less: Treasury Stock</span>
+                                    <span class="font-bold">(41,694)</span>
+                                </li>
+                                <li class="flex justify-between font-black text-2xl pt-4 text-yellow-400">
+                                    <span>Total Shareholders' Equity</span>
+                                    <span>$76,804</span>
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="w-full md:w-2/5 space-y-6 flex flex-col">
+                            <div class="bg-gradient-to-br from-neutral-800 to-neutral-900 p-6 rounded-2xl border border-yellow-500/30 shadow-lg">
+                                <div class="flex items-center mb-3">
+                                    <i class="fa-solid fa-lightbulb text-yellow-400 text-xl mr-3"></i>
+                                    <h4 class="font-bold text-yellow-400 text-xl">Analyst Insight</h4>
+                                </div>
+                                <p class="text-lg leading-relaxed text-neutral-300">
+                                    Note the massive <strong>Retained Earnings ($128B)</strong> versus the negative <strong>Treasury Stock ($41B)</strong>. This tells a story of profitable operations and significant cash returned to shareholders via buybacks.
+                                </p>
+                            </div>
+                            
+                            <!-- Fixed: Added 'flip-card' class to outer div for click handler CSS targeting, reduced font sizes, ensured full height fill -->
+                            <div class="flip-card w-full flex-grow min-h-[300px] relative perspective-1000 group cursor-pointer" onclick="this.classList.toggle('flipped')">
+                                <div class="relative w-full h-full transition-transform duration-700 transform-style-3d flip-card-inner">
+                                    <!-- Front -->
+                                    <div class="absolute w-full h-full backface-hidden bg-neutral-900 border-4 border-yellow-400 rounded-2xl shadow-[0_0_30px_rgba(250,204,21,0.3)] flex flex-col items-center justify-center p-6">
+                                        <i class="fa-solid fa-book-open text-5xl mb-4 text-yellow-400"></i>
+                                        <div class="font-bold text-2xl text-center leading-tight text-white">What is the $76,804M?</div>
+                                        <div class="text-sm text-neutral-400 mt-4 font-medium uppercase tracking-wider"><i class="fa-solid fa-rotate mr-2"></i>Click to Reveal</div>
+                                    </div>
+                                    <!-- Back -->
+                                    <div class="absolute w-full h-full backface-hidden bg-gradient-to-br from-yellow-600 to-yellow-800 border-4 border-yellow-400 rounded-2xl shadow-[0_0_30px_rgba(250,204,21,0.3)] flex flex-col items-center justify-center p-6 rotate-y-180">
+                                        <div class="text-xl text-center leading-relaxed text-white">
+                                            This is the <br>
+                                            <strong class="text-3xl block my-3 text-black font-black">Book Value of Equity</strong>
+                                            (Determined by GAAP)
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                `
+            },
+            {
+                title: "Book vs. Market Value",
+                type: "content",
+                content: `
+                    <h2 class="text-4xl font-extrabold mb-12 text-center">The Value Divergence</h2>
+                    <div class="flex flex-col md:flex-row justify-center items-center gap-16 w-full max-w-5xl">
+                        <div class="text-center group">
+                            <div class="mb-6 p-6 rounded-full bg-neutral-800 inline-block group-hover:scale-110 transition-transform duration-300 border border-neutral-700">
+                                <i class="fa-solid fa-book-journal-whills text-5xl text-yellow-400"></i>
+                            </div>
+                            <h3 class="text-2xl font-bold mb-2 text-white">Book Value</h3>
+                            <div class="text-5xl font-mono text-yellow-400 font-bold mb-2">$29.39</div>
+                            <p class="text-sm text-neutral-400 uppercase tracking-widest font-bold">Per Share</p>
+                            <p class="text-base mt-6 max-w-xs text-neutral-300 mx-auto leading-relaxed bg-neutral-800/50 p-4 rounded-lg">Historical record. GAAP based. <br>Assets minus Liabilities.</p>
+                        </div>
+                        
+                        <div class="text-4xl text-neutral-600 font-thin italic">vs</div>
+
+                        <div class="text-center group">
+                            <div class="mb-6 p-6 rounded-full bg-neutral-800 inline-block group-hover:scale-110 transition-transform duration-300 border border-neutral-700">
+                                <i class="fa-solid fa-arrow-trend-up text-5xl text-lime-400"></i>
+                            </div>
+                            <h3 class="text-2xl font-bold mb-2 text-white">Market Value</h3>
+                            <div class="text-5xl font-mono text-lime-400 font-bold mb-2">$176.65</div>
+                            <p class="text-sm text-neutral-400 uppercase tracking-widest font-bold">Per Share</p>
+                            <p class="text-base mt-6 max-w-xs text-neutral-300 mx-auto leading-relaxed bg-neutral-800/50 p-4 rounded-lg">What investors pay.<br>Based on future growth expectations.</p>
+                        </div>
+                    </div>
+                    <div class="mt-16 text-center animate-pulse-slow">
+                        <div class="inline-block glass-panel px-10 py-5 rounded-full border border-yellow-500/50">
+                            <span class="text-neutral-400 mr-3 text-xl">Market-to-Book Ratio:</span>
+                            <span class="text-3xl font-black text-white">6.01x</span>
+                        </div>
+                        <p class="text-sm text-neutral-500 mt-4 max-w-md mx-auto">This premium reflects the market's belief in J&J's future profitability, brand value, and IP not captured on the balance sheet.</p>
+                    </div>
+                `
+            },
+            {
+                title: "Concept Check 1",
+                type: "quiz",
+                question: "If a company has Total Equity of $100M and 10M shares outstanding, what is the Book Value Per Share?",
+                options: [
+                    { text: "$10.00", correct: true },
+                    { text: "$1.00", correct: false },
+                    { text: "$100.00", correct: false },
+                    { text: "The current Market Price", correct: false }
+                ],
+                explanation: "Book Value Per Share = Total Equity / Shares Outstanding. <br> $100,000,000 / 10,000,000 = $10.00."
+            },
+            {
+                title: "The Two Pillars",
+                type: "content",
+                content: `
+                    <h2 class="text-4xl font-extrabold mb-8 text-center">The Blueprint of Equity</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-10 max-w-6xl mx-auto w-full">
+                        <div class="glass-panel p-10 rounded-3xl border-t-8 border-yellow-500 hover:bg-neutral-800/80 transition-colors shadow-2xl">
+                            <div class="mb-6 flex items-center justify-between">
+                                <i class="fa-solid fa-landmark text-6xl text-yellow-500"></i>
+                                <span class="text-5xl font-black text-neutral-700/30">01</span>
+                            </div>
+                            <h3 class="text-3xl font-bold mb-6 text-white">Contributed Capital</h3>
+                            <p class="text-xl text-neutral-300 mb-6 leading-relaxed">Funds raised directly from selling shares to investors.</p>
+                            <ul class="text-lg list-none space-y-4 text-neutral-400">
+                                <li class="flex items-center"><i class="fa-solid fa-check text-yellow-500 mr-3"></i> Common Stock (Par)</li>
+                                <li class="flex items-center"><i class="fa-solid fa-check text-yellow-500 mr-3"></i> Additional Paid-In Capital (APIC)</li>
+                                <li class="flex items-center"><i class="fa-solid fa-check text-yellow-500 mr-3"></i> Preferred Stock</li>
+                            </ul>
+                        </div>
+                        <div class="glass-panel p-10 rounded-3xl border-t-8 border-lime-500 hover:bg-neutral-800/80 transition-colors shadow-2xl">
+                            <div class="mb-6 flex items-center justify-between">
+                                <i class="fa-solid fa-coins text-6xl text-lime-500"></i>
+                                <span class="text-5xl font-black text-neutral-700/30">02</span>
+                            </div>
+                            <h3 class="text-3xl font-bold mb-6 text-white">Earned Capital</h3>
+                            <p class="text-xl text-neutral-300 mb-6 leading-relaxed">Capital generated by the company through profitable operations.</p>
+                            <ul class="text-lg list-none space-y-4 text-neutral-400">
+                                <li class="flex items-center"><i class="fa-solid fa-check text-lime-500 mr-3"></i> Retained Earnings</li>
+                                <li class="flex items-center"><i class="fa-solid fa-check text-lime-500 mr-3"></i> Accumulated Other Comp. Income (AOCI)</li>
+                            </ul>
+                        </div>
+                    </div>
+                `
+            },
+            {
+                title: "Common Stock Anatomy",
+                type: "content",
+                content: `
+                    <h2 class="text-4xl font-extrabold mb-10 text-center">Focus On: Common Stock</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-6xl mx-auto w-full">
+                        ${createFlipCard("Par Value ($1.00)", "An arbitrary amount assigned in the corporate charter. <br><br><strong>Crucial:</strong> It has absolutely NO relation to market value. It is purely for accounting allocation.", "fa-solid fa-tag")}
+                        ${createFlipCard("Authorized Shares (4.3B)", "The <strong>Maximum</strong> number of shares the company can issue without a shareholder vote. Think of this as the limit in the company constitution.", "fa-solid fa-gavel")}
+                        ${createFlipCard("Issued Shares (3.1B)", "The cumulative number of shares sold to investors to date. <br><br><strong>Note:</strong> This includes Treasury Stock.", "fa-solid fa-paper-plane")}
+                        ${createFlipCard("Outstanding Shares (2.6B)", "<strong>Issued Shares - Treasury Shares.</strong> <br><br>This is the actual number of shares in public hands used to calculate Market Capitalization.", "fa-solid fa-users-viewfinder")}
+                    </div>
+                    <div class="mt-10 text-center text-lg text-neutral-400 bg-neutral-800/80 p-4 rounded-xl border border-neutral-700 inline-block">
+                        <span class="block text-sm uppercase tracking-widest font-bold text-neutral-500 mb-2">Calculation</span>
+                        J&J Market Cap = 2.61B Outstanding Shares × $176.65 Price = <strong class="text-white">$461.7 Billion</strong>
+                    </div>
+                `
+            },
+            {
+                title: "Concept Check 2",
+                type: "quiz",
+                question: "J&J has 3.12B Issued Shares and 0.51B Treasury Shares. How many shares are Outstanding?",
+                options: [
+                    { text: "3.63 Billion", correct: false },
+                    { text: "2.61 Billion", correct: true },
+                    { text: "3.12 Billion", correct: false },
+                    { text: "It depends on Par Value", correct: false }
+                ],
+                explanation: "Outstanding = Issued - Treasury.<br> 3.12 Billion - 0.51 Billion = 2.61 Billion."
+            },
+            {
+                title: "Preferred Stock",
+                type: "content",
+                content: `
+                    <h2 class="text-4xl font-extrabold mb-8 text-center">Preferred Stock: The Hybrid</h2>
+                    <div class="flex flex-col items-center w-full max-w-5xl">
+                        <div class="glass-panel p-8 rounded-2xl w-full mb-10 border border-neutral-600">
+                            <div class="flex justify-between items-center mb-6">
+                                <span class="font-bold text-xl text-red-300"><i class="fa-solid fa-link mr-2"></i> Debt Features</span>
+                                <span class="font-bold text-xl text-yellow-200">Equity Features <i class="fa-solid fa-chart-pie ml-2"></i></span>
+                            </div>
+                            <div class="h-3 bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 rounded-full mb-6"></div>
+                            <div class="flex justify-between text-lg">
+                                <ul class="w-1/2 list-disc pl-5 space-y-3 text-neutral-300">
+                                    <li>Fixed dividend payments</li>
+                                    <li>Priority in liquidation</li>
+                                    <li>Usually no voting rights</li>
+                                </ul>
+                                <ul class="w-1/2 list-disc pl-10 space-y-3 text-neutral-300">
+                                    <li>Dividends can be skipped (cumulative)</li>
+                                    <li>No maturity date</li>
+                                    <li>Conversion privileges</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <h3 class="text-2xl font-bold mb-6 text-neutral-200">Danaher Case Study (2022)</h3>
+                         <div class="grid grid-cols-1 md:grid-cols-2 gap-8 w-full">
+                            ${createFlipCard("The Event", "Danaher's 4.75% Preferred Stock converted into 11.0 million Common Shares.", "fa-solid fa-right-left")}
+                            ${createFlipCard("The Impact", "$1.6B decrease in Preferred Stock <br>⬇<br> $1.6B increase in Additional Paid-in Capital.", "fa-solid fa-calculator")}
+                        </div>
+                    </div>
+                `
+            },
+            {
+                title: "Earned Capital",
+                type: "content",
+                content: `
+                    <h2 class="text-4xl font-extrabold mb-10 text-center">Earned Capital Breakdown</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-12 items-center max-w-6xl mx-auto w-full">
+                        <div class="glass-panel p-10 rounded-3xl border-l-4 border-lime-500 h-full flex flex-col justify-between">
+                            <div>
+                                <h3 class="text-3xl font-bold text-lime-400 mb-2">Retained Earnings</h3>
+                                <div class="text-5xl font-mono mb-6 font-bold text-white">$128.3 Billion</div>
+                                <p class="text-xl text-neutral-200 mb-6 font-semibold leading-relaxed">
+                                    "This is profit reinvested back into the business rather than distributed to owners."
+                                </p>
+                            </div>
+                            <div class="bg-neutral-800/50 p-6 rounded-xl text-base text-neutral-400">
+                                Formula: Cumulative Net Income (since day 1) minus All Dividends Paid.
+                            </div>
+                        </div>
+                        <div class="glass-panel p-10 rounded-3xl border-l-4 border-orange-500 h-full flex flex-col justify-between">
+                            <div>
+                                <h3 class="text-3xl font-bold text-orange-400 mb-2">AOCI</h3>
+                                <div class="text-5xl font-mono mb-6 font-bold text-red-400">($13.0) Billion</div>
+                                <p class="text-xl text-neutral-200 mb-6 leading-relaxed">
+                                    Accumulated Other Comprehensive Income. A 'holding pen' for gains/losses not yet realized.
+                                </p>
+                            </div>
+                            <div class="bg-neutral-800/50 p-6 rounded-xl text-base text-neutral-400">
+                                Common examples: Foreign Currency Translation adjustments, Unrealized gains on investments.
+                            </div>
+                        </div>
+                    </div>
+                `
+            },
+            {
+                title: "Treasury Stock",
+                type: "content",
+                content: `
+                    <h2 class="text-4xl font-extrabold mb-10 text-center">Treasury Stock: The Contra-Account</h2>
+                    <div class="flex items-center justify-center gap-6 mb-12">
+                        <div class="w-56 h-56 rounded-full border-4 border-yellow-500 flex flex-col items-center justify-center bg-neutral-800 shadow-xl z-10">
+                            <span class="text-lg text-neutral-400 uppercase font-bold">Total</span>
+                            <span class="text-3xl font-black text-white">Equity</span>
+                        </div>
+                        <div class="text-6xl font-black text-neutral-500 z-0"><i class="fa-solid fa-minus"></i></div>
+                        <div class="w-48 h-48 rounded-full border-4 border-red-500 flex flex-col items-center justify-center bg-neutral-800 shadow-xl z-10">
+                            <span class="text-sm text-neutral-400 uppercase font-bold">Treasury</span>
+                            <span class="text-2xl font-black text-red-400">Stock</span>
+                        </div>
+                    </div>
+                    <div class="max-w-4xl mx-auto space-y-6">
+                        <div class="glass-panel p-6 rounded-xl flex justify-between items-center border border-red-500/30">
+                            <span class="text-xl">J&J 2022 Balance:</span>
+                            <span class="font-mono text-3xl text-red-400 font-bold">($41,694 Million)</span>
+                        </div>
+                         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            ${createFlipCard("What is it?", "Shares repurchased from the open market.", "fa-solid fa-rotate-left")}
+                            ${createFlipCard("Voting Rights?", "None. Treasury shares do not vote.", "fa-solid fa-ban")}
+                            ${createFlipCard("Dividends?", "None. Treasury shares do not receive dividends.", "fa-solid fa-money-bill-transfer")}
+                        </div>
+                    </div>
+                `
+            },
+            {
+                title: "Concept Check 3",
+                type: "quiz",
+                question: "Why is Treasury Stock a negative number on the Balance Sheet?",
+                options: [
+                    { text: "It represents a financial loss.", correct: false },
+                    { text: "It is a contra-equity account (reduces total equity).", correct: true },
+                    { text: "It is a liability owed to the bank.", correct: false },
+                    { text: "Because the stock price went down.", correct: false }
+                ],
+                explanation: "Buybacks return cash to shareholders. Since Assets (Cash) go down, Equity must go down to balance. It's a 'contra' account."
+            },
+            {
+                title: "Where the Story Unfolds",
+                type: "content",
+                content: `
+                    <h2 class="text-4xl font-extrabold mb-4 text-center">Where the Story Unfolds</h2>
+                    <p class="text-center text-neutral-400 mb-10 text-lg">The Statement of Stockholders' Equity: The movie of the year.</p>
+                    
+                    <div class="overflow-x-auto rounded-xl shadow-2xl border border-neutral-700">
+                        <table class="w-full text-base text-left text-neutral-300 equity-table">
+                            <thead class="text-sm uppercase bg-neutral-800 text-neutral-400">
+                                <tr>
+                                    <th class="px-6 py-4">Item</th>
+                                    <th class="px-6 py-4 text-white">Total</th>
+                                    <th class="px-6 py-4 text-lime-400">Retained Earnings</th>
+                                    <th class="px-6 py-4 text-orange-400">AOCI</th>
+                                    <th class="px-6 py-4 text-yellow-400">Common Stock</th>
+                                    <th class="px-6 py-4 text-purple-400">APIC / Other</th>
+                                    <th class="px-6 py-4 text-red-400">Treasury Stock</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-neutral-700 bg-neutral-900/50">
+                                <tr class="hover:bg-neutral-800 transition-colors">
+                                    <td class="px-6 py-4 font-bold">Balance Jan 1</td>
+                                    <td class="px-6 py-4 font-bold">$74,023</td>
+                                    <td class="px-6 py-4">$123,060</td>
+                                    <td class="px-6 py-4">($13,058)</td>
+                                    <td class="px-6 py-4">$3,120</td>
+                                    <td class="px-6 py-4 text-neutral-500 font-mono">--</td>
+                                    <td class="px-6 py-4">($39,099)</td>
+                                </tr>
+                                <tr class="hover:bg-neutral-800 transition-colors">
+                                    <td class="px-6 py-4"><i class="fas fa-plus text-lime-400 mr-2"></i> Net Earnings</td>
+                                    <td class="px-6 py-4 text-lime-400 font-bold">+$17,941</td>
+                                    <td class="px-6 py-4 text-lime-400">+$17,941</td>
+                                    <td class="px-6 py-4 text-neutral-600">-</td>
+                                    <td class="px-6 py-4 text-neutral-600">-</td>
+                                    <td class="px-6 py-4 text-neutral-600">-</td>
+                                    <td class="px-6 py-4 text-neutral-600">-</td>
+                                </tr>
+                                <tr class="hover:bg-neutral-800 transition-colors">
+                                    <td class="px-6 py-4"><i class="fas fa-minus text-red-400 mr-2"></i> Dividends</td>
+                                    <td class="px-6 py-4 text-red-400 font-bold">(11,682)</td>
+                                    <td class="px-6 py-4 text-red-400">(11,682)</td>
+                                    <td class="px-6 py-4 text-neutral-600">-</td>
+                                    <td class="px-6 py-4 text-neutral-600">-</td>
+                                    <td class="px-6 py-4 text-neutral-600">-</td>
+                                    <td class="px-6 py-4 text-neutral-600">-</td>
+                                </tr>
+                                <tr class="hover:bg-neutral-800 transition-colors">
+                                    <td class="px-6 py-4"><i class="fas fa-user-tie text-yellow-400 mr-2"></i> Emp. Comp</td>
+                                    <td class="px-6 py-4 font-bold text-white">+$2,466</td>
+                                    <td class="px-6 py-4 text-red-400">(974)</td>
+                                    <td class="px-6 py-4 text-neutral-600">-</td>
+                                    <td class="px-6 py-4 text-neutral-600">-</td>
+                                    <td class="px-6 py-4 text-purple-400 font-bold">+$3,440</td>
+                                    <td class="px-6 py-4 text-neutral-600">-</td>
+                                </tr>
+                                <tr class="hover:bg-neutral-800 transition-colors">
+                                    <td class="px-6 py-4"><i class="fas fa-undo text-red-400 mr-2"></i> Buybacks</td>
+                                    <td class="px-6 py-4 text-red-400 font-bold">(6,035)</td>
+                                    <td class="px-6 py-4 text-neutral-600">-</td>
+                                    <td class="px-6 py-4 text-neutral-600">-</td>
+                                    <td class="px-6 py-4 text-neutral-600">-</td>
+                                    <td class="px-6 py-4 text-neutral-600">-</td>
+                                    <td class="px-6 py-4 text-red-400 font-bold">(6,035)</td>
+                                </tr>
+                                <tr class="hover:bg-neutral-800 transition-colors">
+                                    <td class="px-6 py-4"><i class="fas fa-globe text-orange-400 mr-2"></i> Other (OCI)</td>
+                                    <td class="px-6 py-4 text-orange-400 font-bold">+$91</td>
+                                    <td class="px-6 py-4 text-neutral-600">-</td>
+                                    <td class="px-6 py-4 text-orange-400">+$91</td>
+                                    <td class="px-6 py-4 text-neutral-600">-</td>
+                                    <td class="px-6 py-4 text-neutral-600">-</td>
+                                    <td class="px-6 py-4 text-neutral-600">-</td>
+                                </tr>
+                                <tr class="bg-neutral-800 border-t-2 border-neutral-600">
+                                    <td class="px-6 py-4 font-black text-white">Balance Dec 31</td>
+                                    <td class="px-6 py-4 font-black text-white">$76,804</td>
+                                    <td class="px-6 py-4 font-bold text-lime-400">$128,345</td>
+                                    <td class="px-6 py-4 font-bold text-orange-400">($12,967)</td>
+                                    <td class="px-6 py-4 font-bold text-yellow-400">$3,120</td>
+                                    <td class="px-6 py-4 font-bold text-purple-400">--</td>
+                                    <td class="px-6 py-4 font-bold text-red-400">($41,694)</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                `
+            },
+            {
+                title: "Capital In: Issuance",
+                type: "content",
+                content: `
+                    <h2 class="text-4xl font-extrabold mb-10 text-center">How Capital Comes In</h2>
+                    <div class="glass-panel p-10 max-w-4xl mx-auto mb-10 rounded-2xl shadow-xl">
+                        <p class="mb-6 text-xl"><strong>Scenario:</strong> Issue 1,000 shares ($1 par) for $100 cash per share.</p>
+                        <div class="flex items-center justify-between bg-neutral-900 p-8 rounded-xl font-mono text-lg border border-neutral-700">
+                            <div class="text-lime-400 text-center">
+                                <i class="fa-solid fa-sack-dollar text-4xl mb-2"></i><br>
+                                Cash Asset<br>
+                                <span class="text-2xl font-bold">+$100,000</span>
+                            </div>
+                            <div class="text-4xl text-neutral-500"><i class="fa-solid fa-equals"></i></div>
+                            <div class="text-right">
+                                <div class="mb-4">
+                                    <span class="text-yellow-400">Common Stock (Par)</span><br>
+                                    <span class="text-xl font-bold">+$1,000</span>
+                                </div>
+                                <div class="border-t border-neutral-700 pt-2">
+                                    <span class="text-purple-400">Add'l Paid-In Capital</span><br>
+                                    <span class="text-xl font-bold">+$99,000</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-center text-lg text-neutral-400">
+                        Par value dictates the split, but the full cash proceeds increase Total Equity.
+                    </div>
+                `
+            },
+            {
+                title: "Capital Out: Repurchases",
+                type: "content",
+                content: `
+                    <h2 class="text-4xl font-extrabold mb-10 text-center">How Capital Goes Out</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-10 max-w-6xl mx-auto">
+                        <div class="glass-panel p-8 rounded-2xl border-t-4 border-yellow-500">
+                            <div class="flex items-center mb-4">
+                                <div class="bg-yellow-500/20 p-3 rounded-lg mr-4"><i class="fa-solid fa-vault text-2xl text-yellow-400"></i></div>
+                                <h3 class="font-bold text-2xl text-white">1. Treasury Stock Method</h3>
+                            </div>
+                            <p class="text-lg mb-6 text-neutral-300">Shares held in treasury to be reissued later (e.g., for employee options).</p>
+                            <div class="bg-neutral-900 p-6 rounded-xl text-base font-mono border border-neutral-700">
+                                <div class="text-red-400 mb-2">Cash: -$24,000</div>
+                                <div class="text-yellow-400">Treasury Stock: -$24,000</div>
+                                <div class="text-xs text-neutral-500 mt-1">(Contra-Equity increases, Total Equity decreases)</div>
+                            </div>
+                        </div>
+                        <div class="glass-panel p-8 rounded-2xl border-t-4 border-red-500">
+                            <div class="flex items-center mb-4">
+                                <div class="bg-red-500/20 p-3 rounded-lg mr-4"><i class="fa-solid fa-fire text-2xl text-red-400"></i></div>
+                                <h3 class="font-bold text-2xl text-white">2. Retirement Method</h3>
+                            </div>
+                            <p class="text-lg mb-6 text-neutral-300">Shares are permanently cancelled. Reduces Common Stock & APIC directly.</p>
+                             <div class="bg-neutral-900 p-6 rounded-xl text-base font-mono border border-neutral-700">
+                                <div class="text-red-400 mb-2">Cash: -$24,000</div>
+                                <div class="text-neutral-400">Common Stock: -Par</div>
+                                <div class="text-neutral-400">APIC: -Excess</div>
+                                <div class="text-neutral-400">Retained Earnings: -Residual</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-10 bg-neutral-800/80 p-6 rounded-xl text-center max-w-2xl mx-auto border border-neutral-600">
+                        <strong class="text-white text-xl block mb-2">Why Buyback?</strong> 
+                        <span class="text-neutral-300">Undervalued stock • Offset dilution • Return excess cash efficiently.</span>
+                    </div>
+                `
+            },
+            {
+                title: "The NCI Rule",
+                type: "content",
+                content: `
+                    <h2 class="text-4xl font-extrabold mb-10 text-center">Analyst Adjustments: NCI</h2>
+                    <p class="text-center mb-10 max-w-3xl mx-auto text-xl text-neutral-300">Noncontrolling Interest (NCI) is the portion of a subsidiary owned by outsiders. Don't let it distort your ratios.</p>
+                    
+                    <div class="flex flex-col gap-8 max-w-3xl mx-auto w-full">
+                        <div class="flex justify-between items-center bg-neutral-800 p-8 rounded-2xl border-l-8 border-yellow-500 shadow-lg">
+                            <div>
+                                <h4 class="font-bold text-2xl text-white mb-2">For ROE Calculation</h4>
+                                <p class="text-base text-neutral-400">Use "Equity Attributable to Company Shareholders"</p>
+                            </div>
+                            <div class="text-3xl font-black text-yellow-500 flex items-center bg-yellow-500/10 px-4 py-2 rounded-lg">
+                                <i class="fa-solid fa-xmark mr-3"></i> Exclude NCI
+                            </div>
+                        </div>
+                        
+                        <div class="flex justify-between items-center bg-neutral-800 p-8 rounded-2xl border-l-8 border-lime-500 shadow-lg">
+                            <div>
+                                <h4 class="font-bold text-2xl text-white mb-2">For Leverage Ratios</h4>
+                                <p class="text-base text-neutral-400">Use "Total Consolidated Equity"</p>
+                            </div>
+                            <div class="text-3xl font-black text-lime-500 flex items-center bg-lime-500/10 px-4 py-2 rounded-lg">
+                                <i class="fa-solid fa-check mr-3"></i> Include NCI
+                            </div>
+                        </div>
+                    </div>
+                `
+            },
+            {
+                title: "The Treasury Stock Trap",
+                type: "content",
+                content: `
+                    <h2 class="text-4xl font-extrabold mb-6 text-center text-red-400">The Trap: Pfizer Case</h2>
+                    <p class="text-center mb-10 text-xl text-neutral-300">Aggressive buybacks shrink the denominator (Equity), artificially inflating ROE.</p>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto text-center w-full">
+                        <div class="glass-panel p-8 rounded-2xl flex flex-col justify-between h-80 border-t-4 border-red-500">
+                            <i class="fa-solid fa-triangle-exclamation text-6xl text-red-500 mb-4"></i>
+                            <h3 class="font-bold text-xl mb-2">Reported ROE</h3>
+                            <div class="text-5xl font-mono text-red-400 font-bold">36.3%</div>
+                            <p class="text-base text-neutral-400 mt-4 leading-snug">Standard calculation. Inflated by small equity base.</p>
+                        </div>
+                        
+                        <div class="glass-panel p-8 rounded-2xl flex flex-col justify-between h-80 border-2 border-lime-500 relative overflow-hidden bg-neutral-800 shadow-2xl scale-105 z-10">
+                            <div class="absolute top-0 right-0 bg-lime-500 text-black text-xs font-bold uppercase tracking-wider px-3 py-1">Analyst Choice</div>
+                            <i class="fa-solid fa-scale-unbalanced text-6xl text-lime-400 mb-4"></i>
+                            <h3 class="font-bold text-xl mb-2 text-white">Adjusted (Book)</h3>
+                            <div class="text-5xl font-mono text-lime-400 font-bold">15.8%</div>
+                            <p class="text-base text-neutral-300 mt-4 leading-snug">Add back Treasury Stock cost to denominator.</p>
+                        </div>
+
+                        <div class="glass-panel p-8 rounded-2xl flex flex-col justify-between h-80 border-t-4 border-yellow-500">
+                            <i class="fa-solid fa-globe text-6xl text-yellow-400 mb-4"></i>
+                            <h3 class="font-bold text-xl mb-2">Adjusted (Market)</h3>
+                            <div class="text-5xl font-mono text-yellow-400 font-bold">10.1%</div>
+                            <p class="text-base text-neutral-400 mt-4 leading-snug">Use Market Cap as denominator.</p>
+                        </div>
+                    </div>
+                `
+            },
+            {
+                title: "Concept Check 4",
+                type: "quiz",
+                question: "If a company buys back 50% of its stock, what happens to its ROE (assuming Net Income stays the same)?",
+                options: [
+                    { text: "ROE decreases", correct: false },
+                    { text: "ROE doubles (increases)", correct: true },
+                    { text: "ROE stays the same", correct: false },
+                    { text: "ROE becomes negative", correct: false }
+                ],
+                explanation: "ROE = Net Income / Equity. If you halve the denominator (Equity), the ratio doubles. This is simple math masking financial reality."
+            },
+            {
+                title: "Part 2: Stock Compensation",
+                type: "intro",
+                content: `
+                    <div class="text-center max-w-4xl mx-auto pt-10">
+                        <div class="mb-8 inline-block p-6 rounded-full bg-neutral-800/50 border border-neutral-700 shadow-xl">
+                            <i class="fa-solid fa-gift text-7xl text-lime-400"></i>
+                        </div>
+                        <h1 class="text-5xl font-extrabold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-lime-400 to-yellow-500">The Hidden Cost of Stock Comp</h1>
+                        <p class="text-2xl text-neutral-300 font-light mb-12">Is it really a "Non-Cash" expense? <br><span class="text-base text-neutral-500 mt-2 block">(Spoiler: No)</span></p>
+                        
+                        <div class="flex justify-center gap-4 flex-wrap">
+                            <span class="px-6 py-3 bg-neutral-800 rounded-lg text-neutral-300 border border-neutral-700 font-mono">Restricted Stock</span>
+                            <span class="px-6 py-3 bg-neutral-800 rounded-lg text-neutral-300 border border-neutral-700 font-mono">Options</span>
+                            <span class="px-6 py-3 bg-neutral-800 rounded-lg text-neutral-300 border border-neutral-700 font-mono">RSUs</span>
+                        </div>
+                        <button onclick="nextSlide()" class="mt-12 px-10 py-4 bg-lime-500 hover:bg-lime-400 rounded-full font-bold text-black shadow-lg transition-transform hover:scale-105">
+                            Reveal the Truth <i class="fas fa-search ml-2"></i>
+                        </button>
+                    </div>
+                `
+            },
+            {
+                title: "Why Pay with Stock?",
+                type: "content",
+                content: `
+                    <h2 class="text-4xl font-extrabold mb-10 text-center">The Dual Incentives</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-10 max-w-5xl mx-auto w-full">
+                        <div class="glass-panel p-10 rounded-3xl text-center hover:scale-105 transition-transform duration-300 border-t-8 border-yellow-500">
+                            <i class="fa-solid fa-handshake text-6xl text-yellow-500 mb-6"></i>
+                            <h3 class="text-3xl font-bold mb-4 text-white">Alignment</h3>
+                            <p class="text-lg text-neutral-300 leading-relaxed">Ties rewards to performance (stock price, sales). Makes employees think like owners.</p>
+                        </div>
+                        <div class="glass-panel p-10 rounded-3xl text-center hover:scale-105 transition-transform duration-300 border-t-8 border-lime-500">
+                            <i class="fa-solid fa-lock text-6xl text-lime-500 mb-6"></i>
+                            <h3 class="text-3xl font-bold mb-4 text-white">Retention</h3>
+                            <p class="text-lg text-neutral-300 leading-relaxed">Vesting periods create "golden handcuffs". Employees must stay to earn the shares.</p>
+                        </div>
+                    </div>
+                `
+            },
+            {
+                title: "The Non-Cash Myth",
+                type: "content",
+                content: `
+                    <h2 class="text-4xl font-extrabold mb-10 text-center">The "Non-Cash" Illusion</h2>
+                    <div class="bg-white text-neutral-900 p-8 rounded-2xl max-w-4xl mx-auto shadow-2xl font-mono text-lg border-l-8 border-yellow-400">
+                        <h4 class="border-b-2 border-neutral-200 pb-4 mb-6 font-bold flex justify-between">
+                            <span>Consolidated Statement of Cash Flows</span>
+                            <span class="text-neutral-400 text-sm">Excerpt</span>
+                        </h4>
+                        <div class="flex justify-between py-2 border-b border-neutral-100">
+                            <span>Net Earnings</span>
+                            <span class="font-bold">$17,941</span>
+                        </div>
+                        <div class="flex justify-between py-4 text-neutral-500 italic">
+                            <span>Adjustments to reconcile:</span>
+                            <span></span>
+                        </div>
+                        <div class="flex justify-between py-3 font-bold bg-yellow-100 px-4 rounded-lg items-center">
+                            <span>Stock-based compensation <i class="fa-solid fa-arrow-turn-up ml-2 text-neutral-400"></i></span>
+                            <span class="text-lime-600">+ $1,138</span>
+                        </div>
+                    </div>
+                    <div class="mt-12 text-center max-w-3xl mx-auto">
+                        <p class="text-2xl font-light mb-6">It's added back to Net Income on the Cash Flow Statement.</p>
+                        <p class="text-neutral-400 text-lg mb-8">Does this mean it costs the company nothing?</p>
+                        
+                        <div id="answer-reveal" class="hidden mt-6 p-6 bg-red-500/20 border border-red-500/50 rounded-xl">
+                             <div class="text-2xl font-black text-red-400 mb-2">NO!</div>
+                             <p class="text-white text-lg">It creates <strong>dilution</strong>, which costs real money to fix via buybacks.</p>
+                        </div>
+
+                        <button id="reveal-btn-answer-reveal" onclick="revealElement('answer-reveal')" class="px-8 py-3 bg-red-500 rounded-full font-bold hover:bg-red-600 transition text-white shadow-lg shadow-red-500/30 mt-4">
+                            Show Answer
+                        </button>
+                    </div>
+                `
+            },
+            {
+                title: "The Hidden Cash Cost",
+                type: "content",
+                content: `
+                    <h2 class="text-4xl font-extrabold mb-12 text-center">The Cycle of Dilution</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-7xl mx-auto w-full">
+                         ${createFlipCard("1. Awards", "Employees get shares. Total share count goes UP.", "fa-solid fa-file-contract", false, false, "min-h-[250px]")}
+                         <div class="hidden md:flex items-center justify-center text-4xl text-neutral-600 absolute left-1/3 top-1/2 -translate-y-1/2 z-20 pointer-events-none"><i class="fa-solid fa-arrow-right"></i></div>
+                         ${createFlipCard("2. Dilution", "Existing shareholders own a smaller % of the pie.", "fa-solid fa-droplet", false, false, "min-h-[250px]")}
+                         <div class="hidden md:flex items-center justify-center text-4xl text-neutral-600 absolute right-1/3 top-1/2 -translate-y-1/2 z-20 pointer-events-none"><i class="fa-solid fa-arrow-right"></i></div>
+                         ${createFlipCard("3. Buyback", "Company spends CASH to buy shares to offset dilution.", "fa-solid fa-money-bill-wave", false, false, "min-h-[250px]")}
+                    </div>
+                    <div class="mt-12 text-center bg-neutral-800 p-6 rounded-2xl inline-block mx-auto border border-lime-500/30 shadow-lg">
+                        <p class="font-bold text-lime-400 text-xl mb-2"><i class="fa-solid fa-key mr-2"></i> Key Insight</p>
+                        <p class="text-lg text-neutral-300">Connect the "Non-Cash" expense to the "Cash" outflow for buybacks.</p>
+                    </div>
+                `
+            },
+            {
+                title: "Analyst Toolkit: Award Types",
+                type: "content",
+                content: `
+                    <h2 class="text-4xl font-extrabold mb-10 text-center">Analyst Toolkit: Award Types</h2>
+                    <div class="grid grid-cols-1 gap-6 max-w-4xl mx-auto w-full">
+                        ${createFlipCard("Restricted Stock", "<div class='text-left w-full text-2xl'><ul class='list-disc pl-5'><li>Shares issued immediately.</li><li>Cannot be sold until vested.</li><li><strong>Voting rights:</strong> Yes.</li><li><strong>Dividends:</strong> Usually Yes.</li></ul></div>", "fa-solid fa-scroll", true)}
+                        ${createFlipCard("RSUs (Restricted Stock Units)", "<div class='text-left w-full text-2xl'><ul class='list-disc pl-5'><li>Promise to deliver shares later.</li><li>No shares issued until vesting.</li><li><strong>Voting rights:</strong> No.</li><li><strong>Dividends:</strong> Dividend equivalents only.</li></ul></div>", "fa-solid fa-ticket", true)}
+                        ${createFlipCard("Stock Options", "<div class='text-left w-full text-2xl'><ul class='list-disc pl-5'><li>Right to buy shares at a fixed 'Strike Price'.</li><li>Valuable <strong>ONLY</strong> if stock goes up.</li><li>High risk, high reward.</li></ul></div>", "fa-solid fa-arrow-trend-up", true)}
+                        ${createFlipCard("SARs (Stock Appreciation Rights)", "<div class='text-left w-full text-2xl'><ul class='list-disc pl-5'><li>Paid in cash or stock for the increase in price.</li><li>No purchase needed by employee.</li><li>Often settled in cash (Liability).</li></ul></div>", "fa-solid fa-chart-line", true)}
+                    </div>
+                `
+            },
+            {
+                title: "Inside the Footnotes",
+                type: "content",
+                content: `
+                    <h2 class="text-4xl font-extrabold mb-8 text-center">Digging Deeper: Plan Activity</h2>
+                    <p class="text-center mb-8 text-neutral-400 text-lg">The footnotes reveal the potential dilution pipeline.</p>
+                    <div class="overflow-hidden rounded-xl border border-neutral-600 max-w-5xl mx-auto shadow-2xl">
+                        <table class="w-full text-base text-left text-neutral-300" id="plan-activity-table">
+                            <thead class="bg-neutral-800 text-sm uppercase font-bold text-neutral-400">
+                                <tr>
+                                    <th class="px-8 py-5">Activity (000s)</th>
+                                    <th class="px-8 py-5 text-yellow-400">Options</th>
+                                    <th class="px-8 py-5 text-lime-400">RSUs</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-neutral-700 bg-neutral-900">
+                                <tr>
+                                    <td class="px-8 py-4 font-bold">Start of Year</td>
+                                    <td class="px-8 py-4">117,361</td>
+                                    <td class="px-8 py-4">14,122</td>
+                                </tr>
+                                <tr class="bg-lime-900/10 opacity-0 transition-all duration-700">
+                                    <td class="px-8 py-4 text-lime-400 font-bold"><i class="fa-solid fa-plus mr-2"></i> Granted</td>
+                                    <td class="px-8 py-4 font-bold">19,809</td>
+                                    <td class="px-8 py-4 font-bold">5,154</td>
+                                </tr>
+                                <tr class="bg-yellow-900/10 opacity-0 transition-all duration-700">
+                                    <td class="px-8 py-4 text-yellow-400"><i class="fa-solid fa-check mr-2"></i> Exercised/Vested</td>
+                                    <td class="px-8 py-4">(16,310)</td>
+                                    <td class="px-8 py-4">(4,866)</td>
+                                </tr>
+                                <tr class="opacity-0 transition-all duration-700">
+                                    <td class="px-8 py-4 text-red-400"><i class="fa-solid fa-xmark mr-2"></i> Forfeited</td>
+                                    <td class="px-8 py-4">(2,188)</td>
+                                    <td class="px-8 py-4">(794)</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="mt-8 text-center">
+                        <button id="reveal-rows-btn" onclick="revealTableRows('plan-activity-table')" class="px-6 py-2 bg-neutral-700 hover:bg-neutral-600 rounded-full text-white font-bold transition-all">
+                            Reveal Next Line <i class="fas fa-chevron-down ml-2"></i>
+                        </button>
+                    </div>
+                `
+            },
+             {
+                title: "Fair Value Assumptions",
+                type: "content",
+                content: `
+                    <h2 class="text-4xl font-extrabold mb-10 text-center">The Valuation Game</h2>
+                    <div class="flex flex-col md:flex-row items-start justify-center gap-10 w-full max-w-5xl">
+                        <div class="glass-panel p-10 rounded-3xl w-full md:w-1/2 text-center border-t-8 border-yellow-500 shadow-xl">
+                            <i class="fa-solid fa-calculator text-5xl mb-6 text-yellow-500"></i>
+                            <h3 class="font-bold text-2xl mb-4 text-white">Options</h3>
+                            <div class="text-5xl font-mono mb-4 font-bold text-yellow-300">$23.23</div>
+                            <p class="text-sm text-neutral-400 uppercase tracking-widest font-bold mb-6">Est. Fair Value</p>
+                            <div class="mt-4 text-left text-base text-neutral-300 border-t border-neutral-600 pt-6 leading-relaxed">
+                                Valued using <strong class="text-white">Black-Scholes</strong>. <br><br>Highly sensitive to volatility & expected term assumptions. Managers can tweak these inputs to lower the expense.
+                            </div>
+                        </div>
+                        <div class="glass-panel p-10 rounded-3xl w-full md:w-1/2 text-center border-t-8 border-lime-500 shadow-xl">
+                            <i class="fa-solid fa-tag text-5xl mb-6 text-lime-500"></i>
+                            <h3 class="font-bold text-2xl mb-4 text-white">RSUs</h3>
+                            <div class="text-5xl font-mono mb-4 font-bold text-lime-300">$153.67</div>
+                            <p class="text-sm text-neutral-400 uppercase tracking-widest font-bold mb-6">Est. Fair Value</p>
+                            <div class="mt-4 text-left text-base text-neutral-300 border-t border-neutral-600 pt-6 leading-relaxed">
+                                Usually valued at the <strong>Stock Price</strong> on the grant date. <br><br>Simpler, more transparent, and harder to manipulate.
+                            </div>
+                        </div>
+                    </div>
+                `
+            },
+            {
+                title: "Concept Check 5",
+                type: "quiz",
+                question: "Where should an analyst look to find the true CASH cost of a stock compensation program?",
+                options: [
+                    { text: "Income Statement (SG&A line)", correct: false },
+                    { text: "Statement of Cash Flows (Financing Section - Buybacks)", correct: true },
+                    { text: "Balance Sheet (Common Stock)", correct: false },
+                    { text: "It has no cash cost", correct: false }
+                ],
+                explanation: "The cash outflow happens when the company buys back stock to offset the dilution caused by the awards. This is found in the Financing section of the Cash Flow Statement."
+            },
+            {
+                title: "Summary Recap",
+                type: "content",
+                content: `
+                    <h2 class="text-4xl font-extrabold mb-10 text-center">Summary Recap</h2>
+                    <div class="space-y-6 max-w-4xl mx-auto w-full mb-8" id="summary-recap-container">
+                        <div class="bg-neutral-800/80 p-8 rounded-2xl border-l-8 border-yellow-500 shadow-lg flex items-start opacity-0 transition-all duration-700">
+                            <div class="bg-yellow-500/20 p-4 rounded-xl mr-6"><i class="fa-solid fa-hammer text-2xl text-yellow-400"></i></div>
+                            <div>
+                                <h4 class="font-bold text-2xl text-yellow-400 mb-2">1. Deconstruct</h4>
+                                <p class="text-lg text-neutral-300">Separate Contributed Capital from Earned Capital to understand funding sources.</p>
+                            </div>
+                        </div>
+                        <div class="bg-neutral-800/80 p-8 rounded-2xl border-l-8 border-lime-500 shadow-lg flex items-start opacity-0 transition-all duration-700">
+                            <div class="bg-lime-500/20 p-4 rounded-xl mr-6"><i class="fa-solid fa-sliders text-2xl text-lime-400"></i></div>
+                            <div>
+                                <h4 class="font-bold text-2xl text-lime-400 mb-2">2. Adjust</h4>
+                                <p class="text-lg text-neutral-300">Don't trust raw ROE. Adjust for Treasury Stock distortions by adding it back or using Market Cap.</p>
+                            </div>
+                        </div>
+                        <div class="bg-neutral-800/80 p-8 rounded-2xl border-l-8 border-purple-500 shadow-lg flex items-start opacity-0 transition-all duration-700">
+                            <div class="bg-purple-500/20 p-4 rounded-xl mr-6"><i class="fa-solid fa-link text-2xl text-purple-400"></i></div>
+                            <div>
+                                <h4 class="font-bold text-2xl text-purple-400 mb-2">3. Connect Cash</h4>
+                                <p class="text-lg text-neutral-300">Stock Comp isn't free. Link the "Non-Cash" expense to "Treasury Stock Purchases" to see the real cost.</p>
+                            </div>
+                        </div>
+                    </div>
+                     <div class="text-center">
+                        <button id="reveal-rows-btn-2" onclick="revealTableRows('summary-recap-container')" class="px-6 py-2 bg-neutral-700 hover:bg-neutral-600 rounded-full text-white font-bold transition-all mb-8">
+                            Show Point <i class="fas fa-arrow-down ml-2"></i>
+                        </button>
+                    </div>
+                    <div class="mt-4 text-center border-t border-neutral-700 pt-8">
+                        <p class="text-3xl font-black text-white mb-2">Ready for the Final Exam?</p>
+                        <p class="text-neutral-400 text-lg">Pass with 70% to make it rain! 💸</p>
+                    </div>
+                `
+            },
+            // --- FINAL QUIZ ---
+            {
+                title: "Final Quiz Q1", type: "final_quiz",
+                question: "Which of the following is a component of Earned Capital?",
+                options: [
+                    { text: "Common Stock", correct: false },
+                    { text: "Additional Paid-In Capital", correct: false },
+                    { text: "Retained Earnings", correct: true },
+                    { text: "Preferred Stock", correct: false }
+                ]
+            },
+            {
+                title: "Final Quiz Q2", type: "final_quiz",
+                question: "If Market-to-Book ratio is > 1.0, what does it imply?",
+                options: [
+                    { text: "The company is bankrupt.", correct: false },
+                    { text: "The market expects future value creation above net assets.", correct: true },
+                    { text: "The stock is overvalued and should be sold.", correct: false },
+                    { text: "Accounting errors exist.", correct: false }
+                ]
+            },
+            {
+                title: "Final Quiz Q3", type: "final_quiz",
+                question: "Treasury Stock is classified as:",
+                options: [
+                    { text: "An Asset", correct: false },
+                    { text: "A Liability", correct: false },
+                    { text: "A Contra-Equity Account", correct: true },
+                    { text: "Revenue", correct: false }
+                ]
+            },
+            {
+                title: "Final Quiz Q4", type: "final_quiz",
+                question: "In the 'Treasury Stock Method' of buybacks, what happens to the Cash account?",
+                options: [
+                    { text: "Increases", correct: false },
+                    { text: "Decreases", correct: true },
+                    { text: "Stays the same", correct: false },
+                    { text: "Becomes an asset", correct: false }
+                ]
+            },
+            {
+                title: "Final Quiz Q5", type: "final_quiz",
+                question: "Why might a company's reported ROE be artificially high?",
+                options: [
+                    { text: "High Net Income", correct: false },
+                    { text: "Large Treasury Stock balance reducing the denominator", correct: true },
+                    { text: "Low Debt levels", correct: false },
+                    { text: "Issuing too much stock", correct: false }
+                ]
+            },
+            {
+                title: "Final Quiz Q6", type: "final_quiz",
+                question: "Stock-Based Compensation is added back to Net Income on which statement?",
+                options: [
+                    { text: "Balance Sheet", correct: false },
+                    { text: "Income Statement", correct: false },
+                    { text: "Statement of Cash Flows", correct: true },
+                    { text: "Statement of Equity", correct: false }
+                ]
+            },
+            {
+                title: "Final Quiz Q7", type: "final_quiz",
+                question: "What is the primary purpose of 'Vesting'?",
+                options: [
+                    { text: "To save on taxes", correct: false },
+                    { text: "To encourage employee retention", correct: true },
+                    { text: "To increase stock price", correct: false },
+                    { text: "To confuse analysts", correct: false }
+                ]
+            },
+            {
+                title: "Final Quiz Q8", type: "final_quiz",
+                question: "Which award type provides value ONLY if the stock price rises above the strike price?",
+                options: [
+                    { text: "Restricted Stock Units (RSUs)", correct: false },
+                    { text: "Stock Options", correct: true },
+                    { text: "Cash Bonus", correct: false },
+                    { text: "Restricted Stock", correct: false }
+                ]
+            },
+            {
+                title: "Final Quiz Q9", type: "final_quiz",
+                question: "When analysts adjust for Noncontrolling Interest (NCI) in ROE, they should use:",
+                options: [
+                    { text: "Total Consolidated Equity", correct: false },
+                    { text: "Equity Attributable to Company Shareholders", correct: true },
+                    { text: "Total Liabilities", correct: false },
+                    { text: "Market Capitalization", correct: false }
+                ]
+            },
+            {
+                title: "Final Quiz Q10", type: "final_quiz",
+                question: "J&J's massive Retained Earnings balance ($128B) indicates:",
+                options: [
+                    { text: "They have never paid dividends.", correct: false },
+                    { text: "They are a new startup.", correct: false },
+                    { text: "A history of strong cumulative profitability.", correct: true },
+                    { text: "They have too much debt.", correct: false }
+                ]
+            },
+            {
+                title: "Course Complete",
+                type: "results",
+                content: "" // Content generated dynamically
+            }
+        ];
+
+        // --- STATE ---
+        let currentSlide = 0;
+        let quizScore = 0;
+        let userAnswers = {};
+
+        // --- DOM ELEMENTS ---
+        const slidesWrapper = document.getElementById('slides-wrapper');
+        const tocList = document.getElementById('toc-list');
+        const tocOverlay = document.getElementById('toc-overlay');
+        const currentSlideEl = document.getElementById('current-slide-num');
+        const totalSlidesEl = document.getElementById('total-slides');
+
+        // --- INIT ---
+        function init() {
+            totalSlidesEl.innerText = slidesData.length;
+            renderSlides();
+            renderTOC();
+            updateSlideView();
+        }
+
+        function createFlipCard(front, back, iconClass, isCompact = false, isLarge = false, customHeight = null) {
+            let heightClass = isCompact ? 'min-h-[200px]' : 'min-h-[300px]';
+            if (customHeight) heightClass = customHeight;
+            
+            const paddingClass = isCompact ? 'p-4' : 'p-6';
+            const iconSize = isCompact ? 'text-3xl mb-3' : 'text-5xl mb-6';
+            const fontSize = isLarge ? 'text-3xl' : 'text-2xl';
+
+            return `
+                <div class="flip-card w-full ${heightClass} perspective-1000" onclick="this.classList.toggle('flipped')">
+                    <div class="flip-card-inner">
+                        <div class="flip-card-front flex flex-col items-center justify-center ${paddingClass}">
+                            ${iconClass ? `<i class="${iconClass} ${iconSize} text-yellow-400"></i>` : ''}
+                            <div class="font-bold ${fontSize} text-center leading-tight">${front}</div>
+                            <div class="text-sm text-neutral-400 mt-4 font-medium uppercase tracking-wider"><i class="fa-solid fa-rotate mr-2"></i>Click</div>
+                        </div>
+                        <div class="flip-card-back text-lg flex items-center justify-center p-6 leading-snug">
+                            ${back}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderSlides() {
+            slidesWrapper.innerHTML = slidesData.map((slide, index) => {
+                let innerContent = "";
+                
+                if (slide.type === 'intro' || slide.type === 'content' || slide.type === 'results') {
+                    innerContent = slide.content;
+                } else if (slide.type === 'quiz' || slide.type === 'final_quiz') {
+                    innerContent = `
+                        <div class="max-w-4xl mx-auto text-center w-full">
+                            <h2 class="text-3xl font-bold mb-10 text-white">${slide.question}</h2>
+                            <div class="grid grid-cols-1 gap-5" id="quiz-options-${index}">
+                                ${slide.options.map((opt, optIndex) => `
+                                    <button 
+                                        onclick="handleQuizAnswer(${index}, ${optIndex}, ${slide.options[optIndex].correct})"
+                                        class="quiz-btn w-full rounded-2xl bg-neutral-800 border-2 border-neutral-700 hover:bg-neutral-700 text-left transition-all flex justify-between items-center group shadow-md">
+                                        <span class="text-lg">${opt.text}</span>
+                                        <i class="fas fa-check-circle text-2xl opacity-0 group-[.correct]:opacity-100 transition-opacity"></i>
+                                    </button>
+                                `).join('')}
+                            </div>
+                            <div id="quiz-feedback-${index}" class="mt-8 hidden p-6 rounded-xl bg-neutral-800/80 border border-neutral-600 animate-fade-in-up">
+                                <p class="text-2xl font-bold mb-3 feedback-text"></p>
+                                ${slide.explanation ? `<p class="text-neutral-300 text-lg leading-relaxed">${slide.explanation}</p>` : ''}
+                            </div>
+                        </div>
+                    `;
+                }
+
+                return `
+                    <div class="min-w-full h-full overflow-y-auto relative bg-neutral-950">
+                        <div class="min-h-full flex flex-col items-center justify-start p-8 md:p-12 pt-24 pb-20"> 
+                            ${innerContent}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderTOC() {
+            tocList.innerHTML = slidesData.map((slide, index) => `
+                <button onclick="goToSlide(${index})" class="w-full text-left p-4 rounded-xl hover:bg-neutral-800/80 text-base text-neutral-300 flex items-center transition-all border border-transparent hover:border-neutral-700 group">
+                    <span class="w-8 text-sm font-bold text-neutral-500 group-hover:text-yellow-400">${index + 1}</span>
+                    <span class="truncate font-medium group-hover:text-white">${slide.title}</span>
+                </button>
+            `).join('');
+        }
+
+        // --- NAVIGATION ---
+        function updateSlideView() {
+            slidesWrapper.style.transform = `translateX(-${currentSlide * 100}%)`;
+            currentSlideEl.innerText = currentSlide + 1;
+            
+            // Check if results slide
+            if (slidesData[currentSlide].type === 'results') {
+                showResults();
+            }
+        }
+
+        function nextSlide() {
+            if (currentSlide < slidesData.length - 1) {
+                currentSlide++;
+                updateSlideView();
+            }
+        }
+
+        function prevSlide() {
+            if (currentSlide > 0) {
+                currentSlide--;
+                updateSlideView();
+            }
+        }
+
+        function goToSlide(index) {
+            currentSlide = index;
+            updateSlideView();
+            toggleTOC();
+        }
+
+        function toggleTOC() {
+            tocOverlay.classList.toggle('translate-x-full');
+        }
+
+        // --- QUIZ LOGIC ---
+        function handleQuizAnswer(slideIndex, optIndex, isCorrect) {
+            const container = document.getElementById(`quiz-options-${slideIndex}`);
+            const feedbackBox = document.getElementById(`quiz-feedback-${slideIndex}`);
+            const feedbackText = feedbackBox.querySelector('.feedback-text');
+            const buttons = container.querySelectorAll('button');
+
+            // Disable all buttons
+            buttons.forEach(btn => {
+                btn.disabled = true;
+                btn.classList.add('opacity-50', 'cursor-not-allowed');
+            });
+
+            // Highlight chosen answer
+            const selectedBtn = buttons[optIndex];
+            selectedBtn.classList.remove('opacity-50');
+            
+            if (isCorrect) {
+                selectedBtn.classList.add('correct');
+                selectedBtn.classList.remove('border-neutral-700');
+                feedbackText.innerHTML = "<i class='fa-solid fa-circle-check text-lime-400 mr-2'></i> Correct!";
+                feedbackText.className = "text-2xl font-bold mb-2 text-lime-400";
+                fireConfetti(200); // Trigger confetti
+                
+                // Track score for final quiz only
+                if (slidesData[slideIndex].type === 'final_quiz') {
+                    quizScore++;
+                }
+            } else {
+                selectedBtn.classList.add('incorrect');
+                selectedBtn.classList.remove('border-neutral-700');
+                feedbackText.innerHTML = "<i class='fa-solid fa-circle-xmark text-red-400 mr-2'></i> Incorrect";
+                feedbackText.className = "text-2xl font-bold mb-2 text-red-400";
+                
+                // Highlight the correct one
+                slidesData[slideIndex].options.forEach((opt, idx) => {
+                    if(opt.correct) {
+                        buttons[idx].classList.add('correct');
+                        buttons[idx].classList.remove('opacity-50', 'border-neutral-700');
+                    }
+                });
+            }
+
+            feedbackBox.classList.remove('hidden');
+        }
+
+        function showResults() {
+            const finalQuestions = slidesData.filter(s => s.type === 'final_quiz').length;
+            const percentage = Math.round((quizScore / finalQuestions) * 100);
+            const passed = percentage >= 70;
+
+            const resultsHTML = `
+                <div class="text-center animate-fade-in-up">
+                    <div class="text-8xl mb-8">${passed ? '🏆' : '📚'}</div>
+                    <h2 class="text-5xl font-black mb-6 text-white">${passed ? 'Course Passed!' : 'Keep Studying'}</h2>
+                    <div class="text-8xl font-black mb-8 ${passed ? 'text-lime-400' : 'text-red-400'}">
+                        ${percentage}%
+                    </div>
+                    <p class="text-neutral-300 mb-10 max-w-xl mx-auto text-xl leading-relaxed">
+                        You scored ${quizScore} out of ${finalQuestions}. 
+                        ${passed ? 'You have mastered the art of Equity Analysis! You are ready for the Street.' : 'Review the sections on Treasury Stock and Adjustments, then try again!'}
+                    </p>
+                    <button onclick="location.reload()" class="px-12 py-5 bg-neutral-700 hover:bg-neutral-600 rounded-full font-bold text-xl transition-all shadow-xl">
+                        Restart Course <i class="fas fa-rotate-right ml-3"></i>
+                    </button>
+                </div>
+            `;
+            
+            // Inject into the DOM directly since renderSlides is static
+            slidesWrapper.children[slidesData.length - 1].innerHTML = `
+                 <div class="min-w-full h-full flex flex-col items-center justify-center relative p-8 pt-20">
+                    ${resultsHTML}
+                </div>
+            `;
+
+            if (passed) {
+                fireConfetti(1500); // Massive confetti
+            }
+        }
+
+        // --- CONFETTI ENGINE ---
+        const canvas = document.getElementById('confetti-canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        const emojis = ['💸', '💰', '💵', '🤑', '📈', '💎', '🚀'];
+
+        function fireConfetti(amount) {
+            for (let i = 0; i < amount; i++) {
+                particles.push({
+                    x: Math.random() * canvas.width,
+                    y: -Math.random() * canvas.height, // Start above screen
+                    vy: Math.random() * 5 + 3, // Velocity Y
+                    vx: Math.random() * 4 - 2, // Velocity X
+                    emoji: emojis[Math.floor(Math.random() * emojis.length)],
+                    size: Math.random() * 25 + 20,
+                    rotation: Math.random() * 360,
+                    rotationSpeed: Math.random() * 4 - 2
+                });
+            }
+            if (!isAnimating) animateConfetti();
+        }
+
+        let isAnimating = false;
+
+        function animateConfetti() {
+            if (particles.length === 0) {
+                isAnimating = false;
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                return;
+            }
+
+            isAnimating = true;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            for (let i = 0; i < particles.length; i++) {
+                const p = particles[i];
+                p.y += p.vy;
+                p.x += p.vx;
+                p.rotation += p.rotationSpeed;
+
+                ctx.font = `${p.size}px serif`;
+                ctx.save();
+                ctx.translate(p.x, p.y);
+                ctx.rotate(p.rotation * Math.PI / 180);
+                ctx.fillText(p.emoji, 0, 0);
+                ctx.restore();
+
+                // Remove particles off screen
+                if (p.y > canvas.height) {
+                    particles.splice(i, 1);
+                    i--;
+                }
+            }
+            requestAnimationFrame(animateConfetti);
+        }
+
+        // Start
+        init();
+
+    </script>
+</body>
+</html>
