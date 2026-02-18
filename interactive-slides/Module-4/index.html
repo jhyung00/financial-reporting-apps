@@ -3,28 +3,43 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Module 4: Credit Risk Analysis</title>
-    <!-- New Fun Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Lato:wght@400;700&display=swap" rel="stylesheet">
+    <title>Module 4: Credit Risk Detective & Simulation</title>
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Lato:wght@400;700&family=Courier+Prime:wght@400;700&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- React & Tailwind Dependencies -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // Disable Tailwind preflight to preserve existing slide deck styles where possible
+        tailwind.config = {
+            corePlugins: {
+                preflight: false,
+            }
+        }
+    </script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+
     <style>
         :root {
-            /* Fun & Engaging Palette */
-            --primary: #6C63FF;      /* Vibrant Purple */
+            /* Palette */
+            --primary: #6C63FF;
             --primary-dark: #5a52d5;
-            --accent: #FF6584;       /* Coral Pink */
+            --accent: #FF6584;
             --bg-gradient: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
             --card-bg: #ffffff;
             --text-main: #2D3436;
             --text-light: #636e72;
-            --success: #00B894;      /* Mint Green */
-            --warning: #FDCB6E;      /* Mustard */
-            --error: #FF7675;        /* Soft Red */
+            --success: #00B894;
+            --warning: #FDCB6E;
+            --error: #FF7675;
             --shadow: 0 10px 20px rgba(108, 99, 255, 0.15);
             --radius: 16px;
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * { box-sizing: border-box; } 
+        body { margin: 0; padding: 0; }
 
         body {
             font-family: 'Lato', sans-serif;
@@ -62,8 +77,8 @@
         .toc-menu {
             position: fixed;
             top: 0;
-            left: -300px;
-            width: 280px;
+            left: -320px; /* Hidden by default */
+            width: 300px;
             height: 100%;
             background: white;
             z-index: 999;
@@ -118,8 +133,30 @@
             flex-direction: column;
             animation: fadeIn 0.4s ease-out;
             overflow-y: auto;
+            position: relative; 
         }
         .slide.active { display: flex; }
+        
+        .slide.full-bleed {
+            padding: 0;
+            overflow: hidden;
+        }
+
+        /* Custom Scrollbar for inner content */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f1f1; 
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1; 
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; 
+        }
 
         @keyframes fadeIn { 
             from { opacity: 0; transform: translateY(10px); } 
@@ -127,9 +164,9 @@
         }
 
         /* Typography */
-        h1, h2, h3 { font-family: 'Poppins', sans-serif; color: var(--text-main); }
-        h1 { font-size: 3.5rem; font-weight: 700; color: var(--primary); line-height: 1.1; }
-        h2 { font-size: 2.4rem; color: var(--primary); margin-bottom: 25px; position: relative; display: inline-block; }
+        h1, h2, h3 { font-family: 'Poppins', sans-serif; color: var(--text-main); margin: 0; }
+        h1 { font-size: 3.5rem; font-weight: 700; color: var(--primary); line-height: 1.1; margin-bottom: 10px;}
+        h2 { font-size: 2.2rem; color: var(--primary); margin-bottom: 25px; position: relative; display: inline-block; }
         h2::after {
             content: ''; display: block; width: 60px; height: 4px; 
             background: var(--accent); border-radius: 2px; margin-top: 8px;
@@ -138,17 +175,26 @@
         p, li { font-size: 1.15rem; line-height: 1.6; color: var(--text-light); margin-bottom: 15px; }
         ul, ol { margin-left: 25px; }
 
-        /* Components */
+        /* Generic Components */
         .problem-box {
-            background: #fff0f3; /* Very light pink */
+            background: #fff0f3; 
             border-left: 5px solid var(--accent);
             padding: 25px;
             margin: 20px 0;
             border-radius: 0 12px 12px 0;
         }
-
+        .cyu-box {
+            background: #f0f4ff;
+            border: 2px dashed var(--primary);
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 20px;
+            text-align: center;
+        }
+        .cyu-question { font-weight: bold; color: var(--text-main); font-size: 1.1rem; margin-bottom: 15px; }
+        
         .financial-data {
-            font-family: 'Courier New', monospace;
+            font-family: 'Courier Prime', monospace;
             background: #f8f9fa;
             border: 1px solid #e1e4e8;
             padding: 20px;
@@ -160,105 +206,8 @@
             border-radius: 12px;
             box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
         }
-        .financial-data.compact { grid-template-columns: auto 1fr; gap: 40px; }
         .data-label { font-weight: 600; color: var(--text-main); }
         .data-val { text-align: right; font-weight: 700; color: var(--primary); }
-
-        /* Buttons */
-        .btn-reveal, .btn-reveal-sm {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-            color: white;
-            border: none;
-            cursor: pointer;
-            border-radius: 50px;
-            transition: all 0.3s;
-            box-shadow: 0 4px 10px rgba(108, 99, 255, 0.3);
-            font-family: 'Poppins', sans-serif;
-            font-weight: 600;
-        }
-        .btn-reveal { padding: 12px 25px; font-size: 1rem; margin-top: 15px; }
-        .btn-reveal-sm { padding: 8px 16px; font-size: 0.9rem; margin-top: 8px; background: var(--text-main); }
-        .btn-reveal:hover { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(108, 99, 255, 0.4); }
-
-        /* Answers & Reveals */
-        .answer {
-            margin-top: 20px;
-            padding: 20px;
-            background-color: #e6fffa;
-            border: 1px solid var(--success);
-            border-radius: 12px;
-            color: #006b54;
-            display: none;
-        }
-        .answer.visible { display: block; animation: slideDown 0.3s ease; }
-        @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-
-        /* Math Styling */
-        .math-eq {
-            display: inline-flex;
-            align-items: center;
-            font-family: 'Times New Roman', serif;
-            font-style: italic;
-            font-size: 1.4rem;
-            margin: 15px 0;
-            background: white;
-            padding: 15px 30px;
-            border-radius: 12px;
-            border: 1px solid #eee;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-            color: var(--text-main);
-        }
-        .fraction { display: inline-flex; flex-direction: column; align-items: center; margin: 0 12px; vertical-align: middle; }
-        .numerator { border-bottom: 2px solid var(--text-main); padding-bottom: 2px; text-align: center; }
-        .denominator { padding-top: 2px; text-align: center; }
-        .eq-symbol { margin: 0 12px; font-weight: bold; font-style: normal; color: var(--text-light); }
-        .eq-result { font-weight: bold; color: var(--accent); font-style: normal; }
-
-        /* Cards */
-        .card-container {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 30px;
-            margin-top: 30px;
-            perspective: 1000px;
-        }
-        .flip-card { background-color: transparent; height: 280px; cursor: pointer; }
-        .flip-card-inner {
-            position: relative;
-            width: 100%;
-            height: 100%;
-            text-align: center;
-            transition: transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            transform-style: preserve-3d;
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
-        }
-        .flip-card.flipped .flip-card-inner { transform: rotateY(180deg); }
-        .flip-card-front, .flip-card-back {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            -webkit-backface-visibility: hidden;
-            backface-visibility: hidden;
-            border-radius: var(--radius);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            padding: 25px;
-        }
-        .flip-card-front {
-            background: linear-gradient(135deg, var(--primary) 0%, #8e84ff 100%);
-            color: white;
-        }
-        .flip-card-back {
-            background: white;
-            color: var(--text-main);
-            transform: rotateY(180deg);
-            border: 2px solid var(--primary);
-        }
-
-        /* Insight Card */
         .insight-card {
             background: white;
             border-left: 5px solid var(--warning);
@@ -269,132 +218,230 @@
         }
         .insight-card h4 { color: var(--warning); display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
 
-        /* Z-Score Meter */
-        .z-meter-container { width: 100%; margin-top: 30px; position: relative; padding-top: 40px; }
-        .z-meter-bar {
-            height: 20px;
-            width: 100%;
-            border-radius: 20px;
-            background: linear-gradient(to right, var(--error) 0%, var(--error) 36%, var(--warning) 36%, var(--warning) 60%, var(--success) 60%, var(--success) 100%);
-        }
-        .z-marker {
-            position: absolute;
-            top: 0;
-            left: 24%;
-            transform: translateX(-50%);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            animation: bounce 2s infinite;
-        }
-        @keyframes bounce { 0%, 20%, 50%, 80%, 100% {transform: translateX(-50%) translateY(0);} 40% {transform: translateX(-50%) translateY(-10px);} 60% {transform: translateX(-50%) translateY(-5px);} } 
-
-        .z-marker i { color: var(--text-main); font-size: 1.8rem; }
-        .z-marker span { font-weight: bold; background: var(--text-main); color: white; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; margin-bottom: 5px; }
-        
-        /* Table */
-        .moody-table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 20px; border-radius: 12px; overflow: hidden; border: 1px solid #eee; }
-        .moody-table th { background: var(--primary); color: white; padding: 15px; text-align: center; }
-        .moody-table td { padding: 12px; text-align: center; border-bottom: 1px solid #eee; background: white; }
-        .moody-table tr:last-child td { border-bottom: none; }
-        .moody-table tr.highlight td { background: #e6fffa; color: #006b54; font-weight: bold; }
-
-        /* Quiz */
-        .quiz-option {
-            background: white;
-            border: 2px solid #edf2f7;
-            padding: 18px;
-            margin-bottom: 12px;
-            border-radius: 12px;
+        /* Interactive Buttons */
+        .btn-reveal, .btn-choice {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            border: none;
             cursor: pointer;
-            transition: all 0.2s;
-            font-weight: 500;
-        }
-        .quiz-option:hover { background: #f8faff; border-color: var(--primary); color: var(--primary); }
-        .quiz-option.correct { background: #e6fffa; border-color: var(--success); color: var(--success); }
-        .quiz-option.incorrect { background: #fff5f5; border-color: var(--error); color: var(--error); }
-
-        /* Navigation */
-        .nav-bar {
-            height: 70px;
-            background: white;
-            border-top: 1px solid #eee;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0 40px;
-            flex-shrink: 0;
-        }
-        .nav-controls button {
-            background: white;
-            border: 2px solid #eee;
-            color: var(--text-main);
-            padding: 10px 20px;
-            cursor: pointer;
-            border-radius: 30px;
-            margin-left: 10px;
+            border-radius: 50px;
+            transition: all 0.3s;
+            box-shadow: 0 4px 10px rgba(108, 99, 255, 0.3);
             font-family: 'Poppins', sans-serif;
             font-weight: 600;
-            transition: all 0.2s;
+            padding: 12px 25px; font-size: 1rem; margin-top: 15px;
         }
-        .nav-controls button:hover { border-color: var(--primary); color: var(--primary); }
-        .page-num { font-family: 'Poppins', sans-serif; font-weight: 600; color: var(--primary); }
+        .btn-reveal-sm {
+            padding: 8px 16px; font-size: 0.9rem; margin-top: 8px; background: var(--text-main); color: white; border:none; border-radius:50px; cursor:pointer;
+        }
+        .btn-reveal:hover, .btn-choice:hover { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(108, 99, 255, 0.4); }
+        
+        .btn-choice { background: white; color: var(--primary); border: 2px solid var(--primary); margin-right: 10px; }
+        .btn-choice.wrong { background: var(--error); color: white; border-color: var(--error); }
+        .btn-choice.correct { background: var(--success); color: white; border-color: var(--success); }
+
+        .answer {
+            margin-top: 20px; padding: 20px; background-color: #e6fffa;
+            border: 1px solid var(--success); border-radius: 12px; color: #006b54; display: none;
+        }
+        .answer.visible { display: block; animation: slideDown 0.3s ease; }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Detective/Mystery Styles */
+        .detective-file {
+            background: #fff;
+            border: 1px solid #ccc;
+            padding: 30px;
+            box-shadow: 5px 5px 15px rgba(0,0,0,0.1);
+            position: relative;
+            transform: rotate(-1deg);
+        }
+        .stamp {
+            position: absolute; top: 20px; right: 20px;
+            border: 3px solid var(--error); color: var(--error);
+            font-weight: 900; font-size: 1.5rem; padding: 5px 10px;
+            text-transform: uppercase; letter-spacing: 2px; opacity: 0;
+            transform: scale(2) rotate(-15deg); transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .stamp.stamped { opacity: 1; transform: scale(1) rotate(-15deg); }
+
+        /* Card Container */
+        .card-container {
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; margin-top: 30px; perspective: 1000px;
+        }
+        .flip-card { background-color: transparent; height: 280px; cursor: pointer; }
+        .flip-card-inner {
+            position: relative; width: 100%; height: 100%; text-align: center;
+            transition: transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transform-style: preserve-3d; border-radius: var(--radius); box-shadow: var(--shadow);
+        }
+        .flip-card.flipped .flip-card-inner { transform: rotateY(180deg); }
+        .flip-card-front, .flip-card-back {
+            position: absolute; width: 100%; height: 100%; -webkit-backface-visibility: hidden;
+            backface-visibility: hidden; border-radius: var(--radius); display: flex;
+            flex-direction: column; justify-content: center; align-items: center; padding: 25px;
+        }
+        .flip-card-front { background: linear-gradient(135deg, var(--primary) 0%, #8e84ff 100%); color: white; }
+        .flip-card-back { background: white; color: var(--text-main); transform: rotateY(180deg); border: 2px solid var(--primary); }
 
         /* Layouts */
         .cols-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 50px; height: 100%; align-items: start; }
         
-        /* Summary Box Animation */
-        .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        .summary-box {
-            background: white; padding: 25px; border-radius: 12px; border-left: 4px solid var(--primary);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.05); opacity: 0; transition: opacity 0.5s ease-in, transform 0.5s ease; transform: translateY(20px);
+        /* Navigation */
+        .nav-bar {
+            height: 70px; background: white; border-top: 1px solid #eee; display: flex;
+            align-items: center; justify-content: space-between; padding: 0 40px; flex-shrink: 0;
+            position: relative; z-index: 50; 
         }
-        .summary-box.revealed { opacity: 1; transform: translateY(0); }
+        .nav-controls button {
+            background: white; border: 2px solid #eee; color: var(--text-main);
+            padding: 10px 20px; cursor: pointer; border-radius: 30px; margin-left: 10px;
+            font-family: 'Poppins', sans-serif; font-weight: 600; transition: all 0.2s;
+        }
+        .nav-controls button:hover { border-color: var(--primary); color: var(--primary); }
+        .page-num { font-family: 'Poppins', sans-serif; font-weight: 600; color: var(--primary); }
+
+        /* Math */
+        .math-eq { display: inline-flex; align-items: center; font-family: 'Times New Roman', serif; font-size: 1.4rem; padding: 10px; background: #fff; border-radius: 8px; margin-top: 10px; border: 1px solid #eee; }
+        .fraction { display: inline-flex; flex-direction: column; align-items: center; margin: 0 10px; }
+        .numerator { border-bottom: 2px solid black; }
+
+        /* Specific Game Visuals */
+        .matrix-effect {
+            font-family: 'Courier Prime', monospace; color: #00ff00; background: #000; padding: 20px; border-radius: 10px; margin-top: 10px; display: none;
+        }
+        .drain-bar-container { width: 100%; height: 30px; background: #eee; border-radius: 15px; overflow: hidden; margin: 10px 0; }
+        .drain-bar { height: 100%; background: var(--success); width: 100%; transition: width 1s ease; }
+        
+        /* Table */
+        .moody-table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 20px; border-radius: 12px; overflow: hidden; border: 1px solid #eee; font-size: 1.2rem; }
+        .moody-table th { background: var(--primary); color: white; padding: 20px; text-align: center; }
+        .moody-table td { padding: 15px; text-align: center; border-bottom: 1px solid #eee; background: white; }
+        .moody-table tr:last-child td { border-bottom: none; }
+        .moody-table tr.highlight td { background: #e6fffa; color: #006b54; font-weight: bold; }
+        
+        /* Z-Meter */
+        .z-meter-container { width: 100%; margin-top: 30px; position: relative; padding-top: 40px; }
+        .z-meter-bar {
+            height: 20px; width: 100%; border-radius: 20px;
+            background: linear-gradient(to right, var(--error) 0%, var(--error) 36%, var(--warning) 36%, var(--warning) 60%, var(--success) 60%, var(--success) 100%);
+        }
+        .z-marker {
+            position: absolute; top: 0; left: 24%; transform: translateX(-50%);
+            display: flex; flex-direction: column; align-items: center;
+            animation: bounce 2s infinite;
+        }
+        @keyframes bounce { 0%, 20%, 50%, 80%, 100% {transform: translateX(-50%) translateY(0);} 40% {transform: translateX(-50%) translateY(-10px);} 60% {transform: translateX(-50%) translateY(-5px);} } 
+        .z-marker i { color: var(--text-main); font-size: 1.8rem; }
+
+        /* Chart for Default Rates */
+        .chart-box {
+            display: flex; align-items: flex-end; justify-content: space-around;
+            height: 350px; background: white; padding: 30px; border-radius: 15px;
+            box-shadow: var(--shadow); margin-top: 20px; border-bottom: 2px solid #eee;
+        }
+        .bar-group { display: flex; flex-direction: column; align-items: center; width: 10%; position: relative; }
+        .bar {
+            width: 100%; background: var(--primary);
+            border-radius: 5px 5px 0 0; transition: height 1s ease-out;
+            position: relative;
+        }
+        .bar-val {
+            position: absolute; top: -25px; left: 50%; transform: translateX(-50%);
+            font-weight: bold; color: var(--text-main); font-size: 0.9rem;
+        }
+        .bar-label { margin-top: 10px; font-weight: bold; color: var(--text-light); font-size: 0.9rem; }
+        
+        /* Speculative Grade Colors */
+        .bar.spec { background: var(--error); }
+        .bar.mid { background: var(--warning); }
+
+        /* LGD Slide Custom CSS Integration */
+        input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none; height: 24px; width: 24px; border-radius: 50%; background: #2563eb; cursor: pointer; margin-top: -10px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); border: 2px solid white;
+        }
+        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 6px; cursor: pointer; background: #e2e8f0; border-radius: 3px; }
+        .hover-lift { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+        .hover-lift:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+        .blur-content { filter: blur(8px); pointer-events: none; user-select: none; }
+        .reveal-overlay {
+            position: absolute; inset: 0; background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(2px); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: opacity 0.3s ease; z-index: 10;
+        }
+        .reveal-overlay:hover { background: rgba(255, 255, 255, 0.4); }
+
+        /* Hidden list item animation */
+        .hidden-item { display: none; animation: slideRight 0.4s ease-out; }
+        @keyframes slideRight { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
+        
+        /* Blur for Lease Slide */
+        .blur-text {
+            filter: blur(8px);
+            transition: filter 0.5s ease;
+            user-select: none;
+            cursor: pointer;
+        }
+        .blur-text:hover {
+            filter: blur(4px);
+        }
+        .blur-text.revealed {
+            filter: blur(0);
+            cursor: default;
+        }
+
     </style>
 </head>
 <body>
 
-<!-- TOC Toggle Button -->
-<button class="toc-btn" onclick="toggleTOC()" title="Table of Contents">
-    <i class="fas fa-bars"></i>
-</button>
+<button class="toc-btn" onclick="toggleTOC()" title="Content Map"><i class="fas fa-bars"></i></button>
 
-<!-- TOC Sidebar -->
 <div class="toc-menu" id="toc-menu">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <h2 style="font-size: 1.5rem; margin: 0; border: none;">Content Map</h2>
+        <h2 style="font-size: 1.5rem; margin: 0; border: none;">Investigation Log</h2>
         <i class="fas fa-times" onclick="toggleTOC()" style="cursor: pointer; font-size: 1.2rem; color: var(--text-light);"></i>
     </div>
     
-    <div class="toc-section-title">Introduction</div>
+    <div class="toc-section-title">The Setup</div>
     <a class="toc-item" onclick="jumpToSlide(0)">Module Intro</a>
-    <a class="toc-item" onclick="jumpToSlide(1)">Core Overview</a>
+    <a class="toc-item" onclick="jumpToSlide(1)">Core Competencies</a>
     
     <div class="toc-section-title">The Market</div>
     <a class="toc-item" onclick="jumpToSlide(2)">Supply & Demand</a>
     <a class="toc-item" onclick="jumpToSlide(3)">Demand: Operating</a>
     <a class="toc-item" onclick="jumpToSlide(4)">Demand: Investing</a>
-    <a class="toc-item" onclick="jumpToSlide(6)">Supply: Trade Credit</a>
+    <a class="toc-item" onclick="jumpToSlide(5)">Supply: Trade Credit</a>
+    <a class="toc-item" onclick="jumpToSlide(6)">Supply: Bank Loans</a>
+    <a class="toc-item" onclick="jumpToSlide(7)">Deep Dive: Term Loans</a>
+    <a class="toc-item" onclick="jumpToSlide(8)">History: LIBOR Scandal</a>
+    <a class="toc-item" onclick="jumpToSlide(9)">Deep Dive: Mortgages</a>
+    <a class="toc-item" onclick="jumpToSlide(10)">Leases</a>
+    <a class="toc-item" onclick="jumpToSlide(11)">Public Debt</a>
+    <a class="toc-item" onclick="jumpToSlide(12)">Private Debt</a>
+    <a class="toc-item" onclick="jumpToSlide(13)">Private Debt: Oracle Case</a>
     
-    <div class="toc-section-title">Lending Types</div>
-    <a class="toc-item" onclick="jumpToSlide(7)">Bank Loans Overview</a>
-    <a class="toc-item" onclick="jumpToSlide(12)">Public Debt</a>
+    <div class="toc-section-title">The Investigation</div>
+    <a class="toc-item" onclick="jumpToSlide(14)">Analysis Process</a>
+    <a class="toc-item" onclick="jumpToSlide(15)">Case: 53rd Week</a>
+    <a class="toc-item" onclick="jumpToSlide(16)">The 3 Pillars of Credit Analysis</a>
+    <a class="toc-item" onclick="jumpToSlide(17)">Banker's Dillemma</a>
+    <a class="toc-item" onclick="jumpToSlide(18)">Pillar 1: Solvency Metrics</a>
+ 
+    <a class="toc-item" onclick="jumpToSlide(19)">Pillar 2: Coverage</a>
+    <a class="toc-item" onclick="jumpToSlide(20)">Coverage Metrics: Other</a>
+    <a class="toc-item" onclick="jumpToSlide(21)">The Cash Flow Drain</a>
+    <a class="toc-item" onclick="jumpToSlide(22)">Pillar 3: Liquidity</a>
     
-    <div class="toc-section-title">Analysis Pillars</div>
-    <a class="toc-item" onclick="jumpToSlide(13)">Analysis Process</a>
-    <a class="toc-item" onclick="jumpToSlide(17)">Data: 53rd Week</a>
-    <a class="toc-item" onclick="jumpToSlide(18)">The 3 Pillars</a>
-    <a class="toc-item" onclick="jumpToSlide(19)">Pillar 1: Solvency</a>
-    <a class="toc-item" onclick="jumpToSlide(21)">Pillar 2: Coverage</a>
-    <a class="toc-item" onclick="jumpToSlide(24)">Pillar 3: Liquidity</a>
-    
-    <div class="toc-section-title">Ratings & LGD</div>
-    <a class="toc-item" onclick="jumpToSlide(26)">Credit Ratings</a>
-    <a class="toc-item" onclick="jumpToSlide(30)">Z-Score Model</a>
-    <a class="toc-item" onclick="jumpToSlide(32)">Loss Given Default</a>
-    
-    <div class="toc-section-title">Review</div>
-    <a class="toc-item" onclick="jumpToSlide(39)">Quiz Challenge</a>
+    <div class="toc-section-title">The Verdict</div>
+    <a class="toc-item" onclick="jumpToSlide(23)">Why Ratings Matter</a>
+    <a class="toc-item" onclick="jumpToSlide(24)">Ratings Scales</a>
+    <a class="toc-item" onclick="jumpToSlide(25)">Moody's Matrix</a>
+    <a class="toc-item" onclick="jumpToSlide(26)">Z-Score Detailed</a>
+    <a class="toc-item" onclick="jumpToSlide(27)">Z-Score Glitch</a>
+    <a class="toc-item" onclick="jumpToSlide(28)">LGD & Structural Protections</a>
+    <a class="toc-item" onclick="jumpToSlide(29)">5-Year Default Rates</a>
+    <a class="toc-item" onclick="jumpToSlide(30)">Summary</a>
+    <a class="toc-item" onclick="jumpToSlide(31)">Quiz</a>
+   
 </div>
 
 <div id="slide-deck">
@@ -404,44 +451,38 @@
         <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; text-align: center; align-items: center;">
             <div style="background: rgba(108, 99, 255, 0.1); padding: 10px 20px; border-radius: 30px; color: var(--primary); font-weight: bold; margin-bottom: 20px;">Module 4</div>
             <h1>Credit Risk Analysis</h1>
-            <p style="font-size: 1.8rem; margin-top: 10px; color: var(--text-light);">From Raw Data to Ratings</p>
-            
-            <div style="margin-top: 60px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; width: 100%;">
-                <div style="padding: 20px; border: 2px dashed #e0e0e0; border-radius: 20px;">
-                    <i class="fas fa-chart-line" style="font-size: 2rem; color: var(--accent); margin-bottom: 10px;"></i>
-                    <p style="margin:0; font-weight: 600;">Market Dynamics</p>
-                </div>
-                <div style="padding: 20px; border: 2px dashed #e0e0e0; border-radius: 20px;">
-                    <i class="fas fa-calculator" style="font-size: 2rem; color: var(--success); margin-bottom: 10px;"></i>
-                    <p style="margin:0; font-weight: 600;">Calculations</p>
-                </div>
-                <div style="padding: 20px; border: 2px dashed #e0e0e0; border-radius: 20px;">
-                    <i class="fas fa-shield-alt" style="font-size: 2rem; color: var(--primary); margin-bottom: 10px;"></i>
-                    <p style="margin:0; font-weight: 600;">Risk Ratings</p>
-                </div>
-            </div>
+            <!-- Quote removed as requested -->
+            <p style="margin-top: 20px;">Put on your detective hat. Things aren't always what they seem.</p>
+            <button class="btn-reveal" onclick="changeSlide(1)">Start Investigation</button>
         </div>
     </div>
 
-    <!-- SLIDE 2: Module Overview -->
+    <!-- SLIDE 2: Objectives -->
     <div class="slide">
-        <h2>What We'll Cover</h2>
+        <h2>Core Objectives</h2>
         <div class="cols-2">
             <div>
-                <h3><i class="fas fa-check-circle" style="color:var(--success)"></i> Core Competencies</h3>
-                <ul>
-                    <li>Understand the Market for Credit (Supply/Demand).</li>
-                    <li>Perform Adjustments (53rd Week, Off-Balance Sheet).</li>
-                    <li>Calculate the 3 Pillars: Solvency, Coverage, Liquidity.</li>
-                </ul>
+                <h3><i class="fas fa-compass"></i> Analytical Framework</h3>
+                <p>Credit Analysis requires a rigorous assessment of risk across three dimensions.</p>
+                <div class="problem-box">
+                    <ul class="fa-ul" style="margin-left: 0;">
+                        <li id="obj-1" class="hidden-item" style="margin-bottom: 10px;"><span class="fa-li"><i class="fas fa-check-circle" style="color:var(--primary);"></i></span><strong>Market Mechanics:</strong> Supply & Demand drivers.</li>
+                        <li id="obj-2" class="hidden-item" style="margin-bottom: 10px;"><span class="fa-li"><i class="fas fa-check-circle" style="color:var(--primary);"></i></span><strong>Data Normalization:</strong> Adjusting for anomalies (e.g., 53rd Week).</li>
+                        <li id="obj-3" class="hidden-item"><span class="fa-li"><i class="fas fa-check-circle" style="color:var(--primary);"></i></span><strong>The 3 Pillars:</strong> Solvency, Coverage, Liquidity.</li>
+                    </ul>
+                    <button class="btn-reveal-sm" onclick="revealNextObjective(this)" style="margin-top: 10px;">Next Objective</button>
+                </div>
             </div>
             <div>
-                <h3><i class="fas fa-rocket" style="color:var(--accent)"></i> Advanced Skills</h3>
-                <ul>
-                    <li>Apply Credit Rating Frameworks (S&P and Moody's).</li>
-                    <li>Predict Bankruptcy (Altman Z-Score).</li>
-                    <li>Assess Loss Given Default.</li>
+                <h3><i class="fas fa-chart-line"></i> Key Outcomes</h3>
+                <p>By the end of this module, you will be able to:</p>
+                <ul class="fa-ul" style="margin-left:0;">
+                    <li id="outcome-1" class="hidden-item" style="margin-bottom:8px;"><span class="fa-li"><i class="fas fa-check text-blue-500"></i></span>Differentiate between Public Bonds, Bank Loans, and Private Credit.</li>
+                    <li id="outcome-2" class="hidden-item" style="margin-bottom:8px;"><span class="fa-li"><i class="fas fa-check text-blue-500"></i></span>Calculate and interpret core credit ratios (TIE, Debt/EBITDA).</li>
+                    <li id="outcome-3" class="hidden-item" style="margin-bottom:8px;"><span class="fa-li"><i class="fas fa-check text-blue-500"></i></span>Assess Structural Protections (Collateral & Covenants).</li>
+                    <li id="outcome-4" class="hidden-item"><span class="fa-li"><i class="fas fa-check text-blue-500"></i></span>Critique automated scoring models like the Z-Score.</li>
                 </ul>
+                <button class="btn-reveal-sm" onclick="revealNextOutcome(this)" style="margin-top: 10px;">Next Outcome</button>
             </div>
         </div>
     </div>
@@ -456,16 +497,16 @@
                     <p><strong>🤔 Who are the players?</strong></p>
                     <p>Think about who needs cash and who has cash.</p>
                 </div>
-                <button class="btn-reveal" onclick="toggleAnswer(this)">Reveal Participants</button>
-                <div class="answer">
+            </div>
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                 <i class="fas fa-balance-scale-right" style="font-size: 5rem; color: var(--primary-dark); opacity: 0.2; margin-bottom: 20px;"></i>
+                 <button class="btn-reveal" onclick="toggleAnswer(this)" style="width: 80%;">Reveal Participants</button>
+                 <div class="answer" style="width: 100%;">
                     <ul>
                         <li><strong>Demand (Borrowers):</strong> Companies needing cash for Operations, Investing, or Refinancing.</li>
                         <li><strong>Supply (Lenders):</strong> Trade Creditors, Banks, Public Debt Investors.</li>
                     </ul>
                 </div>
-            </div>
-            <div style="display: flex; align-items: center; justify-content: center;">
-                <img src="https://placehold.co/500x350/6C63FF/ffffff?text=$$$Flow$$$" style="width: 100%; border-radius: 20px; box-shadow: var(--shadow);" alt="Graph">
             </div>
         </div>
     </div>
@@ -485,8 +526,14 @@
             </div>
             <div class="insight-card">
                 <h4><i class="fas fa-lightbulb"></i> Thought Bubble</h4>
-                <p>Is lending to cover losses always "High Risk"? Not necessarily. It can be a bridge across a temporary gap (like COVID shutdowns).</p>
+                <p>Loss-funding loans aren’t automatically “high risk.” If losses are temporary and explainable and the borrower has a credible path back to cash generation, the loan may function as a short-term bridge rather than distress financing.</p>
             </div>
+        </div>
+        <!-- CYU 1 -->
+        <div class="cyu-box">
+            <div class="cyu-question">Check Your Understanding: If a toy company needs cash in October to build inventory for Christmas, what is this called?</div>
+            <button class="btn-choice" onclick="alert('Correct! This is a classic seasonal working capital need.')">Seasonality</button>
+            <button class="btn-choice wrong" onclick="alert('Incorrect. Cyclicality refers to longer economic cycles (years), not annual patterns.')">Cyclicality</button>
         </div>
     </div>
 
@@ -529,16 +576,27 @@
         <h2>Supply: Trade Credit</h2>
         <div class="cols-2">
             <div>
-                <h3>"The First Line of Defense"</h3>
-                <p>When suppliers let you pay later (e.g., Net 30 terms).</p>
+                <h3>What It Is</h3>
+                <p>Suppliers deliver goods now and allow payment later. It is routine, typically non-interest bearing, and acts as built-in short-term funding.</p>
                 <ul>
-                    <li>Routine & non-interest bearing.</li>
-                    <li>Often includes discounts for early payment (2/10 Net 30).</li>
+                    <li><strong>Net 30:</strong> Pay full amount in 30 days.</li>
+                    <li><strong>2/10 Net 30:</strong> Pay within 10 days to take a 2% discount; otherwise pay in full by day 30.</li>
                 </ul>
             </div>
-            <div class="problem-box">
-                <p><strong>⚠️ Why is it a warning sign?</strong></p>
-                <p>If suppliers stop shipping (cut off credit), operations halt immediately. It's often the first domino to fall.</p>
+            <div>
+                <h3>"The First Line of Defense"</h3>
+                <p>If a firm is under cash pressure, <strong>stretching payables</strong> (paying later) is often the first action taken before missing bank or bond payments.</p>
+                <div class="flip-card" style="height: 180px; margin-top: 20px;" onclick="this.classList.toggle('flipped')">
+                    <div class="flip-card-inner">
+                        <div class="flip-card-front" style="background: #fff0f3; border: 2px dashed var(--accent); color: var(--text-main);">
+                            <h3 style="color: var(--error); margin-bottom: 10px;"><i class="fas fa-exclamation-triangle"></i> The First Domino</h3>
+                            <p style="color: var(--text-light); font-size: 0.9rem;">Click to reveal risk</p>
+                        </div>
+                        <div class="flip-card-back" style="border-color: var(--error);">
+                            <p style="font-size: 0.95rem;">Supplier trade credit is day-to-day oxygen; if suppliers pull it (COD or Cash on Delivery, reduced limits, shipment holds), liquidity stress becomes operational stress immediately.</p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -567,8 +625,8 @@
                         <h3 style="color:white; font-size:1.1rem;">Line of Credit</h3>
                     </div>
                     <div class="flip-card-back">
-                        <p><strong>Insurance</strong></p>
-                        <p style="font-size: 0.9rem;">Back-up liquidity. Often just a standby letter of credit.</p>
+                        <p><strong>Insurance Policy</strong></p>
+                        <p style="font-size: 0.9rem;">Back-up liquidity (Letter of Credit). You pay a fee just to have it available.</p>
                     </div>
                 </div>
             </div>
@@ -597,9 +655,31 @@
                 </div>
             </div>
         </div>
+
+        <div class="insight-card" style="margin-top: 25px;">
+            <h4><i class="fas fa-info-circle"></i> Detective's Note: Revolver vs. LOC</h4>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px; font-size: 0.95rem;">
+                <div>
+                    <strong style="color:var(--primary);">Corporate Revolver ($500M)</strong>
+                    <p>It draws $50M for payroll, repays in 2 months, then draws again later. The bank is <strong>committed</strong>. Firm pays interest on drawn amounts + unused fee.</p>
+                </div>
+                <div style="border-left: 2px solid #eee; padding-left: 20px;">
+                    <strong style="color:var(--text-main);">SMB Line of Credit ($100k)</strong>
+                    <p>Bank may renew annually and could adjust terms. It functions similarly but typically with a <strong>lighter structure</strong>.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- CYU Section Added -->
+        <div class="cyu-box">
+            <div class="cyu-question">Check Your Understanding: Do Revolving Credit Facilities appear on the Balance Sheet?</div>
+            <button class="btn-choice wrong" onclick="alert('Incorrect. The full limit is disclosed in footnotes, but not as a liability.')">Yes, the full limit</button>
+            <button class="btn-choice wrong" onclick="alert('Incorrect. If money is borrowed, it must be recorded.')">No, never</button>
+            <button class="btn-choice" onclick="alert('Correct! Only the specific amount borrowed (drawn) is recorded as a liability.')">Only the drawn amount</button>
+        </div>
     </div>
 
-    <!-- SLIDE 8: Bank Loans Deep Dive (Term) -->
+    <!-- SLIDE 8: Deep Dive Term Loans -->
     <div class="slide">
         <h2>Deep Dive: Term Loans</h2>
         <div class="cols-2">
@@ -610,7 +690,10 @@
                     <div class="data-row"><span class="data-label">Interest:</span> <span class="data-val">Floating (SOFR + Spread)</span></div>
                     <div class="data-row"><span class="data-label">Amortization:</span> <span class="data-val">Principal paid over time</span></div>
                 </div>
-                <p style="font-size: 0.9rem; margin-top: 10px;"><em>*SOFR = Secured Overnight Financing Rate (The new benchmark)</em></p>
+                <div class="problem-box" style="margin-top: 10px;">
+                    <p><strong>Definition: SOFR</strong></p>
+                    <p><em>Secured Overnight Financing Rate.</em> The cost of borrowing cash overnight backed by Treasury securities. It replaced LIBOR as the global benchmark.</p>
+                </div>
             </div>
             <div class="insight-card">
                 <h4><i class="fas fa-coins"></i> The "Spread"</h4>
@@ -618,9 +701,39 @@
                 <p><strong>Risky Client = Higher Spread.</strong></p>
             </div>
         </div>
+        <!-- CYU 2 -->
+        <div class="cyu-box">
+            <div class="cyu-question">Check Your Understanding: If SOFR is 4% and the bank charges a 2% spread, what is your interest rate?</div>
+            <button class="btn-choice" onclick="alert('Correct! 4% Base + 2% Spread = 6%.')">6%</button>
+            <button class="btn-choice wrong" onclick="alert('Incorrect. You must add the base rate and the spread.')">2%</button>
+        </div>
     </div>
 
-    <!-- SLIDE 9: Bank Loans Deep Dive (Mortgages) -->
+    <!-- SLIDE 9: LIBOR -->
+    <div class="slide">
+        <h2>History: The LIBOR Scandal</h2>
+        <div class="cols-2">
+            <div>
+                <h3>What was LIBOR?</h3>
+                <p>The <strong>London Interbank Offered Rate</strong> was the global benchmark for 30 years. It represented the cost for banks to borrow from each other unsecured.</p>
+                <div class="problem-box">
+                    <p><strong>How it was set:</strong> A panel of banks submitted <em>estimates</em> of their borrowing costs. The top and bottom outliers were trimmed, and the rest averaged.</p>
+                </div>
+                <div class="insight-card">
+                    <h4>Why it failed</h4>
+                    <p>In times of stress, there were no actual transactions. Submissions were based on "judgment," leaving the door open for massive fraud.</p>
+                </div>
+            </div>
+            <div style="display:flex; flex-direction: column; justify-content: center; align-items: center;">
+                <div style="width: 100%; border-radius: 12px; overflow: hidden; box-shadow: var(--shadow);">
+                    <iframe width="100%" height="315" src="https://www.youtube.com/embed/R5WsVWCak8k?si=0wAZ4FVIuXm441I_" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+                </div>
+                <p style="margin-top: 15px; font-size: 0.9rem; text-align: center; color: var(--text-light);">The outcome: Huge fines ($9B+) and a forced transition to <strong>SOFR</strong>.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 10: Deep Dive Mortgages -->
     <div class="slide">
         <h2>Deep Dive: Mortgages</h2>
         <div class="cols-2">
@@ -630,42 +743,58 @@
                     <li><strong>Terms:</strong> Long (10-30 years).</li>
                     <li><strong>Security:</strong> The lender has a "Lien" on the building.</li>
                 </ul>
+                <div class="problem-box">
+                    <p><strong>Definition: Lien</strong></p>
+                    <p>A legal right to seize the property if the borrower fails to pay. The "Lien Holder" gets paid first from the sale proceeds.</p>
+                </div>
             </div>
-            <div class="problem-box">
-                <p><strong>🔥 Bankruptcy Scenario</strong></p>
-                <p>If the company goes bust, who gets the building?</p>
-                <button class="btn-reveal-sm" onclick="toggleAnswer(this)">Reveal</button>
-                <div class="answer" style="background: white; border:none; padding:10px 0;">
-                    <p>The Mortgage Holder is a <strong>Secured Creditor</strong>. They get paid from the building sale before anyone else sees a dime.</p>
+            <div>
+                 <button class="btn-reveal" onclick="toggleAnswer(this)" style="width:100%;">Reveal Insight</button>
+                 <div class="insight-card answer">
+                    <h4>Why use a Mortgage?</h4>
+                    <p>Because it's <strong>Secured</strong>, the interest rate is usually lower than other loans. The bank takes less risk because they can always take the building.</p>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- SLIDE 10: Leases -->
+    <!-- SLIDE 11: Leases -->
     <div class="slide">
         <h2>Lease Financing</h2>
-        <p>Rent vs. Buy? In credit analysis, it's often treated the same.</p>
         <div class="cols-2">
             <div>
-                <h3>Types</h3>
-                <ul>
-                    <li><strong>Finance Lease:</strong> You effectively own it. (Asset + Debt on Balance Sheet).</li>
-                    <li><strong>Operating Lease:</strong> Like renting a car for a week.</li>
-                </ul>
+                <p>Rent vs. Buy? In credit analysis, it's often treated the same.</p>
+                <h3>Concrete Example: Starbucks</h3>
+                <p>Starbucks doesn't usually buy the buildings for its coffee shops. It rents them for 10-20 years.</p>
+                <div style="background: white; padding: 20px; border-radius: 12px; border: 1px solid #eee;">
+                    <ul style="margin-left: 0;">
+                        <li onclick="this.classList.add('revealed')" class="blur-text" style="padding: 10px; border-bottom: 1px solid #eee;">
+                            <strong>Accounting View:</strong> "We just pay rent."
+                        </li>
+                        <li onclick="this.classList.add('revealed')" class="blur-text" style="padding: 10px;">
+                            <strong>Credit Analyst View:</strong> "You signed a 20-year contract. You owe that money just like a loan."
+                        </li>
+                    </ul>
+                    <p style="text-align: center; font-size: 0.8rem; color: var(--text-light); margin-top: 10px;">(Click/Hover to reveal)</p>
+                </div>
             </div>
             <div class="insight-card" style="border-left-color: var(--primary);">
                 <h4><i class="fas fa-search-dollar"></i> Analyst Tip</h4>
-                <p>S&P treats almost <strong>ALL</strong> lease liabilities as Debt when calculating solvency ratios, regardless of accounting classification.</p>
-                <p><em>"If you have to pay it to stay in business, it's debt."</em></p>
+                <p>S&P treats almost <strong>ALL</strong> lease liabilities as Debt when calculating solvency ratios. <em>"If you have to pay it to stay in business, it's debt."</em></p>
             </div>
+        </div>
+        <!-- CYU 3 -->
+        <div class="cyu-box">
+            <div class="cyu-question">Check Your Understanding: How does an analyst treat a 10-year lease obligation?</div>
+            <button class="btn-choice" onclick="alert('Correct! It is a mandatory fixed obligation, just like a loan.')">As Debt</button>
+            <button class="btn-choice wrong" onclick="alert('Incorrect. Analysts capitalize leases because they are long-term obligations.')">As a simple Expense</button>
         </div>
     </div>
 
-    <!-- SLIDE 11: Public Debt -->
+    <!-- SLIDE 12: Public Debt -->
     <div class="slide">
         <h2>Public Debt Markets</h2>
-        <p>When banks aren't enough, companies go public.</p>
+        <p>When companies outgrow bank limits or need cheaper long-term capital, they turn to the public markets.</p>
         <div class="card-container" style="grid-template-columns: 1fr 1fr; gap: 40px;">
             <div class="flip-card" onclick="this.classList.toggle('flipped')">
                 <div class="flip-card-inner">
@@ -674,11 +803,7 @@
                         <p style="color: white; margin-top: 10px;">(Short Term)</p>
                     </div>
                     <div class="flip-card-back" style="border-color: var(--text-main);">
-                        <ul style="text-align: left;">
-                            <li>Matures < 270 days.</li>
-                            <li>Exempt from SEC registration.</li>
-                            <li>Used for Working Capital.</li>
-                        </ul>
+                        <p style="text-align: left; padding: 0 10px;">Commercial paper is short-term, low-cost, quickly issued funding for working capital—used instead of bonds when the need is temporary (but it requires strong credit and a backup liquidity line).</p>
                     </div>
                 </div>
             </div>
@@ -700,77 +825,149 @@
         </div>
     </div>
 
-    <!-- SLIDE 12: Analysis Process -->
+    <!-- SLIDE 13: PRIVATE CREDIT -->
+    <div class="slide">
+        <h2>Private Credit Overview</h2>
+        <p>Non-bank lending provided by private investment firms directly to companies.</p>
+        
+        <div class="cols-2">
+            <div>
+                <h3><i class="fas fa-handshake"></i> What it is</h3>
+                <p>A company needs financing (often fast, flexible, or complex). Instead of a bank or public bond, they borrow from a <strong>Private Credit Fund</strong>.</p>
+                <div class="problem-box">
+                    <p><strong>Common Types:</strong></p>
+                    <ul style="margin-bottom:0;">
+                        <li><strong>Direct Lending:</strong> Senior secured loans to mid-sized firms.</li>
+                        <li><strong>Mezzanine:</strong> Higher yield, lower priority (Junior debt).</li>
+                        <li><strong>Special Situations:</strong> Rescue financing for stressed firms.</li>
+                    </ul>
+                </div>
+            </div>
+            <div>
+                <button class="btn-reveal" onclick="toggleAnswer(this)" style="width:100%; margin-top:0;">Reveal Pros</button>
+                <div class="insight-card answer" style="margin-top:10px; padding-left: 30px;">
+                    <h4>Why use it?</h4>
+                    <ul class="fa-ul" style="margin-left:0; font-size: 0.95rem;">
+                        <li style="margin-bottom:8px;"><span class="fa-li"><i class="fas fa-check text-green-500"></i></span><strong>Borrower Pros:</strong> Speed, certainty, and flexible terms that regulated banks can't offer.</li>
+                        <li><span class="fa-li"><i class="fas fa-check text-blue-500"></i></span><strong>Investor Pros:</strong> Higher yields than public bonds. Often secured.</li>
+                    </ul>
+                </div>
+
+                <button class="btn-reveal" onclick="toggleAnswer(this)" style="width:100%; background: var(--error);">Reveal Risks</button>
+                <div class="insight-card answer" style="border-left-color: var(--error); margin-top:10px;">
+                    <h4><i class="fas fa-exclamation-triangle"></i> Key Risks</h4>
+                    <p><strong>Illiquidity:</strong> These loans are not traded on an exchange. Hard to sell quickly.</p>
+                    <p><strong>Opacity:</strong> Less public financial disclosure than bond issuers.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 14: ORACLE CASE STUDY (NEW) -->
+    <div class="slide">
+        <h2>Oracle's Data Center Financing</h2>
+        <p style="font-size: 1rem; color: var(--text-light); margin-bottom: 20px;">
+            <em>Financial Times, Feb 3, 2026: "Scale + Syndication Push"</em> 
+            <a href="https://www.ft.com/content/90aa74a5-b39d-4131-a138-367726cb18fb" target="_blank" style="margin-left:10px; color:var(--primary); text-decoration: underline; font-size: 0.9rem;">
+                <i class="fas fa-external-link-alt"></i> Source
+            </a>
+        </p>
+        
+        <div class="cols-2">
+            <div class="detective-file" style="transform: rotate(1deg);">
+                <!-- Stamp removed -->
+                <h3 style="font-family: 'Courier Prime'; border-bottom: 1px solid #ccc;">Subject: Oracle Data Centers</h3>
+                <p><strong>The Situation:</strong> Banks are placing tens of billions in construction loans for Oracle-linked data centers.</p>
+                <p><strong>Pricing:</strong> Newer deals are priced at SOFR + 3.0% - 4.5% (higher than previous 2.5%), signaling perceived risk.</p>
+                <p><strong>Investors:</strong> Insurers and Private Credit funds are stepping in.</p>
+            </div>
+            <div>
+                <div class="problem-box">
+                    <p><strong>Discussion:</strong> Do you think credit ratings are available for private debt?</p>
+                </div>
+                <button class="btn-reveal" onclick="toggleAnswer(this)">Reveal Answer</button>
+                <div class="answer">
+                    <h3><i class="fas fa-check-circle" style="color:var(--success);"></i> YES.</h3>
+                    <p><strong>Key Catalyst:</strong> Investment-grade ratings are being obtained during construction (historically rare).</p>
+                    <p><strong>Why?</strong> Ratings expand the pool of eligible buyers (like Insurance companies) who have strict capital requirements, helping banks offload the exposure.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 15: Analysis Process -->
     <div class="slide">
         <h2>The Risk Analysis Process</h2>
         <p>How do we quantify the risk?</p>
-        <div class="problem-box" style="text-align: center;">
-            <p style="font-size: 1.3rem; color: var(--text-main);"><strong>Expected Loss = Chance of Default × Loss Given Default</strong></p>
-        </div>
+        <!-- Formula removed as requested -->
         <p><strong>The 4-Step Process:</strong></p>
         <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-top: 20px;">
             <div style="background: white; padding: 20px; border-radius: 15px; box-shadow: var(--shadow);">
                 <div style="color: var(--primary); font-weight: bold;">1. Purpose</div>
-                <p style="font-size: 0.9rem;">Why do they need it? (Growth vs Distress)</p>
+                <p style="font-size: 0.9rem;"><strong>Use of Proceeds:</strong> Is the cash for Growth (M&A, Capex) or Distress (covering losses)?</p>
             </div>
             <div style="background: white; padding: 20px; border-radius: 15px; box-shadow: var(--shadow);">
                 <div style="color: var(--primary); font-weight: bold;">2. Macro</div>
-                <p style="font-size: 0.9rem;">Industry competition & Porter's 5 Forces.</p>
+                <p style="font-size: 0.9rem;"><strong>Industry & Economy:</strong> GDP trends, Regulatory changes, and Porter's 5 Forces.</p>
             </div>
             <div style="background: white; padding: 20px; border-radius: 15px; box-shadow: var(--shadow);">
                 <div style="color: var(--primary); font-weight: bold;">3. Financials</div>
-                <p style="font-size: 0.9rem;">Historical ratio analysis.</p>
+                <p style="font-size: 0.9rem;"><strong>Ratio Analysis:</strong> Historical Solvency, Liquidity, and Coverage metrics.</p>
             </div>
             <div style="background: white; padding: 20px; border-radius: 15px; box-shadow: var(--shadow);">
                 <div style="color: var(--primary); font-weight: bold;">4. Future</div>
-                <p style="font-size: 0.9rem;">Forecasts & Projections.</p>
+                <p style="font-size: 0.9rem;"><strong>3-Statement Model:</strong> Pro-forma projections to test repayment capacity.</p>
             </div>
         </div>
     </div>
 
-    <!-- SLIDE 13: Data Reliability -->
+    <!-- SLIDE 16: Data Hygiene Case -->
     <div class="slide">
-        <h2>Before We Calculate...</h2>
-        <p>We must ensure data quality. A classic trap: <strong>The 53rd Week</strong>.</p>
+        <h2>Step 1: Data Hygiene Case</h2>
         <div class="cols-2">
-            <div>
-                <p>Retailers often end fiscal years on a Saturday. Every 5-6 years, this creates a 53-week year.</p>
-                <div class="problem-box">
-                    <p><strong>Trap:</strong> Comparing a 53-week year to a 52-week year makes growth look artificially high.</p>
+            <div class="detective-file">
+                <div id="glitch-stamp" class="stamp">ANOMALY DETECTED</div>
+                <h3 style="font-family: 'Courier Prime'; border-bottom: 1px solid #ccc;">Subject: Fiscal Years</h3>
+                <p>Retailers often end the year on a Saturday. <br>52 weeks x 7 days = 364 days.</p>
+                <p>Every 5-6 years, the calendar drifts enough that they add a <strong>53rd Week</strong>.</p>
+                <div class="financial-data">
+                    <div class="data-row"><span class="data-label">2021 Sales (52 weeks):</span> <span class="data-val">$26,042 M</span></div>
+                    <div class="data-row"><span class="data-label">2022 Reported (53 weeks):</span> <span class="data-val">$26,485 M</span></div>
                 </div>
             </div>
             <div>
-                <h3 style="margin-top:0;">Example: Kraft Heinz</h3>
-                <div class="financial-data">
-                    <div class="data-row"><span class="data-label">Reported Sales (53 wks):</span> <span class="data-val">$25,985 M</span></div>
+                <h3>Does this look like growth?</h3>
+                <div style="margin-bottom: 20px;">
+                    <button class="btn-choice" onclick="guessKraft(true)">Yes, Sales went up!</button>
+                    <button class="btn-choice" onclick="guessKraft(false)">No, it's a trick.</button>
                 </div>
-                <button class="btn-reveal" onclick="toggleAnswer(this)">Normalize to 52 Weeks</button>
-                <div class="answer">
-                    <div class="math-eq" style="width:100%; justify-content: center;">
-                        <span>25,985</span> <span class="eq-symbol">×</span>
-                        <div class="fraction"><span class="numerator">52</span><span class="denominator">53</span></div>
-                        <span class="eq-symbol">=</span> <span class="eq-result">$25,491 M</span>
+                <div id="kraft-reveal" class="answer">
+                    <p><strong>Let's Scrub the Data.</strong> To compare apples to apples, we must remove the 53rd week.</p>
+                    <div class="math-eq">
+                        <span>$26,485</span> <span style="margin:0 10px">×</span> 
+                        <div class="fraction"><span class="numerator">52</span><span>53</span></div>
+                        <span style="margin:0 10px">=</span> <span class="eq-result" style="color:var(--error);">$25,985 M</span>
                     </div>
+                    <p style="margin-top: 15px;"><strong>The Truth:</strong> On a normalized basis, sales actually <em>declined</em>. The growth was a calendar illusion.</p>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- SLIDE 14: The 3 Pillars Intro -->
+    <!-- SLIDE 17: Three Pillars Intro -->
     <div class="slide">
         <h2>The 3 Pillars of Credit Analysis</h2>
-        <p>The core framework for Step 3 (Financial Analysis).</p>
+        <p>Now we investigate <strong>Verizon</strong>. We look at 3 areas.</p>
         <div class="card-container">
             <div class="flip-card" onclick="this.classList.toggle('flipped')">
                 <div class="flip-card-inner">
                     <div class="flip-card-front" style="background: var(--primary);">
                         <i class="fas fa-balance-scale" style="font-size: 3rem; margin-bottom: 20px;"></i>
                         <h3>1. Solvency</h3>
-                        <p style="color:white; font-size: 0.9rem;">Capital Structure</p>
                     </div>
                     <div class="flip-card-back">
-                        <h3>Solvency</h3>
-                        <p>How much debt vs equity?</p>
+                        <h3>Capital Structure</h3>
+                        <p>Whose money are they using? Theirs or the Banks?</p>
                         <p><strong>Metric:</strong> Debt-to-Equity</p>
                     </div>
                 </div>
@@ -780,11 +977,10 @@
                     <div class="flip-card-front" style="background: var(--accent);">
                         <i class="fas fa-money-bill-wave" style="font-size: 3rem; margin-bottom: 20px;"></i>
                         <h3>2. Coverage</h3>
-                        <p style="color:white; font-size: 0.9rem;">Ability to Pay</p>
                     </div>
                     <div class="flip-card-back" style="border-color: var(--accent);">
-                        <h3>Coverage</h3>
-                        <p>Can earnings cover interest?</p>
+                        <h3>Ability to Pay</h3>
+                        <p>Can their earnings cover the interest payments?</p>
                         <p><strong>Metric:</strong> Times Interest Earned</p>
                     </div>
                 </div>
@@ -794,11 +990,10 @@
                     <div class="flip-card-front" style="background: var(--success);">
                         <i class="fas fa-hourglass-half" style="font-size: 3rem; margin-bottom: 20px;"></i>
                         <h3>3. Liquidity</h3>
-                        <p style="color:white; font-size: 0.9rem;">Right Now</p>
                     </div>
                     <div class="flip-card-back" style="border-color: var(--success);">
-                        <h3>Liquidity</h3>
-                        <p>Cash access for short-term bills.</p>
+                        <h3>Right Now</h3>
+                        <p>Do they have cash for bills due <em>this week</em>?</p>
                         <p><strong>Metric:</strong> Current Ratio</p>
                     </div>
                 </div>
@@ -806,157 +1001,257 @@
         </div>
     </div>
 
-    <!-- SLIDE 15: Pillar 1 Solvency -->
+    <!-- SLIDE 18: Solvency / Banker's Dilemma -->
     <div class="slide">
-        <h2>Pillar 1: Solvency (Verizon)</h2>
+        <h2>Pillar 1: The Banker's Dilemma</h2>
         <div class="cols-2">
             <div>
+                <p>I'm going to show you a blind balance sheet. You tell me if you'd lend them money.</p>
+                <div class="detective-file">
+                    <div class="financial-data" style="margin:0;">
+                        <div class="data-row"><span class="data-label">Liabilities:</span> <span class="data-val">$287 Billion</span></div>
+                        <div class="data-row"><span class="data-label">Equity (Net Worth):</span> <span class="data-val">$92 Billion</span></div>
+                        <div class="data-row" style="margin-top:10px; border-top:1px dashed #ccc; padding-top:10px;">
+                            <span class="data-label">Leverage Ratio:</span> <span class="data-val" style="color:var(--error);">3.11x</span>
+                        </div>
+                    </div>
+                </div>
+                <p style="margin-top:15px;">They owe $3.11 for every $1 they own. If I had a mortgage that was 3x my net worth, I wouldn't sleep at night.</p>
+            </div>
+            <div style="display:flex; flex-direction: column; justify-content: center;">
+                <h3 style="text-align: center;">Would you approve the loan?</h3>
+                <div style="display: flex; gap: 10px; justify-content: center; margin-bottom: 20px;">
+                    <button class="btn-choice" onclick="revealVerizon()">NO WAY! Too risky.</button>
+                    <button class="btn-choice" onclick="revealVerizon()">Yes, I trust them.</button>
+                </div>
+                <div id="verizon-reveal" class="answer">
+                    <h3 style="color:var(--primary);">It's Verizon!</h3>
+                    <p><strong>Why isn't the bank panicking?</strong><br>Leverage is a tool. Verizon borrows at low rates (say 4%) to build networks that earn high returns (say 10%).</p>
+                    <p>High debt is fine... <em>as long as you can make the payments.</em></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 19: Solvency Metrics (Interactive) -->
+    <div class="slide">
+        <h2>Solvency Metrics: Measuring Leverage</h2>
+        <p>Before we panic, we must choose the right measuring stick. <strong>What is in the Numerator?</strong></p>
+        
+        <div class="cols-2">
+            <div class="bg-white p-6 rounded-xl shadow-md border-t-4 border-primary">
+                <h3 style="font-size:1.3rem;">1. Liabilities-to-Equity</h3>
+                <button class="btn-reveal" onclick="toggleAnswer(this)" style="width:100%; margin-top:5px;">Analyze Metric 1</button>
+                <div class="answer" style="margin-top:10px;">
+                    <div class="math-eq" style="font-size:1.1rem; width:100%; justify-content:center;">
+                        <div class="fraction"><span class="numerator">Total Liabilities</span><span>Stockholders' Equity</span></div>
+                    </div>
+                    <div class="problem-box" style="margin: 10px 0; padding: 15px;">
+                        <p><strong>Includes:</strong> Everything. Suppliers (A/P), Taxes, Wages, AND Debt.</p>
+                    </div>
+                    <p style="font-size:0.95rem;"><strong>Use When:</strong> Evaluating the total funding mix of the balance sheet. High ratio = Highly creditor funded.</p>
+                </div>
+            </div>
+            
+            <div class="bg-white p-6 rounded-xl shadow-md border-t-4 border-accent">
+                <h3 style="font-size:1.3rem;">2. Total Debt-to-Equity</h3>
+                <button class="btn-reveal" onclick="toggleAnswer(this)" style="width:100%; margin-top:5px;">Analyze Metric 2</button>
+                <div class="answer" style="margin-top:10px;">
+                    <div class="math-eq" style="font-size:1.1rem; width:100%; justify-content:center;">
+                        <div class="fraction"><span class="numerator">Short Term Debt + Long Term Debt</span><span>Stockholders' Equity</span></div>
+                    </div>
+                    <div class="problem-box" style="margin: 10px 0; padding: 15px;">
+                        <p><strong>Includes:</strong> Only interest-bearing financing (Loans, Bonds, Leases).</p>
+                    </div>
+                    <p style="font-size:0.95rem;"><strong>Use When:</strong> Focusing on financing risk, covenants, and interest burden. This is the "cleaner" measure of financial leverage.</p>
+                </div>
+            </div>
+        </div>
+        <div class="cyu-box">
+            <div class="cyu-question">Which ratio would a banker prefer if they only care about Interest-Bearing obligations?</div>
+            <button class="btn-choice" onclick="alert('Correct! This filters out operating liabilities like Accounts Payable.')">Total Debt-to-Equity</button>
+            <button class="btn-choice wrong" onclick="alert('Incorrect. Liabilities include everything.')">Liabilities-to-Equity</button>
+        </div>
+    </div>
+
+    <!-- SLIDE 20: TIE Ratio -->
+    <div class="slide">
+        <h2>Pillar 2: Coverage </h2>
+        <p>Solvency asks "How much debt?" Coverage asks "Can we afford the monthly bill?"</p>
+        
+        <div class="cols-2">
+            <div>
+                <div class="math-eq" style="padding: 20px; font-size: 1.5rem;">
+                    <span style="font-weight:bold;">TIE</span> <span style="margin:0 15px">=</span> 
+                    <div class="fraction"><span class="numerator">EBIT</span><span>Interest Expense (Gross)</span></div>
+                </div>
+                <p style="margin-top:20px;"><strong>The Logic:</strong> Compares Operating Profit (before financing costs) to the mandatory Interest Bill.</p>
+                <div class="problem-box">
+                    <p><strong>Why Gross Interest?</strong></p>
+                    <p>We do not subtract Interest Income. The bank doesn't care if you earned interest on your cash; they care if your <em>business operations</em> generate enough to pay them.</p>
+                </div>
+            </div>
+            
+            <div>
+                <h3 style="margin-bottom:15px;">Verizon Example</h3>
                 <div class="financial-data">
-                    <div class="data-row"><span class="data-label">Liabilities:</span> <span class="data-val">$287,217 M</span></div>
-                    <div class="data-row"><span class="data-label">Equity:</span> <span class="data-val">$92,463 M</span></div>
+                    <div class="data-row"><span class="data-label">2021 TIE:</span> <span class="data-val">9.31x</span></div>
+                    <div class="data-row"><span class="data-label">2022 TIE:</span> <span class="data-val">8.43x</span></div>
+                </div>
+                <div class="insight-card">
+                    <h4>Takeaway</h4>
+                    <p>Verizon's cushion shrank. Operating profit covers the interest bill 8.4 times. This is still safe, but the trend is negative (either profit fell or rates rose).</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 21: EBITDA & Cash Flow (Interactive) -->
+    <div class="slide">
+        <h2>Other Coverage Metrics </h2>
+        <p>Earnings are accrual based. Let's get closer to the cash.</p>
+        
+        <div class="card-container" style="grid-template-columns: 1fr 1fr 1fr; gap: 20px;">
+            <!-- CARD 1 -->
+            <div class="bg-white p-5 rounded-xl shadow-md border-t-4 border-blue-500">
+                <h3 style="font-size:1.1rem; color:#333;">1. EBITDA Coverage</h3>
+                <div class="math-eq" style="width:100%; justify-content:center; font-size:1rem; margin: 10px 0;">
+                    <div class="fraction"><span class="numerator">EBIT + D&A</span><span>Interest</span></div>
+                </div>
+                <p style="font-size:0.9rem;"><strong>Proxy for Cash.</strong> Adds back non-cash Depreciation.</p>
+                <button class="btn-reveal-sm" style="width:100%;" onclick="toggleAnswer(this)">Apply to Verizon</button>
+                <p class="answer" style="font-size:0.9rem; font-weight:bold; color:var(--primary); margin-top:10px;">Verizon: 13.17x</p>
+            </div>
+
+            <!-- CARD 2 -->
+            <div class="bg-white p-5 rounded-xl shadow-md border-t-4 border-green-500">
+                <h3 style="font-size:1.1rem; color:#333;">2. CFO to Total Debt</h3>
+                <div class="math-eq" style="width:100%; justify-content:center; font-size:1rem; margin: 10px 0;">
+                    <div class="fraction"><span class="numerator">Cash from Ops</span><span>Total Debt</span></div>
+                </div>
+                <p style="font-size:0.9rem;"><strong>Actual Cash.</strong> Percent of debt we could pay in 1 year.</p>
+                <button class="btn-reveal-sm" style="width:100%;" onclick="toggleAnswer(this)">Apply to Verizon</button>
+                <p class="answer" style="font-size:0.9rem; font-weight:bold; color:var(--primary); margin-top:10px;">Verizon: 21%</p>
+            </div>
+
+            <!-- CARD 3 -->
+            <div class="bg-white p-5 rounded-xl shadow-md border-t-4 border-red-500">
+                <h3 style="font-size:1.1rem; color:#333;">3. FCF to Total Debt</h3>
+                <div class="math-eq" style="width:100%; justify-content:center; font-size:1rem; margin: 10px 0;">
+                    <div class="fraction"><span class="numerator">CFO - CAPEX</span><span>Total Debt</span></div>
+                </div>
+                <p style="font-size:0.9rem;"><strong>Reality Check.</strong> After maintaining the factory/network (CAPEX).</p>
+                <button class="btn-reveal-sm" style="width:100%;" onclick="toggleAnswer(this)">Apply to Verizon</button>
+                <p class="answer" style="font-size:0.9rem; font-weight:bold; color:var(--primary); margin-top:10px;">Verizon: 8%</p>
+            </div>
+        </div>
+        
+        <p style="text-align:center; margin-top:20px; font-style:italic; font-size:0.95rem;">Notice the drop? 13x earnings coverage looks invincible. 8% FCF coverage looks tight. This is why we check all three.</p>
+        
+         
+    </div>
+
+    <!-- SLIDE 22: Coverage / Cash Drain -->
+    <div class="slide">
+        <h2>The Cash Flow Drain</h2>
+        <p>Can they make the payments? Let's follow the money.</p>
+        
+        <div style="width: 80%; margin: 0 auto;">
+            <div style="margin-bottom: 5px; font-weight: bold; display:flex; justify-content:space-between;">
+                <span>EBITDA (Earnings) - 13.1x Coverage</span>
+                <span>$48 Billion</span>
+            </div>
+            <div class="drain-bar-container">
+                <div class="drain-bar" id="bar-ebitda"></div>
+            </div>
+            <p id="txt-1" style="font-size:0.9rem; margin-bottom: 20px;">Huge earnings! EBITDA ignores depreciation (non-cash). Looks great.</p>
+
+            <button class="btn-reveal-sm" onclick="drainCash(1)" id="btn-drain-1">Pay Interest & Taxes</button>
+            
+            <div id="step-2" style="opacity:0.3; transition: opacity 0.5s;">
+                <div style="margin-bottom: 5px; font-weight: bold; display:flex; justify-content:space-between; margin-top: 15px;">
+                    <span>Operating Cash Flow</span>
+                    <span>$37 Billion</span>
+                </div>
+                <div class="drain-bar-container">
+                    <div class="drain-bar" id="bar-ocf" style="width: 77%;"></div>
+                </div>
+                <p id="txt-2" style="font-size:0.9rem; margin-bottom: 20px;">Still strong. We paid the bank and the government.</p>
+                <button class="btn-reveal-sm" onclick="drainCash(2)" id="btn-drain-2">Pay CAPEX (Maintenance)</button>
+            </div>
+
+            <div id="step-3" style="opacity:0.3; transition: opacity 0.5s;">
+                <div style="margin-bottom: 5px; font-weight: bold; display:flex; justify-content:space-between; margin-top: 15px;">
+                    <span>Free Cash Flow - 8% Coverage</span>
+                    <span style="color:var(--error);">$14 Billion</span>
+                </div>
+                <div class="drain-bar-container">
+                    <div class="drain-bar" id="bar-fcf" style="width: 29%; background: var(--accent);"></div>
+                </div>
+                <div class="insight-card" style="margin-top:10px;">
+                    <p><strong>The Reality:</strong> Telecom is Capital Intensive. They are on a treadmill just to stay in place (maintaining towers/fiber). Once you pay for that, coverage drops from 13x to just 8%.</p>
+                </div>
+            </div>
+            <div class="cyu-box">
+                <div class="cyu-question">Why is Free Cash Flow (FCF) coverage usually lower than Operating Cash Flow (CFO) coverage?</div>
+                <button class="btn-choice" onclick="alert('Correct! FCF subtracts CAPEX, which is a massive expense for companies like Verizon.')">Subtracts CAPEX</button>
+                <button class="btn-choice wrong" onclick="alert('Incorrect. FCF adds Debt, it does not subtract expenses.')">Adds Debt</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 23: Liquidity -->
+    <div class="slide">
+        <h2>Pillar 3: The Liquidity </h2>
+        <div class="cols-2">
+            <div>
+                <p>The Golden Rule of Finance: <strong>Current Ratio > 1.0</strong>.</p>
+                <p>You want more cash coming in than bills going out.</p>
+                <div class="financial-data">
+                    <div class="data-row"><span class="data-label">Verizon Current Ratio:</span> <span class="data-val" style="color:var(--error);">0.75</span></div>
+                    <div class="data-row"><span class="data-label">Quick Ratio:</span> <span class="data-val" style="color:var(--error);">0.54</span></div>
                 </div>
                 <div class="problem-box">
-                    <p>Calculate <strong>Liabilities-to-Equity</strong>.</p>
+                    <p><strong>This looks insolvent.</strong> In a normal household, if you had $100 in bills due Friday and $75 in the bank, you'd be selling stuff on eBay.</p>
                 </div>
-                <button class="btn-reveal" onclick="toggleAnswer(this)" data-target="ans-solvency">Calculate</button>
             </div>
             <div>
-                <div class="answer" id="ans-solvency">
-                    <div class="math-eq">
-                        <div class="fraction">
-                            <span class="numerator">287,217</span>
-                            <span class="denominator">92,463</span>
+                <h3>How do they survive?</h3>
+                <p>They use the <strong>"Negative Working Capital"</strong> strategy.</p>
+                <div class="detective-file" style="transform: rotate(1deg);">
+                    <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <div style="text-align: center;">
+                            <i class="fas fa-user" style="font-size:2rem; color:var(--success);"></i><br>
+                            <small>You (Customer)</small>
                         </div>
-                        <span class="eq-symbol">=</span>
-                        <span class="eq-result">3.11</span>
-                    </div>
-                    <div class="insight-card" style="margin-top: 10px;">
-                        <h4>Interpretation</h4>
-                        <p>Verizon uses $3.11 of debt for every $1 of equity. This is high leverage, typical for Telecom/Utilities.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- SLIDE 16: Pillar 2 Coverage -->
-    <div class="slide">
-        <h2>Pillar 2: Coverage (TIE)</h2>
-        <div class="cols-2">
-            <div>
-                <div class="financial-data">
-                    <div class="data-row"><span class="data-label">EBIT:</span> <span class="data-val">$30,467 M</span></div>
-                    <div class="data-row"><span class="data-label">Interest:</span> <span class="data-val">$3,613 M</span></div>
-                </div>
-                <div class="problem-box">
-                    <p>Calculate <strong>Times Interest Earned</strong>.</p>
-                </div>
-                <button class="btn-reveal" onclick="toggleAnswer(this)" data-target="ans-coverage">Calculate</button>
-            </div>
-            <div>
-                <div class="answer" id="ans-coverage">
-                    <div class="math-eq">
-                        <div class="fraction">
-                            <span class="numerator">30,467</span>
-                            <span class="denominator">3,613</span>
+                        <div style="width: 50px; height: 2px; background: #ccc;"></div>
+                        <div style="text-align: center;">
+                            <i class="fas fa-building" style="font-size:2rem; color:var(--primary);"></i><br>
+                            <small>Verizon</small>
                         </div>
-                        <span class="eq-symbol">=</span>
-                        <span class="eq-result">8.43x</span>
-                    </div>
-                    <p style="margin-top:10px;"><strong>Verdict:</strong> Strong. They can pay their interest bill 8 times over.</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- SLIDE 17: Pillar 2 Cash Flow -->
-    <div class="slide">
-        <h2>Pillar 2: Coverage (Cash Flow)</h2>
-        <p>Earnings are great, but Cash is King. Let's look at Free Cash Flow.</p>
-        <div class="financial-data compact">
-            <div class="data-row"><span class="data-label">CFO:</span> <span class="data-val">$37,141 M</span></div>
-            <div class="data-row"><span class="data-label">CAPEX:</span> <span class="data-val">$23,087 M</span></div>
-            <div class="data-row"><span class="data-label">Total Debt:</span> <span class="data-val">$176,331 M</span></div>
-        </div>
-        <button class="btn-reveal" onclick="toggleAnswer(this)">Calculate FCF Coverage</button>
-        <div class="answer">
-            <div class="math-eq">
-                <div class="fraction">
-                    <span class="numerator">37,141 - 23,087</span>
-                    <span class="denominator">176,331</span>
-                </div>
-                <span class="eq-symbol">=</span>
-                <span class="eq-result">8%</span>
-            </div>
-            <p><strong>Contrast:</strong> While Earnings coverage (8.43x) looked huge, FCF coverage is tight (8%). This highlights the heavy cost of maintaining the network.</p>
-        </div>
-    </div>
-
-    <!-- SLIDE 18: Pillar 3 Liquidity -->
-    <div class="slide">
-        <h2>Pillar 3: Liquidity</h2>
-        <div class="cols-2">
-            <div>
-                <div class="financial-data">
-                    <div class="data-row"><span class="data-label">Current Assets:</span> <span class="data-val">$37,857 M</span></div>
-                    <div class="data-row"><span class="data-label">Current Liab:</span> <span class="data-val">$50,171 M</span></div>
-                </div>
-                <div class="problem-box">
-                    <p>Calculate <strong>Current Ratio</strong>.</p>
-                </div>
-                <button class="btn-reveal" onclick="toggleAnswer(this)" data-target="ans-liquidity">Calculate</button>
-            </div>
-            <div>
-                <div class="answer" id="ans-liquidity">
-                    <div class="math-eq">
-                        <div class="fraction">
-                            <span class="numerator">37,857</span>
-                            <span class="denominator">50,171</span>
+                        <div style="width: 50px; height: 2px; background: #ccc;"></div>
+                        <div style="text-align: center;">
+                            <i class="fas fa-truck" style="font-size:2rem; color:var(--error);"></i><br>
+                            <small>Supplier</small>
                         </div>
-                        <span class="eq-symbol">=</span>
-                        <span class="eq-result">0.75</span>
                     </div>
-                    <div class="insight-card">
-                        <h4><i class="fas fa-exclamation-triangle"></i> Is this bad?</h4>
-                        <p>Under 1.0 means negative working capital. For a giant like Verizon, it's efficiency. For a small business, it's panic time.</p>
+                    <button class="btn-reveal-sm" onclick="revealLiquidity()" style="width:100%;">Who pays when?</button>
+                    <div id="liquidity-reveal" style="display:none; margin-top:15px; font-size: 0.9rem;">
+                        <p><i class="fas fa-check" style="color:var(--success)"></i> <strong>You pay Verizon:</strong> Immediately (Auto-pay).</p>
+                        <p><i class="fas fa-clock" style="color:var(--error)"></i> <strong>Verizon pays Supplier:</strong> In 90 days.</p>
+                        <p><strong>Verdict:</strong> Verizon uses its suppliers as a free bank. It's efficient, but relies on confidence. If the credit lines dry up, this efficiency becomes fragility.</p>
+                    </div>
+                    <div class="cyu-box">
+                        <div class="cyu-question">If a company’s current ratio is high but its quick ratio is low, the most likely explanation is:</div>
+                        <button class="btn-choice" onclick="alert('Correct! Current ratio = Current Assets ÷ Current Liabilities.The company has plenty of current assets overall, but most of them are not “quick”')">It has lots of inventory</button>
+                        <button class="btn-choice wrong" onclick="alert('Incorrect. Current ratio = Current Assets ÷ Current Liabilities.Could lower the quick ratio, but it wouldn’t usually explain a high current ratio')">It has no receivables</button>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- SLIDE 19: Ratings Intro -->
-    <div class="slide">
-        <h2>Credit Ratings: The Scorecard</h2>
-        <div class="cols-2">
-            <div>
-                <p>Agencies like S&P and Moody's condense all this analysis into a letter grade.</p>
-                <ul>
-                    <li><strong>Investment Grade:</strong> BBB- / Baa3 and above. Safe for pension funds.</li>
-                    <li><strong>Speculative (Junk):</strong> BB+ / Ba1 and below. High yield, high risk.</li>
-                </ul>
-            </div>
-            <div>
-                <button class="btn-reveal" style="margin-top:0;" onclick="toggleAnswer(this)" data-target="rating-table">Show Scale</button>
-                <div id="rating-table" class="answer visible">
-                    <table class="moody-table">
-                        <thead>
-                            <tr><th>S&P</th><th>Moody's</th><th>Desc</th></tr>
-                        </thead>
-                        <tbody>
-                            <tr class="highlight"><td>AAA</td><td>Aaa</td><td>Prime</td></tr>
-                            <tr><td>AA</td><td>Aa</td><td>High Grade</td></tr>
-                            <tr><td>A</td><td>A</td><td>Upper Med</td></tr>
-                            <tr class="highlight"><td>BBB</td><td>Baa</td><td>Inv. Grade Floor</td></tr>
-                            <tr style="border-top: 2px solid var(--error);"><td>BB</td><td>Ba</td><td>Junk</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- SLIDE 20: Ratings Impact -->
+    <!-- SLIDE 24: Why Ratings Matter -->
     <div class="slide">
         <h2>Why Ratings Matter</h2>
         <div class="card-container" style="grid-template-columns: 1fr 1fr; gap: 40px;">
@@ -968,7 +1263,7 @@
                     </div>
                     <div class="flip-card-back" style="border-color: var(--text-main);">
                         <p>Lower ratings = Higher interest rates.</p>
-                        <p>Aaa might yield 3.6%, while Baa yields 4.8%.</p>
+                        <p>Aaa might yield 3.6%, while Baa yields 4.8%. That difference costs millions.</p>
                     </div>
                 </div>
             </div>
@@ -984,9 +1279,32 @@
                 </div>
             </div>
         </div>
+        <div class="problem-box">
+            <p><strong>The "Cliff":</strong> The gap between BBB- and BB+ is the most dangerous place in finance. Falling off means losing half your investors instantly.</p>
+        </div>
     </div>
 
-    <!-- SLIDE 21: Moody's Matrix -->
+    <!-- SLIDE 25: Ratings Scales -->
+    <div class="slide">
+        <h2>Reference: The Ratings Scale</h2>
+        <p>The cliff between Investment Grade and Junk.</p>
+        <table class="moody-table" style="font-size: 1.3rem;">
+            <tr style="background:var(--primary); color:white;"><th>S&P</th><th>Default Rate (5yr)</th><th>Meaning</th></tr>
+            <tr><td>AAA</td><td>0.0%</td><td>Risk Free</td></tr>
+            <tr><td>BBB</td><td>1.6%</td><td>Investment Grade Floor</td></tr>
+            <tr style="border-top: 4px solid var(--error); background: #fff5f5;"><td>BB</td><td>6.0%</td><td>Speculative (Junk)</td></tr>
+            <tr><td>CCC</td><td>36.3%</td><td>High Default Risk</td></tr>
+        </table>
+        
+        <!-- CYU 4 -->
+        <div class="cyu-box">
+            <div class="cyu-question">Check Your Understanding: Why is falling from BBB- to BB+ called "Falling off a cliff"?</div>
+            <button class="btn-choice" onclick="alert('Correct! Pension funds are often legally banned from holding speculative grade debt, causing a massive sell-off.')">Pension Fund Ban</button>
+            <button class="btn-choice wrong" onclick="alert('Incorrect. Taxes generally stay the same.')">Tax reasons</button>
+        </div>
+    </div>
+
+    <!-- SLIDE 26: Moody's Matrix -->
     <div class="slide">
         <h2>Moody's Metrics Matrix</h2>
         <p>Where do the numbers fit? (Based on 2022 Medians)</p>
@@ -1009,92 +1327,374 @@
                 </tbody>
             </table>
         </div>
-        <div class="problem-box">
-            <p><strong>Exercise:</strong> Company X has Debt/EBITDA of <strong>1.3x</strong>. What rating is that?</p>
-            <button class="btn-reveal-sm" onclick="toggleAnswer(this)">Check</button>
-            <div class="answer" style="background:transparent; border:none; padding:5px 0;">
-                <p><strong>Aa</strong>. Very strong.</p>
-            </div>
-        </div>
-    </div>
-
-    <!-- SLIDE 22: Z-Score -->
-    <div class="slide">
-        <h2>Predicting Bankruptcy: Z-Score</h2>
-        <p>A formula to predict distress within 2 years.</p>
         
-        <div class="financial-data" style="text-align: center; margin-bottom: 20px;">
-            <div class="data-row"><span>Verizon Calc:</span> <span class="data-val">1.20</span></div>
-        </div>
-
-        <div class="z-meter-container">
-            <div class="z-marker">
-                <span>Verizon 1.2</span>
-                <i class="fas fa-caret-down"></i>
-            </div>
-            <div class="z-meter-bar"></div>
-            <div style="display:flex; justify-content:space-between; margin-top:5px; font-size:0.8rem; font-weight:bold;">
-                <span style="color:var(--error)">Distress (< 1.8)</span>
-                <span style="color:var(--warning)">Gray Zone</span>
-                <span style="color:var(--success)">Safe (> 3.0)</span>
-            </div>
-        </div>
-
-        <div class="insight-card">
-            <h4>Analyst's Dilemma</h4>
-            <p>Verizon scores 1.2 (Distress) but is rated BBB+ (Safe). Why? <strong>Qualitative Factors.</strong> A monopoly-like utility isn't the same as a struggling retailer.</p>
+        <!-- CYU 5 -->
+        <div class="cyu-box">
+            <div class="cyu-question">Exercise: Company X has Debt/EBITDA of 1.3x. What rating is that?</div>
+            <button class="btn-choice" onclick="alert('Correct! 1.3x aligns with Aa.')">Aa (Very Strong)</button>
+            <button class="btn-choice wrong" onclick="alert('Incorrect. Baa is 2.6x.')">Baa</button>
         </div>
     </div>
 
-    <!-- SLIDE 23: LGD Hierarchy -->
+    <!-- SLIDE 27: Z-Score Detailed (RESTRUCTURED) -->
     <div class="slide">
-        <h2>Loss Given Default (LGD)</h2>
-        <p>If they crash, who gets paid first?</p>
-        <div class="cols-2">
+        <h2>Inside the Z-Score</h2>
+        <p>Edward Altman's formula predicts bankruptcy using 5 inputs.</p>
+        
+        <div class="cols-2 custom-scrollbar" style="overflow-y: auto;">
+            <!-- Left Column: Inputs & Visual Formula -->
             <div>
-                <ul style="list-style: none; padding: 0;">
-                    <li style="background: var(--success); color: white; padding: 15px; border-radius: 10px; margin-bottom: 10px;">1. Secured Debt (Mortgages)</li>
-                    <li style="background: #a29bfe; color: white; padding: 15px; border-radius: 10px; margin-bottom: 10px;">2. Senior Unsecured Debt</li>
-                    <li style="background: var(--warning); color: white; padding: 15px; border-radius: 10px; margin-bottom: 10px;">3. Subordinated Debt</li>
-                    <li style="background: var(--error); color: white; padding: 15px; border-radius: 10px;">4. Equity (Shareholders)</li>
+                 <div class="insight-card" style="margin-top: 0; margin-bottom: 20px;">
+                    <h4 style="margin-bottom: 10px;">The Formula</h4>
+                    <div class="math-eq" style="font-size: 1.1rem; width: 100%; justify-content: center; background: #f8f9fa;">
+                        Z = 1.2A + 1.4B + 3.3C + 0.6D + 1.0E
+                    </div>
+                </div>
+
+                <h3 style="font-size: 1.2rem;">Inputs</h3>
+                <ul style="line-height: 2.2;">
+                    <li><strong>A: Working Capital / Assets</strong> (Liquidity)</li>
+                    <li><strong>B: Retained Earnings / Assets</strong> (Age/Stability)</li>
+                    <li><strong>C: EBIT / Assets</strong> (Profitability)</li>
+                    <li><strong>D: Market Equity / Liabilities</strong> (Leverage)</li>
+                    <li><strong>E: Sales / Assets</strong> (Asset Turnover)</li>
                 </ul>
             </div>
-            <div class="insight-card" style="margin-top:0;">
-                <h4>The Lender's Toolkit</h4>
-                <p>Lenders use <strong>Covenants</strong> (Rules) and <strong>Collateral</strong> (Assets) to move themselves up this list or prevent the crash entirely.</p>
+            
+            <!-- Right Column: Interpretation & Best Practice -->
+            <div>
+                <div class="problem-box" style="margin-top:0;">
+                    <h3 style="margin-top:0;">Interpretation Zones</h3>
+                    <ul class="fa-ul" style="margin-left:0; font-size:0.95rem;">
+                         <li><span class="fa-li"><i class="fas fa-check text-green-500"></i></span><strong>Z > 2.99:</strong> "Safe" Zone</li>
+                         <li><span class="fa-li"><i class="fas fa-exclamation-triangle text-yellow-500"></i></span><strong>1.81 - 2.99:</strong> "Gray" Zone</li>
+                         <li><span class="fa-li"><i class="fas fa-times text-red-500"></i></span><strong>Z < 1.81:</strong> "Distress" Zone</li>
+                    </ul>
+                </div>
+
+                <div class="insight-card" style="border-left-color: var(--primary);">
+                    <h4>Best Practice</h4>
+                    <p style="font-size: 0.95rem;">Treat Z-Score as a "Warning Light", not a verdict. Use it to rank firms and spot deterioration trends.</p>
+                </div>
+
+                 <div class="cyu-box" style="margin-top: 15px; padding: 15px;">
+                    <div class="cyu-question" style="font-size: 1rem; margin-bottom: 10px;">Check Your Understanding: If a company has a Z-Score of 1.5, what zone are they in?</div>
+                    <button class="btn-choice" style="font-size: 0.9rem; padding: 8px 16px;" onclick="alert('Correct! < 1.81 is the Distress Zone.')">Distress Zone</button>
+                    <button class="btn-choice wrong" style="font-size: 0.9rem; padding: 8px 16px;" onclick="alert('Incorrect. Gray zone is 1.81 to 2.99.')">Gray Zone</button>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- SLIDE 24: Summary -->
+    <!-- SLIDE 28: Z-Score Glitch -->
+    <div class="slide">
+        <h2>The Z-Score Glitch</h2>
+        <p>Let's feed Verizon's numbers into the model.</p>
+        
+        <div class="cols-2">
+            <div>
+                <button class="btn-reveal" onclick="runZScore()">Run Simulation</button>
+                <div id="z-score-result" class="matrix-effect">
+                    CALCULATING...<br>
+                    LIQUIDITY: LOW (Negative Working Capital)<br>
+                    LEVERAGE: HIGH<br>
+                    Z-SCORE: 1.20<br>
+                    <span style="color: red; font-weight: bold;">PREDICTION: BANKRUPTCY IMMINENT</span>
+                </div>
+            </div>
+            <div id="z-score-explanation" class="answer">
+                <h3>Wait... they aren't bankrupt?</h3>
+                <div class="z-meter-container">
+                    <div class="z-marker">
+                        <span>Verizon 1.2</span>
+                        <i class="fas fa-caret-down"></i>
+                    </div>
+                    <div class="z-meter-bar"></div>
+                </div>
+                <p style="margin-top:10px;">Verizon has scored in the "Distress Zone" (< 1.8) for 10 years straight.</p>
+                <p><strong>The Lesson:</strong> Models are tools, not laws. The Z-Score penalizes negative working capital (Input A). But for a utility like Verizon, negative working capital is a strategy, not a weakness. <strong>False Positive.</strong></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 29: LGD INTUITION (SCROLLABLE & INTEGRATED) -->
+    <div class="slide full-bleed">
+        <div style="height: 100%; overflow-y: auto;">
+            <!-- Embedded LGD Interface -->
+            <main class="w-full bg-gray-50 flex flex-col items-center py-10 px-4" style="min-height: 100%;">
+                <div class="w-full max-w-4xl bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200">
+                    
+                    <!-- Header -->
+                    <header class="bg-slate-900 text-white p-8 text-center">
+                        <div class="inline-block bg-blue-600 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider mb-3">Deep Dive</div>
+                        <h1 class="text-4xl font-extrabold mb-2">Loss Given Default (LGD)</h1>
+                        <p class="text-slate-400 text-lg">It's not about how often you crash. It's about how bad the damage is.</p>
+                    </header>
+
+                    <!-- SECTION 1: The Definition -->
+                    <section class="p-8 border-b border-slate-100">
+                        <div class="flex flex-col md:flex-row gap-8 items-center">
+                            <div class="md:w-1/2">
+                                <h2 class="text-2xl font-bold mb-4 flex items-center text-slate-900">
+                                    <i data-lucide="book-open" class="mr-2 text-blue-600"></i> What is LGD?
+                                </h2>
+                                <p class="text-lg text-slate-600 mb-4">
+                                    LGD answers one simple question: <br>
+                                    <span class="font-bold text-slate-800 italic">"If a default happens, what % of my money do I actually lose?"</span>
+                                </p>
+                                <div class="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-500">
+                                    <p class="font-mono text-lg font-bold text-blue-900">LGD = 1 - Recovery Rate</p>
+                                </div>
+                            </div>
+
+                            <!-- Interactive See-Saw -->
+                            <div class="md:w-1/2 bg-slate-50 p-6 rounded-xl border border-slate-200 w-full">
+                                <div class="flex justify-between mb-2 font-bold text-sm text-slate-500 uppercase">
+                                    <span>Recovery Rate</span>
+                                    <span>Loss (LGD)</span>
+                                </div>
+                                
+                                <input type="range" id="recoverySlider" min="0" max="100" value="40" class="mb-6">
+                                
+                                <div class="flex justify-between items-center">
+                                    <div class="text-center">
+                                        <div class="text-3xl font-bold text-emerald-600" id="recVal">40%</div>
+                                        <div class="text-xs text-slate-500">Recovered</div>
+                                    </div>
+                                    <div class="text-2xl text-slate-300 font-bold">+</div>
+                                    <div class="text-center">
+                                        <div class="text-3xl font-bold text-red-600" id="lgdVal">60%</div>
+                                        <div class="text-xs text-slate-500">Lost (LGD)</div>
+                                    </div>
+                                    <div class="text-2xl text-slate-300 font-bold">=</div>
+                                    <div class="text-center">
+                                        <div class="text-xl font-bold text-slate-800">100%</div>
+                                        <div class="text-xs text-slate-500">Total</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- SECTION 2: The Intuition (Car Accident) -->
+                    <section class="p-8 bg-slate-50 border-b border-slate-100">
+                        <h2 class="text-2xl font-bold mb-6 text-center text-slate-900">The Intuition: Car Insurance</h2>
+                        
+                        <div class="grid md:grid-cols-3 gap-6 text-center">
+                            <!-- PD -->
+                            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover-lift">
+                                <div class="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <i data-lucide="car" class="w-8 h-8 text-blue-600"></i>
+                                </div>
+                                <h3 class="font-bold text-lg text-slate-800">PD</h3>
+                                <p class="text-sm text-slate-500 font-semibold uppercase tracking-wide mb-2">Probability of Default</p>
+                                <p class="text-slate-600">Chance of having an accident.</p>
+                            </div>
+
+                            <!-- Multiply Sign -->
+                            <div class="flex items-center justify-center">
+                                <i data-lucide="x" class="w-10 h-10 text-slate-300"></i>
+                            </div>
+
+                            <!-- LGD -->
+                            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover-lift">
+                                <div class="bg-red-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <i data-lucide="alert-triangle" class="w-8 h-8 text-red-600"></i>
+                                </div>
+                                <h3 class="font-bold text-lg text-slate-800">LGD</h3>
+                                <p class="text-sm text-slate-500 font-semibold uppercase tracking-wide mb-2">Loss Given Default</p>
+                                <p class="text-slate-600">How totaled is the car?</p>
+                            </div>
+                        </div>
+
+                        <div class="mt-8 text-center">
+                            <div class="inline-block bg-slate-800 text-white px-6 py-3 rounded-lg shadow-lg">
+                                <span class="font-mono font-bold text-lg">Expected Loss = PD &times; LGD</span>
+                            </div>
+                            <p class="text-sm text-slate-500 mt-2">To price the risk (Spread), you need BOTH numbers.</p>
+                        </div>
+                    </section>
+
+                    <!-- SECTION 3: Why it Matters (The Scenario) -->
+                    <section class="p-8 border-b border-slate-100">
+                        <h2 class="text-2xl font-bold mb-6 text-slate-900">Why LGD Matters: Same Borrower, Different Loans</h2>
+                        <p class="mb-6 text-slate-600">Both loans below are to the <strong>same company</strong> (same risk of going bust). Why is one riskier?</p>
+
+                        <!-- Interactive Controller -->
+                        <div class="mb-6 bg-blue-50 p-4 rounded-lg flex items-center justify-between">
+                            <span class="font-bold text-blue-900">Adjust the Company's Probability of Default (PD):</span>
+                            <div class="flex items-center gap-3">
+                                <input type="range" id="pdSlider" min="1" max="20" value="5" class="w-48">
+                                <span class="font-mono font-bold text-blue-700 bg-white px-3 py-1 rounded border border-blue-200" id="pdDisplay">5%</span>
+                            </div>
+                        </div>
+
+                        <div class="grid md:grid-cols-2 gap-6 h-64">
+                            <!-- Scenario A -->
+                            <div class="relative border-2 border-emerald-100 bg-emerald-50/50 rounded-xl overflow-hidden h-full group" onclick="revealCard(this)">
+                                <!-- Overlay -->
+                                <div class="reveal-overlay">
+                                    <div class="text-center">
+                                        <i data-lucide="lock" class="w-8 h-8 text-emerald-600 mx-auto mb-2"></i>
+                                        <span class="font-bold text-emerald-800 uppercase tracking-wider text-sm">Click to Reveal<br>Loan A Profile</span>
+                                    </div>
+                                </div>
+                                <!-- Content -->
+                                <div class="p-6 blur-content transition-all duration-300 h-full">
+                                    <div class="absolute top-0 right-0 bg-emerald-500 text-white text-xs font-bold px-3 py-1 rounded-bl-lg uppercase">Senior Secured</div>
+                                    <h3 class="font-bold text-xl text-slate-800 mb-1">Loan A</h3>
+                                    <p class="text-xs text-slate-500 mb-4">Backed by collateral (Factory, Equipment)</p>
+                                    
+                                    <div class="space-y-2">
+                                        <div class="flex justify-between text-sm">
+                                            <span class="text-slate-600">PD (Chance):</span>
+                                            <span class="font-bold pd-val">5%</span>
+                                        </div>
+                                        <div class="flex justify-between text-sm">
+                                            <span class="text-slate-600">LGD (Severity):</span>
+                                            <span class="font-bold text-emerald-600">20% (Low)</span>
+                                        </div>
+                                        <hr class="border-emerald-200">
+                                        <div class="flex justify-between items-center">
+                                            <span class="font-bold text-slate-800">Expected Loss:</span>
+                                            <span class="text-2xl font-bold text-slate-900" id="el_a">1.0%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Scenario B -->
+                            <div class="relative border-2 border-red-100 bg-red-50/50 rounded-xl overflow-hidden h-full group" onclick="revealCard(this)">
+                                 <!-- Overlay -->
+                                 <div class="reveal-overlay">
+                                    <div class="text-center">
+                                        <i data-lucide="lock" class="w-8 h-8 text-red-600 mx-auto mb-2"></i>
+                                        <span class="font-bold text-red-800 uppercase tracking-wider text-sm">Click to Reveal<br>Bond B Profile</span>
+                                    </div>
+                                </div>
+                                <!-- Content -->
+                                <div class="p-6 blur-content transition-all duration-300 h-full">
+                                    <div class="absolute top-0 right-0 bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-bl-lg uppercase">Unsecured Bond</div>
+                                    <h3 class="font-bold text-xl text-slate-800 mb-1">Bond B</h3>
+                                    <p class="text-xs text-slate-500 mb-4">No collateral (Last in line to be paid)</p>
+                                    
+                                    <div class="space-y-2">
+                                        <div class="flex justify-between text-sm">
+                                            <span class="text-slate-600">PD (Chance):</span>
+                                            <span class="font-bold pd-val">5%</span>
+                                        </div>
+                                        <div class="flex justify-between text-sm">
+                                            <span class="text-slate-600">LGD (Severity):</span>
+                                            <span class="font-bold text-red-600">60% (High)</span>
+                                        </div>
+                                        <hr class="border-red-200">
+                                        <div class="flex justify-between items-center">
+                                            <span class="font-bold text-slate-800">Expected Loss:</span>
+                                            <span class="text-2xl font-bold text-slate-900" id="el_b">3.0%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-6 text-center text-sm text-slate-500 italic">
+                            *Because Bond B has a higher Expected Loss, investors will demand a much higher <strong>Credit Spread</strong> (Yield) to buy it.
+                        </div>
+                    </section>
+                    
+                    <!-- Footer -->
+                    <footer class="bg-white border-t border-slate-200 p-6 text-center">
+                        <p class="font-medium text-slate-700">Deep Dive Complete</p>
+                    </footer>
+
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- SLIDE 31: 5-Year Default Rates (UPDATED) -->
+    <div class="slide">
+        <h2>Five-Year Default Rates</h2>
+        <p>As of 2020 for January 2016 Cohort Issuers</p>
+        
+        <div class="chart-box">
+            <!-- Aaa -->
+            <div class="bar-group">
+                <div class="bar-val">0.0%</div>
+                <div class="bar" style="height: 1px;"></div>
+                <div class="bar-label">Aaa</div>
+            </div>
+            <!-- Aa -->
+            <div class="bar-group">
+                <div class="bar-val">0.0%</div>
+                <div class="bar" style="height: 1px;"></div>
+                <div class="bar-label">Aa</div>
+            </div>
+            <!-- A -->
+            <div class="bar-group">
+                <div class="bar-val">0.2%</div>
+                <div class="bar" style="height: 5px;"></div>
+                <div class="bar-label">A</div>
+            </div>
+            <!-- Baa -->
+            <div class="bar-group">
+                <div class="bar-val">1.3%</div>
+                <div class="bar" style="height: 25px;"></div>
+                <div class="bar-label">Baa</div>
+            </div>
+            <!-- Ba -->
+            <div class="bar-group">
+                <div class="bar-val">3.6%</div>
+                <div class="bar mid" style="height: 45px;"></div>
+                <div class="bar-label">Ba</div>
+            </div>
+            <!-- B -->
+            <div class="bar-group">
+                <div class="bar-val">13.2%</div>
+                <div class="bar spec" style="height: 90px;"></div>
+                <div class="bar-label">B</div>
+            </div>
+            <!-- Caa-C -->
+            <div class="bar-group">
+                <div class="bar-val">36.3%</div>
+                <div class="bar spec" style="height: 200px;"></div>
+                <div class="bar-label">Caa-C</div>
+            </div>
+        </div>
+
+        <button class="btn-reveal" onclick="toggleAnswer(this)" style="margin: 20px auto; display:block;">Reveal Key Message</button>
+        <div class="answer problem-box" style="margin-top:20px;">
+            <p><strong>Key Message:</strong> Investment-grade ratings (Aaa to Baa) have very low five-year default rates, while speculative-grade ratings (Ba and below) default much more frequently, especially Caa–C.</p>
+        </div>
+    </div>
+
+    <!-- SLIDE 32: SUMMARY -->
     <div class="slide">
         <h2>Module Summary</h2>
-        <div class="summary-grid">
-            <div id="summary-1" class="summary-box">
-                <h3>The Context</h3>
-                <p>Supply & Demand. Growth Loans vs. Distress Loans.</p>
+        <div class="cols-2">
+            <div>
+                <h3><i class="fas fa-clipboard-check"></i> Key Takeaways</h3>
+                <ul class="fa-ul" style="margin-left: 0;">
+                    <li id="sum-1" class="hidden-item" style="margin-bottom:15px;"><span class="fa-li"><i class="fas fa-check text-green-500"></i></span><strong>Context is King:</strong> A ratio of 3.0x might be great for a Utility but terrible for a Tech startup.</li>
+                    <li id="sum-2" class="hidden-item" style="margin-bottom:15px;"><span class="fa-li"><i class="fas fa-check text-green-500"></i></span><strong>Cash Truth:</strong> Profits (EBITDA) can be manipulated. Cash Flow (CFO/FCF) is harder to fake.</li>
+                    <li id="sum-3" class="hidden-item"><span class="fa-li"><i class="fas fa-check text-green-500"></i></span><strong>Structure Matters:</strong> LGD (Collateral/Covenants) is just as important as PD (Default Probability).</li>
+                </ul>
+                <button class="btn-reveal-sm" onclick="revealNextSummary(this)" style="margin-top: 10px;">Next Takeaway</button>
             </div>
-            <div id="summary-2" class="summary-box">
-                <h3>The Analysis</h3>
-                <p>3 Pillars: Solvency, Coverage, Liquidity.</p>
+            <div>
+                <div class="problem-box">
+                    <p><strong>The Analyst's Motto:</strong></p>
+                    <p style="font-size: 1.3rem; font-weight: bold; color: var(--primary-dark);">"Trust, but Verify."</p>
+                    <p>Always adjust the data. Always check the footnotes.</p>
+                </div>
             </div>
-            <div id="summary-3" class="summary-box">
-                <h3>The Result</h3>
-                <p>Ratings (S&P/Moody's) and LGD Hierarchy.</p>
-            </div>
-            <div id="summary-4" class="summary-box">
-                <h3>The Goal</h3>
-                <p>Quantifying Downside Risk.</p>
-            </div>
-        </div>
-        <div style="text-align: center; margin-top: 30px;">
-            <button id="summary-btn" class="btn-reveal" onclick="revealNextSummary()">Reveal Summary</button>
         </div>
     </div>
 
-    <!-- SLIDE 25: QUIZ -->
+
+    <!-- SLIDE 33: QUIZ -->
     <div class="slide">
-        <h2>Quiz Challenge</h2>
+        <h2>Detective's Exam</h2>
         <div style="max-width: 800px; margin: 0 auto;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <h3>Question <span id="quiz-progress">1</span> / 10</h3>
@@ -1112,7 +1712,7 @@
 
     <!-- Controls -->
     <div class="nav-bar">
-        <span class="page-num" id="page-num">Slide 1 / 25</span>
+        <span class="page-num" id="page-num">Slide 1 / 33</span>
         <div class="nav-controls">
             <button onclick="changeSlide(-1)"><i class="fas fa-arrow-left"></i> Prev</button>
             <button onclick="changeSlide(1)">Next <i class="fas fa-arrow-right"></i></button>
@@ -1121,11 +1721,11 @@
 
 </div>
 
+<!-- Main Slideshow Logic -->
 <script>
     let currentSlide = 0;
     const slides = document.querySelectorAll('.slide');
     const pageNum = document.getElementById('page-num');
-    let summaryStep = 0;
 
     // --- Navigation Logic ---
     function updateSlide() {
@@ -1137,11 +1737,9 @@
         });
         pageNum.innerText = `Slide ${currentSlide + 1} / ${slides.length}`;
         
-        // Highlight TOC item
+        // TOC highlight logic (simple)
         const tocItems = document.querySelectorAll('.toc-item');
         tocItems.forEach(item => item.classList.remove('active'));
-        // Logic to highlight closest TOC item would go here, 
-        // simplified for now by just letting clicks set context.
     }
 
     function changeSlide(direction) {
@@ -1162,56 +1760,127 @@
         menu.classList.toggle('open');
     }
 
-    // --- Interaction Logic ---
+    // --- Reveal Objectives & Outcomes & Summary Logic ---
+    let currentObjective = 0;
+    function revealNextObjective(btn) {
+        currentObjective++;
+        const item = document.getElementById(`obj-${currentObjective}`);
+        if(item) {
+            item.style.display = 'list-item';
+        }
+        if(currentObjective >= 3) {
+            btn.style.display = 'none';
+        }
+    }
+
+    let currentOutcome = 0;
+    function revealNextOutcome(btn) {
+        currentOutcome++;
+        const item = document.getElementById(`outcome-${currentOutcome}`);
+        if(item) {
+            item.style.display = 'list-item';
+        }
+        if(currentOutcome >= 4) {
+            btn.style.display = 'none';
+        }
+    }
+
+    let currentSummary = 0;
+    function revealNextSummary(btn) {
+        currentSummary++;
+        const item = document.getElementById(`sum-${currentSummary}`);
+        if(item) {
+            item.style.display = 'list-item';
+        }
+        if(currentSummary >= 3) {
+            btn.style.display = 'none';
+        }
+    }
+
+
+    // --- Generic Reveal ---
     function toggleAnswer(btn) {
         let answerDiv;
         const targetId = btn.getAttribute('data-target');
-        
-        // Try to find the target element
         if (targetId) {
             answerDiv = document.getElementById(targetId);
         } else {
             answerDiv = btn.nextElementSibling;
         }
 
-        // Safety check: if no answer div is found, exit early
-        if (!answerDiv) {
-            console.warn("No answer div found for button:", btn);
-            return; 
-        }
-
         if (answerDiv.classList.contains('visible')) {
             answerDiv.classList.remove('visible');
-            btn.innerText = btn.innerText.replace("Hide", "Reveal");
+            if(btn.innerText.includes("Hide")) btn.innerText = btn.innerText.replace("Hide", "Reveal");
+            if(btn.innerText.includes("Collapse")) btn.innerText = btn.innerText.replace("Collapse", "Analyze");
         } else {
             answerDiv.classList.add('visible');
-            btn.innerText = btn.innerText.replace("Reveal", "Hide");
+            if(btn.innerText.includes("Reveal")) btn.innerText = btn.innerText.replace("Reveal", "Hide");
+            if(btn.innerText.includes("Analyze")) btn.innerText = btn.innerText.replace("Analyze", "Collapse");
+            if(btn.innerText.includes("Apply")) btn.innerText = "Hide Analysis";
         }
     }
 
-    function revealNextSummary() {
-        summaryStep++;
-        const box = document.getElementById(`summary-${summaryStep}`);
-        if(box) {
-            box.classList.add('revealed');
+    // --- Case 1: Kraft Heinz ---
+    function guessKraft(isGrowth) {
+        const reveal = document.getElementById('kraft-reveal');
+        const stamp = document.getElementById('glitch-stamp');
+        reveal.classList.add('visible');
+        if(!isGrowth) {
+            reveal.innerHTML = `<h3 style="color:var(--success)">Good Eye, Detective!</h3>` + reveal.innerHTML;
+        } else {
+            reveal.innerHTML = `<h3 style="color:var(--error)">You fell for the trap!</h3>` + reveal.innerHTML;
         }
-        if(summaryStep >= 4) {
-            document.getElementById('summary-btn').style.display = 'none';
+        // Disable buttons
+        const btns = document.querySelectorAll('.btn-choice');
+        btns[0].onclick = null; btns[1].onclick = null;
+        if(stamp) stamp.classList.add('stamped');
+    }
+
+    // --- Case 2: Verizon Reveal ---
+    function revealVerizon() {
+        const reveal = document.getElementById('verizon-reveal');
+        reveal.classList.add('visible');
+    }
+
+    // --- Case 2: Cash Drain Animation ---
+    function drainCash(step) {
+        if(step === 1) {
+            document.getElementById('step-2').style.opacity = '1';
+            document.getElementById('btn-drain-1').style.display = 'none';
+        } else if (step === 2) {
+            document.getElementById('step-3').style.opacity = '1';
+            document.getElementById('btn-drain-2').style.display = 'none';
         }
     }
 
-    // --- QUIZ DATA ---
+    // --- Case 2: Liquidity Reveal ---
+    function revealLiquidity() {
+        document.getElementById('liquidity-reveal').style.display = 'block';
+    }
+
+    // --- Z-Score Simulation ---
+    function runZScore() {
+        const screen = document.getElementById('z-score-result');
+        const expl = document.getElementById('z-score-explanation');
+        screen.style.display = 'block';
+        
+        setTimeout(() => {
+            expl.classList.add('visible');
+        }, 1500);
+    }
+
+    // --- QUIZ LOGIC ---
     const quizData = [
         { q: "What is the primary purpose of a Revolver?", options: ["Buying real estate", "Short-term working capital", "Funding a merger", "Avoiding taxes"], correct: 1, explanation: "Revolvers act like corporate credit cards for short-term needs." },
         { q: "A Term Loan usually matches its duration to:", options: ["The asset's useful life", "270 days", "The CEO's contract", "Inventory turnover"], correct: 0, explanation: "You pay for the machine over the time you use the machine." },
-        { q: "Commercial Paper must mature within:", options: ["30 Days", "90 Days", "270 Days", "1 Year"], correct: 2, explanation: "270 days is the limit to avoid SEC registration." },
-        { q: "How are Operating Leases treated by analysts?", options: ["As Expenses", "As Debt", "Ignored", "As Equity"], correct: 1, explanation: "Analysts capitalize them. If you have to pay it, it's debt." },
-        { q: "Which rating is 'Investment Grade'?", options: ["Ba1", "BBB-", "Caa", "D"], correct: 1, explanation: "BBB- (S&P) or Baa3 (Moody's) is the floor for Investment Grade." },
-        { q: "What happens to Debt/EBITDA as ratings get worse?", options: ["It decreases", "Stays same", "It increases", "Becomes negative"], correct: 2, explanation: "Lower ratings mean higher leverage (more debt relative to earnings)." },
-        { q: "Why adjust for a 53rd week?", options: ["To punish them", "Comparability", "Tax reasons", "GAAP rules"], correct: 1, explanation: "To compare apples to apples. Otherwise, growth looks fake." },
-        { q: "Verizon has a distress Z-Score but good rating. Why?", options: ["Math error", "Corruption", "Qualitative Factors", "Hidden cash"], correct: 2, explanation: "Monopolies and Utilities have stability that Z-Score formulas miss." },
+        { q: "Why did Kraft Heinz sales look higher in 2022?", options: ["Product innovation", "The 53rd Week", "Competitor bankruptcy", "Inflation only"], correct: 1, explanation: "An extra week of sales makes the total look bigger, even if daily sales dropped." },
+        { q: "If Current Ratio is < 1.0, what does it typically mean?", options: ["High Profit", "Insolvency risk (Short Term)", "Too much inventory", "Zero Debt"], correct: 1, explanation: "It means bills due now exceed cash available now." },
+        { q: "How does Verizon survive with a 0.75 Current Ratio?", options: ["Selling assets", "Backup Credit Lines & Supplier Financing", "Printing money", "Government bailouts"], correct: 1, explanation: "They rely on negative working capital and bank confidence." },
+        { q: "Why is EBITDA not the same as Cash Flow?", options: ["It includes taxes", "It ignores CAPEX", "It's illegal", "It's always smaller"], correct: 1, explanation: "EBITDA ignores the massive cost of buying machines/towers (Capital Expenditures)." },
+        { q: "Why is Free Cash Flow usually lower than Operating Cash Flow?", options: ["Taxes", "CAPEX deduction", "Dividends", "Stock Buybacks"], correct: 1, explanation: "Free Cash Flow = Cash From Operations - Capital Expenditures (CAPEX)." },
         { q: "Who gets paid LAST in bankruptcy?", options: ["Secured Debt", "Unsecured Debt", "Suppliers", "Equity"], correct: 3, explanation: "Shareholders are residual claimants. They get whatever is left (usually nothing)." },
-        { q: "What is a Covenant?", options: ["A religious group", "A loan rule/restriction", "A type of bond", "A tax credit"], correct: 1, explanation: "Covenants are rules (Do's and Don'ts) written into the loan contract." }
+        { q: "What is a Covenant?", options: ["A religious group", "A loan rule/restriction", "A type of bond", "A tax credit"], correct: 1, explanation: "Covenants are rules (Do's and Don'ts) written into the loan contract." },
+        { q: "Which rating is the 'Cliff' for investment grade?", options: ["BBB-", "BB+", "CCC", "AA"], correct: 0, explanation: "BBB- (or Baa3) is the lowest investment grade. Below that (BB+) is Junk." }
     ];
 
     let currentQ = 0;
@@ -1229,7 +1898,9 @@
 
         qData.options.forEach((opt, idx) => {
             const div = document.createElement('div');
-            div.className = 'quiz-option';
+            div.className = 'btn-choice'; // reuse styling
+            div.style.display = 'block';
+            div.style.marginBottom = '10px';
             div.innerText = opt;
             div.onclick = () => checkAnswer(div, idx, qData.correct);
             optsDiv.appendChild(div);
@@ -1237,24 +1908,23 @@
     }
 
     function checkAnswer(el, idx, correctIdx) {
-        const opts = document.querySelectorAll('.quiz-option');
+        const opts = document.getElementById('quiz-options').children;
         const fb = document.getElementById('quiz-feedback');
         fb.classList.add('visible');
         
+        // Disable all
+        for(let btn of opts) btn.onclick = null;
+
         if (idx === correctIdx) {
             el.classList.add('correct');
             fb.innerHTML = `<strong>Correct!</strong> ${quizData[currentQ].explanation}`;
-            fb.style.borderColor = "var(--success)";
-            fb.style.backgroundColor = "#e6fffa";
-            fb.style.color = "var(--success)";
-            opts.forEach(o => o.onclick = null);
             document.getElementById('next-q-btn').style.display = 'inline-block';
         } else {
-            el.classList.add('incorrect');
-            fb.innerHTML = `<strong>Try Again!</strong>`;
-            fb.style.borderColor = "var(--error)";
-            fb.style.backgroundColor = "#fff5f5";
-            fb.style.color = "var(--error)";
+            el.classList.add('wrong');
+            // Highlight correct one
+            opts[correctIdx].classList.add('correct');
+            fb.innerHTML = `<strong>Incorrect.</strong> ${quizData[currentQ].explanation}`;
+            document.getElementById('next-q-btn').style.display = 'inline-block';
         }
     }
 
@@ -1265,10 +1935,10 @@
         } else {
             document.getElementById('quiz-container').innerHTML = `
                 <div style="text-align:center; padding:40px;">
-                    <i class="fas fa-trophy" style="font-size:4rem; color:var(--warning); margin-bottom:20px;"></i>
-                    <h3 style="color:var(--success);">Quiz Complete!</h3>
-                    <p>You've mastered Credit Risk Analysis.</p>
-                    <button class="btn-reveal" onclick="resetQuiz()">Start Over</button>
+                    <i class="fas fa-user-secret" style="font-size:4rem; color:var(--primary); margin-bottom:20px;"></i>
+                    <h3 style="color:var(--success);">Investigation Complete</h3>
+                    <p>You have earned your badge, Detective.</p>
+                    <button class="btn-reveal" onclick="resetQuiz()">New Case</button>
                 </div>
             `;
         }
@@ -1276,7 +1946,6 @@
 
     function resetQuiz() {
         currentQ = 0;
-        // Rebuild container structure
         document.getElementById('quiz-container').innerHTML = `
             <p id="quiz-question" style="font-size: 1.3rem; margin-bottom: 25px; font-weight: 700; color: var(--text-main);"></p>
             <div id="quiz-options"></div>
@@ -1284,6 +1953,71 @@
             <button id="next-q-btn" onclick="nextQuestion()" class="btn-reveal" style="display:none; margin-top: 20px;">Next Question</button>
         `;
         loadQuiz();
+    }
+
+    // --- Embedded LGD Logic (Integrated from provided HTML) ---
+    
+    // Logic 1: The Definition Slider
+    const recoverySlider = document.getElementById('recoverySlider');
+    if(recoverySlider) {
+        const recVal = document.getElementById('recVal');
+        const lgdVal = document.getElementById('lgdVal');
+        recoverySlider.addEventListener('input', (e) => {
+            const r = parseInt(e.target.value);
+            const l = 100 - r;
+            recVal.innerText = r + "%";
+            lgdVal.innerText = l + "%";
+        });
+    }
+
+    // Logic 2: The Scenario Calc & Reveal
+    const pdSlider = document.getElementById('pdSlider');
+    if(pdSlider) {
+        const pdDisplay = document.getElementById('pdDisplay');
+        const pdVals = document.querySelectorAll('.pd-val');
+        const elA = document.getElementById('el_a');
+        const elB = document.getElementById('el_b');
+
+        // Fixed LGDs for the scenario
+        const lgdA = 0.20; // 20%
+        const lgdB = 0.60; // 60%
+
+        pdSlider.addEventListener('input', (e) => {
+            const pd = parseInt(e.target.value);
+            pdDisplay.innerText = pd + "%";
+            
+            // Update all PD text in the cards
+            pdVals.forEach(el => el.innerText = pd + "%");
+
+            // Calc Expected Loss = PD * LGD
+            // (PD is percent, LGD is decimal)
+            const calcA = (pd * lgdA).toFixed(1);
+            const calcB = (pd * lgdB).toFixed(1);
+
+            elA.innerText = calcA + "%";
+            elB.innerText = calcB + "%";
+        });
+    }
+    
+    // Reveal Function (Scenario cards)
+    function revealCard(element) {
+        const overlay = element.querySelector('.reveal-overlay');
+        const content = element.querySelector('.blur-content');
+        if (overlay) overlay.style.opacity = '0';
+        if (content) content.classList.remove('blur-content');
+        setTimeout(() => {
+            if(overlay) overlay.style.display = 'none';
+        }, 300);
+    }
+
+    // Logic 4: Flip Cards
+    function flipCard(element) {
+        element.classList.toggle('flipped');
+    }
+
+    // Init Icons
+    if(window.lucide) {
+        lucide.createIcons();
     }
 
     // Initialize
