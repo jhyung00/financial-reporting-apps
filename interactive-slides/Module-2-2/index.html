@@ -346,6 +346,29 @@
         }
         .progress-bar-container { flex: 1; height: 6px; background: #eee; margin: 0 20px; border-radius: 3px; }
         #progress-fill { height: 100%; background: var(--accent-blue); width: 0%; border-radius: 3px; transition: width 0.3s; }
+        
+        /* Navigation Table of Contents Style */
+        #toc {
+            padding: 5px 10px;
+            border-radius: 4px;
+            background: #f7fafc;
+            color: var(--text-color);
+            border: 1px solid #cbd5e0;
+            cursor: pointer;
+            max-width: 250px;
+            font-family: inherit;
+            font-size: 0.9rem;
+            margin-right: 15px;
+            transition: border-color 0.2s;
+        }
+        #toc:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+        }
+        #toc option {
+            background: #ffffff;
+            color: var(--text-color);
+        }
 
         /* --- Final Exam --- */
         .quiz-question { margin-bottom: 2rem; border-bottom: 1px solid #eee; padding-bottom: 2rem; }
@@ -1441,7 +1464,8 @@
         <div class="progress-bar-container">
             <div id="progress-fill"></div>
         </div>
-        <div>
+        <div style="display: flex; align-items: center;">
+            <select id="toc" onchange="jumpToSlide(this.value)"></select>
             <button class="fset-btn" onclick="prevSlide()" style="width: auto; padding: 0 15px;"><i class="fas fa-chevron-left"></i></button>
             <span id="slide-indicator" style="margin: 0 10px;">1 / 27</span>
             <button class="fset-btn" onclick="nextSlide()" style="width: auto; padding: 0 15px;"><i class="fas fa-chevron-right"></i></button>
@@ -1457,6 +1481,22 @@
     const totalSlides = slides.length;
 
     // --- NAVIGATION ---
+    function populateToC() {
+        const toc = document.getElementById('toc');
+        slides.forEach((slide, index) => {
+            const titleEl = slide.querySelector('h1, h2');
+            const titleText = titleEl ? titleEl.innerText : `Slide ${index + 1}`;
+            const option = document.createElement('option');
+            option.value = index;
+            option.innerText = `${index + 1}: ${titleText}`;
+            toc.appendChild(option);
+        });
+    }
+
+    function jumpToSlide(index) {
+        showSlide(parseInt(index));
+    }
+
     function showSlide(index) {
         if(index < 0) index = 0;
         if(index >= totalSlides) index = totalSlides - 1;
@@ -1475,6 +1515,9 @@
         document.getElementById('slide-indicator').textContent = `${currentSlide + 1} / ${totalSlides}`;
         const pct = ((currentSlide + 1) / totalSlides) * 100;
         document.getElementById('progress-fill').style.width = `${pct}%`;
+        
+        const toc = document.getElementById('toc');
+        if (toc) toc.value = currentSlide;
     }
 
     document.addEventListener('keydown', (e) => {
@@ -1754,6 +1797,7 @@
     }
 
     // Init
+    populateToC();
     updateNav();
 
 </script>
