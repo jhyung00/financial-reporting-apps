@@ -310,7 +310,8 @@
                 'moody_ebita_assets': "MTMuNjk=", 'moody_ebita_assets_rating': 'Ba',
                 'moody_capex_dep': "MC44OQ==", 'moody_capex_dep_rating': 'B',
                 'z_wc_ta': "MC4yMzg1", 'z_re_ta': "MC42MDM3", 'z_ebit_ta': "MC4xMTAw",
-                'z_mve_tl': "MS44NTAw", 'z_sales_ta': "MC42MTE0"
+                'z_mve_tl': "MS44NTAw", 'z_sales_ta': "MC42MTE0",
+                'actual_moodys_score': "QmFhMQ=="
             },
             ITW: {
                 'total_debt_2022': "Nzk0OQ==", 'total_debt_2021': "Nzg4MQ==",
@@ -334,11 +335,26 @@
                 'moody_ebita_assets': "MjQuOTI=", 'moody_ebita_assets_rating': 'Aa',
                 'moody_capex_dep': "MS40OQ==", 'moody_capex_dep_rating': 'Aa',
                 'z_wc_ta': "MC4xMTc0", 'z_re_ta': "MS42NzI5", 'z_ebit_ta': "MC4yNDU4",
-                'z_mve_tl': "NS40NDgx", 'z_sales_ta': "MS4wMzMx"
+                'z_mve_tl': "NS40NDgx", 'z_sales_ta': "MS4wMzMx",
+                'actual_moodys_score': "QTI="
             }
         };
 
         const MOODY_RATINGS = ["Aaa", "Aa", "A", "Baa", "Ba", "B", "Caa"];
+
+        // Extract 2021 data for pre-fill
+        const getInitialInputs = () => {
+            const init = { PH: {}, ITW: {} };
+            Object.keys(_DATA_MATRIX).forEach(comp => {
+                Object.keys(_DATA_MATRIX[comp]).forEach(key => {
+                    // Pre-fill only 2021 keys and total debt 2021
+                    if (key.endsWith('_2021')) {
+                        init[comp][key] = d(_DATA_MATRIX[comp][key]);
+                    }
+                });
+            });
+            return init;
+        };
 
         // ==========================================
         // COMPONENTS
@@ -433,11 +449,46 @@
             );
         };
 
-        // Trend Interpretation Component
-        const TrendSelect = ({ id, value, onChange, correctTrend }) => {
-            if (!correctTrend) return <div className="hidden sm:block col-span-2 sm:col-span-1"></div>;
+        // Component to check exact string matches (like Moody's ratings with modifiers)
+        const TextCheckInput = ({ id, value, onChange, correctValueEnc, placeholder }) => {
+            const correctValue = useMemo(() => {
+                if(!correctValueEnc) return undefined;
+                return d(correctValueEnc);
+            }, [correctValueEnc]);
 
-            let options = ["Select Trend", "Better", "Worse", "Less Leveraged", "More Leveraged", "More Coverage", "Less Coverage"];
+            const isCorrect = value && correctValue && value.trim().toLowerCase() === correctValue.trim().toLowerCase();
+            const isWrong = value && correctValue && value.trim().length > 0 && value.trim().toLowerCase() !== correctValue.trim().toLowerCase();
+
+            let borderColor = "border-slate-300";
+            if (isCorrect) borderColor = "border-green-500 bg-green-50";
+            else if (isWrong) borderColor = "border-red-400 bg-red-50";
+
+            return (
+                <div className="relative">
+                    <input
+                        type="text"
+                        className={`w-full text-sm p-2 rounded border ${borderColor} focus:outline-none transition-colors font-mono`}
+                        value={value || ""}
+                        onChange={(e) => onChange(id, e.target.value)}
+                        placeholder={placeholder}
+                    />
+                    {isCorrect && <span className="absolute right-2 top-2.5 text-green-600"><Icons.Check /></span>}
+                </div>
+            );
+        };
+
+        // Trend Interpretation Component
+        const TrendSelect = ({ id, value, onChange, correctTrend, trendType }) => {
+            if (!correctTrend || trendType === 'none') return <div className="hidden sm:block col-span-2 sm:col-span-1"></div>;
+
+            let options = [];
+            if (trendType === 'liquidity' || trendType === 'cashflow') {
+                options = ["Better", "Worse"];
+            } else if (trendType === 'solvency') {
+                options = ["More solvent", "Less solvent"];
+            } else if (trendType === 'coverage') {
+                options = ["Better Coverage", "Worse Coverage"];
+            }
 
             const isCorrect = value && value === correctTrend;
             const isWrong = value && value !== correctTrend && value !== "Select Trend";
@@ -458,12 +509,7 @@
                         className={`w-full text-sm p-[7px] rounded border ${borderColor} focus:outline-none bg-white`}
                     >
                         <option value="">Select Trend</option>
-                        <option value="Better">Better</option>
-                        <option value="Worse">Worse</option>
-                        <option value="Less Leveraged">Less Leveraged (Better)</option>
-                        <option value="More Leveraged">More Leveraged (Worse)</option>
-                        <option value="More Coverage">More Coverage (Better)</option>
-                        <option value="Less Coverage">Less Coverage (Worse)</option>
+                        {options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                     </select>
                 </div>
             );
@@ -553,7 +599,7 @@
         // ==========================================
         const App = () => {
             const [company, setCompany] = useState("PH");
-            const [inputs, setInputs] = useState({ PH: {}, ITW: {} });
+            const [inputs, setInputs] = useState(getInitialInputs());
             const [activeInputId, setActiveInputId] = useState(null);
             
             // Layout State
@@ -657,7 +703,8 @@
             };
 
             const handleConfirmClear = () => {
-                setInputs(prev => ({ ...prev, [company]: {} }));
+                const init = getInitialInputs();
+                setInputs(prev => ({ ...prev, [company]: init[company] }));
                 setModal({ isOpen: false, type: null, studentName: "" });
             };
 
@@ -675,7 +722,7 @@
 
             const autoFill = () => {
                 const key = _DATA_MATRIX[company];
-                const newInputs = {};
+                const newInputs = { ...getInitialInputs()[company] };
                 
                 // Fill Base Values
                 Object.keys(key).forEach(k => {
@@ -687,8 +734,8 @@
                 const trendMappings = [
                     { id: 'current_ratio', type: 'liquidity' },
                     { id: 'quick_ratio', type: 'liquidity' },
-                    { id: 'liab_equity', type: 'leverage' },
-                    { id: 'debt_equity', type: 'leverage' },
+                    { id: 'liab_equity', type: 'solvency' },
+                    { id: 'debt_equity', type: 'solvency' },
                     { id: 'tie', type: 'coverage' },
                     { id: 'ebitda_cov', type: 'coverage' },
                     { id: 'cfo_debt', type: 'cashflow' },
@@ -700,10 +747,10 @@
                     const v21 = parseFloat(d(key[`${m.id}_2021`]));
                     if (m.type === 'liquidity' || m.type === 'cashflow') {
                         newInputs[`${m.id}_trend`] = v22 >= v21 ? "Better" : "Worse";
-                    } else if (m.type === 'leverage') {
-                        newInputs[`${m.id}_trend`] = v22 <= v21 ? "Less Leveraged (Better)" : "More Leveraged (Worse)";
+                    } else if (m.type === 'solvency') {
+                        newInputs[`${m.id}_trend`] = v22 <= v21 ? "More solvent" : "Less solvent";
                     } else if (m.type === 'coverage') {
-                        newInputs[`${m.id}_trend`] = v22 >= v21 ? "More Coverage (Better)" : "Less Coverage (Worse)";
+                        newInputs[`${m.id}_trend`] = v22 >= v21 ? "Better Coverage" : "Worse Coverage";
                     }
                 });
 
@@ -733,10 +780,10 @@
                     
                     if (trendType === 'liquidity' || trendType === 'cashflow') {
                         correctTrendStr = v22 >= v21 ? "Better" : "Worse";
-                    } else if (trendType === 'leverage') {
-                        correctTrendStr = v22 <= v21 ? "Less Leveraged (Better)" : "More Leveraged (Worse)";
+                    } else if (trendType === 'solvency') {
+                        correctTrendStr = v22 <= v21 ? "More solvent" : "Less solvent";
                     } else if (trendType === 'coverage') {
-                        correctTrendStr = v22 >= v21 ? "More Coverage (Better)" : "Less Coverage (Worse)";
+                        correctTrendStr = v22 >= v21 ? "Better Coverage" : "Worse Coverage";
                     }
                 }
 
@@ -780,6 +827,7 @@
                             value={inputs[company][`${idPrefix}_trend`]}
                             onChange={handleInputChange}
                             correctTrend={correctTrendStr}
+                            trendType={trendType}
                         />
                     </div>
                 );
@@ -870,13 +918,13 @@
                             </button>
                             <div className="bg-slate-800 rounded p-1 flex">
                                 <button 
-                                    className={`px-2 py-1 rounded text-xs font-medium transition-all ${company === 'ITW' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
-                                    onClick={() => setCompany('ITW')}
-                                >ITW</button>
-                                <button 
                                     className={`px-2 py-1 rounded text-xs font-medium transition-all ${company === 'PH' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
                                     onClick={() => setCompany('PH')}
                                 >PH</button>
+                                <button 
+                                    className={`px-2 py-1 rounded text-xs font-medium transition-all ${company === 'ITW' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
+                                    onClick={() => setCompany('ITW')}
+                                >ITW</button>
                             </div>
                             <button onClick={requestDownload} className="text-xs bg-green-600 hover:bg-green-700 p-1.5 sm:px-3 rounded transition flex items-center gap-1">
                                 <Icons.Download /> <span className="hidden sm:inline">Save</span>
@@ -988,8 +1036,8 @@
                                     <SectionHeader title="2. Capital Structure" isOpen={sections.capStructure} toggle={() => toggleSection('capStructure')} />
                                     {sections.capStructure && <div className="p-4">
                                         {renderRow("Total Debt ($)", "total_debt", false, "Short-term + Long-term Debt + Operating Leases", true, "none")}
-                                        {renderRow("Liabilities to Equity", "liab_equity", false, "Total Liabilities / Total Equity", true, "leverage")}
-                                        {renderRow("Debt to Equity", "debt_equity", false, "Total Debt (incl. Leases) / Total Equity", true, "leverage")}
+                                        {renderRow("Liabilities to Equity", "liab_equity", false, "Total Liabilities / Total Equity", true, "solvency")}
+                                        {renderRow("Debt to Equity", "debt_equity", false, "Total Debt (incl. Leases) / Total Equity", true, "solvency")}
                                     </div>}
                                 </div>
 
@@ -1059,6 +1107,53 @@
                                         {renderMoodyRow("(FFO+Int) / Int", "moody_ffo_int_int", "x", "(FFO + Interest) / Interest")}
                                         {renderMoodyRow("EBITA / Avg Assets", "moody_ebita_assets", "%", "EBITA / Average Assets")}
                                         {renderMoodyRow("Capex / Depreciation", "moody_capex_dep", "x", "Capex / Depreciation")}
+
+                                        {/* Conclusion / Overall Rating Step */}
+                                        <div className="mt-6 border-t-2 border-indigo-100 pt-4">
+                                            <h4 className="font-bold text-indigo-900 text-sm mb-3">Overall Rating Conclusion</h4>
+                                            
+                                            {/* Guess Rating */}
+                                            <div className="grid grid-cols-4 gap-2 mb-4 items-center">
+                                                <div className="col-span-4 sm:col-span-2 text-sm text-slate-700 font-medium">
+                                                    Estimated Overall Rating
+                                                    <div className="text-xs text-slate-500 font-normal">Based on your metrics above, what do you think the rating is? (No wrong answer)</div>
+                                                </div>
+                                                <div className="col-span-4 sm:col-span-2">
+                                                    <input 
+                                                        type="text" 
+                                                        className="w-full text-sm p-2 rounded border border-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
+                                                        placeholder="e.g., Baa, A, Aa..."
+                                                        value={inputs[company]['estimated_rating'] || ''}
+                                                        onChange={(e) => handleInputChange('estimated_rating', e.target.value)}
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            {/* Actual Rating */}
+                                            <div className="grid grid-cols-4 gap-2 mb-2 items-start bg-indigo-50 p-3 rounded border border-indigo-100">
+                                                <div className="col-span-4 sm:col-span-2 text-sm text-slate-700 font-medium">
+                                                    Actual Moody's Rating
+                                                    {company === 'PH' ? (
+                                                        <div className="text-xs text-slate-600 font-normal mt-1 pr-2">
+                                                            Search the <a href="https://www.sec.gov/ix?doc=/Archives/edgar/data/0000076334/000007633422000034/ph-20220630.htm" target="_blank" rel="noreferrer" className="text-blue-600 underline hover:text-blue-800">PH 2022 10-K (MD&A Section)</a> to find their reported credit rating.
+                                                        </div>
+                                                    ) : (
+                                                        <div className="text-xs text-slate-600 font-normal mt-1 pr-2">
+                                                            ITW doesn't explicitly report their rating in the 10-K. Do a quick web search for <strong>"ITW Moody's credit rating 2022"</strong> to find it.
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div className="col-span-4 sm:col-span-2 pt-1">
+                                                    <TextCheckInput 
+                                                        id="actual_moodys_score"
+                                                        value={inputs[company]['actual_moodys_score']}
+                                                        onChange={handleInputChange}
+                                                        correctValueEnc={_DATA_MATRIX[company]['actual_moodys_score']}
+                                                        placeholder="Enter actual rating (e.g., Baa1)"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>}
                                 </div>
 
