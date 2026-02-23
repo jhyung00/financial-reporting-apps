@@ -329,8 +329,15 @@
                 const cleanForEval = String(val).replace(/[^0-9+\-*\/().]/g, '');
                 if (cleanForEval.match(/[+\-*\/]/)) {
                     try {
-                        const calculated = Function('"use strict";return (' + cleanForEval + ')')();
-                        return parseFloat(calculated.toFixed(2));
+                        let calculated = Function('"use strict";return (' + cleanForEval + ')')();
+                        
+                        // Auto-scale percentages if the user divided but forgot to multiply by 100
+                        if (isPct && Math.abs(calculated) < 2 && !cleanForEval.includes('*')) {
+                            calculated = calculated * 100;
+                        }
+
+                        // Prevent premature rounding errors by using up to 6 decimal places
+                        return parseFloat(calculated.toFixed(6));
                     } catch (e) {
                         return null;
                     }
