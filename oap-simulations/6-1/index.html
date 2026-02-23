@@ -436,23 +436,24 @@
             
             // Numeric comparison
             if (typeof keyVal === 'number') {
-                const tolerancePercent = 0.02; // 2% leeway requested
+                const tolerancePercent = 0.01; // 1% leeway requested
                 const diff = Math.abs(userNum - keyVal);
                 const allowableDiff = Math.abs(keyVal * tolerancePercent);
                 
-                // 1. Check standard range with 2% tolerance OR strict absolute small number tolerance
+                // 1. Check standard range with 1% tolerance OR strict absolute small number tolerance
                 if (diff <= allowableDiff || (keyVal < 5 && diff < 0.1)) {
                     return "correct";
                 }
 
-                // 2. Check for Percentage/Decimal confusion (e.g., User types 0.13 for 13%)
-                // If the key is > 1 (implying percentage like 13.0) and user types decimal (0.13)
-                if (keyVal > 1 && Math.abs((userNum * 100) - keyVal) <= allowableDiff) {
+                // 2. Check for Percentage/Decimal confusion (e.g., User types 0.1331 for 13.3%)
+                // We add a 1.0 absolute tolerance to account for potential rounding to 2 decimal places 
+                // in the input handler (0.1331 -> 0.13 -> 13.0 vs 13.3) and give exactly 1 percentage point leeway
+                if (Math.abs((userNum * 100) - keyVal) <= allowableDiff || Math.abs((userNum * 100) - keyVal) <= 1.0) {
                     return "correct";
                 }
                 
-                // 3. Inverse check (Key is 0.13, user types 13) - less common but good for safety
-                if (keyVal < 1 && Math.abs((userNum / 100) - keyVal) <= allowableDiff) {
+                // 3. Inverse check (Key is 0.13, user types 13)
+                if (Math.abs((userNum / 100) - keyVal) <= allowableDiff || Math.abs((userNum / 100) - keyVal) <= 0.01) {
                     return "correct";
                 }
 
