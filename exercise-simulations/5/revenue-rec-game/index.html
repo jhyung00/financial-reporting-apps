@@ -3,33 +3,74 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Revenue Dossier: Covenant Crisis</title>
+    <title>The Revenue Dossier: Covenant Crisis (Group Edition)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&family=Space+Mono:wght@400;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800;900&family=Space+Mono:wght@400;700&display=swap');
         
+        :root {
+            --glass-bg: rgba(15, 23, 42, 0.4);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            
+            /* Dynamic Theme Variables (Updated via JS per level) */
+            --theme-primary: #06b6d4;   /* Cyan default */
+            --theme-secondary: #3b82f6; /* Blue default */
+            --theme-glow: rgba(6, 182, 212, 0.5);
+            
+            --neon-pink: #ff0055;
+            --neon-green: #00ff9d;
+        }
+
         body { 
             font-family: 'Outfit', sans-serif; 
-            background: #0f172a; /* slate-900 */
-            color: #f8fafc; /* slate-50 */
+            background-color: #030712; 
+            color: #f8fafc; 
             overflow-x: hidden;
-            background-image: radial-gradient(circle at 50% 0%, #1e293b 0%, #0f172a 100%);
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(6, 182, 212, 0.08), transparent 40%),
+                radial-gradient(circle at 85% 30%, rgba(225, 29, 72, 0.08), transparent 40%),
+                radial-gradient(circle at 50% 100%, rgba(15, 23, 42, 1), #030712 100%);
+            background-attachment: fixed;
+            transition: background-image 1s ease;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image: linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+            background-size: 30px 30px;
+            z-index: -1;
+            pointer-events: none;
         }
 
         .mono { font-family: 'Space Mono', monospace; }
 
+        /* Dynamic Text Colors */
+        .dynamic-text-primary { color: var(--theme-primary); transition: color 0.8s ease; }
+        .dynamic-border-primary { border-color: var(--theme-primary); transition: border-color 0.8s ease; }
+
+        .glass-panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+
         /* Dossier Page Flip Mechanics */
         .scene {
-            perspective: 1500px;
+            perspective: 2000px;
             width: 100%;
             height: 100%;
-            min-height: 650px;
+            min-height: 680px;
         }
         .page-card {
             width: 100%;
             height: 100%;
             position: relative;
-            transition: transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+            transition: transform 0.9s cubic-bezier(0.25, 1.5, 0.5, 1);
             transform-style: preserve-3d;
         }
         .page-card.is-flipped {
@@ -40,41 +81,71 @@
             width: 100%;
             height: 100%;
             backface-visibility: hidden;
-            background: #1e293b; 
-            border: 2px solid #334155;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255,255,255,0.1);
-            border-radius: 1rem;
             display: flex;
             flex-direction: column;
+            border-radius: 1.5rem;
+            overflow: hidden;
+            transition: box-shadow 0.8s ease;
         }
+        
+        .page-face.front {
+            background: linear-gradient(145deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.95));
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255,255,255,0.15);
+        }
+        
         .page-face.back {
             transform: rotateY(180deg);
-            background: #1e293b;
-            border-left: 8px solid #06b6d4;
+            background: linear-gradient(145deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.8));
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-left: 6px solid var(--theme-primary);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255,255,255,0.15);
+            transition: border-color 0.8s ease;
         }
 
-        /* Energetic Interactive Elements */
+        /* Options */
         .option-btn {
-            background: #0f172a;
-            border: 2px solid #334155;
-            border-left-width: 6px;
-            border-left-color: #475569;
-            border-radius: 0.75rem;
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-            color: #e2e8f0;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-left: 4px solid #475569;
+            border-radius: 1rem;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            color: #cbd5e1;
+            position: relative;
+            overflow: hidden;
+        }
+        .option-btn::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
+            transform: translateX(-100%);
+            transition: transform 0.5s ease;
         }
         .option-btn:hover {
-            border-color: #06b6d4;
-            border-left-color: #06b6d4;
-            background: #164e63; 
-            transform: translateX(8px) scale(1.02);
-            box-shadow: 0 0 15px rgba(6, 182, 212, 0.3);
+            border-color: var(--theme-glow);
+            border-left-color: var(--theme-primary);
+            background: rgba(30, 41, 59, 0.8); 
+            transform: translateY(-3px) scale(1.01);
+            box-shadow: 0 10px 20px -5px var(--theme-glow);
+            color: #fff;
         }
+        .option-btn:hover::before {
+            transform: translateX(100%);
+        }
+        .option-btn:active {
+            transform: translateY(0) scale(0.98);
+        }
+        
         .option-btn.wrong-shake {
             animation: shake 0.4s;
-            border-color: #e11d48;
-            border-left-color: #e11d48;
-            background: #4c0519;
+            border-color: rgba(225, 29, 72, 0.5) !important;
+            border-left-color: var(--neon-pink) !important;
+            background: rgba(76, 5, 25, 0.5) !important;
+            color: #fff !important;
+            box-shadow: none !important;
         }
 
         @keyframes shake {
@@ -84,111 +155,167 @@
             75% { transform: translateX(-10px) rotate(-1deg); }
         }
 
-        /* Neon Highlights */
-        .neon-text-cyan { text-shadow: 0 0 10px rgba(6, 182, 212, 0.5); }
-        .neon-text-lemon { text-shadow: 0 0 10px rgba(250, 204, 21, 0.5); }
+        /* Typography */
+        .text-gradient {
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .gradient-dynamic {
+            background-image: linear-gradient(to right, var(--theme-primary), var(--theme-secondary));
+            transition: background-image 0.8s ease;
+        }
+        .gradient-cyan { background-image: linear-gradient(to right, #22d3ee, #3b82f6); }
+        .gradient-pink { background-image: linear-gradient(to right, #f43f5e, #db2777); }
+        .neon-text-lemon { text-shadow: 0 0 15px rgba(250, 204, 21, 0.4); }
 
         /* Scary Covenant Breach Effects */
-        .breach-active {
-            animation: pulse-danger 1.5s infinite;
+        .breach-active { animation: pulse-danger-border 2s infinite; position: relative; }
+        .breach-active::after {
+            content: ''; position: absolute; inset: 0; border-radius: inherit;
+            box-shadow: inset 0 0 30px rgba(225, 29, 72, 0.2); pointer-events: none; z-index: 10;
         }
-        
-        @keyframes pulse-danger {
-            0% { box-shadow: 0 0 0 0 rgba(225, 29, 72, 0.6); border-color: #e11d48; }
-            70% { box-shadow: 0 0 0 20px rgba(225, 29, 72, 0); border-color: #be123c; }
-            100% { box-shadow: 0 0 0 0 rgba(225, 29, 72, 0); border-color: #e11d48; }
+        @keyframes pulse-danger-border {
+            0% { border-color: rgba(225, 29, 72, 0.5); box-shadow: 0 0 20px rgba(225, 29, 72, 0.2); }
+            50% { border-color: rgba(225, 29, 72, 1); box-shadow: 0 0 40px rgba(225, 29, 72, 0.5); }
+            100% { border-color: rgba(225, 29, 72, 0.5); box-shadow: 0 0 20px rgba(225, 29, 72, 0.2); }
         }
 
         /* Consultant Overlay Animation */
         #sterling-modal > div {
-            animation: slamDown 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards, floatSterling 4s ease-in-out infinite 0.5s;
+            background: radial-gradient(circle at center, #1f0510 0%, #0a0205 100%);
+            border: 1px solid var(--neon-pink);
+            animation: slamDown 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards, floatSterling 4s ease-in-out infinite 0.6s;
+            box-shadow: 0 0 100px rgba(225, 29, 72, 0.3), inset 0 0 40px rgba(225, 29, 72, 0.2);
         }
-
         @keyframes slamDown {
-            0% { transform: scale(3) translateY(-100px); opacity: 0; }
-            100% { transform: scale(1) translateY(0); opacity: 1; }
+            0% { transform: scale(2) translateY(-100px); opacity: 0; filter: blur(10px); }
+            100% { transform: scale(1) translateY(0); opacity: 1; filter: blur(0); }
         }
         @keyframes floatSterling {
-            0%, 100% { transform: translateY(0); box-shadow: 0 0 40px rgba(225, 29, 72, 0.6); }
-            50% { transform: translateY(-10px); box-shadow: 0 0 80px rgba(225, 29, 72, 0.9); }
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
         }
 
-        /* Cash Warning Animation */
-        .cash-warning { animation: cashFlash 0.5s 3; }
+        /* UI Utilities */
+        .cash-warning { animation: cashFlash 0.6s 3; }
         @keyframes cashFlash {
             0%, 100% { color: inherit; transform: scale(1); }
-            50% { color: #f43f5e; transform: scale(1.1); text-shadow: 0 0 10px #f43f5e; }
+            50% { color: var(--neon-pink); transform: scale(1.15); text-shadow: 0 0 15px var(--neon-pink); }
         }
 
-        /* Ratio Diff Highlights */
-        .ratio-improve { color: #34d399; font-weight: 900; text-shadow: 0 0 8px rgba(52, 211, 153, 0.4); }
-        .ratio-worsen { color: #fb7185; font-weight: 900; text-shadow: 0 0 8px rgba(251, 113, 133, 0.4); }
-        .ratio-neutral { color: #94a3b8; }
+        .ratio-improve { color: var(--neon-green); font-weight: 800; text-shadow: 0 0 10px rgba(0, 255, 157, 0.3); }
+        .ratio-worsen { color: var(--neon-pink); font-weight: 800; text-shadow: 0 0 10px rgba(255, 0, 85, 0.3); }
+        .ratio-neutral { color: #64748b; }
 
         @keyframes jump-joy {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-10px); }
+            0%, 100% { transform: translateY(0) scale(1); }
+            50% { transform: translateY(-8px) scale(1.02); }
         }
-        .animate-jump-joy { animation: jump-joy 0.6s ease-in-out 3; }
+        .animate-jump-joy { animation: jump-joy 0.8s cubic-bezier(0.25, 1, 0.5, 1) 2; }
 
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #0f172a; }
-        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.5); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb { background: rgba(71, 85, 105, 0.8); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(148, 163, 184, 1); }
+
+        .glow-line {
+            position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+            background: linear-gradient(to bottom, var(--theme-primary), var(--theme-secondary));
+            box-shadow: 0 0 15px var(--theme-primary);
+            border-radius: 4px 0 0 4px;
+            transition: all 0.8s ease;
+        }
+        
+        .btn-modern {
+            position: relative; z-index: 1; overflow: hidden;
+            background: linear-gradient(135deg, var(--theme-primary), var(--theme-secondary));
+            border: 1px solid rgba(255,255,255,0.2);
+            transition: all 0.8s ease;
+        }
+        .btn-modern::before {
+            content: ''; position: absolute; inset: 0;
+            background: linear-gradient(135deg, var(--theme-secondary), var(--theme-primary));
+            opacity: 0; transition: opacity 0.3s ease; z-index: -1;
+        }
+        .btn-modern:hover::before { opacity: 1; }
+        .btn-modern:disabled { opacity: 0.5; cursor: not-allowed; filter: grayscale(1); }
     </style>
 </head>
-<body class="min-h-screen flex flex-col p-4 md:p-6">
+<body class="min-h-screen flex flex-col p-4 md:p-6 lg:p-8">
 
-    <!-- Objective / Intro Modal -->
-    <div id="intro-modal" class="fixed inset-0 bg-slate-900/95 z-50 flex items-center justify-center p-4 backdrop-blur-md transition-opacity duration-300">
-        <div class="bg-slate-800 border-2 border-cyan-500 p-8 md:p-12 rounded-2xl max-w-2xl text-center transform transition-transform scale-100 shadow-[0_0_30px_rgba(6,182,212,0.3)]">
-            <h1 class="text-4xl md:text-5xl font-black text-white mb-4 tracking-tight neon-text-cyan">THE REVENUE DOSSIER</h1>
-            <p class="text-cyan-400 font-bold tracking-widest uppercase text-xs md:text-sm mb-8">High-Stakes Financial Simulator</p>
-            
-            <div class="text-left text-slate-300 space-y-4 mb-8 text-base md:text-lg">
-                <p><strong>Your Objective:</strong> Maximize firm revenue by applying strict GAAP rules across 10 business scenarios.</p>
-                <div class="bg-slate-900 p-4 rounded-lg border border-slate-700">
-                    <h3 class="text-white font-bold mb-2 flex items-center gap-2">⚠️ The Rules of Survival:</h3>
-                    <ul class="list-disc pl-5 space-y-2 text-sm md:text-base">
-                        <li><span class="text-rose-400 font-bold">Zero Cash = Instant bankruptcy.</span> If a transaction or penalty drops your cash below zero, the firm is liquidated immediately. Tap your Revolver <em>before</em> making expensive decisions.</li>
-                        <li><span class="text-rose-400 font-bold">Mistakes Cost Cash.</span> Every incorrect application of GAAP triggers an immediate $2,500 Audit Fine.</li>
-                        <li><span class="text-rose-400 font-bold">Don't breach Covenants.</span> StoneGate Bank requires strict Liquidity, Solvency, and Interest Coverage ratios. If you breach them, they will send <em>The Consultant</em>.</li>
-                    </ul>
+    <!-- Objective / Intro Modal (Now with Group Name Entry) -->
+    <div id="intro-modal" class="fixed inset-0 bg-slate-950/90 z-50 flex items-center justify-center p-4 backdrop-blur-xl transition-opacity duration-500">
+        <div class="glass-panel p-8 md:p-12 rounded-3xl max-w-2xl w-full text-center transform transition-all scale-100 relative overflow-hidden">
+            <!-- Decorative Glow -->
+            <div class="absolute -top-32 -left-32 w-64 h-64 bg-cyan-500/20 rounded-full blur-[100px]"></div>
+            <div class="absolute -bottom-32 -right-32 w-64 h-64 bg-pink-500/20 rounded-full blur-[100px]"></div>
+
+            <div class="relative z-10">
+                <h1 class="text-4xl md:text-6xl font-black mb-2 tracking-tighter text-gradient gradient-cyan">THE REVENUE DOSSIER</h1>
+                <p class="text-cyan-400 font-bold tracking-[0.2em] uppercase text-xs md:text-sm mb-6 opacity-80">Competitive Financial Simulator</p>
+                
+                <div class="mt-6 mb-8 text-left">
+                    <label class="block text-slate-300 text-sm font-bold mb-3 uppercase tracking-[0.15em] flex items-center gap-2">
+                        <span class="text-cyan-400">👥</span> Enter Team / Group Name:
+                    </label>
+                    <input type="text" id="team-name-input" onkeyup="checkTeamName()" class="w-full bg-slate-900/80 border-2 border-cyan-500/30 rounded-2xl py-4 px-6 text-white text-xl md:text-2xl font-bold focus:outline-none focus:border-cyan-400 transition-colors shadow-inner placeholder-slate-600" placeholder="e.g. The Margin Callers" autocomplete="off">
                 </div>
+                
+                <div class="text-left text-slate-300 space-y-6 mb-8 text-base md:text-lg">
+                    <div class="bg-slate-950/50 p-6 rounded-2xl border border-rose-500/20 shadow-inner">
+                        <h3 class="text-white font-bold mb-4 flex items-center gap-3 tracking-wide">
+                            <span class="text-rose-500">⚠️</span> The Rules of Survival
+                        </h3>
+                        <ul class="space-y-3 text-sm md:text-base text-slate-400 font-light">
+                            <li class="flex items-start gap-3"><span class="text-rose-500 mt-1">▪</span> <span><strong class="text-rose-400">Zero Cash = Instant Bankruptcy.</strong> Draw your Revolver <em>before</em> making expensive decisions.</span></li>
+                            <li class="flex items-start gap-3"><span class="text-rose-500 mt-1">▪</span> <span><strong class="text-rose-400">Mistakes Cost Cash.</strong> Every GAAP error triggers a $2,500 Audit Fine.</span></li>
+                            <li class="flex items-start gap-3"><span class="text-rose-500 mt-1">▪</span> <span><strong class="text-rose-400">Don't Breach Covenants.</strong> StoneGate Bank enforces strict liquidity and solvency ratios.</span></li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <button id="start-btn" onclick="closeIntro()" disabled class="btn-modern w-full md:w-auto text-white text-lg md:text-xl font-bold py-4 px-12 rounded-2xl transition-all shadow-[0_0_30px_rgba(6,182,212,0.4)] flex items-center justify-center gap-3 mx-auto">
+                    START AUDIT <span class="text-sm font-normal opacity-70">(Turn Sound On)</span> &rarr;
+                </button>
             </div>
-            
-            <button onclick="closeIntro()" class="bg-cyan-500 hover:bg-cyan-400 text-slate-900 text-lg md:text-xl font-black py-4 px-10 rounded-xl transition-all hover:scale-105 shadow-[0_0_20px_rgba(6,182,212,0.5)]">
-                START AUDIT (Turn Sound On) &rarr;
-            </button>
         </div>
     </div>
 
     <!-- Sterling (The Consultant) Modal -->
-    <div id="sterling-modal" class="fixed inset-0 bg-rose-950/90 z-50 hidden items-center justify-center p-4 backdrop-blur-lg">
-        <div class="bg-slate-900 border-4 border-rose-600 p-8 md:p-10 text-center rounded-2xl max-w-xl">
-            <div class="text-7xl md:text-8xl mb-4">🕴️</div>
-            <h2 class="text-4xl md:text-5xl text-rose-500 font-black mb-2 tracking-tighter">HELLO. I AM STERLING.</h2>
-            <p class="text-rose-300 font-bold uppercase tracking-widest text-xs mb-6">StoneGate Bank Restructuring Partner</p>
+    <div id="sterling-modal" class="fixed inset-0 bg-slate-950/90 z-50 hidden items-center justify-center p-4 backdrop-blur-2xl">
+        <div class="relative p-8 md:p-12 text-center rounded-3xl max-w-xl w-full">
+            <div class="text-7xl md:text-8xl mb-6 filter drop-shadow-[0_0_15px_rgba(255,0,85,0.5)]">🕴️</div>
+            <h2 class="text-4xl md:text-5xl text-rose-500 font-black mb-2 tracking-tighter uppercase text-gradient gradient-pink">Hello. I am Sterling.</h2>
+            <p class="text-rose-400/80 font-bold uppercase tracking-[0.2em] text-xs mb-8">StoneGate Bank Restructuring Partner</p>
             
-            <div class="text-slate-200 text-base md:text-lg mb-8 leading-relaxed" id="sterling-message">
+            <div class="text-slate-300 text-base md:text-lg mb-10 leading-relaxed font-light glass-panel p-6 rounded-2xl border-rose-500/20" id="sterling-message">
                 <!-- Content injected dynamically -->
             </div>
             
-            <button id="sterling-btn" onclick="dismissSterling()" class="w-full bg-rose-600 hover:bg-rose-500 text-white font-black py-4 px-6 rounded-xl transition-all hover:scale-105 shadow-[0_0_20px_rgba(225,29,72,0.6)]">
-                I Understand, Sterling. Please don't liquidate me.
+            <button id="sterling-btn" onclick="dismissSterling()" class="w-full bg-gradient-to-r from-rose-700 to-rose-600 hover:from-rose-600 hover:to-rose-500 text-white font-bold py-4 px-6 rounded-2xl transition-all hover:scale-[1.02] shadow-[0_0_20px_rgba(225,29,72,0.4)] border border-rose-400/30">
+                I Understand, Sterling. Please don't liquidate us.
             </button>
         </div>
     </div>
 
     <!-- Header -->
-    <header class="max-w-7xl w-full mx-auto flex justify-between items-end mb-6 border-b-2 border-slate-700 pb-4">
-        <div>
-            <h1 class="text-2xl md:text-3xl font-black tracking-tight flex items-center gap-3 text-white neon-text-cyan">
-                <span>⚡</span> The Revenue Dossier
-            </h1>
+    <header class="max-w-7xl w-full mx-auto flex justify-between items-center mb-8 pb-4 border-b border-slate-800">
+        <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white text-2xl shadow-[0_0_20px_var(--theme-glow)] border border-white/20 transition-all duration-1000" id="header-icon">
+                ⚡
+            </div>
+            <div>
+                <h1 class="text-2xl md:text-3xl font-black tracking-tight text-white flex items-center gap-3">
+                    The Revenue Dossier 
+                    <span id="active-team-display" class="hidden text-sm md:text-base px-3 py-1 bg-slate-800 rounded-lg text-slate-300 font-medium border border-slate-700"></span>
+                </h1>
+                <p class="text-slate-500 text-xs uppercase tracking-[0.15em] font-semibold mt-1">GAAP Simulation Protocol</p>
+            </div>
         </div>
-        <div class="text-right">
-            <span class="block text-[10px] md:text-xs uppercase tracking-widest text-cyan-500 font-bold">Exhibit</span>
-            <span class="text-xl md:text-2xl font-black text-white mono" id="level-display">01/10</span>
+        <div class="text-right glass-panel px-6 py-2 rounded-xl dynamic-border-primary border-b-2">
+            <span class="block text-[10px] md:text-xs uppercase tracking-[0.2em] font-bold mb-1 dynamic-text-primary">Exhibit</span>
+            <span class="text-xl md:text-2xl font-black text-white mono tracking-wider" id="level-display">01/10</span>
         </div>
     </header>
 
@@ -199,57 +326,65 @@
             <div class="page-card" id="dossier-card">
                 
                 <!-- FRONT OF PAGE: The Scenario -->
-                <div class="page-face front p-6 md:p-8 overflow-y-auto">
-                    <div class="mb-4 text-xs font-bold text-cyan-400 uppercase tracking-widest flex items-center gap-2">
-                        <span class="w-2 h-2 rounded-full bg-pink-500 animate-pulse"></span> <span id="ui-theme">Theme</span>
+                <div class="page-face front p-6 md:p-10 overflow-y-auto custom-scrollbar">
+                    <div class="flex items-center gap-3 mb-6">
+                        <span class="flex h-3 w-3 relative">
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style="background-color: var(--theme-primary)"></span>
+                            <span class="relative inline-flex rounded-full h-3 w-3" style="background-color: var(--theme-secondary)"></span>
+                        </span>
+                        <span class="text-xs font-bold uppercase tracking-[0.2em] dynamic-text-primary" id="ui-theme">Theme</span>
                     </div>
-                    <h2 class="text-2xl md:text-3xl font-black text-white mb-6 leading-tight" id="ui-title">Scenario Title</h2>
                     
-                    <div class="bg-slate-900 border-l-4 border-pink-500 p-5 md:p-6 mb-6 text-slate-300 text-base md:text-lg leading-relaxed shadow-inner rounded-r-lg" id="ui-scenario">
-                        Scenario text goes here.
+                    <h2 class="text-3xl md:text-4xl font-black text-white mb-8 leading-tight tracking-tight text-gradient gradient-dynamic" id="ui-title">Scenario Title</h2>
+                    
+                    <div class="relative bg-slate-900/40 p-6 md:p-8 mb-8 text-slate-300 text-base md:text-lg leading-relaxed rounded-xl border border-white/5 shadow-inner">
+                        <div class="glow-line"></div>
+                        <span id="ui-scenario" class="font-light">Scenario text goes here.</span>
                     </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2" id="ui-options">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="ui-options">
                         <!-- Options injected here -->
                     </div>
                 </div>
 
                 <!-- BACK OF PAGE: The Analysis -->
-                <div class="page-face back p-6 md:p-8 overflow-y-auto flex flex-col" id="back-page">
-                    <div class="flex justify-between items-start mb-6 border-b border-slate-700 pb-4">
-                        <div class="text-4xl md:text-5xl">✅</div>
+                <div class="page-face back p-6 md:p-10 overflow-y-auto custom-scrollbar flex flex-col" id="back-page">
+                    <div class="flex justify-between items-start mb-8 pb-6 border-b border-slate-700/50">
+                        <div class="w-16 h-16 rounded-2xl flex items-center justify-center border text-4xl" style="background: var(--theme-glow); border-color: var(--theme-primary); box-shadow: 0 0 15px var(--theme-glow);">✅</div>
                         <div class="text-right">
-                            <h2 class="text-xl md:text-2xl font-black text-white">Audit Memorandum</h2>
-                            <p class="text-xs md:text-sm font-bold uppercase tracking-widest text-cyan-400">Application Verified</p>
+                            <h2 class="text-2xl md:text-3xl font-black text-white tracking-tight">Audit Memorandum</h2>
+                            <p class="text-xs md:text-sm font-bold uppercase tracking-[0.2em] dynamic-text-primary mt-1">Application Verified</p>
                         </div>
                     </div>
 
-                    <div class="bg-slate-900 p-5 rounded-xl border border-slate-700 mb-6 shadow-sm">
-                        <p class="text-slate-200 text-base md:text-lg leading-relaxed" id="ui-feedback">Feedback goes here.</p>
+                    <div class="bg-slate-900/40 p-6 md:p-8 rounded-2xl border border-white/5 mb-8 shadow-inner">
+                        <p class="text-slate-300 text-base md:text-lg leading-relaxed font-light" id="ui-feedback">Feedback goes here.</p>
                     </div>
 
-                    <h3 class="text-xs md:text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Ratio Impact Analysis</h3>
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-                        <div class="bg-slate-900 border border-slate-700 p-3 rounded-xl text-center shadow-inner">
-                            <div class="text-[9px] uppercase text-slate-500 font-bold mb-1 tracking-widest">Current Ratio</div>
-                            <div class="mono text-sm md:text-base" id="impact-current">--</div>
+                    <h3 class="text-xs md:text-sm font-bold text-slate-500 uppercase tracking-[0.15em] mb-4">Ratio Impact Analysis</h3>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                        <div class="glass-panel p-4 rounded-2xl text-center">
+                            <div class="text-[9px] uppercase text-slate-400 font-bold mb-2 tracking-widest">Current Ratio</div>
+                            <div class="mono text-sm md:text-base font-bold" id="impact-current">--</div>
                         </div>
-                        <div class="bg-slate-900 border border-slate-700 p-3 rounded-xl text-center shadow-inner">
-                            <div class="text-[9px] uppercase text-slate-500 font-bold mb-1 tracking-widest">Debt/Equity</div>
-                            <div class="mono text-sm md:text-base" id="impact-debt">--</div>
+                        <div class="glass-panel p-4 rounded-2xl text-center">
+                            <div class="text-[9px] uppercase text-slate-400 font-bold mb-2 tracking-widest">Debt/Equity</div>
+                            <div class="mono text-sm md:text-base font-bold" id="impact-debt">--</div>
                         </div>
-                        <div class="bg-slate-900 border border-slate-700 p-3 rounded-xl text-center shadow-inner">
-                            <div class="text-[9px] uppercase text-slate-500 font-bold mb-1 tracking-widest">TIE Ratio</div>
-                            <div class="mono text-sm md:text-base" id="impact-tie">--</div>
+                        <div class="glass-panel p-4 rounded-2xl text-center">
+                            <div class="text-[9px] uppercase text-slate-400 font-bold mb-2 tracking-widest">TIE Ratio</div>
+                            <div class="mono text-sm md:text-base font-bold" id="impact-tie">--</div>
                         </div>
-                        <div class="bg-slate-900 border border-slate-700 p-3 rounded-xl text-center shadow-inner">
-                            <div class="text-[9px] uppercase text-slate-500 font-bold mb-1 tracking-widest">Covenant</div>
-                            <div class="mono text-sm md:text-base font-bold" id="impact-covenant">--</div>
+                        <div class="glass-panel p-4 rounded-2xl text-center relative overflow-hidden group">
+                            <div class="absolute inset-0 bg-gradient-to-b from-transparent to-black/20 pointer-events-none"></div>
+                            <div class="text-[9px] uppercase text-slate-400 font-bold mb-2 tracking-widest relative z-10">Covenant</div>
+                            <div class="mono text-sm md:text-base font-black relative z-10" id="impact-covenant">--</div>
                         </div>
                     </div>
 
-                    <button onclick="nextPage()" class="w-full mt-auto bg-cyan-600 hover:bg-cyan-500 text-white text-lg md:text-xl font-black py-4 px-6 rounded-xl transition-all shadow-[0_0_15px_rgba(6,182,212,0.4)] flex justify-between items-center" id="next-btn">
-                        <span>Execute Next Exhibit</span> <span class="text-2xl">&rarr;</span>
+                    <button onclick="nextPage()" class="btn-modern w-full mt-auto text-white text-lg md:text-xl font-bold py-5 px-8 rounded-2xl transition-all flex justify-between items-center group" style="box-shadow: 0 10px 30px var(--theme-glow);" id="next-btn">
+                        <span>Execute Next Exhibit</span> 
+                        <span class="text-2xl transform group-hover:translate-x-2 transition-transform">&rarr;</span>
                     </button>
                 </div>
 
@@ -260,119 +395,124 @@
         <aside class="lg:col-span-4 flex flex-col gap-6">
             
             <!-- Bank Covenant Warning Box -->
-            <div class="bg-slate-800 border-2 border-slate-600 p-5 md:p-6 rounded-xl shadow-lg transition-all duration-300 relative overflow-hidden" id="bank-box">
-                <div class="flex items-center justify-between mb-4 border-b border-slate-700 pb-3">
-                    <h2 class="text-sm md:text-base font-black text-white uppercase tracking-wide flex items-center gap-2">
-                        <span>🏦</span> StoneGate Bank
+            <div class="glass-panel p-6 rounded-3xl transition-all duration-500 relative overflow-hidden" id="bank-box">
+                <div class="absolute top-0 right-0 p-4 opacity-10 text-6xl pointer-events-none transform translate-x-4 -translate-y-4">🏦</div>
+                
+                <div class="flex items-center justify-between mb-5 border-b border-slate-700/50 pb-4 relative z-10">
+                    <h2 class="text-sm md:text-base font-black text-white uppercase tracking-wider flex items-center gap-2">
+                        StoneGate Bank
                     </h2>
-                    <span class="text-[10px] md:text-xs font-bold px-2 py-1 bg-slate-900 text-cyan-400 rounded-full mono border border-cyan-900 shadow-inner">REVOLVER</span>
+                    <span class="text-[10px] md:text-xs font-bold px-3 py-1 bg-slate-800 text-slate-300 rounded-full mono border border-slate-600 shadow-inner">REVOLVER</span>
                 </div>
                 
-                <p class="text-xs md:text-sm text-slate-400 mb-4 leading-relaxed">
-                    Line of Credit Limit: <strong class="text-white">$100,000</strong>. Breach the covenants below, and we call the loan immediately.
+                <p class="text-xs md:text-sm text-slate-400 mb-6 leading-relaxed font-light relative z-10">
+                    Line of Credit Limit: <strong class="text-white font-mono bg-slate-800/50 px-1 rounded">$100,000</strong>. Breach the covenants below, and we call the loan immediately.
                 </p>
 
-                <div class="space-y-2 mb-4">
-                    <div class="flex justify-between items-center bg-slate-900 p-2 rounded-lg border border-slate-700">
+                <div class="space-y-3 mb-6 relative z-10">
+                    <div class="flex justify-between items-center bg-slate-900/60 p-3 rounded-xl border border-white/5 group hover:border-white/10 transition-colors">
                         <div>
-                            <div class="text-[9px] font-bold uppercase text-slate-500 tracking-wider">Current Ratio Limit</div>
-                            <div class="text-[10px] md:text-xs font-bold text-slate-300">Must remain > 1.20x</div>
+                            <div class="text-[9px] font-bold uppercase text-slate-500 tracking-wider mb-0.5">Current Ratio Limit</div>
+                            <div class="text-[10px] md:text-xs font-medium text-slate-400">Must remain > 1.20x</div>
                         </div>
-                        <div class="mono font-bold text-cyan-400 text-base" id="live-cr">0.00x</div>
+                        <div class="mono font-bold dynamic-text-primary text-base drop-shadow-md" id="live-cr">0.00x</div>
                     </div>
                     
-                    <div class="flex justify-between items-center bg-slate-900 p-2 rounded-lg border border-slate-700">
+                    <div class="flex justify-between items-center bg-slate-900/60 p-3 rounded-xl border border-white/5 group hover:border-white/10 transition-colors">
                         <div>
-                            <div class="text-[9px] font-bold uppercase text-slate-500 tracking-wider">Debt-to-Equity Limit</div>
-                            <div class="text-[10px] md:text-xs font-bold text-slate-300">Must remain < 1.70x</div>
+                            <div class="text-[9px] font-bold uppercase text-slate-500 tracking-wider mb-0.5">Debt-to-Equity Limit</div>
+                            <div class="text-[10px] md:text-xs font-medium text-slate-400">Must remain < 1.75x</div>
                         </div>
-                        <div class="mono font-bold text-white text-base" id="live-de">0.00x</div>
+                        <div class="mono font-bold text-white text-base drop-shadow-md" id="live-de">0.00x</div>
                     </div>
 
-                    <div class="flex justify-between items-center bg-slate-900 p-2 rounded-lg border border-slate-700">
+                    <div class="flex justify-between items-center bg-slate-900/60 p-3 rounded-xl border border-white/5 group hover:border-white/10 transition-colors">
                         <div>
-                            <div class="text-[9px] font-bold uppercase text-slate-500 tracking-wider">Interest Coverage (TIE)</div>
-                            <div class="text-[10px] md:text-xs font-bold text-slate-300">Must remain > 3.00x</div>
+                            <div class="text-[9px] font-bold uppercase text-slate-500 tracking-wider mb-0.5">Interest Coverage (TIE)</div>
+                            <div class="text-[10px] md:text-xs font-medium text-slate-400">Must remain > 3.00x</div>
                         </div>
-                        <div class="mono font-bold text-white text-base" id="live-tie">0.00x</div>
+                        <div class="mono font-bold text-white text-base drop-shadow-md" id="live-tie">0.00x</div>
                     </div>
                 </div>
 
-                <!-- Tapping the Revolver -->
-                <button onclick="drawRevolver()" class="w-full bg-pink-600 hover:bg-pink-500 text-white text-sm font-bold py-3 rounded-lg transition-colors mb-3 shadow-[0_0_10px_rgba(236,72,153,0.3)] flex justify-center items-center gap-2">
-                    <span>💸</span> Draw $10,000 from Revolver
+                <button onclick="drawRevolver()" class="w-full relative overflow-hidden bg-slate-800 hover:bg-slate-700 text-white text-sm font-bold py-4 rounded-xl transition-all mb-4 border border-rose-500/30 hover:border-rose-500 shadow-[0_0_15px_rgba(225,29,72,0.15)] hover:shadow-[0_0_20px_rgba(225,29,72,0.3)] flex justify-center items-center gap-2 group z-10">
+                    <span class="absolute inset-0 bg-gradient-to-r from-rose-600/20 to-pink-600/20 opacity-0 group-hover:opacity-100 transition-opacity"></span>
+                    <span class="text-rose-400 group-hover:text-rose-300 transition-colors">💸</span> 
+                    <span class="relative z-10">Draw $10,000 from Revolver</span>
                 </button>
 
-                <div class="text-center p-2 rounded font-black text-[10px] md:text-xs uppercase tracking-widest bg-emerald-900/50 text-emerald-400 border border-emerald-800 transition-colors" id="bank-status">
-                    🟢 In Compliance
+                <div class="text-center p-3 rounded-xl font-black text-[10px] md:text-xs uppercase tracking-[0.2em] bg-emerald-900/30 text-emerald-400 border border-emerald-500/30 transition-all shadow-inner relative z-10" id="bank-status">
+                    <span class="inline-block w-2 h-2 rounded-full bg-emerald-400 mr-2 shadow-[0_0_8px_#34d399]"></span> In Compliance
                 </div>
             </div>
 
             <!-- Master Ledger -->
-            <div class="bg-slate-800 border-2 border-slate-700 p-5 md:p-6 rounded-xl shadow-lg">
-                <h2 class="text-sm md:text-base font-black text-white mb-4 uppercase tracking-wide flex items-center gap-2 border-b border-slate-700 pb-2">
-                    <span>🗃️</span> Master Ledger
+            <div class="glass-panel p-6 rounded-3xl relative overflow-hidden">
+                <div class="absolute -right-10 -top-10 w-40 h-40 rounded-full blur-[40px] pointer-events-none" style="background: var(--theme-glow); opacity: 0.2"></div>
+                
+                <h2 class="text-sm md:text-base font-black text-white mb-5 uppercase tracking-wider flex items-center gap-2 border-b border-slate-700/50 pb-4">
+                    <span class="dynamic-text-primary">🗃️</span> Master Ledger
                 </h2>
                 
-                <div class="space-y-2 text-xs md:text-sm">
-                    <div class="flex justify-between items-center">
-                        <span class="text-slate-400 font-bold uppercase tracking-wider text-[10px] md:text-[11px]">Cash Balance:</span>
-                        <span class="mono font-bold text-emerald-400 text-base" id="stat-cash">$0</span>
+                <div class="space-y-3 text-xs md:text-sm relative z-10">
+                    <div class="flex justify-between items-end group">
+                        <span class="text-slate-400 font-bold uppercase tracking-wider text-[10px] md:text-[11px] group-hover:text-emerald-300 transition-colors">Cash Balance</span>
+                        <span class="mono font-black text-emerald-400 text-base drop-shadow-[0_0_5px_rgba(52,211,153,0.3)] border-b border-slate-700/50 w-24 text-right pb-1" id="stat-cash">$0</span>
                     </div>
-                    <div class="flex justify-between items-center">
-                        <span class="text-slate-400 font-bold uppercase tracking-wider text-[10px] md:text-[11px]">Accounts Rec:</span>
-                        <span class="mono font-semibold text-slate-200" id="stat-ar">$0</span>
+                    <div class="flex justify-between items-end group">
+                        <span class="text-slate-400 font-bold uppercase tracking-wider text-[10px] md:text-[11px] group-hover:text-slate-200 transition-colors">Accounts Rec</span>
+                        <span class="mono font-semibold text-slate-200 border-b border-slate-700/50 w-24 text-right pb-1" id="stat-ar">$0</span>
                     </div>
-                    <div class="flex justify-between items-center">
-                        <span class="text-slate-400 font-bold uppercase tracking-wider text-[10px] md:text-[11px]">Inventory:</span>
-                        <span class="mono font-semibold text-slate-200" id="stat-inv">$0</span>
+                    <div class="flex justify-between items-end group">
+                        <span class="text-slate-400 font-bold uppercase tracking-wider text-[10px] md:text-[11px] group-hover:text-slate-200 transition-colors">Inventory</span>
+                        <span class="mono font-semibold text-slate-200 border-b border-slate-700/50 w-24 text-right pb-1" id="stat-inv">$0</span>
                     </div>
-                    <div class="flex justify-between items-center pt-2 border-t border-slate-700">
-                        <span class="text-slate-400 font-bold uppercase tracking-wider text-[10px] md:text-[11px]">Unearned Rev:</span>
-                        <span class="mono font-semibold text-rose-400" id="stat-unearned">$0</span>
+                    <div class="flex justify-between items-end group pt-2">
+                        <span class="text-slate-400 font-bold uppercase tracking-wider text-[10px] md:text-[11px] group-hover:text-rose-300 transition-colors">Unearned Rev</span>
+                        <span class="mono font-semibold text-rose-400 border-b border-slate-700/50 w-24 text-right pb-1" id="stat-unearned">$0</span>
                     </div>
-                    <div class="flex justify-between items-center">
-                        <span class="text-slate-400 font-bold uppercase tracking-wider text-[10px] md:text-[11px]">Revolver Debt:</span>
-                        <span class="mono font-semibold text-rose-400" id="stat-revolver">$0</span>
+                    <div class="flex justify-between items-end group">
+                        <span class="text-slate-400 font-bold uppercase tracking-wider text-[10px] md:text-[11px] group-hover:text-rose-300 transition-colors">Revolver Debt</span>
+                        <span class="mono font-semibold text-rose-400 border-b border-slate-700/50 w-24 text-right pb-1" id="stat-revolver">$0</span>
                     </div>
-                    <div class="flex justify-between items-center">
-                        <span class="text-slate-400 font-bold uppercase tracking-wider text-[10px] md:text-[11px]">Long-Term Debt:</span>
-                        <span class="mono font-semibold text-slate-200" id="stat-ltd">$0</span>
+                    <div class="flex justify-between items-end group">
+                        <span class="text-slate-400 font-bold uppercase tracking-wider text-[10px] md:text-[11px] group-hover:text-slate-200 transition-colors">Long-Term Debt</span>
+                        <span class="mono font-semibold text-slate-200 border-b border-slate-700/50 w-24 text-right pb-1" id="stat-ltd">$0</span>
                     </div>
-                    <div class="flex justify-between items-center pt-2 border-t border-slate-700">
-                        <span class="text-cyan-400 font-black uppercase tracking-wider text-[10px] md:text-[11px]">Total Equity:</span>
-                        <span class="mono font-bold text-cyan-400" id="stat-equity">$0</span>
+                    <div class="flex justify-between items-end group pt-3 mt-1">
+                        <span class="dynamic-text-primary font-black uppercase tracking-widest text-[10px] md:text-[11px]">Total Equity</span>
+                        <span class="mono font-black dynamic-text-primary border-b-2 dynamic-border-primary w-24 text-right pb-1" style="filter: drop-shadow(0 0 8px var(--theme-glow))" id="stat-equity">$0</span>
                     </div>
                     
-                    <div class="pt-2 mt-2 border-t-2 border-slate-600"></div>
+                    <div class="pt-4 mt-2"></div>
                     
-                    <div class="flex justify-between items-center">
-                        <span class="text-slate-300 font-bold uppercase tracking-wider text-[10px] md:text-[11px]">Revenue:</span>
-                        <span class="mono font-bold text-white" id="stat-rev">$0</span>
+                    <div class="flex justify-between items-end group">
+                        <span class="text-slate-300 font-bold uppercase tracking-wider text-[10px] md:text-[11px] group-hover:text-white transition-colors">Revenue</span>
+                        <span class="mono font-bold text-white border-b border-slate-700/50 w-24 text-right pb-1" id="stat-rev">$0</span>
                     </div>
-                    <div class="flex justify-between items-center">
-                        <span class="text-slate-300 font-bold uppercase tracking-wider text-[10px] md:text-[11px]">COGS:</span>
-                        <span class="mono font-bold text-slate-400" id="stat-cogs">$0</span>
+                    <div class="flex justify-between items-end group">
+                        <span class="text-slate-400 font-bold uppercase tracking-wider text-[10px] md:text-[11px] group-hover:text-slate-300 transition-colors">COGS</span>
+                        <span class="mono font-bold text-slate-400 border-b border-slate-700/50 w-24 text-right pb-1" id="stat-cogs">$0</span>
                     </div>
-                    <div class="flex justify-between items-center text-yellow-300">
-                        <span class="font-bold uppercase tracking-wider text-[10px] md:text-[11px]">Audit Fines:</span>
-                        <span class="mono font-bold" id="stat-fines">$0</span>
+                    <div class="flex justify-between items-end group text-yellow-400/90">
+                        <span class="font-bold uppercase tracking-wider text-[10px] md:text-[11px]">Audit Fines</span>
+                        <span class="mono font-bold border-b border-slate-700/50 w-24 text-right pb-1" id="stat-fines">$0</span>
                     </div>
-                    <div class="flex justify-between items-center text-yellow-300">
-                        <span class="font-bold uppercase tracking-wider text-[10px] md:text-[11px]">Consultant Fees:</span>
-                        <span class="mono font-bold" id="stat-consulting">$0</span>
+                    <div class="flex justify-between items-end group text-yellow-400/90">
+                        <span class="font-bold uppercase tracking-wider text-[10px] md:text-[11px]">Consultant Fees</span>
+                        <span class="mono font-bold border-b border-slate-700/50 w-24 text-right pb-1" id="stat-consulting">$0</span>
                     </div>
-                    <div class="flex justify-between items-center pt-1 border-t border-slate-700/50">
-                        <span class="text-amber-400 font-bold uppercase tracking-wider text-[10px] md:text-[11px]">EBIT:</span>
-                        <span class="mono font-bold text-amber-400" id="stat-ebit">$0</span>
+                    <div class="flex justify-between items-end group pt-3">
+                        <span class="text-amber-400 font-bold uppercase tracking-wider text-[10px] md:text-[11px]">EBIT</span>
+                        <span class="mono font-bold text-amber-400 border-b border-slate-700/50 w-24 text-right pb-1" id="stat-ebit">$0</span>
                     </div>
-                    <div class="flex justify-between items-center">
-                        <span class="text-slate-400 font-bold uppercase tracking-wider text-[10px] md:text-[11px]">Interest Exp:</span>
-                        <span class="mono font-bold text-slate-300" id="stat-interest">$0</span>
+                    <div class="flex justify-between items-end group">
+                        <span class="text-slate-400 font-bold uppercase tracking-wider text-[10px] md:text-[11px]">Interest Exp</span>
+                        <span class="mono font-bold text-slate-300 border-b border-slate-700/50 w-24 text-right pb-1" id="stat-interest">$0</span>
                     </div>
-                    <div class="flex justify-between items-center pt-1 border-t border-slate-700/50">
-                        <span class="text-emerald-400 font-black uppercase tracking-wider text-[10px] md:text-[11px]">Net Income:</span>
-                        <span class="mono font-bold text-emerald-400" id="stat-ni">$0</span>
+                    <div class="flex justify-between items-end group pt-3 mt-1">
+                        <span class="text-emerald-400 font-black uppercase tracking-widest text-[10px] md:text-[11px]">Net Income</span>
+                        <span class="mono font-black text-emerald-400 border-b-2 border-emerald-500/50 w-24 text-right pb-1 drop-shadow-[0_0_8px_rgba(52,211,153,0.4)]" id="stat-ni">$0</span>
                     </div>
                 </div>
             </div>
@@ -381,11 +521,25 @@
     </div>
 
     <script>
-        // --- VOCAL TRACT SYNTHESIS ENGINE ---
-        // Generates a highly realistic, wordless, deep human evil laugh.
-        // It uses Formant Filters (simulating the human throat) and 
-        // Amplitude Modulation (simulating lungs pumping "ha-ha-ha").
-        // This is mathematically generated locally, so it CANNOT be blocked by networks.
+        // --- CONFIGURATION ---
+        
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxOins5wBkqwEg_Cl4etBg-mLGqosys5ZHMHAGIgkBbU1v12aCkTfdUqIYpDcLL8uye/exec"; 
+        
+        // --- STATE ---
+        let teamName = "";
+        
+        function checkTeamName() {
+            const input = document.getElementById('team-name-input').value.trim();
+            const btn = document.getElementById('start-btn');
+            if (input.length > 0) {
+                btn.removeAttribute('disabled');
+                teamName = input;
+            } else {
+                btn.setAttribute('disabled', 'true');
+            }
+        }
+
+        // --- VOCAL TRACT SYNTHESIS ENGINE (UNTOUCHED) ---
         let audioCtx;
 
         function initAudio() {
@@ -402,14 +556,11 @@
             const startTime = audioCtx.currentTime;
             const endTime = startTime + duration;
 
-            // 1. Vocal Cords (Sawtooth wave for a rich, raspy human tone)
             const vocalCords = audioCtx.createOscillator();
             vocalCords.type = 'sawtooth';
-            // Start deep and drop pitch slightly as the laugh finishes
             vocalCords.frequency.setValueAtTime(startPitch, startTime);
             vocalCords.frequency.exponentialRampToValueAtTime(startPitch * 0.7, endTime);
 
-            // 2. Breath/Rasp (White noise to simulate air leaving the lungs)
             const bufferSize = audioCtx.sampleRate * Math.ceil(duration);
             const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
             const output = noiseBuffer.getChannelData(0);
@@ -419,44 +570,38 @@
             const noise = audioCtx.createBufferSource();
             noise.buffer = noiseBuffer;
             const noiseGain = audioCtx.createGain();
-            noiseGain.gain.value = 0.25; // Blend the breath noise in
+            noiseGain.gain.value = 0.25; 
 
-            // 3. The "Lungs" (LFO that pulses the volume to create the rhythm)
             const lungs = audioCtx.createOscillator();
             lungs.type = 'sine';
-            const startSpeed = endSpeed * 2.5; // Starts laughing fast, slows down menacingly
+            const startSpeed = endSpeed * 2.5; 
             lungs.frequency.setValueAtTime(startSpeed, startTime);
             lungs.frequency.exponentialRampToValueAtTime(endSpeed, endTime);
 
             const breathEnvelope = audioCtx.createGain();
-            breathEnvelope.gain.value = 0.5; // Base volume
+            breathEnvelope.gain.value = 0.5; 
             
             const lungDepth = audioCtx.createGain();
-            lungDepth.gain.value = 0.5; // Swings from 0.0 to 1.0 (cutting off sound between laughs)
+            lungDepth.gain.value = 0.5; 
             
             lungs.connect(lungDepth);
             lungDepth.connect(breathEnvelope.gain);
 
-            // Connect vocal cords and breath to the lung pumping mechanism
             vocalCords.connect(breathEnvelope);
             noise.connect(noiseGain);
             noiseGain.connect(breathEnvelope);
 
-            // 4. The "Throat" (Formant Filters shaping the raw sound into an "AH" vowel)
-            // Scaled down to match a massive, demonic giant's vocal tract
             const f1 = audioCtx.createBiquadFilter(); f1.type = 'bandpass'; f1.frequency.value = 550; f1.Q.value = 4;
             const f2 = audioCtx.createBiquadFilter(); f2.type = 'bandpass'; f2.frequency.value = 880; f2.Q.value = 4;
             const f3 = audioCtx.createBiquadFilter(); f3.type = 'bandpass'; f3.frequency.value = 1920; f3.Q.value = 4;
 
-            // Route the pulsing breath through the 3 throat filters (in parallel)
             breathEnvelope.connect(f1);
             breathEnvelope.connect(f2);
             breathEnvelope.connect(f3);
 
-            // 5. Master Volume & Fade Out
             const masterGain = audioCtx.createGain();
             masterGain.gain.setValueAtTime(0, startTime);
-            masterGain.gain.linearRampToValueAtTime(4.0, startTime + 0.1); // Boosted because filters reduce volume
+            masterGain.gain.linearRampToValueAtTime(4.0, startTime + 0.1); 
             masterGain.gain.exponentialRampToValueAtTime(0.01, endTime);
 
             f1.connect(masterGain);
@@ -465,30 +610,20 @@
             
             masterGain.connect(audioCtx.destination);
 
-            // Execute the sound
             vocalCords.start(startTime); vocalCords.stop(endTime);
             noise.start(startTime); noise.stop(endTime);
             lungs.start(startTime); lungs.stop(endTime);
         }
 
         // --- GAME STATE & COVENANTS ---
-        const COVENANTS = { minCR: 1.20, maxDE: 1.70, minTIE: 3.00 };
+        const COVENANTS = { minCR: 1.20, maxDE: 1.75, minTIE: 3.00 }; /* Adjusted maxDE from 1.70 to 1.75 to ensure a cure is mathematically likely by exhibit 06 */
         const REVOLVER_MAX = 100000;
 
         let financials = {
-            cash: 35000,
-            ar: 25000,
-            inventory: 40000,     
-            unearnedRev: 15000,
-            revolver: 45000,
-            ltd: 40000,           
-            equity: 70000,        
-            revenue: 100000, 
-            cogs: 60000,
-            auditFines: 0,
-            consultantFees: 0,
-            interestRate: 0.05,
-            baseInterest: 2000
+            cash: 35000, ar: 25000, inventory: 40000,     
+            unearnedRev: 15000, revolver: 45000, ltd: 40000,            
+            equity: 70000, revenue: 100000, cogs: 60000,
+            auditFines: 0, consultantFees: 0, interestRate: 0.05, baseInterest: 2000
         };
 
         let currentLevel = 0;
@@ -496,12 +631,41 @@
         let isBreached = false;
         let hasMetSterling = false;
 
-        // --- UI INITS ---
+        // Dynamic Colors per Level (10 themes)
+        const colorThemes = [
+            { primary: '#06b6d4', secondary: '#3b82f6', glow: 'rgba(6,182,212,0.5)' }, // 1. Cyan
+            { primary: '#a855f7', secondary: '#ec4899', glow: 'rgba(168,85,247,0.5)' },// 2. Purple
+            { primary: '#10b981', secondary: '#3b82f6', glow: 'rgba(16,185,129,0.5)' },// 3. Emerald
+            { primary: '#f59e0b', secondary: '#ef4444', glow: 'rgba(245,158,11,0.5)' },// 4. Amber
+            { primary: '#ec4899', secondary: '#8b5cf6', glow: 'rgba(236,72,153,0.5)' },// 5. Pink
+            { primary: '#14b8a6', secondary: '#0ea5e9', glow: 'rgba(20,184,166,0.5)' },// 6. Teal
+            { primary: '#f43f5e', secondary: '#f97316', glow: 'rgba(244,63,94,0.5)' }, // 7. Rose
+            { primary: '#8b5cf6', secondary: '#3b82f6', glow: 'rgba(139,92,246,0.5)' },// 8. Violet
+            { primary: '#eab308', secondary: '#84cc16', glow: 'rgba(234,179,8,0.5)' }, // 9. Yellow
+            { primary: '#ef4444', secondary: '#f43f5e', glow: 'rgba(239,68,68,0.5)' }  // 10. Red
+        ];
+
+        function applyTheme(levelIdx) {
+            const theme = colorThemes[levelIdx] || colorThemes[0];
+            const root = document.documentElement;
+            root.style.setProperty('--theme-primary', theme.primary);
+            root.style.setProperty('--theme-secondary', theme.secondary);
+            root.style.setProperty('--theme-glow', theme.glow);
+            
+            document.getElementById('header-icon').style.background = `linear-gradient(to bottom right, ${theme.primary}, ${theme.secondary})`;
+        }
+
         function closeIntro() {
-            initAudio(); // Initialize Web Audio API and fetch the human laugh on first user interaction
+            initAudio(); 
             const modal = document.getElementById('intro-modal');
             modal.style.opacity = '0';
-            setTimeout(() => modal.classList.add('hidden'), 300);
+            
+            // Show team name in header
+            const teamDisplay = document.getElementById('active-team-display');
+            teamDisplay.innerText = teamName;
+            teamDisplay.classList.remove('hidden');
+
+            setTimeout(() => modal.classList.add('hidden'), 500);
         }
 
         function dismissSterling() {
@@ -510,10 +674,13 @@
 
         function triggerFatalDefault(reason) {
             const sterlingModal = document.getElementById('sterling-modal');
-            document.getElementById('sterling-message').innerHTML = reason + "<br><br><span class='text-rose-400 font-black uppercase text-xl'>Your firm is being liquidated immediately.</span>";
+            document.getElementById('sterling-message').innerHTML = reason + "<br><br><span class='text-rose-400 font-black uppercase text-xl mt-4 block'>Your firm is being liquidated immediately.</span>";
             const btn = document.getElementById('sterling-btn');
-            btn.innerText = "Pack Your Box 📦 (Restart)";
-            btn.onclick = () => location.reload();
+            btn.innerText = "Pack Your Box 📦 (View Score)";
+            btn.onclick = () => {
+                dismissSterling();
+                showEndScreen();
+            };
             sterlingModal.classList.remove('hidden');
             sterlingModal.classList.add('flex');
         }
@@ -536,271 +703,107 @@
             updateUI();
         }
 
-        // --- 10 SCENARIOS WITH DISTRACTORS ---
+        // --- 10 SCENARIOS WITH DISTRACTORS (REORDERED TO FORCE EARLY BREACH) ---
         const levels = [
             {
-                theme: "Discounts & Terms",
-                title: "The Prompt Payer",
+                theme: "Discounts & Terms", title: "The Prompt Payer",
                 scenario: "A client purchased $10,000 of goods on credit with terms 2/10, n/30. They pay their invoice on Day 8. How do you record the receipt of their payment?",
                 options: [
-                    {
-                        text: "Increase Cash by $10,000 and decrease Accounts Receivable by $10,000. Ignore the discount.",
-                        correct: false,
-                        feedback: "Incorrect. '2/10' is a contractual right to a 2% discount if paid within 10 days. By Day 8, they only owe $9,800."
-                    },
-                    {
-                        text: "Increase Cash by $9,800, decrease Accounts Receivable by $10,000, and record a $200 discount which reduces total Revenue.",
-                        correct: true,
-                        feedback: "Correct. You sacrificed a fraction of revenue ($200) to accelerate cash flow. Liquidity improves slightly as AR converts to Cash.",
-                        impact: { cash: 9800, ar: -10000, revenue: -200, equity: -200 }
-                    },
-                    {
-                        text: "Increase Cash by $9,800 and decrease Accounts Receivable by $9,800. Leave the $200 in AR indefinitely.",
-                        correct: false,
-                        feedback: "Incorrect. If you leave $200 in AR, your books will claim the customer still owes you money they contractually do not owe."
-                    },
-                    {
-                        text: "Increase Cash by $9,800, decrease Accounts Receivable by $10,000, and increase COGS by $200.",
-                        correct: false,
-                        feedback: "Incorrect. A sales discount reduces gross Revenue. It is not a Cost of Goods Sold (which only applies to inventory costs)."
-                    }
+                    { text: "Increase Cash by $10,000 and decrease Accounts Receivable by $10,000. Ignore the discount.", correct: false, feedback: "Incorrect. '2/10' is a contractual right to a 2% discount if paid within 10 days. By Day 8, they only owe $9,800." },
+                    { text: "Increase Cash by $9,800, decrease Accounts Receivable by $10,000, and record a $200 discount which reduces total Revenue.", correct: true, feedback: "Correct. You sacrificed a fraction of revenue ($200) to accelerate cash flow. Liquidity improves slightly as AR converts to Cash.", impact: { cash: 9800, ar: -10000, revenue: -200, equity: -200 } },
+                    { text: "Increase Cash by $9,800 and decrease Accounts Receivable by $9,800. Leave the $200 in AR indefinitely.", correct: false, feedback: "Incorrect. If you leave $200 in AR, your books will claim the customer still owes you money they contractually do not owe." },
+                    { text: "Increase Cash by $9,800, decrease Accounts Receivable by $10,000, and increase COGS by $200.", correct: false, feedback: "Incorrect. A sales discount reduces gross Revenue. It is not a Cost of Goods Sold (which only applies to inventory costs)." }
                 ]
             },
             {
-                theme: "Variable Consideration",
-                title: "The Bulk Rebate",
-                scenario: "A customer buys 1,000 units at $10 each. If they buy 5,000 units this year, the price retroactively drops to $8. You are 95% certain they will hit the 5,000 target. How do you recognize this initial sale?",
-                options: [
-                    {
-                        text: "Recognize the full $10,000 as Revenue today. Wait to see if they actually hit the target.",
-                        correct: false,
-                        feedback: "GAAP requires estimating variable consideration if it is 'probable' a significant reversal won't occur. Recognizing the full amount overstates your revenue."
-                    },
-                    {
-                        text: "Recognize $10,000 as Revenue, increase AR by $8,000, and record a $2,000 bad debt.",
-                        correct: false,
-                        feedback: "Incorrect. This isn't a bad debt (customer defaulting); this is a contractual price drop. Bad Debt Expense is the wrong accounting treatment."
-                    },
-                    {
-                        text: "Recognize $8,000 as Revenue, and record the remaining $2,000 as a Refund Liability (Unearned).",
-                        correct: true,
-                        feedback: "Accurate. Constraining revenue reflects economic reality. However, recording that $2,000 liability pushes your Debt-to-Equity ratio higher.",
-                        impact: { ar: 10000, revenue: 8000, unearnedRev: 2000, equity: 8000 } 
-                    },
-                    {
-                        text: "Recognize $8,000 as Revenue, and immediately expense the $2,000 to COGS.",
-                        correct: false,
-                        feedback: "Incorrect. A price rebate reduces the transaction price (Revenue); it does not magically increase the manufacturing cost of the goods (COGS)."
-                    }
-                ]
-            },
-            {
-                theme: "Inventory & Returns",
-                title: "The Damaged Goods",
-                scenario: "A customer returns a $500 appliance. It cost you $200 to manufacture. You refund their cash and place the perfectly fine item back into your warehouse. How is this recorded?",
-                options: [
-                    {
-                        text: "Decrease Cash and Revenue by $500. Leave Inventory and COGS alone since it was already expensed.",
-                        correct: false,
-                        feedback: "Incorrect. If you put the item back in the warehouse, you must add it back to your Inventory asset. Leaving it in COGS violates the matching principle."
-                    },
-                    {
-                        text: "Decrease Cash and Revenue by $300 to reflect the net impact.",
-                        correct: false,
-                        feedback: "Incorrect. GAAP requires you to separate Revenue and COGS on the Income Statement. You cannot 'net' them together like this."
-                    },
-                    {
-                        text: "Decrease Cash by $500, and record a $500 'Returns Expense'.",
-                        correct: false,
-                        feedback: "Incorrect. Returns reverse the original Revenue; they are a contra-revenue, not an operating expense. And you still forgot to put the item back in inventory!"
-                    },
-                    {
-                        text: "Decrease Cash and Revenue by $500. Additionally, increase Inventory and decrease COGS by $200.",
-                        correct: true,
-                        feedback: "Excellent. You must reverse both sides of the transaction: the sale (Revenue/Cash) AND the expense (COGS/Inventory).",
-                        impact: { cash: -500, revenue: -500, equity: -500, inventory: 200, cogs: -200, equity_offset: 200 }
-                    }
-                ]
-            },
-            {
-                theme: "Performance Obligations",
-                title: "The Upfront Franchise",
+                // Moved to Level 2 to guarantee a massive Debt-to-Equity breach right here!
+                theme: "Performance Obligations", title: "The Upfront Franchise",
                 scenario: "A franchisee wires you $40,000 today. The contract states you must provide 3 months of site selection and training before they can open. You haven't started yet.",
                 options: [
-                    {
-                        text: "Increase Cash by $40,000 and immediately recognize $40,000 in Revenue since the cash is non-refundable.",
-                        correct: false,
-                        feedback: "Under ASC 606, cash received does not equal revenue earned. You have a massive performance obligation to fulfill before you can recognize anything."
-                    },
-                    {
-                        text: "Increase Cash by $40,000, but record a $40,000 Liability (Unearned Revenue).",
-                        correct: true,
-                        feedback: "GAAP compliance verified. But look closely: adding $40k to liabilities without any offsetting equity profit causes a massive spike in your Debt-to-Equity ratio! You breached your Covenant!",
-                        impact: { cash: 40000, unearnedRev: 40000 } // GUARANTEED BREACH TRIGGER
-                    },
-                    {
-                        text: "Increase Cash by $40,000 and recognize it directly into Equity to bypass the Income Statement.",
-                        correct: false,
-                        feedback: "Fraud alert! You cannot bypass the Income Statement for core operations just to hide liabilities from the bank."
-                    },
-                    {
-                        text: "Wait to deposit the check until the 3 months are over.",
-                        correct: false,
-                        feedback: "Terrible business practice. You have the cash, you must deposit and record it. You just can't call it Revenue yet."
-                    }
+                    { text: "Increase Cash by $40,000 and immediately recognize $40,000 in Revenue since the cash is non-refundable.", correct: false, feedback: "Under ASC 606, cash received does not equal revenue earned. You have a massive performance obligation to fulfill before you can recognize anything." },
+                    { text: "Increase Cash by $40,000, but record a $40,000 Liability (Unearned Revenue).", correct: true, feedback: "GAAP compliance verified. But look closely: adding $40k to liabilities without any offsetting equity profit causes a massive spike in your Debt-to-Equity ratio! You breached your Covenant!", impact: { cash: 40000, unearnedRev: 40000 } },
+                    { text: "Increase Cash by $40,000 and recognize it directly into Equity to bypass the Income Statement.", correct: false, feedback: "Fraud alert! You cannot bypass the Income Statement for core operations just to hide liabilities from the bank." },
+                    { text: "Wait to deposit the check until the 3 months are over.", correct: false, feedback: "Terrible business practice. You have the cash, you must deposit and record it. You just can't call it Revenue yet." }
                 ]
             },
             {
-                theme: "Ethics & Timing",
-                title: "Channel Stuffing",
+                theme: "Variable Consideration", title: "The Bulk Rebate",
+                scenario: "A customer buys 1,000 units at $10 each. If they buy 5,000 units this year, the price retroactively drops to $8. You are 95% certain they will hit the 5,000 target. How do you recognize this initial sale?",
+                options: [
+                    { text: "Recognize the full $10,000 as Revenue today. Wait to see if they actually hit the target.", correct: false, feedback: "GAAP requires estimating variable consideration if it is 'probable' a significant reversal won't occur. Recognizing the full amount overstates your revenue." },
+                    { text: "Recognize $10,000 as Revenue, increase AR by $8,000, and record a $2,000 bad debt.", correct: false, feedback: "Incorrect. This isn't a bad debt (customer defaulting); this is a contractual price drop. Bad Debt Expense is the wrong accounting treatment." },
+                    { text: "Recognize $8,000 as Revenue, and record the remaining $2,000 as a Refund Liability (Unearned).", correct: true, feedback: "Accurate. Constraining revenue reflects economic reality. However, recording that $2,000 liability pushes your Debt-to-Equity ratio higher.", impact: { ar: 10000, revenue: 8000, unearnedRev: 2000, equity: 8000 } },
+                    { text: "Recognize $8,000 as Revenue, and immediately expense the $2,000 to COGS.", correct: false, feedback: "Incorrect. A price rebate reduces the transaction price (Revenue); it does not magically increase the manufacturing cost of the goods (COGS)." }
+                ]
+            },
+            {
+                theme: "Inventory & Returns", title: "The Damaged Goods",
+                scenario: "A customer returns a $500 appliance. It cost you $200 to manufacture. You refund their cash and place the perfectly fine item back into your warehouse. How is this recorded?",
+                options: [
+                    { text: "Decrease Cash and Revenue by $500. Leave Inventory and COGS alone since it was already expensed.", correct: false, feedback: "Incorrect. If you put the item back in the warehouse, you must add it back to your Inventory asset. Leaving it in COGS violates the matching principle." },
+                    { text: "Decrease Cash and Revenue by $300 to reflect the net impact.", correct: false, feedback: "Incorrect. GAAP requires you to separate Revenue and COGS on the Income Statement. You cannot 'net' them together like this." },
+                    { text: "Decrease Cash by $500, and record a $500 'Returns Expense'.", correct: false, feedback: "Incorrect. Returns reverse the original Revenue; they are a contra-revenue, not an operating expense. And you still forgot to put the item back in inventory!" },
+                    { text: "Decrease Cash and Revenue by $500. Additionally, increase Inventory and decrease COGS by $200.", correct: true, feedback: "Excellent. You must reverse both sides of the transaction: the sale (Revenue/Cash) AND the expense (COGS/Inventory).", impact: { cash: -500, revenue: -500, equity: -500, inventory: 200, cogs: -200, equity_offset: 200 } }
+                ]
+            },
+            {
+                theme: "Ethics & Timing", title: "Channel Stuffing",
                 scenario: "It is Dec 31st. The CEO orders $100k of excess inventory shipped to a distributor to hit revenue targets. The distributor has an unconditional right of return and no obligation to pay until they sell it.",
                 options: [
-                    {
-                        text: "Increase AR by $100k and recognize $100k Revenue since the goods physically left your warehouse.",
-                        correct: false,
-                        feedback: "Physical location does not determine revenue; control does. The distributor bears no risk, so this is just moving inventory."
-                    },
-                    {
-                        text: "Recognize a conservative $50k in Revenue, just in case they sell half.",
-                        correct: false,
-                        feedback: "You cannot guess. The distributor has not taken control of the inventory. Recognizing any revenue right now is a violation."
-                    },
-                    {
-                        text: "Do not recognize Revenue or AR. The distributor has not taken control or risk of loss.",
-                        correct: true,
-                        feedback: "Spot on. This is 'channel stuffing'. Recognizing this would be fraudulent, even if your covenants are bleeding. (Notice Sterling just charged you his fee!)",
-                        impact: { } 
-                    }
+                    { text: "Increase AR by $100k and recognize $100k Revenue since the goods physically left your warehouse.", correct: false, feedback: "Physical location does not determine revenue; control does. The distributor bears no risk, so this is just moving inventory." },
+                    { text: "Recognize a conservative $50k in Revenue, just in case they sell half.", correct: false, feedback: "You cannot guess. The distributor has not taken control of the inventory. Recognizing any revenue right now is a violation." },
+                    { text: "Do not recognize Revenue or AR. The distributor has not taken control or risk of loss.", correct: true, feedback: "Spot on. This is 'channel stuffing'. Recognizing this would be fraudulent, even if your covenants are bleeding. (Notice Sterling just charged you his fee!)", impact: { } },
+                    { text: "Recognize the full amount but record a $100k 'Estimated Return' expense immediately.", correct: false, feedback: "Incorrect. You don't recognize revenue only to immediately offset it fully with an expense if control never transferred in the first place."}
                 ]
             },
             {
-                theme: "Long-Term Contracts",
-                title: "Percentage of Completion",
+                theme: "Long-Term Contracts", title: "Percentage of Completion",
                 scenario: "You are building a custom software platform for a client for $100,000. Total estimated costs are $80,000. By the end of Year 1, you have incurred $40,000 in costs (paid in cash to your devs). How much Revenue is recognized?",
                 options: [
-                    {
-                        text: "Recognize $0 Revenue until the software is 100% finished, debugged, and launched.",
-                        correct: false,
-                        feedback: "Waiting until completion is no longer the standard for long-term projects where the customer controls the asset (or receives the benefit) as it's built."
-                    },
-                    {
-                        text: "Recognize exactly $40,000 in Revenue to match your costs exactly, ensuring zero profit in Year 1.",
-                        correct: false,
-                        feedback: "Incorrect. You don't just 'zero out' your profit. You recognize revenue proportional to the work done based on the total contract price."
-                    },
-                    {
-                        text: "Recognize the full $100,000 since the contract is signed and legally binding.",
-                        correct: false,
-                        feedback: "Absolutely not. You haven't done 100% of the work, so you cannot recognize 100% of the revenue."
-                    },
-                    {
-                        text: "Recognize $50,000 in Revenue, reflecting that the project is 50% complete based on costs incurred.",
-                        correct: true,
-                        feedback: "Flawless. ($40k / $80k = 50%). Recognizing 50% of the $100k contract boosts Equity. This profit might be exactly what you needed to cure the Covenant breach!",
-                        impact: { cash: -40000, ar: 50000, revenue: 50000, equity: 50000, cogs: 40000, equity_offset: -40000 } 
-                    }
+                    { text: "Recognize $0 Revenue until the software is 100% finished, debugged, and launched.", correct: false, feedback: "Waiting until completion is no longer the standard for long-term projects where the customer controls the asset (or receives the benefit) as it's built." },
+                    { text: "Recognize exactly $40,000 in Revenue to match your costs exactly, ensuring zero profit in Year 1.", correct: false, feedback: "Incorrect. You don't just 'zero out' your profit. You recognize revenue proportional to the work done based on the total contract price." },
+                    { text: "Recognize the full $100,000 since the contract is signed and legally binding.", correct: false, feedback: "Absolutely not. You haven't done 100% of the work, so you cannot recognize 100% of the revenue." },
+                    { text: "Recognize $50,000 in Revenue, reflecting that the project is 50% complete based on costs incurred.", correct: true, feedback: "Flawless. ($40k / $80k = 50%). Recognizing 50% of the $100k contract boosts Equity. This profit might be exactly what you needed to cure the Covenant breach!", impact: { cash: -40000, ar: 50000, revenue: 50000, equity: 50000, cogs: 40000, equity_offset: -40000 } }
                 ]
             },
             {
-                theme: "Estimates & Breakage",
-                title: "The Unused Gift Cards",
+                theme: "Estimates & Breakage", title: "The Unused Gift Cards",
                 scenario: "You review the Unearned Revenue account for gift cards sold two years ago. Historically, you know $5,000 of these balances will absolutely never be redeemed.",
                 options: [
-                    {
-                        text: "Leave the $5,000 as a Liability indefinitely to be conservative.",
-                        correct: false,
-                        feedback: "Over-conservatism violates GAAP. If you have evidence they will never be used, keeping a false liability misrepresents solvency to your lenders."
-                    },
-                    {
-                        text: "Remove the $5,000 Liability and debit COGS by $5,000 to improve profit margins.",
-                        correct: false,
-                        feedback: "Incorrect. You cannot arbitrarily reduce expenses (COGS). Unredeemed gift cards should be recognized as Revenue."
-                    },
-                    {
-                        text: "Remove the $5,000 Liability and recognize it immediately as 'Breakage Revenue'.",
-                        correct: true,
-                        feedback: "Correct. By eliminating a ghost liability and recognizing pure revenue, you significantly improve both Solvency and Profitability ratios.",
-                        impact: { unearnedRev: -5000, revenue: 5000, equity: 5000 }
-                    },
-                    {
-                        text: "Remove the $5,000 Liability and add it to Cash.",
-                        correct: false,
-                        feedback: "You already collected the cash two years ago when you sold the gift card! You can't double-count the cash."
-                    }
+                    { text: "Leave the $5,000 as a Liability indefinitely to be conservative.", correct: false, feedback: "Over-conservatism violates GAAP. If you have evidence they will never be used, keeping a false liability misrepresents solvency to your lenders." },
+                    { text: "Remove the $5,000 Liability and debit COGS by $5,000 to improve profit margins.", correct: false, feedback: "Incorrect. You cannot arbitrarily reduce expenses (COGS). Unredeemed gift cards should be recognized as Revenue." },
+                    { text: "Remove the $5,000 Liability and recognize it immediately as 'Breakage Revenue'.", correct: true, feedback: "Correct. By eliminating a ghost liability and recognizing pure revenue, you significantly improve both Solvency and Profitability ratios.", impact: { unearnedRev: -5000, revenue: 5000, equity: 5000 } },
+                    { text: "Remove the $5,000 Liability and add it to Cash.", correct: false, feedback: "You already collected the cash two years ago when you sold the gift card! You can't double-count the cash." }
                 ]
             },
             {
-                theme: "Special Arrangements",
-                title: "Bill and Hold",
+                theme: "Special Arrangements", title: "Bill and Hold",
                 scenario: "A client buys $20k of machinery today, pays in full, but asks you to store it for 2 months because their factory floor isn't ready. The machinery is finished and segregated.",
                 options: [
-                    {
-                        text: "Do not recognize Revenue until the physical asset leaves your loading dock.",
-                        correct: false,
-                        feedback: "Normally true, but this is an exception. The buyer has taken title and requested the hold. They technically control the asset."
-                    },
-                    {
-                        text: "Increase Cash by $20,000, but record it all as Unearned Revenue.",
-                        correct: false,
-                        feedback: "Because the customer requested the hold and the goods are finished/segregated, you don't have to defer the revenue. The performance obligation is essentially met."
-                    },
-                    {
-                        text: "Recognize $20,000 Revenue. The strict criteria for a 'Bill and Hold' have been met.",
-                        correct: true,
-                        feedback: "Accurate. Usually, you need delivery. But if the customer requested the delay and the product is ready and segregated, control has transferred.",
-                        impact: { cash: 20000, revenue: 20000, equity: 20000, inventory: -12000, cogs: 12000, equity_offset: -12000 }
-                    }
+                    { text: "Do not recognize Revenue until the physical asset leaves your loading dock.", correct: false, feedback: "Normally true, but this is an exception. The buyer has taken title and requested the hold. They technically control the asset." },
+                    { text: "Increase Cash by $20,000, but record it all as Unearned Revenue.", correct: false, feedback: "Because the customer requested the hold and the goods are finished/segregated, you don't have to defer the revenue. The performance obligation is essentially met." },
+                    { text: "Recognize $20,000 Revenue. The strict criteria for a 'Bill and Hold' have been met.", correct: true, feedback: "Accurate. Usually, you need delivery. But if the customer requested the delay and the product is ready and segregated, control has transferred.", impact: { cash: 20000, revenue: 20000, equity: 20000, inventory: -12000, cogs: 12000, equity_offset: -12000 } },
+                    { text: "Recognize $10,000 now and $10,000 upon delivery.", correct: false, feedback: "Incorrect. Partial recognition doesn't apply here. Control has fully transferred under the specific bill and hold criteria." }
                 ]
             },
             {
-                theme: "Principal vs Agent",
-                title: "The Consignment Gallery",
+                theme: "Principal vs Agent", title: "The Consignment Gallery",
                 scenario: "You place $10,000 of your inventory in a local gallery. The gallery will take a 20% commission if they sell it. None have sold yet.",
                 options: [
-                    {
-                        text: "Recognize $10,000 Revenue and record a $2,000 commission expense liability.",
-                        correct: false,
-                        feedback: "The gallery hasn't bought the art from you; they are just holding it. You cannot recognize revenue on goods sent on consignment."
-                    },
-                    {
-                        text: "Recognize $8,000 Revenue to reflect the net amount you will receive.",
-                        correct: false,
-                        feedback: "You still haven't sold anything to an end-customer! The gallery is just an agent."
-                    },
-                    {
-                        text: "Do not recognize Revenue. Reclassify the $10,000 as 'Inventory on Consignment'.",
-                        correct: true,
-                        feedback: "Correct. The gallery is an agent. Until an end-customer buys it, you retain the risk of ownership. Your financial ratios remain unchanged.",
-                        impact: { } 
-                    }
+                    { text: "Recognize $10,000 Revenue and record a $2,000 commission expense liability.", correct: false, feedback: "The gallery hasn't bought the art from you; they are just holding it. You cannot recognize revenue on goods sent on consignment." },
+                    { text: "Recognize $8,000 Revenue to reflect the net amount you will receive.", correct: false, feedback: "You still haven't sold anything to an end-customer! The gallery is just an agent." },
+                    { text: "Do not recognize Revenue. Reclassify the $10,000 as 'Inventory on Consignment'.", correct: true, feedback: "Correct. The gallery is an agent. Until an end-customer buys it, you retain the risk of ownership. Your financial ratios remain unchanged.", impact: { } },
+                    { text: "Immediately expense the $10,000 as a sunk cost.", correct: false, feedback: "Absolutely not. You still own the valuable asset (inventory)." }
                 ]
             },
             {
-                theme: "Multiple Obligations",
-                title: "The Bundled Warranty",
+                theme: "Multiple Obligations", title: "The Bundled Warranty",
                 scenario: "You sell a computer system for $1,500. Included is a 3-year extended service warranty. Standalone, the computer is $1,200 and the warranty is $300.",
                 options: [
-                    {
-                        text: "Recognize $1,500 Revenue today because it was sold as a single bundle.",
-                        correct: false,
-                        feedback: "Under ASC 606, you must allocate the transaction price to distinct performance obligations. Providing a service over 3 years is distinct from handing over the computer."
-                    },
-                    {
-                        text: "Recognize $1,500 Revenue today, and immediately record a $300 'Warranty Expense'.",
-                        correct: false,
-                        feedback: "This is the old, outdated 'matching' rule. Under modern ASC 606, you must defer the revenue, not accrue an expense."
-                    },
-                    {
-                        text: "Record the entire $1,500 as Unearned Revenue until the 3-year warranty expires.",
-                        correct: false,
-                        feedback: "That's far too conservative. You handed over the computer today, so you must recognize the portion of the revenue assigned to the computer."
-                    },
-                    {
-                        text: "Recognize $1,200 Revenue for the computer. Record $300 as a Liability to be recognized over 3 years.",
-                        correct: true,
-                        feedback: "Perfect. Recognizing the hardware revenue boosts Equity today, while deferring the service revenue ensures you don't overstate your current performance.",
-                        impact: { cash: 1500, revenue: 1200, unearnedRev: 300, equity: 1200 }
-                    }
+                    { text: "Recognize $1,500 Revenue today because it was sold as a single bundle.", correct: false, feedback: "Under ASC 606, you must allocate the transaction price to distinct performance obligations. Providing a service over 3 years is distinct from handing over the computer." },
+                    { text: "Recognize $1,500 Revenue today, and immediately record a $300 'Warranty Expense'.", correct: false, feedback: "This is the old, outdated 'matching' rule. Under modern ASC 606, you must defer the revenue, not accrue an expense." },
+                    { text: "Record the entire $1,500 as Unearned Revenue until the 3-year warranty expires.", correct: false, feedback: "That's far too conservative. You handed over the computer today, so you must recognize the portion of the revenue assigned to the computer." },
+                    { text: "Recognize $1,200 Revenue for the computer. Record $300 as a Liability to be recognized over 3 years.", correct: true, feedback: "Perfect. Recognizing the hardware revenue boosts Equity today, while deferring the service revenue ensures you don't overstate your current performance.", impact: { cash: 1500, revenue: 1200, unearnedRev: 300, equity: 1200 } }
                 ]
             }
         ];
@@ -863,9 +866,9 @@
             elDE.innerText = r.debt.toFixed(2) + 'x';
             elTIE.innerText = r.tie.toFixed(2) + 'x';
 
-            elCR.className = `mono font-bold text-sm md:text-base ${r.current < COVENANTS.minCR ? 'text-rose-500' : 'text-cyan-400'}`;
-            elDE.className = `mono font-bold text-sm md:text-base ${r.debt > COVENANTS.maxDE ? 'text-rose-500' : 'text-white'}`;
-            elTIE.className = `mono font-bold text-sm md:text-base ${r.tie < COVENANTS.minTIE ? 'text-rose-500' : 'text-white'}`;
+            elCR.className = `mono font-bold text-base drop-shadow-md ${r.current < COVENANTS.minCR ? 'text-rose-500' : 'dynamic-text-primary'}`;
+            elDE.className = `mono font-bold text-base drop-shadow-md ${r.debt > COVENANTS.maxDE ? 'text-rose-500' : 'text-white'}`;
+            elTIE.className = `mono font-bold text-base drop-shadow-md ${r.tie < COVENANTS.minTIE ? 'text-rose-500' : 'text-white'}`;
 
             // Cash Warning color
             const cashEl = document.getElementById('stat-cash');
@@ -881,14 +884,10 @@
 
             if (isBreached) {
                 boxBank.classList.add('breach-active');
-                statusBank.className = "mt-4 text-center p-2 rounded font-black text-[10px] md:text-xs uppercase tracking-widest bg-rose-900/50 text-rose-400 border border-rose-800 shadow-[0_0_10px_rgba(225,29,72,0.5)]";
-                statusBank.innerText = "🚨 DEFAULT IMMINENT";
+                statusBank.className = "text-center p-3 rounded-xl font-black text-[10px] md:text-xs uppercase tracking-[0.2em] bg-rose-950/80 text-rose-400 border border-rose-500/50 shadow-[0_0_15px_rgba(225,29,72,0.4)] relative z-10 transition-all";
+                statusBank.innerHTML = "<span class='inline-block w-2 h-2 rounded-full bg-rose-500 mr-2 animate-pulse shadow-[0_0_8px_#f43f5e]'></span> 🚨 DEFAULT IMMINENT";
                 
-                // Show Sterling if it's the first time breaching and we haven't hit a fatal cash < 0
                 if (!hasMetSterling && financials.cash >= 0) {
-                    
-                    // TRIGGER 1: Sterling Enters. 
-                    // Massive, booming 4.0 second laugh at 40Hz (very low pitch), ending at 1.5 laughs per second
                     playDemonicHumanLaugh(4.0, 40, 1.5); 
                     
                     const sterlingIntros = [
@@ -898,18 +897,15 @@
                     ];
                     const randomIntro = sterlingIntros[Math.floor(Math.random() * sterlingIntros.length)];
                     
-                    document.getElementById('sterling-message').innerHTML = `You breached our debt covenants. I am now restructuring your firm.<br><br><span class='italic text-slate-400'>${randomIntro}</span>`;
-                    document.getElementById('sterling-btn').innerText = "I Understand, Sterling. Please don't liquidate me.";
-                    document.getElementById('sterling-btn').onclick = dismissSterling;
-                    
+                    document.getElementById('sterling-message').innerHTML = `You breached our debt covenants. I am now restructuring your firm.<br><br><span class='italic text-rose-300 font-normal leading-relaxed text-lg block border-l-2 border-rose-500 pl-4'>${randomIntro}</span>`;
                     document.getElementById('sterling-modal').classList.remove('hidden');
                     document.getElementById('sterling-modal').classList.add('flex');
                     hasMetSterling = true;
                 }
             } else {
                 boxBank.classList.remove('breach-active');
-                statusBank.className = "mt-4 text-center p-2 rounded font-black text-[10px] md:text-xs uppercase tracking-widest bg-emerald-900/50 text-emerald-400 border border-emerald-800";
-                statusBank.innerText = "🟢 In Compliance";
+                statusBank.className = "text-center p-3 rounded-xl font-black text-[10px] md:text-xs uppercase tracking-[0.2em] bg-emerald-900/30 text-emerald-400 border border-emerald-500/30 shadow-inner relative z-10 transition-all";
+                statusBank.innerHTML = "<span class='inline-block w-2 h-2 rounded-full bg-emerald-400 mr-2 shadow-[0_0_8px_#34d399]'></span> In Compliance";
             }
         }
 
@@ -918,6 +914,8 @@
                 showEndScreen();
                 return;
             }
+
+            applyTheme(currentLevel); // Make page unique color!
 
             const level = levels[currentLevel];
             document.getElementById('level-display').innerText = `${String(currentLevel + 1).padStart(2, '0')}/10`;
@@ -930,10 +928,10 @@
             const optsContainer = document.getElementById('ui-options');
             optsContainer.innerHTML = '';
 
-            shuffledOptions.forEach((opt, index) => {
+            shuffledOptions.forEach((opt) => {
                 const btn = document.createElement('button');
-                btn.className = 'option-btn h-full w-full p-4 md:p-5 text-left flex flex-col justify-center items-start group shadow-sm';
-                btn.innerHTML = `<span class="text-xs md:text-sm font-semibold group-hover:text-cyan-100 transition-colors leading-relaxed">${opt.text}</span>`;
+                btn.className = 'option-btn h-full w-full p-5 text-left flex flex-col justify-center items-start shadow-sm';
+                btn.innerHTML = `<span class="text-sm md:text-base font-semibold transition-colors leading-relaxed relative z-10 drop-shadow-sm">${opt.text}</span>`;
                 btn.onclick = (e) => handleAnswer(currentLevel, opt.correct, btn, e);
                 optsContainer.appendChild(btn);
             });
@@ -944,7 +942,6 @@
             const chosenOpt = level.options.find(o => o.correct === isCorrect);
 
             if (!isCorrect) {
-                // Wrong answer penalty
                 const penalty = 2500;
                 financials.cash -= penalty;
                 financials.equity -= penalty;
@@ -954,7 +951,6 @@
                 void btnEl.offsetWidth;
                 btnEl.classList.add('wrong-shake');
                 
-                // Funny fine variations
                 const fineMessages = [
                     "⚠️ The SEC sent a strongly worded letter: -$2,500 Cash!",
                     "⚠️ Your auditor choked on their coffee: -$2,500 Cash!",
@@ -964,21 +960,18 @@
                 ];
                 const randomFineMsg = fineMessages[Math.floor(Math.random() * fineMessages.length)];
 
-                // Add visual penalty text if not already there
                 if (!btnEl.innerHTML.includes('Audit Fine') && !btnEl.innerHTML.includes('Cash!')) {
-                    btnEl.innerHTML += `<div class="text-yellow-400 neon-text-lemon font-black mt-2 text-xs md:text-sm animate-pulse">${randomFineMsg}</div>`;
+                    btnEl.innerHTML += `<div class="text-yellow-400 neon-text-lemon font-black mt-3 text-xs md:text-sm animate-pulse relative z-10 bg-black/40 px-3 py-1.5 rounded-md border border-yellow-500/30">${randomFineMsg}</div>`;
                 }
 
                 updateUI();
                 
-                // Check immediate default from penalty
                 if (financials.cash < 0) {
                     triggerFatalDefault("You could not afford to pay your Audit Fines! You ran out of cash.");
                 }
                 return;
             }
 
-            // CORRECT ANSWER LOGIC
             oldRatios = calculateRatios();
 
             if (chosenOpt.impact) {
@@ -988,20 +981,16 @@
                 }
             }
 
-            // Check if they are still breached to apply ongoing Sterling penalties
             let tempRatios = calculateRatios();
             let stillBreached = checkCovenants(tempRatios);
             
             let penaltyText = "";
             if (stillBreached && hasMetSterling) {
-                // Ongoing penalty
                 financials.cash -= 1500;
                 financials.consultantFees += 1500;
                 financials.equity -= 1500;
-                financials.interestRate = 0.15; // Spike interest rate
+                financials.interestRate = 0.15; 
                 
-                // TRIGGER 2: Sterling's Invoice appears.
-                // Shorter, sharper 1.5 second chuckle at 48Hz
                 playDemonicHumanLaugh(1.5, 48, 3.5);
                 
                 const sterlingOngoing = [
@@ -1009,48 +998,42 @@
                     "Sterling expensed a $1,500 dry-cleaning bill for his bespoke suit. Interest is at 15%!",
                     "Sterling billed you $1,500 for a 'strategy alignment workshop' that consisted entirely of him playing golf. Revolver rate is 15%.",
                     "Sterling charged $1,500 for a 15-minute Zoom call where he was clearly on mute. Default rate of 15% active!",
-                    "Sterling expensed a $1,500 bottle of sparkling water. 'It's for my process optimization,' he says. Interest at 15%!",
-                    "Sterling invoiced $1,500 for 'synergy consulting' while playing solitaire in the boardroom. Rate holds at 15%!"
+                    "Sterling expensed a $1,500 bottle of sparkling water. 'It's for my process optimization,' he says. Interest at 15%!"
                 ];
                 const randomOngoing = sterlingOngoing[Math.floor(Math.random() * sterlingOngoing.length)];
                 
-                penaltyText = `<br><br><div class="p-3 md:p-4 mt-2 bg-rose-950/50 border border-rose-800 rounded-lg text-sm"><span class="text-yellow-400 neon-text-lemon font-black animate-pulse">🧾 STERLING'S INVOICE:</span> ${randomOngoing}</div>`;
+                penaltyText = `<br><br><div class="p-4 mt-3 bg-rose-950/60 border border-rose-800 rounded-xl text-sm shadow-[inset_0_0_15px_rgba(225,29,72,0.1)]"><span class="text-yellow-400 neon-text-lemon font-black animate-pulse tracking-wider">🧾 STERLING'S INVOICE:</span> <span class="text-rose-100">${randomOngoing}</span></div>`;
             } else if (!stillBreached && hasMetSterling && financials.interestRate > 0.05) {
-                // Cured!
                 financials.interestRate = 0.05;
                 
                 const sterlingCured = [
                     "Sterling shrieked, dropped his $14 green juice, and dissolved into a cloud of Patagonia-branded vapor. Interest rate normalized to 5%.",
                     "Sterling hissed at your healthy Debt-to-Equity ratio, threw a smoke bomb, and vanished back to Wall Street. The nightmare is over!",
-                    "Sterling wept openly, surrendered the keys to the executive washroom, and was forced to take an Uber Pool home. You survived!",
-                    "Sterling was violently sucked back into the astral plane of Middle Management. The ping-pong table has miraculously reappeared in the breakroom!",
-                    "Sterling muttered a cursed incantation about 'synergy' and burst into a flock of bats. Interest rate is back to 5%!"
+                    "Sterling wept openly, surrendered the keys to the executive washroom, and was forced to take an Uber Pool home. You survived!"
                 ];
                 const randomCured = sterlingCured[Math.floor(Math.random() * sterlingCured.length)];
                 
-                penaltyText = `<br><br><div class="p-4 mt-4 bg-emerald-950/80 border-2 border-emerald-400 rounded-xl text-base shadow-[0_0_25px_rgba(52,211,153,0.6)] animate-jump-joy"><div class="text-emerald-300 font-black text-xl mb-1">🎉 COVENANT CURED!</div><div class="text-emerald-100 font-semibold">${randomCured}</div></div>`;
+                penaltyText = `<br><br><div class="p-5 mt-5 bg-gradient-to-r from-emerald-950/80 to-teal-900/60 border border-emerald-500/50 rounded-2xl text-base shadow-[0_0_30px_rgba(52,211,153,0.3)] animate-jump-joy"><div class="text-emerald-300 font-black text-xl mb-2 flex items-center gap-2"><span>🎉</span> COVENANT CURED!</div><div class="text-emerald-50 font-medium leading-relaxed">${randomCured}</div></div>`;
             }
 
             updateUI();
             
-            // Check immediate default from a correct transaction or Sterling's fee that drains cash
             if (financials.cash < 0) {
                 triggerFatalDefault("LIQUIDITY CRISIS! You executed the transaction, but ran out of cash. (Did Sterling's fees bankrupt you?)");
-                return; // Stop the page flip
+                return; 
             }
 
             const newRatios = calculateRatios();
 
-            // Setup Back Page
-            document.getElementById('ui-feedback').innerHTML = chosenOpt.feedback + penaltyText;
+            document.getElementById('ui-feedback').innerHTML = `<span class="font-medium">${chosenOpt.feedback}</span>${penaltyText}`;
 
             const formatDiff = (oldV, newV, isPct, invertGoodBad = false) => {
-                if (Math.abs(oldV - newV) < 0.01) return `<span class="ratio-neutral">${isPct?oldV.toFixed(1)+'%':oldV.toFixed(2)+'x'} (No Change)</span>`;
+                if (Math.abs(oldV - newV) < 0.01) return `<span class="ratio-neutral text-slate-500">${isPct?oldV.toFixed(1)+'%':oldV.toFixed(2)+'x'} <span class="text-[10px] uppercase ml-1 opacity-70">No Chg</span></span>`;
                 const symbol = isPct ? '%' : 'x';
                 const diffText = `${oldV.toFixed(isPct?1:2)}${symbol} &rarr; ${newV.toFixed(isPct?1:2)}${symbol}`;
                 
                 let isGood = oldV < newV;
-                if (invertGoodBad) isGood = !isGood; // For Debt, lower is better
+                if (invertGoodBad) isGood = !isGood; 
                 
                 return `<span class="${isGood ? 'ratio-improve' : 'ratio-worsen'}">${diffText}</span>`;
             };
@@ -1060,53 +1043,95 @@
             document.getElementById('impact-tie').innerHTML = formatDiff(oldRatios.tie, newRatios.tie, false);
 
             const covStatus = document.getElementById('impact-covenant');
+            const backPage = document.getElementById('back-page');
+            const nextBtn = document.getElementById('next-btn');
+
             if (isBreached) {
-                covStatus.innerHTML = `<span class="text-rose-500 font-black animate-pulse">⚠️ BREACHED</span>`;
-                document.getElementById('back-page').style.borderLeftColor = "#e11d48"; // Red border for breach
-                document.getElementById('next-btn').innerHTML = "<span>Acknowledge Default Risk</span> <span class='text-2xl'>&rarr;</span>";
-                document.getElementById('next-btn').className = "w-full mt-auto bg-rose-700 hover:bg-rose-600 text-white text-lg md:text-xl font-black py-4 px-6 rounded-xl transition-all shadow-[0_0_20px_rgba(225,29,72,0.6)] flex justify-between items-center";
+                covStatus.innerHTML = `<span class="text-rose-500 font-black animate-pulse drop-shadow-[0_0_8px_rgba(225,29,72,0.8)]">⚠️ BREACHED</span>`;
+                backPage.style.borderLeftColor = "#e11d48"; 
+                nextBtn.innerHTML = "<span>Acknowledge Default Risk</span> <span class='text-2xl transform group-hover:translate-x-2 transition-transform'>&rarr;</span>";
+                nextBtn.className = "btn-modern w-full mt-auto text-white text-lg md:text-xl font-bold py-5 px-8 rounded-2xl transition-all shadow-[0_10px_30px_rgba(225,29,72,0.4)] flex justify-between items-center group !bg-none bg-gradient-to-r from-rose-700 to-pink-700 border-rose-500/50";
             } else {
-                covStatus.innerHTML = `<span class="text-cyan-400 font-bold">Compliant</span>`;
-                document.getElementById('back-page').style.borderLeftColor = "#06b6d4"; // Normal Cyan border
-                document.getElementById('next-btn').innerHTML = "<span>Execute Next Exhibit</span> <span class='text-2xl'>&rarr;</span>";
-                document.getElementById('next-btn').className = "w-full mt-auto bg-cyan-600 hover:bg-cyan-500 text-white text-lg md:text-xl font-black py-4 px-6 rounded-xl transition-all shadow-[0_0_15px_rgba(6,182,212,0.4)] flex justify-between items-center";
+                covStatus.innerHTML = `<span class="text-cyan-400 font-bold drop-shadow-[0_0_5px_rgba(34,211,238,0.5)]">Compliant</span>`;
+                backPage.style.borderLeftColor = "var(--theme-primary)"; 
+                nextBtn.innerHTML = "<span>Execute Next Exhibit</span> <span class='text-2xl transform group-hover:translate-x-2 transition-transform'>&rarr;</span>";
+                nextBtn.className = "btn-modern w-full mt-auto text-white text-lg md:text-xl font-bold py-5 px-8 rounded-2xl transition-all flex justify-between items-center group";
             }
 
-            // Flip the page
             document.getElementById('dossier-card').classList.add('is-flipped');
         }
 
         function nextPage() {
-            // Flip back instantly, update content during flip back
             const card = document.getElementById('dossier-card');
-            card.style.transition = 'transform 0.4s ease-in';
+            card.style.transition = 'transform 0.5s ease-in';
             card.classList.remove('is-flipped');
             
             setTimeout(() => {
                 currentLevel++;
                 loadLevel();
-                card.style.transition = 'transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)';
-            }, 400); // Wait for half flip to update content unseen
+                card.style.transition = 'transform 0.9s cubic-bezier(0.25, 1.5, 0.5, 1)';
+            }, 500); 
+        }
+
+        // --- GOOGLE SHEETS SUBMISSION ---
+        function submitScoreToGoogleSheet() {
+            const isSurvived = !isBreached && financials.cash >= 0;
+            const payload = {
+                teamName: teamName || "Anonymous Team",
+                cash: financials.cash,
+                equity: financials.equity,
+                survived: isSurvived
+            };
+
+            const statusEl = document.getElementById('sync-status');
+
+            if (!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL.includes("YOUR_GOOGLE_APPS_SCRIPT")) {
+                statusEl.innerHTML = "⚠️ Cannot sync: Google App Script URL not configured.";
+                return;
+            }
+
+            statusEl.innerHTML = "⏳ Transmitting score to central database...";
+
+            fetch(GOOGLE_SCRIPT_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            }).then(() => {
+                statusEl.innerHTML = "✅ Score successfully transmitted!";
+                statusEl.classList.add('text-emerald-400');
+            }).catch(e => {
+                console.error("Error submitting score:", e);
+                statusEl.innerHTML = "❌ Error transmitting score. See console.";
+                statusEl.classList.add('text-rose-400');
+            });
         }
 
         function showEndScreen() {
             const card = document.getElementById('dossier-card');
+            const isSurvived = !isBreached && financials.cash >= 0;
             
-            let finalState = isBreached 
-                ? `<h2 class="text-3xl md:text-4xl font-black text-rose-500 mb-4 tracking-tight">FIRM LIQUIDATED</h2>
-                   <p class="text-base md:text-lg text-slate-300 mb-8">You applied GAAP correctly, but you breached the financial covenants. StoneGate Bank called the revolver, Sterling took over, and the firm was forced into bankruptcy.</p>`
-                : `<h2 class="text-3xl md:text-4xl font-black text-cyan-400 mb-4 tracking-tight">AUDIT CONCLUDED: FIRM SURVIVED</h2>
-                   <p class="text-base md:text-lg text-slate-300 mb-8">Masterful work. You applied strict GAAP revenue recognition principles while maintaining the delicate balance required by your debt covenants and cash flow.</p>`;
+            let finalState = !isSurvived
+                ? `<div class="w-24 h-24 rounded-full bg-rose-500/20 flex items-center justify-center mx-auto mb-6 shadow-[0_0_50px_rgba(225,29,72,0.5)]"><span class="text-5xl">🚨</span></div>
+                   <h2 class="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-rose-500 to-pink-600 mb-2 tracking-tight">${teamName.toUpperCase()} LIQUIDATED</h2>
+                   <p class="text-rose-400 font-bold mb-6">Final Equity: ${formatCurrency(financials.equity)}</p>
+                   <p class="text-lg md:text-xl text-slate-300 mb-6 font-light max-w-lg mx-auto leading-relaxed">StoneGate Bank called the revolver, Sterling took over, and your firm was forced into bankruptcy.</p>`
+                : `<div class="w-24 h-24 rounded-full bg-cyan-500/20 flex items-center justify-center mx-auto mb-6 shadow-[0_0_50px_rgba(6,182,212,0.5)]"><span class="text-5xl">⚡</span></div>
+                   <h2 class="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500 mb-2 tracking-tight">${teamName.toUpperCase()} SURVIVED</h2>
+                   <p class="text-cyan-400 font-bold mb-6 text-xl">Final Equity: ${formatCurrency(financials.equity)}</p>
+                   <p class="text-lg md:text-xl text-slate-300 mb-6 font-light max-w-lg mx-auto leading-relaxed">Masterful work. You applied strict GAAP revenue recognition principles while maintaining the delicate balance required by your debt covenants.</p>`;
 
             card.innerHTML = `
-                <div class="page-face front p-6 md:p-10 flex flex-col justify-center text-center">
-                    <div class="text-6xl md:text-7xl mb-6">${isBreached ? '🚨' : '⚡'}</div>
+                <div class="page-face front p-6 md:p-12 flex flex-col justify-center text-center">
                     ${finalState}
-                    <button onclick="location.reload()" class="bg-cyan-600 hover:bg-cyan-500 text-slate-900 text-lg md:text-xl font-black py-4 px-6 rounded-xl transition-all mx-auto inline-block shadow-[0_0_20px_rgba(6,182,212,0.5)] hover:scale-105">
+                    <div id="sync-status" class="text-sm font-mono text-slate-400 mb-8 h-6"></div>
+                    <button onclick="location.reload()" class="btn-modern text-white text-xl font-bold py-5 px-10 rounded-2xl transition-all mx-auto inline-block shadow-[0_10px_30px_rgba(6,182,212,0.4)] hover:scale-105">
                         Initiate New Fiscal Year
                     </button>
                 </div>
             `;
+            
+            submitScoreToGoogleSheet();
         }
 
         // Initialize Game
