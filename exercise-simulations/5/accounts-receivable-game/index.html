@@ -1,0 +1,1238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>The Receivables Room — Revenue Under Interrogation</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap');
+
+    :root { color-scheme: light; }
+    body { 
+      font-family: 'Plus Jakarta Sans', sans-serif; 
+      background-color: #f7f5f2; /* Soft pastel beige */
+      color: #3f3e3a; 
+    }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+    
+    /* Clean Card Styling */
+    .soft-card {
+      background: #ffffff;
+      border: 1px solid #eae6df;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02), 0 2px 8px rgba(0, 0, 0, 0.01);
+    }
+    
+    .btn { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
+    .btn:active { transform: scale(0.97); }
+    canvas { width: 100% !important; height: 240px !important; }
+
+    /* Animations */
+    @keyframes floatUp {
+      0% { opacity: 1; transform: translateY(0) scale(1); }
+      100% { opacity: 0; transform: translateY(-40px) scale(1.1); }
+    }
+    .score-pop {
+      position: absolute;
+      font-weight: 800;
+      color: #4b8a6b; /* Soft emerald */
+      pointer-events: none;
+      animation: floatUp 1.2s cubic-bezier(0, 0, 0.2, 1) forwards;
+      z-index: 100;
+    }
+    
+    @keyframes slideInUp {
+      from { opacity: 0; transform: translateY(15px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-in { animation: slideInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    
+    @keyframes stampIn {
+      0% { opacity: 0; transform: scale(2) rotate(-10deg); }
+      50% { opacity: 1; transform: scale(0.95) rotate(-10deg); }
+      100% { opacity: 1; transform: scale(1) rotate(-10deg); }
+    }
+    .stamp {
+      position: absolute;
+      top: 15%;
+      right: 5%;
+      font-size: 2.5rem;
+      font-weight: 800;
+      color: #d18a8a; /* Soft rose */
+      border: 3px solid #d18a8a;
+      padding: 0.5rem 1.5rem;
+      border-radius: 0.5rem;
+      text-transform: uppercase;
+      opacity: 0;
+      pointer-events: none;
+      z-index: 50;
+    }
+    .stamp.show { animation: stampIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+
+    /* Selection States */
+    .answer-selected {
+      background-color: #eef2ff !important; /* Soft indigo-50 */
+      border-color: #a5b4fc !important; /* Indigo-300 */
+    }
+    .tag-selected {
+      background-color: #e0e7ff !important; /* Indigo-100 */
+      color: #3730a3 !important; /* Indigo-800 */
+      border-color: #a5b4fc !important;
+    }
+
+    /* Feedback States */
+    .answer-correct {
+      background-color: #ecfdf5 !important; /* Emerald-50 */
+      border-color: #6ee7b7 !important; /* Emerald-300 */
+    }
+    .answer-wrong {
+      background-color: #fff1f2 !important; /* Rose-50 */
+      border-color: #fda4af !important; /* Rose-300 */
+      opacity: 0.7;
+    }
+    .tag-correct {
+      background-color: #d1fae5 !important; /* Emerald-100 */
+      color: #065f46 !important; /* Emerald-800 */
+      border-color: #6ee7b7 !important;
+    }
+    .tag-missed {
+      border-style: dashed !important;
+      border-color: #6ee7b7 !important;
+      color: #059669 !important;
+      background-color: #f0fdf4 !important;
+    }
+    .tag-wrong {
+      background-color: #ffe4e6 !important; /* Rose-100 */
+      color: #9f1239 !important; /* Rose-800 */
+      border-color: #fda4af !important;
+      text-decoration: line-through;
+    }
+
+    /* Data Table styling */
+    th { background-color: #fcfcfb; }
+    tr:nth-child(even) { background-color: #fbfaf8; }
+    
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #dcd7ce; border-radius: 10px; }
+    ::-webkit-scrollbar-thumb:hover { background: #b0aba3; }
+
+    /* Podium */
+    .podium-1 { height: 140px; background-color: #e8e6fb; border: 1px solid #c7c4f0;} /* Soft lavender */
+    .podium-2 { height: 100px; background-color: #f1f0ee; border: 1px solid #e1deda;}
+    .podium-3 { height: 70px; background-color: #f1f0ee; border: 1px solid #e1deda;}
+  </style>
+</head>
+
+<body class="selection:bg-indigo-100">
+  <!-- Header -->
+  <header class="sticky top-0 z-30 bg-[#f7f5f2]/90 backdrop-blur-md border-b border-[#eae6df]">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+      <div class="flex items-center gap-4">
+        <div class="h-10 w-10 rounded-lg bg-[#d5e0d9] text-[#4b6a57] border border-[#bdccc3] flex items-center justify-center font-bold text-lg">
+          RR
+        </div>
+        <div>
+          <div class="font-bold text-lg tracking-tight text-[#3f3e3a] flex items-center gap-2">
+            The Receivables Room
+          </div>
+          <div class="text-[11px] text-[#787670] font-semibold tracking-widest uppercase">Revenue Under Interrogation</div>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <button id="btnHow" class="btn px-4 py-2 rounded-lg bg-white text-[#5c5a55] text-sm font-semibold border border-[#eae6df] shadow-sm hover:bg-[#fcfbf9] flex items-center gap-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          Briefing
+        </button>
+        <button id="btnReset" class="btn p-2 rounded-lg bg-white text-[#8c8982] hover:text-[#3f3e3a] border border-[#eae6df] shadow-sm hover:bg-[#fcfbf9]" title="Reset Game">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-12 gap-6 relative overflow-hidden">
+    <!-- LEFT: Setup + Leaderboard -->
+    <section class="lg:col-span-3 flex flex-col gap-5">
+      
+      <!-- Teams Panel -->
+      <div class="soft-card rounded-2xl p-5 relative overflow-hidden">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="font-bold text-[11px] uppercase tracking-widest text-[#8c8982] flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+            Investigators
+          </h2>
+          <span class="text-[10px] px-2 py-1 rounded-md bg-[#f0f2f5] text-[#5b6471] mono font-bold border border-[#e4e7eb]" id="gameMeta">Rnd 0/0</span>
+        </div>
+
+        <div class="space-y-4">
+          <div class="flex gap-2">
+            <input id="teamName" class="w-full rounded-lg bg-[#faf9f7] border border-[#eae6df] px-3 py-2 text-sm text-[#3f3e3a] focus:outline-none focus:border-[#a5b4fc] focus:ring-1 focus:ring-[#a5b4fc] placeholder-[#b0aba3] transition-colors" placeholder="Team name..." autocomplete="off"/>
+            <button id="btnAddTeam" class="btn px-3 py-2 rounded-lg bg-[#e3e6f0] hover:bg-[#d5daeb] text-[#4a5578] font-bold border border-[#d1d7e8]">+</button>
+          </div>
+
+          <div id="leaderboard" class="space-y-2 min-h-[120px] max-h-[300px] overflow-y-auto pr-1"></div>
+
+          <div class="pt-4 border-t border-[#eae6df]">
+            <button id="btnStart" class="btn w-full py-3 rounded-lg bg-[#d5e0d9] hover:bg-[#c6d4cc] text-[#3d5a49] text-sm font-bold border border-[#bdccc3] transition-all disabled:opacity-50 disabled:cursor-not-allowed">Initialize Case Files</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Scoring Rules -->
+      <div class="soft-card rounded-2xl p-5">
+        <h3 class="font-bold text-[11px] uppercase tracking-widest text-[#8c8982] mb-3">Scoring Protocol</h3>
+        <div class="space-y-2 text-sm">
+          <div class="flex justify-between items-center p-2 rounded bg-[#faf9f7] border border-[#eae6df]">
+            <span class="text-[#5c5a55]">Correct Call</span>
+            <span class="mono font-bold text-[#4b8a6b]">+100</span>
+          </div>
+          <div class="flex justify-between items-center p-2 rounded bg-[#faf9f7] border border-[#eae6df]">
+            <span class="text-[#5c5a55]">Valid Tag</span>
+            <span class="mono font-bold text-[#5c699c]">+20/ea</span>
+          </div>
+          <div class="flex justify-between items-center p-2 rounded bg-[#faf9f7] border border-[#eae6df]">
+            <span class="text-[#5c5a55]">Invalid Tag</span>
+            <span class="mono font-bold text-[#a65d6c]">-10/ea</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- RIGHT: Active Game Area -->
+    <section class="lg:col-span-9 flex flex-col gap-6 relative min-h-[600px]">
+      
+      <!-- IN-GAME BOARD (Hidden during Game Over) -->
+      <div id="gameBoard" class="flex flex-col gap-6">
+        
+        <!-- Case File Display -->
+        <div class="soft-card rounded-2xl border-t-[5px] border-t-[#c1c6e6] p-6 md:p-8 relative animate-in">
+          <div class="stamp" id="caseStamp">SOLVED</div>
+          
+          <div class="flex flex-col md:flex-row items-start justify-between gap-4 mb-6">
+            <div>
+              <div class="flex items-center gap-3 mb-2">
+                <span class="text-[10px] font-bold text-[#5c699c] bg-[#f0f2f8] px-2 py-1 rounded border border-[#e1e4f0] uppercase tracking-widest">Exhibit A</span>
+                <span class="text-[11px] text-[#8c8982] font-semibold" id="caseLens">Lens: —</span>
+              </div>
+              <h1 id="caseTitle" class="font-extrabold text-2xl md:text-3xl text-[#2d2c29] tracking-tight">Awaiting Initialization</h1>
+              <p id="casePrompt" class="text-[#5c5a55] mt-2 text-sm md:text-base">Add teams and initialize the case files to begin your investigation.</p>
+            </div>
+            <div id="caseDifficulty" class="shrink-0 px-3 py-1 rounded-md bg-[#faf9f7] border border-[#eae6df] text-[#5c5a55] text-[11px] font-bold uppercase tracking-widest">—</div>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <!-- Data Table -->
+            <div class="flex flex-col h-full">
+              <div class="flex items-center justify-between mb-2">
+                <h3 class="font-bold text-[11px] uppercase tracking-widest text-[#8c8982]">Ledger Data</h3>
+              </div>
+              <div class="grow rounded-xl border border-[#eae6df] bg-white overflow-hidden flex flex-col">
+                <div class="overflow-x-auto">
+                  <table class="min-w-full text-sm text-left whitespace-nowrap">
+                    <thead id="dataHead" class="text-[11px] uppercase text-[#8c8982] border-b border-[#eae6df] font-bold"></thead>
+                    <tbody id="dataBody" class="mono text-[#5c5a55] divide-y divide-[#f4f1eb]"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <!-- Chart -->
+            <div class="flex flex-col h-full">
+              <div class="flex items-center justify-between mb-2">
+                <h3 class="font-bold text-[11px] uppercase tracking-widest text-[#8c8982]">Trend Visualization</h3>
+              </div>
+              <div class="grow rounded-xl border border-[#eae6df] bg-white p-4 flex items-center justify-center">
+                <canvas id="chart"></canvas>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Footnote -->
+          <div class="p-4 rounded-xl bg-[#faf9f7] border-l-4 border-[#dcd7ce] text-sm text-[#5c5a55] flex items-start gap-3">
+            <svg class="w-5 h-5 text-[#8c8982] shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <span id="caseFootnote" class="italic">System standing by.</span>
+          </div>
+        </div>
+
+        <!-- Interaction Area -->
+        <div class="soft-card rounded-2xl p-6 md:p-8 relative transition-all duration-300" id="interactionCard">
+          <div class="flex flex-wrap items-center justify-between gap-4 mb-6 border-b border-[#eae6df] pb-4">
+            <div>
+              <h2 class="font-extrabold text-xl text-[#2d2c29]">Make Your Call</h2>
+              <p class="text-[11px] text-[#8c8982] mt-1 uppercase tracking-widest font-bold">Select the primary issue and up to 3 supporting reasons.</p>
+            </div>
+            <div class="flex gap-2 w-full md:w-auto">
+              <button id="btnLock" class="btn flex-1 md:flex-none px-6 py-2.5 rounded-lg bg-[#e3e6f0] hover:bg-[#d5daeb] text-[#4a5578] text-sm font-bold border border-[#d1d7e8] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2" disabled>
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                Lock & Score
+              </button>
+              <button id="btnNext" class="btn flex-1 md:flex-none px-6 py-2.5 rounded-lg bg-[#faf9f7] hover:bg-[#f0eee9] text-[#5c5a55] text-sm font-bold border border-[#eae6df] transition-all" disabled>
+                Next File →
+              </button>
+            </div>
+          </div>
+
+          <!-- Feedback Reveal (Hidden by default) -->
+          <div id="feedbackArea" class="hidden mb-6 p-5 rounded-xl bg-[#f8f9fc] border border-[#dce0f2] relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-1 h-full bg-[#a5b4fc]"></div>
+            <h3 class="font-bold text-[#5c699c] text-[11px] uppercase tracking-widest mb-2">Declassification Brief</h3>
+            <p id="feedbackText" class="text-[#3f3e3a] text-sm leading-relaxed"></p>
+          </div>
+
+          <div id="answerArea" class="grid grid-cols-1 md:grid-cols-2 gap-8 opacity-50 pointer-events-none transition-opacity duration-300">
+            <!-- Answer Choices -->
+            <div class="space-y-4">
+               <div class="flex items-center gap-2 mb-2">
+                 <div class="w-6 h-6 rounded bg-[#f0f2f5] text-[#8c8982] flex items-center justify-center text-xs font-bold mono border border-[#e4e7eb]">1</div>
+                 <h3 class="text-[11px] font-bold text-[#8c8982] uppercase tracking-widest">Primary Conclusion</h3>
+               </div>
+               <div id="answerChoices" class="space-y-3"></div>
+            </div>
+
+            <!-- Reasoning Tags -->
+            <div>
+              <div class="flex items-center gap-2 mb-4">
+                <div class="w-6 h-6 rounded bg-[#f0f2f5] text-[#8c8982] flex items-center justify-center text-xs font-bold mono border border-[#e4e7eb]">2</div>
+                <h3 class="text-[11px] font-bold text-[#8c8982] uppercase tracking-widest">Supporting Evidence (Max 3)</h3>
+              </div>
+              <div id="tagChoices" class="flex flex-wrap gap-2"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- GAME OVER AREA (Hidden initially) -->
+      <div id="gameOverArea" class="hidden soft-card rounded-2xl p-8 text-center animate-in flex flex-col items-center justify-center min-h-[500px]">
+        <div class="inline-block p-4 rounded-full bg-[#f0f2f8] mb-4 border border-[#e1e4f0]">
+          <svg class="w-10 h-10 text-[#5c699c]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path></svg>
+        </div>
+        <h1 class="text-3xl font-extrabold text-[#2d2c29] mb-2 tracking-tight">Investigation Complete</h1>
+        <p class="text-[#5c5a55] mb-10 max-w-md text-sm">All cases have been processed. Review the final standings of your audit teams below.</p>
+        
+        <!-- Podium -->
+        <div id="podium" class="flex items-end justify-center gap-2 sm:gap-4 h-48 mb-12 w-full max-w-2xl mx-auto border-b border-[#eae6df] pb-0">
+          <!-- Populated by JS -->
+        </div>
+
+        <button id="btnSubmitScores" class="btn px-8 py-4 rounded-xl bg-[#d5e0d9] hover:bg-[#c6d4cc] text-[#3d5a49] font-bold text-lg border border-[#bdccc3] shadow-sm flex items-center gap-3 transition-all">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+          Submit for Competition
+        </button>
+        <p class="text-xs text-[#8c8982] mt-4 mono" id="submitStatus"></p>
+      </div>
+
+    </section>
+  </main>
+
+  <!-- Briefing Modal -->
+  <div id="modal" class="fixed inset-0 bg-[#3f3e3a]/40 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+    <div class="soft-card max-w-xl w-full rounded-2xl p-8 transform transition-all scale-100">
+      <div class="flex items-start justify-between mb-6">
+        <div>
+          <div class="text-[11px] font-bold text-[#8c8982] uppercase tracking-widest mb-1">Mission Briefing</div>
+          <h2 class="font-extrabold text-2xl text-[#2d2c29]">How to Play</h2>
+        </div>
+        <button id="btnClose" class="p-2 rounded-lg bg-[#f0f2f5] text-[#8c8982] hover:text-[#3f3e3a] hover:bg-[#e4e7eb] transition-colors">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+      </div>
+      <div class="space-y-6 text-[#5c5a55] text-sm">
+        <div class="flex gap-4">
+          <div class="w-8 h-8 rounded-full bg-[#f0f2f8] text-[#5c699c] font-bold flex items-center justify-center shrink-0 border border-[#e1e4f0]">1</div>
+          <div>
+            <strong class="text-[#2d2c29] block mb-1">Create Your Teams</strong>
+            Add one or multiple teams to compete. Select a team on the left to lock in their answers.
+          </div>
+        </div>
+        <div class="flex gap-4">
+          <div class="w-8 h-8 rounded-full bg-[#f0f2f8] text-[#5c699c] font-bold flex items-center justify-center shrink-0 border border-[#e1e4f0]">2</div>
+          <div>
+            <strong class="text-[#2d2c29] block mb-1">Analyze the Evidence</strong>
+            Review the case context, footnotes, ledger data, and trend visualization. Look for accounting anomalies.
+          </div>
+        </div>
+        <div class="flex gap-4">
+          <div class="w-8 h-8 rounded-full bg-[#f0f2f8] text-[#5c699c] font-bold flex items-center justify-center shrink-0 border border-[#e1e4f0]">3</div>
+          <div>
+            <strong class="text-[#2d2c29] block mb-1">Make Your Call & Select Tags</strong>
+            Choose the primary conclusion (+100 pts) and up to 3 supporting tags (+20 pts each). Careful: incorrect tags cost you -10 pts! Click Lock to score, or simply click Next to skip without penalty.
+          </div>
+        </div>
+      </div>
+      <div class="mt-8 p-4 rounded-xl bg-[#faf9f7] border border-[#eae6df] text-[#8c8982] text-xs text-center mono font-semibold">
+        8 Comprehensive Cases Covering Core Accounting Modules
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /***********************
+     * Minimal Chart Helper
+     ***********************/
+    const ChartMini = (() => {
+      function drawLine(ctx, labels, series) {
+        const W = ctx.canvas.width, H = ctx.canvas.height;
+        ctx.clearRect(0,0,W,H);
+        const padX = 40, padY = 30, innerW = W - padX*2, innerH = H - padY*2;
+        const vals = series.map(d => d.value);
+        let min = Math.min(...vals), max = Math.max(...vals);
+        if (min === max) { min -= 1; max += 1; }
+        
+        const range = max - min;
+        min -= range * 0.1; 
+        max += range * 0.1;
+
+        const y = v => padY + innerH * (1 - (v - min) / (max - min));
+        const x = i => padX + innerW * (i / Math.max(1, series.length - 1));
+
+        // Grid Lines
+        ctx.beginPath();
+        ctx.strokeStyle = "#f0f0f0";
+        ctx.lineWidth = 1;
+        for (let k=0; k<=4; k++){
+          const yy = padY + innerH*(k/4);
+          ctx.moveTo(padX, yy); ctx.lineTo(padX+innerW, yy);
+        }
+        ctx.stroke();
+
+        // Line
+        ctx.strokeStyle = "#8ba898"; // soft sage
+        ctx.lineWidth = 3;
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+        ctx.beginPath();
+        series.forEach((d,i)=>{
+          const xx = x(i), yy = y(d.value);
+          if(i===0) ctx.moveTo(xx,yy); else ctx.lineTo(xx,yy);
+        });
+        ctx.stroke();
+
+        // Gradient Fill
+        const grad = ctx.createLinearGradient(0, padY, 0, padY+innerH);
+        grad.addColorStop(0, "rgba(139, 168, 152, 0.2)");
+        grad.addColorStop(1, "rgba(139, 168, 152, 0)");
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        series.forEach((d,i)=>{
+          const xx = x(i), yy = y(d.value);
+          if(i===0) ctx.moveTo(xx,yy); else ctx.lineTo(xx,yy);
+        });
+        ctx.lineTo(padX+innerW, padY+innerH);
+        ctx.lineTo(padX, padY+innerH);
+        ctx.fill();
+
+        // Points
+        series.forEach((d,i)=>{
+          const xx = x(i), yy = y(d.value);
+          ctx.beginPath(); 
+          ctx.arc(xx, yy, 5, 0, Math.PI*2); 
+          ctx.fillStyle = "#ffffff"; 
+          ctx.fill(); 
+          ctx.strokeStyle = "#8ba898"; 
+          ctx.lineWidth = 2;
+          ctx.stroke();
+          
+          ctx.fillStyle = "#8c8982";
+          ctx.font = "600 10px 'JetBrains Mono', monospace";
+          ctx.textAlign = "center";
+          ctx.fillText(d.value.toFixed(1).replace('.0',''), xx, yy - 12);
+        });
+
+        // X-Axis Labels
+        ctx.fillStyle = "#8c8982";
+        ctx.font = "600 11px 'Plus Jakarta Sans', sans-serif";
+        ctx.textAlign = "center";
+        labels.forEach((lab,i)=>{
+          ctx.fillText(lab, x(i), padY+innerH+20);
+        });
+      }
+
+      function fitCanvas(canvas){
+        const dpr = window.devicePixelRatio || 1;
+        const rect = canvas.parentNode.getBoundingClientRect(); 
+        canvas.style.width = rect.width + 'px';
+        canvas.style.height = rect.height + 'px';
+        canvas.width = Math.floor(rect.width * dpr);
+        canvas.height = Math.floor(rect.height * dpr);
+        const ctx = canvas.getContext("2d");
+        ctx.scale(dpr,dpr);
+        return ctx;
+      }
+      return { drawLine, fitCanvas };
+    })();
+
+    /***********************
+     * Expanded Case Bank (8 Cases)
+     ***********************/
+    const CASE_BANK = [
+      {
+        id: "RR-5STEP",
+        lens: "Revenue Recognition",
+        difficulty: "Warm-up",
+        title: "Timing of Revenue",
+        prompt: "Based on control transfer, which contract should recognize revenue OVER TIME?",
+        footnote: "Note: Revenue is recognized when (or as) control of goods or services transfers to the customer. Contract A is standard retail shipment. Contract B is a continuous security monitoring service.",
+        data: [
+          { Contract: "A: Retail Goods", Performance: "Single delivery", Billing: "At shipment", Returns: "Est. 2%" },
+          { Contract: "B: Security Svc", Performance: "Continuous 24/7", Billing: "Monthly", Returns: "N/A" }
+        ],
+        chart: { labels: ["M1","M2","M3","M4","M5"], series: [10,10,10,10,10] },
+        answers: [
+          { key:"A", text:"Contract A (Retail Goods)" },
+          { key:"B", text:"Contract B (Security Service)" }
+        ],
+        correctAnswerKey: "B",
+        tags: [
+          { key:"t1", text:"Continuous Benefit Received" },
+          { key:"t2", text:"Point-in-Time Transfer" },
+          { key:"t3", text:"Right of Return Liability" },
+          { key:"t4", text:"Series of Distinct Services" }
+        ],
+        correctTags: ["t1", "t4"],
+        feedbackText: "Contract B represents a 'series' of distinct services where the customer consumes the benefit continuously. Contract A transfers control at a point in time (shipment/delivery)."
+      },
+      {
+        id: "RR-CONTRACTASSET",
+        lens: "Revenue Recognition",
+        difficulty: "Medium",
+        title: "The Unbilled Asset",
+        prompt: "Contract Assets are rising substantially faster than Revenue. What does this signal?",
+        footnote: "Refresher: Contract Assets = Revenue recognized but NOT yet billed. Accounts Receivable = Billed and unconditional right to cash.",
+        data: [
+          { Year: "2021", Revenue: "100", Billed_AR: "10.0", ContractAssets: "9.5" },
+          { Year: "2022", Revenue: "102", Billed_AR: "9.1", ContractAssets: "11.5" },
+          { Year: "2023", Revenue: "103", Billed_AR: "8.8", ContractAssets: "14.2" }
+        ],
+        chart: { labels:["2021","2022","2023"], seriesFrom:"ContractAssets" },
+        answers: [
+          { key:"A", text:"Customers are paying their bills faster" },
+          { key:"B", text:"Aggressive recognition ahead of billing rights" },
+          { key:"C", text:"Allowance for doubtful accounts is increasing" }
+        ],
+        correctAnswerKey: "B",
+        tags: [
+          { key:"t1", text:"Accelerated Revenue Pull-Forward" },
+          { key:"t2", text:"Delayed Invoicing Milestones" },
+          { key:"t3", text:"Credit/Collections Issue" },
+          { key:"t4", text:"Unconditional Right to Cash" }
+        ],
+        correctTags: ["t1", "t2"],
+        feedbackText: "Growing unbilled revenue relative to sales suggests the company is recognizing revenue well before they can legally invoice."
+      },
+      {
+        id: "RR-ALLOWANCES",
+        lens: "Revenue Quality",
+        difficulty: "Medium",
+        title: "Shrinking Allowances",
+        prompt: "Are allowances for returns/discounts likely understated or overstated in 2022?",
+        footnote: "Formula: Net Sales = Gross Sales - Allowances. If you underestimate allowances, you artificially inflate Net Sales today.",
+        data: [
+          { Year: "2021", GrossSales: "500", Additions: "52", ActualReturns: "50", ReserveBal: "16" },
+          { Year: "2022", GrossSales: "520", Additions: "50", ActualReturns: "60", ReserveBal: "6" }
+        ],
+        chart: { labels:["2021","2022"], seriesFrom:"ReserveBal" },
+        answers: [
+          { key:"A", text:"Understated (Net Sales artificially high)" },
+          { key:"B", text:"Overstated (Net Sales artificially low)" },
+          { key:"C", text:"Appropriate based on volume" }
+        ],
+        correctAnswerKey: "A",
+        tags: [
+          { key:"t1", text:"Reserve balance collapsed" },
+          { key:"t2", text:"Actual returns exceeded provisions" },
+          { key:"t3", text:"Conservative accounting practice" },
+          { key:"t4", text:"Income Smoothing" }
+        ],
+        correctTags: ["t1", "t2"],
+        feedbackText: "The reserve cushion is nearly gone (dropped to 6) while actual returns are rising. This artificially boosts current earnings."
+      },
+      {
+        id: "RR-DEFERRED",
+        lens: "Deferred Revenue",
+        difficulty: "Medium",
+        title: "The Booking Slowdown",
+        prompt: "Deferred Revenue growth has stalled. What does this signal for the future?",
+        footnote: "Context: For subscription/SaaS companies, Deferred Revenue is a leading indicator. It represents cash collected for future service.",
+        data: [
+          { Year: "2019", DeferredRev: "900", Growth: "20%" },
+          { Year: "2020", DeferredRev: "1090", Growth: "21%" },
+          { Year: "2021", DeferredRev: "1180", Growth: "8%" },
+          { Year: "2022", DeferredRev: "1210", Growth: "2%" }
+        ],
+        chart: { labels:["2019","2020","2021","2022"], seriesFrom:"DeferredRev" },
+        answers: [
+          { key:"A", text:"Future revenue growth will likely decelerate" },
+          { key:"B", text:"Current revenue is overstated due to refunds" },
+          { key:"C", text:"Company is switching to cash-basis accounting" }
+        ],
+        correctAnswerKey: "A",
+        tags: [
+          { key:"t1", text:"Prepayments are slowing down" },
+          { key:"t2", text:"Leading indicator of backlog" },
+          { key:"t3", text:"Cash basis accounting" },
+          { key:"t4", text:"Revenue recognized too early" }
+        ],
+        correctTags: ["t1", "t2"],
+        feedbackText: "While not fraud, it's a vital health warning. The 'fuel tank' for future revenue is emptying as new bookings slow down."
+      },
+      {
+        id: "AR-AGING",
+        lens: "Credit Quality (A/R)",
+        difficulty: "Hard",
+        title: "The Aging Bucket Estimate",
+        prompt: "Which allowance matrix represents a realistic view of non-collection risk?",
+        footnote: "Rule of Thumb: The older a receivable gets, the less likely it is to be collected. Rates should reflect this deterioration.",
+        data: [
+          { Bucket: "Current", Amount: "50000" },
+          { Bucket: "1–60 days", Amount: "30000" },
+          { Bucket: "61–90 days", Amount: "15000" },
+          { Bucket: "90+ days", Amount: "5000" }
+        ],
+        chart: { labels:["Cur","1–60","61–90","90+"], series: [50,30,15,5] },
+        answers: [
+          { key:"A", text:"Rates: 2%, 5%, 15%, 50% (Progressive)" },
+          { key:"B", text:"Rates: 2%, 2%, 2%, 2% (Flat)" },
+          { key:"C", text:"Rates: 0% for all (Optimistic)" }
+        ],
+        correctAnswerKey: "A",
+        tags: [
+          { key:"t1", text:"Risk rises significantly with age" },
+          { key:"t2", text:"Flat rates ignore credit deterioration" },
+          { key:"t3", text:"Optimistic management assumptions" },
+          { key:"t4", text:"Strict credit policy" }
+        ],
+        correctTags: ["t1", "t2"],
+        feedbackText: "Non-collection risk rises significantly with age. Companies sometimes apply flat low rates to older buckets to minimize Bad Debt Expense improperly."
+      },
+      {
+        id: "AR-ADJUST",
+        lens: "Analyst Adjustment",
+        difficulty: "Boss Round",
+        title: "The Cookie Jar",
+        prompt: "Compare the reported allowance rate to historical trends. What is the impact?",
+        footnote: "Analyst Check: If the current reserve rate is lower without justification, earnings are artificially boosted.",
+        data: [
+          { Year: "2021", GrossAR: "110", ReportedAllow: "5.0", RatePct: "4.5" },
+          { Year: "2022", GrossAR: "112", ReportedAllow: "4.0", RatePct: "3.6" },
+          { Year: "2023", GrossAR: "114", ReportedAllow: "3.0", RatePct: "2.6" }
+        ],
+        chart: { labels:["2021","2022","2023"], seriesFrom:"RatePct" },
+        answers: [
+          { key:"A", text:"Under-reserved (Earnings artificially inflated)" },
+          { key:"B", text:"Over-reserved (Earnings artificially depressed)" },
+          { key:"C", text:"Neutral impact" }
+        ],
+        correctAnswerKey: "A",
+        tags: [
+          { key:"t1", text:"Reserve rate declining while A/R grows" },
+          { key:"t2", text:"Cookie Jar Accounting" },
+          { key:"t3", text:"Artificial Earnings Boost" },
+          { key:"t4", text:"Matching Principle" }
+        ],
+        correctTags: ["t1", "t2", "t3"],
+        feedbackText: "This is a classic 'Cookie Jar' usage—draining the reserve balance to create paper profits and meet EPS targets."
+      },
+      {
+        id: "CLASS5-CHANNEL",
+        lens: "Rev Rec Pitfalls",
+        difficulty: "Hard",
+        title: "The Q4 Surprise",
+        prompt: "Sales surged in Q4, but Q1 returns are massive. What pitfall is likely occurring?",
+        footnote: "Note: Look at the relationship between unnatural Q4 sales spikes and subsequent Q1 returns or deteriorating A/R aging.",
+        data: [
+          { Quarter: "Q1", GrossSales: "420", Returns: "20", ARAging90: "4%" },
+          { Quarter: "Q2", GrossSales: "435", Returns: "22", ARAging90: "4%" },
+          { Quarter: "Q3", GrossSales: "430", Returns: "21", ARAging90: "5%" },
+          { Quarter: "Q4", GrossSales: "680", Returns: "105", ARAging90: "12%" }
+        ],
+        chart: { labels:["Q1","Q2","Q3","Q4"], seriesFrom:"GrossSales" },
+        answers: [
+          { key:"A", text:"Legitimate Seasonal Sales Boom" },
+          { key:"B", text:"Channel Stuffing (Trade Loading)" },
+          { key:"C", text:"Deferred Revenue Amortization" }
+        ],
+        correctAnswerKey: "B",
+        tags: [
+          { key:"t1", text:"Channel Stuffing" },
+          { key:"t2", text:"Cutoff Manipulation" },
+          { key:"t3", text:"Deteriorating A/R Aging" },
+          { key:"t4", text:"Legitimate Seasonality" }
+        ],
+        correctTags: ["t1", "t2", "t3"],
+        feedbackText: "This pattern represents 'Channel Stuffing'. Management forced inventory onto distributors to hit targets (Cutoff Manipulation), leading to high returns next period."
+      },
+      {
+        id: "CLASS5-ALLOWANCE",
+        lens: "A/R & Allowances",
+        difficulty: "Boss Round",
+        title: "The Allowance Illusion",
+        prompt: "Analyze the Allowance Rollforward. What does this reveal about management?",
+        footnote: "Equation: Beg Allowance + Provision - Charge-offs = End Allowance. If Charge-offs outpace Provisions consistently, what happens?",
+        data: [
+          { Year: "2021", GrossAR: "800", Provision: "40", ChargeOffs: "35", EndAllow: "55" },
+          { Year: "2022", GrossAR: "850", Provision: "40", ChargeOffs: "50", EndAllow: "45" },
+          { Year: "2023", GrossAR: "920", Provision: "40", ChargeOffs: "70", EndAllow: "15" }
+        ],
+        chart: { labels:["2021","2022","2023"], seriesFrom:"EndAllow" },
+        answers: [
+          { key:"A", text:"Earnings are artificially inflated (Under-reserved)" },
+          { key:"B", text:"Earnings are artificially depressed (Over-reserved)" },
+          { key:"C", text:"Reserves are perfectly matching credit risk" }
+        ],
+        correctAnswerKey: "A",
+        tags: [
+          { key:"t1", text:"Under-provisioning" },
+          { key:"t2", text:"Charge-offs outpace provisions" },
+          { key:"t3", text:"Artificial Net Income boost" },
+          { key:"t4", text:"Conservative Accounting" }
+        ],
+        correctTags: ["t1", "t2", "t3"],
+        feedbackText: "By keeping the Provision flat while Charge-offs skyrocket, management drains the allowance balance to avoid hitting the Income Statement, inflating Net Income."
+      }
+    ];
+
+    /***********************
+     * Game State
+     ***********************/
+    const state = {
+      teams: [],
+      roundIndex: -1,
+      activeTeamId: null,
+      selectionsByTeam: {},
+      scoredRounds: new Set(),
+    };
+    
+    // Auto-generate initials for teams instead of emojis
+    function getInitials(name) {
+      const parts = name.trim().split(" ");
+      if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+      return name.substring(0, 2).toUpperCase();
+    }
+
+    /***********************
+     * DOM Elements
+     ***********************/
+    const el = (id) => document.getElementById(id);
+
+    const leaderboardEl = el("leaderboard");
+    const gameMetaEl = el("gameMeta");
+    const teamNameInput = el("teamName");
+    const btnAddTeam = el("btnAddTeam");
+    const btnStart = el("btnStart");
+    const btnNext = el("btnNext");
+    const btnLock = el("btnLock");
+    const btnReset = el("btnReset");
+    const btnHow = el("btnHow");
+    
+    const gameBoard = el("gameBoard");
+    const gameOverArea = el("gameOverArea");
+    const caseTitle = el("caseTitle");
+    const casePrompt = el("casePrompt");
+    const caseDifficulty = el("caseDifficulty");
+    const caseFootnote = el("caseFootnote");
+    const caseLens = el("caseLens");
+    const caseStamp = el("caseStamp");
+    
+    const dataHead = el("dataHead");
+    const dataBody = el("dataBody");
+    const answerArea = el("answerArea");
+    const feedbackArea = el("feedbackArea");
+    const feedbackText = el("feedbackText");
+    const answerChoices = el("answerChoices");
+    const tagChoices = el("tagChoices");
+    
+    const canvas = el("chart");
+    let ctx = null;
+
+    /***********************
+     * Core Functions
+     ***********************/
+    const uid = () => Math.random().toString(36).substr(2, 9);
+    const escapeHtml = (str) => (str ?? "").toString().replace(/[&<>'"]/g, 
+        tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag])
+    );
+
+    function roundMeta() {
+      if (state.roundIndex < 0) {
+        gameMetaEl.textContent = `PRE-GAME`;
+      } else {
+        gameMetaEl.textContent = `FILE ${state.roundIndex + 1}/${CASE_BANK.length}`;
+      }
+    }
+
+    function currentCase() {
+      return state.roundIndex >= 0 ? CASE_BANK[state.roundIndex] : null;
+    }
+
+    function renderLeaderboard() {
+      leaderboardEl.innerHTML = "";
+      const sorted = [...state.teams].sort((a,b) => b.score - a.score);
+
+      if (sorted.length === 0) {
+        leaderboardEl.innerHTML = `<div class="text-[11px] text-[#b0aba3] italic p-2 text-center">No teams initialized.</div>`;
+        return;
+      }
+
+      sorted.forEach((team) => {
+        const active = team.id === state.activeTeamId;
+        const row = document.createElement("button");
+        
+        row.className = `w-full text-left rounded-xl border p-3 flex items-center justify-between gap-2 transition-all
+          ${active 
+            ? "border-[#a5b4fc] bg-[#f0f2f8] shadow-sm" 
+            : "border-[#eae6df] bg-white hover:bg-[#faf9f7]"}`;
+        row.id = `team-row-${team.id}`;
+        
+        row.onclick = () => {
+          state.activeTeamId = team.id;
+          if (state.roundIndex >= 0) ensureSelection(team.id);
+          renderLeaderboard();
+          if (state.roundIndex >= 0) syncUIFromSelection();
+        };
+
+        row.innerHTML = `
+          <div class="flex items-center gap-3 relative">
+            <div class="text-[11px] font-bold text-[#5c699c] bg-[#e3e6f0] border border-[#d1d7e8] rounded-md w-8 h-8 flex items-center justify-center">${getInitials(team.name)}</div>
+            <div>
+              <div class="font-bold text-[#3f3e3a] text-sm tracking-tight truncate max-w-[120px]">${escapeHtml(team.name)}</div>
+              ${active && state.roundIndex >= 0 ? '<div class="text-[9px] font-bold text-[#8ba898] uppercase tracking-widest mt-0.5">Active Target</div>' : ''}
+            </div>
+          </div>
+          <div class="text-right shrink-0">
+            <div class="mono font-bold text-base text-[#2d2c29]">${team.score}</div>
+            <div class="text-[9px] text-[#8c8982] uppercase font-bold">Pts</div>
+          </div>
+        `;
+        leaderboardEl.appendChild(row);
+      });
+
+      if (!state.activeTeamId && state.teams.length) {
+        state.activeTeamId = state.teams[0].id;
+      }
+    }
+
+    function ensureSelection(teamId) {
+      if (!state.selectionsByTeam[teamId]) {
+        state.selectionsByTeam[teamId] = { answerKey: null, tags: new Set() };
+      }
+    }
+
+    function clearSelectionsForNewRound() {
+      state.selectionsByTeam = {};
+      state.scoredRounds = new Set();
+      if (state.activeTeamId) ensureSelection(state.activeTeamId);
+    }
+
+    function renderCase() {
+      const c = currentCase();
+      if (!c) return;
+
+      caseStamp.classList.remove("show");
+      feedbackArea.classList.add("hidden");
+      answerArea.classList.remove("opacity-50", "pointer-events-none");
+      
+      btnLock.disabled = false;
+      btnLock.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg> Lock & Score`;
+      btnNext.disabled = false; // Next is ALWAYS available
+
+      answerArea.querySelectorAll("button, input").forEach(el => el.disabled = false);
+
+      caseTitle.textContent = c.title;
+      casePrompt.textContent = c.prompt;
+      caseDifficulty.textContent = c.difficulty;
+      caseLens.textContent = `Lens: ${c.lens}`;
+      caseFootnote.textContent = c.footnote;
+
+      renderTable(c.data);
+      setTimeout(() => renderChart(c), 10);
+      renderAnswerUI(c);
+
+      roundMeta();
+      syncUIFromSelection();
+    }
+
+    function renderTable(rows) {
+      if (!rows || rows.length === 0) return;
+      const cols = Object.keys(rows[0]);
+      dataHead.innerHTML = `<tr>${cols.map(h => `<th class="px-4 py-3">${escapeHtml(h.replace(/_/g, ' '))}</th>`).join("")}</tr>`;
+      dataBody.innerHTML = rows.map(r => `
+        <tr class="transition-colors hover:bg-[#faf9f7]">
+          ${cols.map(k => `<td class="px-4 py-2.5">${escapeHtml(r[k])}</td>`).join("")}
+        </tr>
+      `).join("");
+    }
+
+    function renderChart(c) {
+      if (!ctx) ctx = ChartMini.fitCanvas(canvas);
+      else ChartMini.fitCanvas(canvas);
+      
+      let series = [];
+      if (c.chart.series) {
+        series = c.chart.series.map(v => ({ value: v }));
+      } else if (c.chart.seriesFrom) {
+        series = c.data.map(d => ({ value: Number(d[c.chart.seriesFrom] || 0) }));
+      }
+      ChartMini.drawLine(ctx, c.chart.labels, series);
+    }
+
+    function renderAnswerUI(c) {
+      answerChoices.innerHTML = "";
+      c.answers.forEach(a => {
+        const label = document.createElement("label");
+        label.className = "flex items-start gap-3 p-4 rounded-xl border border-[#eae6df] bg-[#faf9f7] hover:bg-[#f4f1eb] cursor-pointer transition-all";
+        label.dataset.key = a.key;
+        
+        label.innerHTML = `
+          <div class="mt-0.5">
+            <div class="w-5 h-5 rounded-full border-2 border-[#dcd7ce] flex items-center justify-center transition-colors radio-circle bg-white">
+              <div class="w-2 h-2 rounded-full bg-[#5c699c] opacity-0 transition-opacity radio-dot"></div>
+            </div>
+            <input type="radio" name="answer" value="${a.key}" class="hidden" />
+          </div>
+          <div class="flex-1">
+            <div class="font-bold text-[#3f3e3a]">${a.key}. ${escapeHtml(a.text)}</div>
+          </div>
+        `;
+        
+        label.querySelector("input").onchange = (e) => {
+          const teamId = state.activeTeamId;
+          if (!teamId) return;
+          ensureSelection(teamId);
+          state.selectionsByTeam[teamId].answerKey = e.target.value;
+          syncUIFromSelection();
+        };
+        answerChoices.appendChild(label);
+      });
+
+      tagChoices.innerHTML = "";
+      c.tags.forEach(t => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "px-3 py-1.5 rounded-lg border border-[#eae6df] bg-[#faf9f7] text-[11px] font-bold text-[#5c5a55] hover:bg-[#f4f1eb] transition-all text-left";
+        btn.textContent = t.text;
+        btn.dataset.key = t.key;
+        
+        btn.onclick = () => {
+          const teamId = state.activeTeamId;
+          if (!teamId) return;
+          ensureSelection(teamId);
+          const set = state.selectionsByTeam[teamId].tags;
+          
+          if (set.has(t.key)) {
+            set.delete(t.key);
+          } else {
+            if (set.size >= 3) {
+              btn.classList.add("translate-x-1");
+              setTimeout(()=>btn.classList.remove("translate-x-1"), 100);
+              return; 
+            }
+            set.add(t.key);
+          }
+          syncUIFromSelection();
+        };
+        tagChoices.appendChild(btn);
+      });
+    }
+
+    function syncUIFromSelection() {
+      const teamId = state.activeTeamId;
+      const c = currentCase();
+      if (!teamId || !c) return;
+      ensureSelection(teamId);
+      const sel = state.selectionsByTeam[teamId];
+      const isLocked = state.scoredRounds.has(`${state.roundIndex}|${teamId}`);
+
+      // Update Radio UI
+      document.querySelectorAll('input[name="answer"]').forEach(radio => {
+        const isChecked = (radio.value === sel.answerKey);
+        radio.checked = isChecked;
+        const container = radio.closest('label');
+        const dot = container.querySelector('.radio-dot');
+        const circle = container.querySelector('.radio-circle');
+        
+        if (isChecked) {
+          container.classList.add('answer-selected');
+          container.classList.remove('border-[#eae6df]', 'bg-[#faf9f7]', 'hover:bg-[#f4f1eb]');
+          dot.classList.remove('opacity-0');
+          circle.classList.add('border-[#a5b4fc]');
+        } else {
+          container.classList.remove('answer-selected');
+          container.classList.add('border-[#eae6df]', 'bg-[#faf9f7]', 'hover:bg-[#f4f1eb]');
+          dot.classList.add('opacity-0');
+          circle.classList.remove('border-[#a5b4fc]');
+        }
+      });
+
+      // Update Tags UI
+      [...tagChoices.children].forEach(btn => {
+        if (sel.tags.has(btn.dataset.key)) {
+          btn.classList.add('tag-selected');
+          btn.classList.remove('bg-[#faf9f7]', 'text-[#5c5a55]', 'border-[#eae6df]');
+        } else {
+          btn.classList.remove('tag-selected');
+          btn.classList.add('bg-[#faf9f7]', 'text-[#5c5a55]', 'border-[#eae6df]');
+        }
+      });
+
+      // Handle Locked State
+      if (isLocked) {
+        revealResultsForLockedTeam(teamId);
+        btnLock.disabled = true;
+        btnLock.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg> Locked`;
+      } else {
+        feedbackArea.classList.add("hidden");
+        answerArea.classList.remove("opacity-50", "pointer-events-none");
+        caseStamp.classList.remove("show");
+        btnLock.disabled = false;
+        btnLock.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg> Lock & Score`;
+      }
+    }
+
+    function scoreSelection(teamId) {
+      const c = currentCase();
+      const sel = state.selectionsByTeam[teamId];
+      if (!c || !sel) return 0;
+      
+      const key = `${state.roundIndex}|${teamId}`;
+      if (state.scoredRounds.has(key)) return 0; 
+
+      let pts = 0;
+      if (sel.answerKey === c.correctAnswerKey) pts += 100;
+
+      const correctTagSet = new Set(c.correctTags);
+      sel.tags.forEach(t => { 
+        if (correctTagSet.has(t)) pts += 20; 
+        else pts -= 10;
+      });
+
+      const team = state.teams.find(t=>t.id===teamId);
+      if (team) team.score += pts;
+      
+      state.scoredRounds.add(key);
+      return pts;
+    }
+
+    function revealResultsForLockedTeam(teamId) {
+      const c = currentCase();
+      const sel = state.selectionsByTeam[teamId];
+      if (!c || !sel) return;
+
+      answerArea.classList.add("pointer-events-none");
+      caseStamp.classList.add("show");
+      feedbackArea.classList.remove("hidden");
+      feedbackText.innerHTML = `<strong>Actual Outcome:</strong> ${c.feedbackText}`;
+
+      // Highlight Answers
+      const answerLabels = answerChoices.children;
+      for (let label of answerLabels) {
+        const key = label.dataset.key;
+        label.className = "flex items-start gap-3 p-4 rounded-xl border transition-all"; 
+        
+        if (key === c.correctAnswerKey) {
+          label.classList.add('answer-correct');
+          if(!label.innerHTML.includes("CORRECT")) {
+            label.innerHTML += `<div class="absolute right-4 top-1/2 -translate-y-1/2 text-[#059669] font-bold tracking-widest text-[10px]">CORRECT</div>`;
+          }
+        } else if (key === sel.answerKey && key !== c.correctAnswerKey) {
+          label.classList.add('answer-wrong');
+        } else {
+          label.classList.add('opacity-40', 'bg-[#f4f1eb]', 'border-[#eae6df]');
+        }
+      }
+
+      // Highlight Tags
+      const correctTagSet = new Set(c.correctTags);
+      const tags = tagChoices.children;
+      for (let btn of tags) {
+        const key = btn.dataset.key;
+        const isSelected = sel.tags.has(key);
+        const isCorrect = correctTagSet.has(key);
+
+        btn.className = "px-3 py-1.5 rounded-lg border text-[11px] font-bold text-left transition-all"; 
+
+        if (isCorrect) {
+          if (isSelected) btn.classList.add('tag-correct');
+          else btn.classList.add('tag-missed');
+        } else if (isSelected && !isCorrect) {
+          btn.classList.add('tag-wrong'); 
+        } else {
+          btn.classList.add('opacity-30', 'bg-[#faf9f7]', 'border-[#eae6df]', 'text-[#8c8982]');
+        }
+      }
+    }
+
+    function showScoreAnimation(teamId, points) {
+      const row = document.getElementById(`team-row-${teamId}`);
+      if (!row) return;
+      const pop = document.createElement("div");
+      pop.className = "score-pop mono";
+      pop.textContent = points >= 0 ? `+${points}` : points;
+      pop.style.color = points >= 0 ? '#4b8a6b' : '#c4727e'; 
+      
+      const rect = row.getBoundingClientRect();
+      pop.style.left = (rect.width - 60) + "px";
+      pop.style.top = "10px";
+      
+      row.appendChild(pop);
+      setTimeout(() => pop.remove(), 1200);
+    }
+
+    function showGameOverScreen() {
+      gameBoard.classList.add("hidden");
+      gameOverArea.classList.remove("hidden");
+      
+      const sorted = [...state.teams].sort((a,b) => b.score - a.score);
+      const podium = el("podium");
+      podium.innerHTML = "";
+      
+      const places = [
+        { rank: 2, team: sorted[1], class: "podium-2" },
+        { rank: 1, team: sorted[0], class: "podium-1" },
+        { rank: 3, team: sorted[2], class: "podium-3" }
+      ];
+
+      places.forEach(p => {
+        if (!p.team) return; 
+        
+        const col = document.createElement("div");
+        col.className = "flex flex-col items-center justify-end w-1/3 sm:w-1/4 animate-in";
+        col.style.animationDelay = `${(3 - p.rank) * 0.2}s`;
+        
+        col.innerHTML = `
+          <div class="text-sm font-bold bg-white border border-[#eae6df] text-[#5c699c] rounded-lg w-10 h-10 flex items-center justify-center mb-2 shadow-sm">${getInitials(p.team.name)}</div>
+          <div class="font-bold text-[#3f3e3a] text-sm truncate w-full text-center px-1">${escapeHtml(p.team.name)}</div>
+          <div class="mono text-[#8c8982] text-[11px] font-bold mb-3">${p.team.score} pts</div>
+          <div class="w-full rounded-t-lg flex items-start justify-center pt-4 ${p.class}">
+            <span class="font-bold text-[#8c8982]/40 text-2xl">${p.rank}</span>
+          </div>
+        `;
+        podium.appendChild(col);
+      });
+    }
+
+    /***********************
+     * Event Listeners
+     ***********************/
+    btnHow.onclick = () => { el("modal").classList.remove("hidden"); el("modal").classList.add("flex"); };
+    el("btnClose").onclick = () => { el("modal").classList.add("hidden"); el("modal").classList.remove("flex"); };
+    el("modal").onclick = (e) => { if (e.target === el("modal")) { el("modal").classList.add("hidden"); el("modal").classList.remove("flex"); } };
+
+    btnAddTeam.onclick = () => {
+      const name = (teamNameInput.value || "").trim();
+      if (!name) return;
+      state.teams.push({ id: uid(), name, score: 0 });
+      teamNameInput.value = "";
+      if (!state.activeTeamId) state.activeTeamId = state.teams[0].id;
+      renderLeaderboard();
+      btnStart.disabled = state.teams.length === 0;
+    };
+    
+    teamNameInput.addEventListener("keypress", (e) => {
+      if (e.key === "Enter") btnAddTeam.click();
+    });
+
+    btnStart.onclick = () => {
+      if (state.teams.length < 1) return;
+      state.roundIndex = 0;
+      clearSelectionsForNewRound();
+      renderLeaderboard();
+      renderCase();
+      
+      teamNameInput.disabled = true;
+      btnAddTeam.disabled = true;
+      btnStart.classList.add("hidden");
+    };
+
+    btnLock.onclick = () => {
+      const teamId = state.activeTeamId;
+      if (!teamId) return;
+      ensureSelection(teamId);
+      const sel = state.selectionsByTeam[teamId];
+      if (!sel.answerKey) { 
+        alert("Please select a primary conclusion before locking."); 
+        return; 
+      }
+
+      const pts = scoreSelection(teamId);
+      renderLeaderboard();
+      showScoreAnimation(teamId, pts);
+      syncUIFromSelection(); 
+    };
+
+    btnNext.onclick = () => {
+      if (state.roundIndex < 0) return;
+      
+      if (state.roundIndex >= CASE_BANK.length - 1) {
+        showGameOverScreen();
+        return;
+      }
+      
+      state.roundIndex++;
+      clearSelectionsForNewRound();
+      renderCase();
+      renderLeaderboard();
+    };
+
+    btnReset.onclick = () => {
+      if (!confirm("Are you sure you want to scrub all data and reset the room?")) return;
+      state.teams = [];
+      state.roundIndex = -1;
+      state.activeTeamId = null;
+      state.selectionsByTeam = {};
+      state.scoredRounds = new Set();
+      
+      teamNameInput.disabled = false;
+      btnAddTeam.disabled = false;
+      btnStart.classList.remove("hidden");
+      btnStart.disabled = true;
+      
+      gameBoard.classList.remove("hidden");
+      gameOverArea.classList.add("hidden");
+      
+      caseTitle.textContent = "Awaiting Initialization";
+      casePrompt.textContent = "Add teams and initialize the case files to begin your investigation.";
+      dataHead.innerHTML = ""; dataBody.innerHTML = "";
+      if(ctx) ctx.clearRect(0,0, canvas.width, canvas.height);
+      answerChoices.innerHTML = "";
+      tagChoices.innerHTML = "";
+      feedbackArea.classList.add("hidden");
+      caseStamp.classList.remove("show");
+      
+      renderLeaderboard();
+      roundMeta();
+    };
+
+    window.addEventListener("resize", () => {
+      if (currentCase() && state.roundIndex >= 0) {
+        renderChart(currentCase());
+      }
+    });
+
+    // Mock Submit Handler
+    el("btnSubmitScores").onclick = () => {
+      const btn = el("btnSubmitScores");
+      const status = el("submitStatus");
+      
+      btn.disabled = true;
+      btn.innerHTML = `<svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-[#3d5a49]" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Transmitting...`;
+      status.textContent = "Connecting to submission server...";
+
+      setTimeout(() => {
+        btn.classList.remove("bg-[#d5e0d9]", "hover:bg-[#c6d4cc]", "text-[#3d5a49]");
+        btn.classList.add("bg-[#e3e6f0]", "text-[#4a5578]");
+        btn.innerHTML = `✓ Official Results Submitted`;
+        status.innerHTML = "<span class='text-[#4b8a6b]'>Success. Data safely stored for official review.</span>";
+      }, 1500);
+    };
+
+    /***********************
+     * Initialization
+     ***********************/
+    renderLeaderboard();
+    roundMeta();
+  </script>
+</body>
+</html>
