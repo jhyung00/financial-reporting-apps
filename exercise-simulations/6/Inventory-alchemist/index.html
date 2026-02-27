@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventory Alchemist: LIFO/FIFO Lab</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @keyframes flash-red {
+            0%, 100% { background-color: rgba(69, 10, 10, 0); }
+            50% { background-color: rgba(69, 10, 10, 0.6); }
+        }
+        .bg-flash-danger {
+            animation: flash-red 2s ease-in-out infinite;
+        }
+        /* Custom Scrollbar for warehouse lists */
+        .scrollbar-thin::-webkit-scrollbar { width: 4px; }
+        .scrollbar-thin::-webkit-scrollbar-track { background: #0f172a; }
+        .scrollbar-thin::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-200 font-sans p-4 transition-colors duration-500 min-h-screen" id="app-body">
+
+    <!-- Header -->
+    <header class="flex flex-col md:flex-row justify-between items-center bg-slate-900/80 border-b border-slate-800 p-4 rounded-t-xl mb-4 backdrop-blur-sm">
+        <div class="flex items-center gap-4 z-10">
+            <i data-lucide="book-open" class="text-amber-500 w-8 h-8"></i>
+            <div>
+                <h1 class="text-xl font-bold uppercase tracking-wider text-slate-100">Inventory Alchemist</h1>
+                <p class="text-[10px] text-amber-500/80 uppercase tracking-widest font-bold">LIFO/FIFO Conversion Lab</p>
+            </div>
+        </div>
+        
+        <div class="flex gap-4 mt-4 md:mt-0 z-10">
+            <div class="flex flex-col items-center bg-slate-950 px-4 py-2 rounded border border-slate-800">
+                <span class="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Fiscal Year</span>
+                <div class="flex items-center gap-2 text-lg font-mono text-slate-200"><i data-lucide="clock" class="w-4 h-4 text-indigo-400"></i> <span id="ui-year">1</span></div>
+            </div>
+            <div class="flex flex-col items-center bg-slate-950 px-4 py-2 rounded border border-slate-800">
+                <span class="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Market Cost</span>
+                <div class="flex items-center gap-2 text-lg font-mono text-amber-400"><i data-lucide="trending-up" class="w-4 h-4 text-amber-400"></i> $<span id="ui-cost">10</span></div>
+            </div>
+            <div class="flex flex-col items-center bg-slate-950 px-4 py-2 rounded border border-slate-800">
+                <span class="text-[10px] text-slate-500 uppercase font-bold tracking-wider">LIFO Cash Reserves</span>
+                <div class="flex items-center gap-2 text-lg font-mono text-emerald-400"><i data-lucide="coins" class="w-4 h-4 text-emerald-400"></i> $<span id="ui-cash">2000</span></div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Visual Novel Dialogue Box -->
+    <div id="dialogue-box" class="bg-slate-900 border border-slate-700 rounded-xl flex overflow-hidden mb-6 relative h-48 md:h-40 resize-y min-h-[12rem]">
+        <div class="w-1/3 md:w-1/5 relative bg-slate-950 flex items-center justify-center overflow-hidden border-r border-slate-800">
+            <img id="professor-img" src="https://image.pollinations.ai/prompt/Stunningly%20beautiful%20anime%20girl%20professor%20with%20glasses%20and%20long%20hair%20explaining%20a%20glowing%20magical%20chart%20elegant%20outfit%20high%20quality%20masterpiece%20cel-shaded?width=400&height=600&nologo=true" 
+                 alt="Professor Profit" 
+                 onerror="this.src='https://api.dicebear.com/9.x/lorelei/svg?seed=Professor&backgroundColor=0f172a'"
+                 class="h-full w-full object-cover object-top transition-all duration-500 scale-100">
+        </div>
+        <div class="w-2/3 md:w-4/5 p-4 md:p-6 flex flex-col justify-center relative bg-slate-900/50 overflow-y-auto scrollbar-thin">
+            <div class="flex justify-between items-start mb-2 md:mb-3">
+                <h3 class="text-amber-500 font-bold uppercase tracking-widest text-xs md:text-sm flex items-center gap-2">
+                    <i data-lucide="shield-alert" class="w-4 h-4"></i> Professor Profit, Conversion Alchemist
+                </h3>
+                <span id="status-badge" class="text-[10px] md:text-xs font-mono font-bold px-2 py-1 rounded bg-slate-950 text-slate-500 border border-slate-800">
+                    STATUS: GUIDING LAB
+                </span>
+            </div>
+            <p id="dialogue-text" class="text-sm md:text-base font-medium leading-relaxed italic text-slate-200">
+                <!-- Injected via JS -->
+            </p>
+            <button id="btn-ack" class="hidden mt-3 w-max bg-red-900 hover:bg-red-800 text-red-100 font-bold py-1.5 px-4 rounded text-xs uppercase tracking-widest border border-red-500 transition-colors z-10 relative shadow-lg">Acknowledge & Continue</button>
+            <div id="dialogue-overlay" class="absolute inset-0 bg-red-600/10 pointer-events-none hidden"></div>
+        </div>
+    </div>
+
+    <!-- Controls & Warehouse Row -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        
+        <!-- Left Column: Operations Control -->
+        <div class="bg-slate-900 p-5 rounded-xl border border-slate-800 resize-y overflow-y-auto min-h-[350px] scrollbar-thin flex flex-col">
+            <h2 class="text-sm font-bold text-slate-400 mb-4 flex items-center gap-2 uppercase tracking-widest border-b border-slate-800 pb-2">
+                <i data-lucide="activity" class="w-4 h-4"></i> Fiscal Controls
+            </h2>
+            
+            <div class="space-y-6 flex-grow">
+                <div>
+                    <label class="flex justify-between text-xs text-slate-400 font-bold uppercase mb-2">
+                        <span>Procure (Buy)</span>
+                        <span class="text-amber-400"><span id="buy-qty-display">10</span> Units</span>
+                    </label>
+                    <input type="range" id="buy-slider" min="0" max="20" value="10" class="w-full accent-amber-500">
+                    <p class="text-[10px] text-slate-500 mt-1">Cost Outflow: $<span id="buy-cost-display">100</span></p>
+                </div>
+
+                <div>
+                    <label class="flex justify-between text-xs text-slate-400 font-bold uppercase mb-2">
+                        <span>Sales Volume</span>
+                        <span class="text-emerald-400"><span id="sell-qty-display">8</span> Units</span>
+                    </label>
+                    <input type="range" id="sell-slider" min="0" max="20" value="8" class="w-full accent-emerald-500">
+                    <p class="text-[10px] text-slate-500 mt-1">Current Sale Price: $<span id="sell-price-display">50</span>/unit</p>
+                </div>
+
+                <button id="btn-execute" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-4 rounded shadow-lg shadow-indigo-500/20 transition-all active:scale-95 uppercase tracking-widest text-sm">
+                    Execute Year <span id="btn-year">1</span>
+                </button>
+
+                <button id="btn-reset" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-400 font-bold py-3 rounded transition-all active:scale-95 uppercase tracking-widest text-xs flex items-center justify-center gap-2 border border-slate-700 mt-4">
+                    <i data-lucide="rotate-ccw" class="w-4 h-4"></i> Reset Simulation
+                </button>
+            </div>
+        </div>
+
+        <!-- Right Column: Current Warehouse Status -->
+        <div class="bg-slate-900 p-5 rounded-xl border border-slate-800 resize-y overflow-y-auto min-h-[350px] scrollbar-thin flex flex-col">
+            <h2 class="text-xs font-bold text-slate-400 mb-4 uppercase tracking-widest border-b border-slate-800 pb-2">Current Warehouse Blocks</h2>
+            
+            <div class="mb-5 flex-1 flex flex-col">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-indigo-400 font-bold text-sm">LIFO Valuation:</span>
+                    <span class="font-mono font-bold text-white bg-slate-950 px-2 py-1 rounded border border-slate-800">$<span id="lifo-val-display">0</span></span>
+                </div>
+                <div class="bg-slate-950/50 p-2 rounded border border-slate-800 space-y-1 flex-1 flex flex-col">
+                    <p class="text-[9px] text-slate-500 uppercase tracking-widest mb-2 border-b border-slate-800 pb-1">Remaining Units (Oldest Kept)</p>
+                    <div id="lifo-layers-container" class="max-h-full overflow-y-auto scrollbar-thin flex-1">
+                        <div class="p-4 text-center text-xs text-slate-600 font-mono uppercase tracking-widest border border-dashed border-slate-800 rounded mx-1 mb-1">Warehouse Empty</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex-1 flex flex-col">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-emerald-400 font-bold text-sm">FIFO Valuation:</span>
+                    <span class="font-mono font-bold text-white bg-slate-950 px-2 py-1 rounded border border-slate-800">$<span id="fifo-val-display">0</span></span>
+                </div>
+                <div class="bg-slate-950/50 p-2 rounded border border-slate-800 space-y-1 flex-1 flex flex-col">
+                    <p class="text-[9px] text-slate-500 uppercase tracking-widest mb-2 border-b border-slate-800 pb-1">Remaining Units (Newest Kept)</p>
+                    <div id="fifo-layers-container" class="max-h-full overflow-y-auto scrollbar-thin flex-1">
+                        <div class="p-4 text-center text-xs text-slate-600 font-mono uppercase tracking-widest border border-dashed border-slate-800 rounded mx-1 mb-1">Warehouse Empty</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Financial Results (Now Full Width) -->
+    <div class="w-full flex flex-col gap-6">
+        
+        <!-- Placeholder -->
+        <div id="results-placeholder" class="bg-slate-900 p-10 rounded-xl border border-dashed border-slate-700 h-[300px] flex flex-col items-center justify-center text-slate-500">
+            <i data-lucide="calculator" class="w-12 h-12 mb-4 opacity-50"></i>
+            <p class="uppercase tracking-widest font-bold text-sm">Awaiting Fiscal Year Execution</p>
+            <p class="text-xs mt-2 text-slate-600">Follow the Professor's objectives to unlock your financial statements!</p>
+        </div>
+
+        <!-- Actual Results (Hidden initially) -->
+        <div id="results-container" class="hidden flex-col gap-6">
+            
+            <!-- Income Statement -->
+            <div class="bg-slate-900 p-5 rounded-xl border border-slate-800 shadow-xl">
+                <h2 class="text-sm font-bold text-slate-300 mb-4 flex items-center gap-2 uppercase tracking-widest border-b border-slate-800 pb-2">
+                    <i data-lucide="file-text" class="w-4 h-4 text-emerald-400"></i> Year <span id="res-year"></span> Income Statement Comparison
+                </h2>
+                
+                <div class="grid grid-cols-3 gap-4 text-sm font-mono">
+                    <div class="font-bold text-slate-500 uppercase tracking-widest border-b border-slate-800 pb-2">Line Item</div>
+                    <div class="font-bold text-indigo-400 uppercase tracking-widest text-right border-b border-slate-800 pb-2 bg-indigo-950/30 px-2 rounded-t">LIFO Method</div>
+                    <div class="font-bold text-emerald-400 uppercase tracking-widest text-right border-b border-slate-800 pb-2 bg-emerald-950/30 px-2 rounded-t">FIFO Method</div>
+
+                    <div class="text-slate-400">Revenue</div>
+                    <div class="text-right text-white bg-indigo-950/20 px-2">$<span id="res-rev-lifo"></span></div>
+                    <div class="text-right text-white bg-emerald-950/20 px-2">$<span id="res-rev-fifo"></span></div>
+
+                    <div class="text-amber-400">- Cost of Goods Sold</div>
+                    <div class="text-right text-amber-400 bg-indigo-950/20 px-2">-$<span id="res-cogs-lifo"></span></div>
+                    <div class="text-right text-amber-400 bg-emerald-950/20 px-2">-$<span id="res-cogs-fifo"></span></div>
+
+                    <div class="text-slate-400 font-bold">Gross Profit</div>
+                    <div class="text-right font-bold text-white border-t border-slate-800 pt-1 bg-indigo-950/20 px-2">$<span id="res-gp-lifo"></span></div>
+                    <div class="text-right font-bold text-white border-t border-slate-800 pt-1 bg-emerald-950/20 px-2">$<span id="res-gp-fifo"></span></div>
+
+                    <div class="text-red-400">- Taxes (30%)</div>
+                    <div class="text-right text-red-400 bg-indigo-950/20 px-2">-$<span id="res-tax-lifo"></span></div>
+                    <div class="text-right text-red-400 bg-emerald-950/20 px-2">-$<span id="res-tax-fifo"></span></div>
+
+                    <div class="text-white font-black text-base mt-2 uppercase">Net Income</div>
+                    <div class="text-right text-indigo-400 font-black text-lg border-y-2 border-indigo-900 py-1 bg-indigo-950/40 px-2 mt-2">$<span id="res-ni-lifo"></span></div>
+                    <div class="text-right text-emerald-400 font-black text-lg border-y-2 border-emerald-900 py-1 bg-emerald-950/40 px-2 mt-2">$<span id="res-ni-fifo"></span></div>
+                </div>
+            </div>
+
+            <!-- Matrices -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Reserve -->
+                <div class="bg-slate-900 p-5 rounded-xl border border-slate-800">
+                    <h2 class="text-sm font-bold text-purple-400 mb-4 flex items-center gap-2 uppercase tracking-widest border-b border-slate-800 pb-2">
+                        <i data-lucide="shield-alert" class="w-4 h-4"></i> Cumulative LIFO Reserve
+                    </h2>
+                    <p class="text-[10px] text-slate-400 mb-4 uppercase leading-relaxed font-bold">
+                        Definition: The <span class="text-purple-300 border-b border-purple-500/50">cumulative, year-over-year buildup</span> of the difference between inventory valued at FIFO vs LIFO.
+                    </p>
+                    <div class="space-y-2 font-mono text-sm bg-slate-950 p-3 rounded border border-slate-800">
+                        <div class="flex justify-between">
+                            <span class="text-emerald-400">FIFO End Inventory:</span>
+                            <span>$<span id="res-fifo-end"></span></span>
+                        </div>
+                        <div class="flex justify-between border-b border-slate-800 pb-2">
+                            <span class="text-indigo-400">- LIFO End Inventory:</span>
+                            <span>-$<span id="res-lifo-end"></span></span>
+                        </div>
+                        <div class="flex justify-between font-bold pt-1">
+                            <span class="text-purple-400">= Cumulative Reserve:</span>
+                            <span>$<span id="res-new-res"></span></span>
+                        </div>
+                        <div class="flex justify-between text-slate-500 pt-2 text-xs">
+                            <span>Previous Reserve:</span>
+                            <span>$<span id="res-prev-res"></span></span>
+                        </div>
+                        <div class="flex justify-between font-bold text-fuchsia-400 border-t border-slate-800 pt-2 mt-2">
+                            <span>Δ Change in Reserve:</span>
+                            <span><span id="res-delta-sign"></span>$<span id="res-delta-res"></span></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Conversion -->
+                <div class="bg-slate-900 p-5 rounded-xl border-2 border-indigo-900 shadow-[0_0_15px_rgba(79,70,229,0.1)]">
+                    <h2 class="text-sm font-bold text-indigo-300 mb-4 flex items-center gap-2 uppercase tracking-widest border-b border-indigo-900 pb-2">
+                        <i data-lucide="calculator" class="w-4 h-4 text-indigo-400"></i> LIFO to FIFO Conversion
+                    </h2>
+                    <div class="space-y-3 font-mono text-sm bg-indigo-950/30 p-4 rounded border border-indigo-900">
+                        <div class="flex justify-between items-center">
+                            <span class="text-indigo-300">LIFO COGS:</span>
+                            <span class="bg-slate-950 px-2 py-1 rounded border border-slate-800">$<span id="conv-lifo-cogs"></span></span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-fuchsia-400">- Δ LIFO Reserve:</span>
+                            <span class="bg-slate-950 px-2 py-1 rounded border border-slate-800"><span id="conv-delta-sign">-</span>$<span id="conv-delta-res"></span></span>
+                        </div>
+                        <div class="w-full h-px bg-indigo-800 my-2"></div>
+                        <div class="flex justify-between items-center font-bold">
+                            <span class="text-emerald-400">= Converted FIFO COGS:</span>
+                            <span class="bg-emerald-950 text-emerald-400 px-2 py-1 rounded border border-emerald-900 text-lg">
+                                $<span id="conv-fifo-cogs"></span>
+                            </span>
+                        </div>
+                    </div>
+                    <p class="text-[10px] text-center mt-3 text-slate-500 italic">
+                        Proof: Notice this perfectly matches the FIFO COGS in the Income Statement above!
+                    </p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+<script>
+    // --- Application State ---
+    const INFLATION_RATE = 40; 
+    const TAX_RATE = 0.30;
+    
+    // Scenario Logic
+    const getScenarioMessage = (year, liquidated) => {
+        if (liquidated) {
+            return `⚠️ <span class="text-red-400 font-bold uppercase tracking-wider">LIFO LIQUIDATION TRIGGERED!</span> You dug into ancient layers! By matching those old $10 and $50 costs against today's high revenue, your LIFO COGS dropped. Look at the Income Statement: <span class="text-indigo-400 font-black text-lg">LIFO Net Income just beat FIFO!</span> You manufactured an EPS boost to meet analyst forecasts! BUT look at the taxes: you paid more to the government, negatively impacting real Cash Flow!`;
+        }
+
+        if (year === 1) return `Welcome to the lab! Let's build our baseline inventory. Look at your empty warehouse!<br><br><span class='text-amber-400 font-bold bg-amber-950/50 px-2 py-1 rounded border border-amber-900'>🎯 OBJECTIVE: Set Procure to 10 and Sales to 8, then Execute Year 1!</span>`;
+        if (year === 2) return `Perfect! We have 2 blocks in the warehouse. Now extreme inflation hits (+$40/yr). Let's see how LIFO handles it compared to FIFO.<br><br><span class='text-amber-400 font-bold bg-amber-950/50 px-2 py-1 rounded border border-amber-900'>🎯 OBJECTIVE: Keep Procure at 10 and Sales at 8, then Execute Year 2!</span>`;
+        if (year === 3) return `Look at the warehouse blocks! LIFO kept the old, cheap items, while FIFO kept the new, expensive ones! Let's stockpile more.<br><br><span class='text-amber-400 font-bold bg-amber-950/50 px-2 py-1 rounded border border-amber-900'>🎯 OBJECTIVE: Set Procure to 12 and Sales to 8, then Execute Year 3!</span>`;
+        if (year === 4) return `Our Cumulative Reserve is huge! Now, imagine management needs a quick Earnings Per Share (EPS) boost to satisfy Wall Street. They decide to intentionally dip into the reserve!<br><br><span class='text-amber-400 font-bold bg-amber-950/50 px-2 py-1 rounded border border-amber-900'>🎯 OBJECTIVE: Set Procure to 0 and Sales to 4, then Execute Year 4!</span>`;
+        
+        return `✨ Year ${year-1} analyzed! You've mastered the tutorial. You're in <span class="text-emerald-400 font-bold">Free Play Mode</span> now. Experiment with the sliders and watch how the Change in Reserve perfectly converts LIFO to FIFO!`;
+    };
+
+    let state = {
+        currentYear: 1,
+        currentCost: 10,       // Starts at 10, then 50, 90, 130...
+        sellPrice: 50,         // Always currentCost + 40
+        lifoInventory: [],
+        fifoInventory: [],
+        cash: 3000,
+        buyQty: 10,
+        sellQty: 8,
+        yearResults: null,
+        prevLifoReserve: 0,
+        liquidationWarning: false,
+        inquisitorMsg: "" // Set in init
+    };
+    
+    // Initialize first message
+    state.inquisitorMsg = getScenarioMessage(1, false);
+
+    // --- DOM Elements Cache ---
+    const els = {
+        uiYear: document.getElementById('ui-year'),
+        uiCost: document.getElementById('ui-cost'),
+        uiCash: document.getElementById('ui-cash'),
+        btnYear: document.getElementById('btn-year'),
+        
+        buySlider: document.getElementById('buy-slider'),
+        sellSlider: document.getElementById('sell-slider'),
+        buyQtyDisp: document.getElementById('buy-qty-display'),
+        sellQtyDisp: document.getElementById('sell-qty-display'),
+        buyCostDisp: document.getElementById('buy-cost-display'),
+        sellPriceDisp: document.getElementById('sell-price-display'),
+        
+        lifoValDisp: document.getElementById('lifo-val-display'),
+        fifoValDisp: document.getElementById('fifo-val-display'),
+        lifoLayersContainer: document.getElementById('lifo-layers-container'),
+        fifoLayersContainer: document.getElementById('fifo-layers-container'),
+        
+        dialogueBox: document.getElementById('dialogue-box'),
+        dialogueText: document.getElementById('dialogue-text'),
+        dialogueOverlay: document.getElementById('dialogue-overlay'),
+        statusBadge: document.getElementById('status-badge'),
+        profImg: document.getElementById('professor-img'),
+        appBody: document.getElementById('app-body'),
+        btnAck: document.getElementById('btn-ack'),
+
+        resPlaceholder: document.getElementById('results-placeholder'),
+        resContainer: document.getElementById('results-container')
+    };
+
+    // Initialize Icons
+    lucide.createIcons();
+
+    // --- Core Logic Functions ---
+    const summarizeInventory = (inventory) => {
+        const summary = {};
+        inventory.forEach(item => {
+            if (!summary[item.year]) summary[item.year] = { count: 0, cost: item.cost };
+            summary[item.year].count += 1;
+        });
+        return Object.entries(summary)
+            .map(([year, data]) => ({ year: parseInt(year), ...data }))
+            .sort((a,b) => b.year - a.year); // Newest on top
+    };
+
+    const getInventoryValue = (inv) => inv.reduce((sum, item) => sum + item.cost, 0);
+
+    const generateLayersHTML = (inventory) => {
+        const layers = summarizeInventory(inventory);
+        if (layers.length === 0) return `<div class="p-4 text-center text-xs text-slate-600 font-mono uppercase tracking-widest border border-dashed border-slate-800 rounded mx-1 mb-1">Warehouse Empty</div>`;
+        
+        // Color mapping for physical blocks!
+        const colorStyles = [
+            { border: 'border-cyan-500', bg: 'bg-cyan-950', block: 'bg-cyan-500', text: 'text-cyan-400', badgeBorder: 'border-cyan-900' },
+            { border: 'border-blue-500', bg: 'bg-blue-950', block: 'bg-blue-500', text: 'text-blue-400', badgeBorder: 'border-blue-900' },
+            { border: 'border-indigo-500', bg: 'bg-indigo-950', block: 'bg-indigo-500', text: 'text-indigo-400', badgeBorder: 'border-indigo-900' },
+            { border: 'border-purple-500', bg: 'bg-purple-950', block: 'bg-purple-500', text: 'text-purple-400', badgeBorder: 'border-purple-900' },
+            { border: 'border-fuchsia-500', bg: 'bg-fuchsia-950', block: 'bg-fuchsia-500', text: 'text-fuchsia-400', badgeBorder: 'border-fuchsia-900' },
+            { border: 'border-rose-500', bg: 'bg-rose-950', block: 'bg-rose-500', text: 'text-rose-400', badgeBorder: 'border-rose-900' },
+            { border: 'border-orange-500', bg: 'bg-orange-950', block: 'bg-orange-500', text: 'text-orange-400', badgeBorder: 'border-orange-900' },
+            { border: 'border-amber-500', bg: 'bg-amber-950', block: 'bg-amber-500', text: 'text-amber-400', badgeBorder: 'border-amber-900' }
+        ];
+
+        return layers.map(layer => {
+            const style = colorStyles[(layer.year - 1) % colorStyles.length];
+            
+            // Generate visual "blocks" for the inventory
+            let blocksHtml = '';
+            for(let i=0; i<layer.count; i++) {
+                blocksHtml += `<div class="w-3.5 h-3.5 md:w-4 md:h-4 rounded-sm shadow-sm ${style.block} border border-slate-900 opacity-90 transition-transform hover:scale-110"></div>`;
+            }
+
+            return `
+            <div class="bg-slate-900 border-l-4 ${style.border} rounded p-2 mb-2 shadow-sm mx-1 transition-all hover:scale-[1.02]">
+                <div class="flex justify-between items-center mb-2">
+                    <div class="flex items-center gap-2">
+                        <span class="${style.bg} ${style.text} px-1.5 py-0.5 rounded text-[10px] font-black uppercase tracking-wider border ${style.badgeBorder} shadow-sm">Yr ${layer.year}</span>
+                        <span class="text-slate-300 font-mono text-[10px] md:text-xs font-bold">${layer.count} Units</span>
+                    </div>
+                    <span class="bg-amber-950/80 text-amber-400 font-mono text-[10px] md:text-[11px] font-bold px-1.5 py-0.5 rounded border border-amber-700/50 flex items-center gap-1">
+                        🏷️ $${layer.cost}
+                    </span>
+                </div>
+                <div class="flex flex-wrap gap-1 p-1.5 bg-slate-950 rounded border border-slate-800 min-h-[28px]">
+                    ${blocksHtml}
+                </div>
+            </div>
+            `;
+        }).join('');
+    };
+
+    const calculateCogsAndRemaining = (inventory, qty, method) => {
+        let cogs = 0;
+        let remaining = [...inventory];
+        let liquidatedOldLayers = false;
+
+        for (let i = 0; i < qty; i++) {
+            if (remaining.length === 0) break;
+            
+            let item;
+            if (method === 'LIFO') {
+                item = remaining.pop(); // Take from top (newest)
+                if (item.year < state.currentYear) {
+                    liquidatedOldLayers = true;
+                }
+            } else {
+                item = remaining.shift(); // Take from bottom (oldest)
+            }
+            cogs += item.cost;
+        }
+        return { cogs, remaining, liquidatedOldLayers };
+    };
+
+    const executeYear = () => {
+        if (state.sellQty > state.lifoInventory.length + state.buyQty) {
+            state.inquisitorMsg = "❌ Error! You cannot sell more units than you have in the warehouse! Lower the Sales Volume slider.";
+            state.liquidationWarning = false;
+            updateUI();
+            return;
+        }
+
+        const totalCost = state.buyQty * state.currentCost;
+        if (state.cash < totalCost) {
+            state.inquisitorMsg = "❌ Bankruptcy Risk! You don't have enough capital to purchase that many units. Lower your Procurement slider.";
+            state.liquidationWarning = false;
+            updateUI();
+            return;
+        }
+
+        // Add purchases
+        const newLifo = [...state.lifoInventory];
+        const newFifo = [...state.fifoInventory];
+        for(let i=0; i<state.buyQty; i++) {
+            const item = { cost: state.currentCost, year: state.currentYear, id: Math.random() };
+            newLifo.push(item);
+            newFifo.push(item);
+        }
+
+        // Process Sales
+        const lifoResult = calculateCogsAndRemaining(newLifo, state.sellQty, 'LIFO');
+        const fifoResult = calculateCogsAndRemaining(newFifo, state.sellQty, 'FIFO');
+
+        state.lifoInventory = lifoResult.remaining;
+        state.fifoInventory = fifoResult.remaining;
+
+        const revenue = state.sellQty * state.sellPrice;
+        
+        // Financials
+        const lifoGP = revenue - lifoResult.cogs;
+        const lifoTax = Math.round(lifoGP * TAX_RATE);
+        const lifoNI = lifoGP - lifoTax;
+
+        const fifoGP = revenue - fifoResult.cogs;
+        const fifoTax = Math.round(fifoGP * TAX_RATE);
+        const fifoNI = fifoGP - fifoTax;
+
+        const lifoEndVal = getInventoryValue(state.lifoInventory);
+        const fifoEndVal = getInventoryValue(state.fifoInventory);
+        
+        const newReserve = fifoEndVal - lifoEndVal;
+        const deltaReserve = newReserve - state.prevLifoReserve;
+
+        state.cash = state.cash - totalCost + revenue - lifoTax;
+
+        state.yearResults = {
+            year: state.currentYear, revenue,
+            lifoCogs: lifoResult.cogs, fifoCogs: fifoResult.cogs,
+            lifoGP, fifoGP, lifoTax, fifoTax, lifoNI, fifoNI,
+            lifoEndVal, fifoEndVal, prevReserve: state.prevLifoReserve,
+            newReserve, deltaReserve
+        };
+
+        state.prevLifoReserve = newReserve;
+        state.liquidationWarning = lifoResult.liquidatedOldLayers;
+
+        // Advance Year Settings
+        state.currentYear++;
+        state.currentCost += INFLATION_RATE;
+        state.sellPrice = state.currentCost + 40; 
+        
+        // Update Scenario Msg based on new year state
+        state.inquisitorMsg = getScenarioMessage(state.currentYear, state.liquidationWarning);
+
+        updateUI();
+    };
+
+    const resetSim = () => {
+        state = {
+            currentYear: 1, currentCost: 10, sellPrice: 50,
+            lifoInventory: [], fifoInventory: [],
+            cash: 3000, buyQty: 10, sellQty: 8,
+            yearResults: null, prevLifoReserve: 0,
+            liquidationWarning: false,
+            inquisitorMsg: getScenarioMessage(1, false)
+        };
+        els.buySlider.value = 10;
+        els.sellSlider.value = 8;
+        updateUI();
+    };
+
+    // --- Update UI View ---
+    const updateUI = () => {
+        // Headers & Sliders
+        els.uiYear.innerText = state.currentYear;
+        els.uiCost.innerText = state.currentCost;
+        els.uiCash.innerText = state.cash;
+        els.btnYear.innerText = state.currentYear;
+        
+        els.buyQtyDisp.innerText = state.buyQty;
+        els.buyCostDisp.innerText = state.buyQty * state.currentCost;
+        els.sellQtyDisp.innerText = state.sellQty;
+        els.sellPriceDisp.innerText = state.sellPrice;
+
+        // Visual Novel Danger State
+        if (state.liquidationWarning) {
+            els.appBody.classList.add('bg-flash-danger');
+            els.dialogueBox.classList.add('border-red-500');
+            els.dialogueBox.classList.remove('border-slate-700');
+            els.profImg.classList.add('scale-110', 'brightness-125');
+            els.statusBadge.className = 'text-[10px] md:text-xs font-mono font-bold px-2 py-1 rounded bg-red-900/50 text-red-400 border border-red-500/50 animate-pulse';
+            els.statusBadge.innerText = 'STATUS: EMERGENCY AUDIT';
+            els.dialogueText.className = 'text-sm md:text-base font-medium leading-relaxed text-red-300 drop-shadow-md';
+            els.dialogueOverlay.classList.remove('hidden');
+            els.btnAck.classList.remove('hidden');
+        } else {
+            els.appBody.classList.remove('bg-flash-danger');
+            els.dialogueBox.classList.remove('border-red-500');
+            els.dialogueBox.classList.add('border-slate-700');
+            els.profImg.classList.remove('scale-110', 'brightness-125');
+            els.statusBadge.className = 'text-[10px] md:text-xs font-mono font-bold px-2 py-1 rounded bg-slate-950 text-slate-500 border border-slate-800';
+            els.statusBadge.innerText = 'STATUS: GUIDING LAB';
+            els.dialogueText.className = 'text-sm md:text-base font-medium leading-relaxed text-slate-200';
+            els.dialogueOverlay.classList.add('hidden');
+            els.btnAck.classList.add('hidden');
+        }
+        // Using innerHTML to allow the bold objective tags to render properly!
+        els.dialogueText.innerHTML = `"${state.inquisitorMsg}"`;
+
+        // Warehouse Updates
+        els.lifoValDisp.innerText = getInventoryValue(state.lifoInventory);
+        els.fifoValDisp.innerText = getInventoryValue(state.fifoInventory);
+        els.lifoLayersContainer.innerHTML = generateLayersHTML(state.lifoInventory);
+        els.fifoLayersContainer.innerHTML = generateLayersHTML(state.fifoInventory);
+
+        // Results Injection
+        if (state.yearResults) {
+            els.resPlaceholder.classList.add('hidden');
+            els.resContainer.classList.remove('hidden');
+            els.resContainer.classList.add('flex');
+
+            const res = state.yearResults;
+            document.getElementById('res-year').innerText = res.year;
+            
+            document.getElementById('res-rev-lifo').innerText = res.revenue;
+            document.getElementById('res-rev-fifo').innerText = res.revenue;
+            document.getElementById('res-cogs-lifo').innerText = res.lifoCogs;
+            document.getElementById('res-cogs-fifo').innerText = res.fifoCogs;
+            document.getElementById('res-gp-lifo').innerText = res.lifoGP;
+            document.getElementById('res-gp-fifo').innerText = res.fifoGP;
+            document.getElementById('res-tax-lifo').innerText = res.lifoTax;
+            document.getElementById('res-tax-fifo').innerText = res.fifoTax;
+            document.getElementById('res-ni-lifo').innerText = res.lifoNI;
+            document.getElementById('res-ni-fifo').innerText = res.fifoNI;
+
+            document.getElementById('res-fifo-end').innerText = res.fifoEndVal;
+            document.getElementById('res-lifo-end').innerText = res.lifoEndVal;
+            document.getElementById('res-new-res').innerText = res.newReserve;
+            document.getElementById('res-prev-res').innerText = res.prevReserve;
+            
+            const sign = res.deltaReserve >= 0 ? '+' : '';
+            document.getElementById('res-delta-sign').innerText = sign;
+            document.getElementById('res-delta-res').innerText = res.deltaReserve;
+
+            document.getElementById('conv-lifo-cogs').innerText = res.lifoCogs;
+            document.getElementById('conv-delta-sign').innerText = res.deltaReserve >= 0 ? '-' : '+';
+            document.getElementById('conv-delta-res').innerText = Math.abs(res.deltaReserve);
+            document.getElementById('conv-fifo-cogs').innerText = res.lifoCogs - res.deltaReserve;
+
+        } else {
+            els.resPlaceholder.classList.remove('hidden');
+            els.resContainer.classList.add('hidden');
+            els.resContainer.classList.remove('flex');
+        }
+    };
+
+    // --- Event Listeners ---
+    els.buySlider.addEventListener('input', (e) => {
+        state.buyQty = parseInt(e.target.value);
+        updateUI();
+    });
+    
+    els.sellSlider.addEventListener('input', (e) => {
+        state.sellQty = parseInt(e.target.value);
+        updateUI();
+    });
+
+    document.getElementById('btn-execute').addEventListener('click', executeYear);
+    document.getElementById('btn-reset').addEventListener('click', resetSim);
+    
+    els.btnAck.addEventListener('click', () => {
+        state.liquidationWarning = false;
+        state.inquisitorMsg = getScenarioMessage(state.currentYear, false);
+        updateUI();
+    });
+
+    // Initial Render
+    updateUI();
+
+</script>
+</body>
+</html>
