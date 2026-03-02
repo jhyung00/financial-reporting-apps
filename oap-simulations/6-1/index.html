@@ -556,11 +556,7 @@
                 }
                 const evaluated = evaluateMath(localValue);
                 if (!isNaN(evaluated)) {
-                    // Don't limit precision too aggressively or it might break the answer check
                     const formatted = parseFloat(evaluated.toFixed(type === 'int' ? 0 : 4));
-                    // Display friendly version, but store precise version if needed. 
-                    // Here we just update state with the evaluated number.
-                    // We'll round for display in the input if it's super long.
                     let displayVal = formatted;
                     if (type !== 'int') displayVal = parseFloat(formatted.toFixed(2));
                     
@@ -948,6 +944,7 @@
             const [sidebarWidth, setSidebarWidth] = useState(50); // percentage for desktop
             const sidebarRef = useRef(null);
             const isResizing = useRef(false);
+            const fileInputRef = useRef(null);
 
             const [allInputs, setAllInputs] = useState({
                 ITW: {},
@@ -1013,7 +1010,6 @@
 
             const handleLogin = () => {
                 // btoa("OAP6-1-Key4Z") === "T0FQNi0xLUtleTRa"
-                // Using .trim() to handle accidental whitespace from copy-paste
                 if (btoa(password.trim()) === "T0FQNi0xLUtleTRa") {
                     setInstructorMode(true);
                     setShowLogin(false);
@@ -1039,6 +1035,7 @@
                 }));
             };
 
+            // --- FILE SAVING AND LOADING LOGIC ---
             const handleSave = () => {
                 const data = `Module 6 Detailed Analysis\nStudent: ${studentName}\nDate: ${new Date().toLocaleDateString()}\n\n` + 
                              `--- ILLINOIS TOOL WORKS (ITW) ---\n` + JSON.stringify(allInputs.ITW, null, 2) + `\n\n` +
@@ -1051,6 +1048,62 @@
                 a.download = `${studentName.replace(/\s+/g, '_')}_Mod6_Full.txt`;
                 a.click();
                 setShowSaveModal(false);
+            };
+
+            const handleFileUpload = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const content = event.target.result;
+                    try {
+                        let itwData = {};
+                        let phData = {};
+                        let loadedName = studentName; // keep current if not found
+
+                        // 1. Extract Student Name from the top
+                        const nameLine = content.split('\n').find(line => line.startsWith('Student:'));
+                        if (nameLine) loadedName = nameLine.replace('Student:', '').trim();
+
+                        // 2. Extract JSON payloads using string splitting on the known markers
+                        const itwMarker = "--- ILLINOIS TOOL WORKS (ITW) ---";
+                        const phMarker = "--- PARKER HANNIFIN (PH) ---";
+
+                        const itwIndex = content.indexOf(itwMarker);
+                        const phIndex = content.indexOf(phMarker);
+
+                        if (itwIndex !== -1 && phIndex !== -1) {
+                            // Substring between ITW header and PH header
+                            const itwJsonStr = content.substring(itwIndex + itwMarker.length, phIndex).trim();
+                            // Substring from PH header to end of file
+                            const phJsonStr = content.substring(phIndex + phMarker.length).trim();
+
+                            if (itwJsonStr) itwData = JSON.parse(itwJsonStr);
+                            if (phJsonStr) phData = JSON.parse(phJsonStr);
+                        } else if (itwIndex !== -1) {
+                            // Fallback in case PH section is somehow missing
+                            const itwJsonStr = content.substring(itwIndex + itwMarker.length).trim();
+                            if (itwJsonStr) itwData = JSON.parse(itwJsonStr);
+                        }
+
+                        // 3. Update application state
+                        setStudentName(loadedName);
+                        setAllInputs({
+                            ITW: itwData,
+                            PH: phData
+                        });
+                        
+                        showToast("Progress loaded successfully!");
+                    } catch (err) {
+                        console.error("Failed to parse file:", err);
+                        alert("Could not read the file correctly. Please make sure you are uploading a valid saved report file.");
+                    }
+                    
+                    // Reset input so they can upload the exact same file again if needed
+                    e.target.value = null;
+                };
+                reader.readAsText(file);
             };
 
             const handleDataClick = (val) => {
@@ -1096,6 +1149,19 @@
                                     </button>
                                 </>
                             )}
+                            
+                            {/* NEW: Hidden file input and load button */}
+                            <input
+                                type="file"
+                                ref={fileInputRef}
+                                accept=".txt"
+                                style={{ display: 'none' }}
+                                onChange={handleFileUpload}
+                            />
+                            <button onClick={() => fileInputRef.current && fileInputRef.current.click()} className="px-3 py-1 bg-slate-700 hover:bg-slate-600 rounded text-sm flex items-center gap-1">
+                                <i data-lucide="upload" className="w-4 h-4"></i> <span className="hidden md:inline">Load</span>
+                            </button>
+
                             <button onClick={() => setShowSaveModal(true)} className="px-3 py-1 bg-slate-700 hover:bg-slate-600 rounded text-sm flex items-center gap-1">
                                 <i data-lucide="save" className="w-4 h-4"></i> <span className="hidden md:inline">Save</span>
                             </button>
