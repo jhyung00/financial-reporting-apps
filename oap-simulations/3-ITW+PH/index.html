@@ -71,6 +71,7 @@
             Lock: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>,
             Unlock: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>,
             Download: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>,
+            Upload: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>,
             Briefcase: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>,
             Menu: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>,
             X: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
@@ -605,6 +606,7 @@
             const [studentName, setStudentName] = useState("");
             const [password, setPassword] = useState("");
             const [activeTab, setActiveTab] = useState("analysis"); // analysis | interpretation
+            const fileInputRef = useRef(null);
             
             // Sidebar Resizing State
             const [sidebarWidth, setSidebarWidth] = useState(30); 
@@ -682,13 +684,54 @@
             };
 
             const generateDownload = () => {
-                const text = `DuPont Analysis - ${selectedCase}\nStudent: ${studentName}\n\nAnswers:\n${JSON.stringify(inputs[selectedCase], null, 2)}`;
+                let text = `DuPont Analysis - ${selectedCase}\nStudent: ${studentName}\n\nAnswers:\n${JSON.stringify(inputs[selectedCase], null, 2)}`;
+                
+                text += `\n\n--- RAW DATA (DO NOT EDIT) ---\n`;
+                text += JSON.stringify({ inputs, selections, studentName }, null, 2);
+
                 const blob = new Blob([text], { type: 'text/plain' });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
-                a.href = url; a.download = `${studentName.replace(/\s+/g,'_')}_${selectedCase}_Analysis.txt`;
+                a.href = url; a.download = `${studentName.replace(/\s+/g,'_') || 'Student'}_${selectedCase}_Analysis.txt`;
                 a.click();
                 setShowNamePrompt(false);
+            };
+
+            const handleFileUpload = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const content = event.target.result;
+                    try {
+                        let loadedName = studentName;
+                        const nameLine = content.split('\n').find(line => line.startsWith('Student:'));
+                        if (nameLine) loadedName = nameLine.replace('Student:', '').trim();
+
+                        const rawDataMarker = "--- RAW DATA (DO NOT EDIT) ---";
+                        const dataIndex = content.indexOf(rawDataMarker);
+                        
+                        if (dataIndex !== -1) {
+                            const jsonStr = content.substring(dataIndex + rawDataMarker.length).trim();
+                            const parsed = JSON.parse(jsonStr);
+                            
+                            if (parsed.inputs) setInputs(parsed.inputs);
+                            if (parsed.selections) setSelections(parsed.selections);
+                            if (parsed.studentName) loadedName = parsed.studentName;
+                            
+                            setStudentName(loadedName);
+                            alert("Progress loaded successfully!");
+                        } else {
+                            alert("This file appears to be from an older version or is missing the saved data block. It cannot be loaded automatically.");
+                        }
+                    } catch (err) {
+                        console.error("Failed to parse file:", err);
+                        alert("Could not read the file correctly. Please make sure you are uploading a valid saved report file.");
+                    }
+                    e.target.value = null; // Reset input
+                };
+                reader.readAsText(file);
             };
 
             const toggleTeacher = () => teacherMode ? setTeacherMode(false) : setShowLogin(true);
@@ -788,7 +831,20 @@
                                  </div>
                              </div>
                              <div className="flex gap-2 items-center">
-                                <button onClick={() => setShowNamePrompt(true)} className="p-2 md:px-4 md:py-2 bg-blue-600 text-white rounded text-sm font-bold flex items-center gap-2 hover:bg-blue-700 transition">
+                                <input
+                                    type="file"
+                                    ref={fileInputRef}
+                                    accept=".txt"
+                                    style={{ display: 'none' }}
+                                    onChange={handleFileUpload}
+                                />
+                                <button 
+                                    onClick={() => fileInputRef.current && fileInputRef.current.click()} 
+                                    className="p-2 md:px-4 md:py-2 bg-slate-100 text-slate-700 border border-slate-300 rounded text-sm font-bold flex items-center gap-2 hover:bg-slate-200 transition shadow-sm"
+                                >
+                                    <Icons.Upload /> <span className="hidden sm:inline">Load</span>
+                                </button>
+                                <button onClick={() => setShowNamePrompt(true)} className="p-2 md:px-4 md:py-2 bg-blue-600 text-white rounded text-sm font-bold flex items-center gap-2 hover:bg-blue-700 transition shadow-sm">
                                     <Icons.Download /> <span className="hidden sm:inline">Save</span>
                                 </button>
                                 {teacherMode && (
@@ -1056,9 +1112,9 @@
 
                     {showNamePrompt && (
                         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 animate-fade-in backdrop-blur-sm p-4">
-                            <div className="bg-white p-6 sm:p-8 rounded-xl shadow-2xl w-full max-w-sm">
+                            <div className="bg-white p-8 rounded-xl shadow-2xl w-full max-w-sm">
                                 <h3 className="text-xl font-bold text-slate-800 mb-4 text-center">Save Your Work</h3>
-                                <input type="text" value={studentName} onChange={(e) => setStudentName(e.target.value)} placeholder="Your Full Name" className="w-full p-3 border border-slate-300 rounded-lg mb-4 text-center text-base" autoFocus />
+                                <input type="text" value={studentName} onChange={(e) => setStudentName(e.target.value)} placeholder="Your Full Name" className="w-full p-3 border border-slate-300 rounded-lg mb-4 text-center" autoFocus />
                                 <div className="flex flex-col gap-2">
                                     <button onClick={() => studentName.trim() ? generateDownload() : alert("Name required")} className="w-full py-3 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700">Download Answers</button>
                                     <button onClick={() => setShowNamePrompt(false)} className="w-full py-2 text-slate-500 hover:bg-slate-50 rounded-lg">Cancel</button>
