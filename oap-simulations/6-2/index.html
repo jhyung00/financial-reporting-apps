@@ -436,8 +436,12 @@
     };
 
     // Modal Component for Submission
-    const SubmissionModal = ({ isOpen, onClose, onDownload }) => {
+    const SubmissionModal = ({ isOpen, onClose, onDownload, studentName, setStudentName }) => {
         const [name, setName] = React.useState("");
+
+        React.useEffect(() => {
+            if (isOpen) setName(studentName || "");
+        }, [isOpen, studentName]);
 
         if (!isOpen) return null;
 
@@ -464,7 +468,10 @@
                             Cancel
                         </button>
                         <button 
-                            onClick={() => onDownload(name)}
+                            onClick={() => {
+                                setStudentName(name);
+                                onDownload(name);
+                            }}
                             disabled={!name.trim()}
                             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-sm font-medium shadow-sm transition-colors"
                         >
@@ -478,6 +485,10 @@
 
     // Quiz Component (Stateless)
     const Quiz = ({ answers, onSelect, showResults, setShowResults, setAnswers }) => {
+        React.useEffect(() => {
+            if (window.lucide) window.lucide.createIcons();
+        }, [showResults, answers]);
+
         return (
             <div className="p-6 max-w-3xl mx-auto">
                 <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-6 rounded-xl shadow-lg mb-8 text-white">
@@ -561,6 +572,12 @@
             setLocalValue(value || "");
             validate(value);
         }, [value, expectedValue]);
+
+        React.useEffect(() => {
+            if (window.lucide) {
+                window.lucide.createIcons();
+            }
+        }, [status]);
 
         const validate = (val) => {
             if (val === undefined || val === "" || expectedValue === null || expectedValue === undefined) {
@@ -782,6 +799,7 @@
         const [isInstructor, setIsInstructor] = React.useState(false);
         const [showSubmissionModal, setShowSubmissionModal] = React.useState(false);
         const [showPasswordModal, setShowPasswordModal] = React.useState(false);
+        const [studentName, setStudentName] = React.useState("");
         
         // Quiz State
         const [quizAnswers, setQuizAnswers] = React.useState({});
@@ -790,6 +808,7 @@
         // Layout State
         const [sidebarWidth, setSidebarWidth] = React.useState(40); // Percentage
         const sidebarRef = React.useRef(null);
+        const fileInputRef = React.useRef(null);
         const isResizing = React.useRef(false);
         const [isMobile, setIsMobile] = React.useState(window.innerWidth < 768);
 
@@ -993,12 +1012,14 @@
             setQuizShowResults(false);
         };
 
-        const handleDownloadSubmission = (studentName) => {
+        // --- FILE SAVING AND LOADING LOGIC ---
+        const handleDownloadSubmission = (submittedName) => {
+            setStudentName(submittedName);
             const date = new Date().toLocaleDateString();
             
             let content = `Long-Term Asset Analysis Submission\n`;
             content += `-----------------------------------\n`;
-            content += `Student Name: ${studentName}\n`;
+            content += `Student Name: ${submittedName}\n`;
             content += `Date: ${date}\n`;
             content += `-----------------------------------\n\n`;
 
@@ -1050,16 +1071,65 @@
             const correctCount = QUIZ_QUESTIONS.filter((q, i) => quizAnswers[i] === q.correct).length;
             content += `Score: ${correctCount} / ${QUIZ_QUESTIONS.length}\n`;
             
+            // Append raw data for restoring state later
+            content += `\n\n--- RAW DATA (DO NOT EDIT) ---\n`;
+            content += JSON.stringify({ inputValues, quizAnswers }, null, 2);
+
             const blob = new Blob([content], { type: 'text/plain' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `${studentName.replace(/\s+/g, '_')}_Asset_Analysis.txt`;
+            a.download = `${submittedName.replace(/\s+/g, '_')}_Asset_Analysis.txt`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
             setShowSubmissionModal(false);
+        };
+
+        const handleFileUpload = (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const content = event.target.result;
+                try {
+                    // 1. Extract Student Name
+                    let loadedName = studentName;
+                    const nameLine = content.split('\n').find(line => line.startsWith('Student Name:'));
+                    if (nameLine) loadedName = nameLine.replace('Student Name:', '').trim();
+
+                    // 2. Extract JSON payload
+                    const rawDataMarker = "--- RAW DATA (DO NOT EDIT) ---";
+                    const dataIndex = content.indexOf(rawDataMarker);
+                    
+                    if (dataIndex !== -1) {
+                        const jsonStr = content.substring(dataIndex + rawDataMarker.length).trim();
+                        const parsed = JSON.parse(jsonStr);
+                        
+                        if (parsed.inputValues) setInputValues(parsed.inputValues);
+                        if (parsed.quizAnswers) {
+                            setQuizAnswers(parsed.quizAnswers);
+                            if (Object.keys(parsed.quizAnswers).length > 0) {
+                                setQuizShowResults(true);
+                            }
+                        }
+                        
+                        setStudentName(loadedName);
+                        alert("Progress loaded successfully!");
+                    } else {
+                        alert("This file appears to be from an older version or is missing the saved data block. It cannot be loaded automatically.");
+                    }
+                } catch (err) {
+                    console.error("Failed to parse file:", err);
+                    alert("Could not read the file correctly. Please make sure you are uploading a valid saved report file.");
+                }
+                
+                // Reset input
+                e.target.value = null;
+            };
+            reader.readAsText(file);
         };
 
         const SectionHeader = ({ title, sectionKey, hideFormula = false, colorClass = "text-gray-800" }) => (
@@ -1092,6 +1162,8 @@
                     isOpen={showSubmissionModal} 
                     onClose={() => setShowSubmissionModal(false)}
                     onDownload={handleDownloadSubmission}
+                    studentName={studentName}
+                    setStudentName={setStudentName}
                 />
                 
                 <PasswordModal
@@ -1221,14 +1293,27 @@
                                         )}
                                     </>
                                 )}
-                                {activeTab === 'simulation' && (
-                                    <button 
-                                        onClick={() => setShowSubmissionModal(true)}
-                                        className="text-[10px] uppercase font-bold bg-blue-50 text-blue-700 px-3 py-1.5 rounded border border-blue-200 hover:bg-blue-100 flex items-center gap-1.5 transition-colors"
-                                    >
-                                        <i data-lucide="download" className="w-3 h-3"></i> Submit
-                                    </button>
-                                )}
+                                
+                                <input
+                                    type="file"
+                                    ref={fileInputRef}
+                                    accept=".txt"
+                                    style={{ display: 'none' }}
+                                    onChange={handleFileUpload}
+                                />
+                                <button 
+                                    onClick={() => fileInputRef.current && fileInputRef.current.click()} 
+                                    className="text-[10px] uppercase font-bold bg-slate-50 text-slate-700 px-3 py-1.5 rounded border border-slate-200 hover:bg-slate-100 flex items-center gap-1.5 transition-colors"
+                                >
+                                    <i data-lucide="upload" className="w-3 h-3"></i> Load
+                                </button>
+
+                                <button 
+                                    onClick={() => setShowSubmissionModal(true)}
+                                    className="text-[10px] uppercase font-bold bg-blue-50 text-blue-700 px-3 py-1.5 rounded border border-blue-200 hover:bg-blue-100 flex items-center gap-1.5 transition-colors"
+                                >
+                                    <i data-lucide="download" className="w-3 h-3"></i> Save
+                                </button>
                             </div>
                         </div>
                     </div>
