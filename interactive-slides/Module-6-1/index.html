@@ -1576,6 +1576,7 @@
 
     /* Simulation Engine */
     const rawBatches = [{id:1,c:10,t:'old'},{id:2,c:10,t:'old'},{id:3,c:10,t:'old'},{id:4,c:20,t:'mid'},{id:5,c:20,t:'mid'},{id:6,c:20,t:'mid'},{id:7,c:30,t:'new'},{id:8,c:30,t:'new'},{id:9,c:30,t:'new'}];
+    
     function initSim(m) {
         const s = document.getElementById(m+'-source'), c = document.getElementById(m+'-cogs'), e = document.getElementById(m+'-end');
         if(!s) return; s.innerHTML=''; c.innerHTML=''; e.innerHTML='';
@@ -1588,7 +1589,9 @@
         updateT(m);
         if(m==='wavg') document.getElementById('wavg-explainer').style.display='none';
     }
+    
     function allowDrop(ev){ev.preventDefault();}
+    
     function drop(ev){
         ev.preventDefault();
         const id=ev.dataTransfer.getData("id"); const el=document.getElementById(id);
@@ -1607,15 +1610,35 @@
             }
         }
     }
-    function updateT(m){
-        let tc=0; document.querySelectorAll(`#${m}-cogs .inv-block`).forEach(d=>tc+=parseFloat(d.dataset.c));
+    
+    function updateT(m) {
+        let tc = 0; 
+        document.querySelectorAll(`#${m}-cogs .inv-block`).forEach(d => {
+            // For Weighted Average, block visually might say $10 or $30, but math is always computed at $20
+            tc += (m === 'wavg') ? 20 : parseFloat(d.dataset.c);
+        });
         document.getElementById(m+'-cogs-total').innerText = `$${tc}`;
-        let te=0; document.querySelectorAll(`#${m}-end .inv-block`).forEach(d=>te+=parseFloat(d.dataset.c));
+        
+        let te = 0; 
+        document.querySelectorAll(`#${m}-end .inv-block`).forEach(d => {
+            // Same logic for End Inventory under wavg
+            te += (m === 'wavg') ? 20 : parseFloat(d.dataset.c);
+        });
         document.getElementById(m+'-end-total').innerText = `$${te}`;
     }
+    
     function calcWAvg() {
-        document.querySelectorAll('#wavg-source .inv-block').forEach(d=>{d.dataset.c=20; d.innerText+=' (Avg)'; d.className='inv-block cost-avg';});
+        // Find all inv blocks regardless of column, visually update them to $20 and give them Avg class
+        document.querySelectorAll('#slide-13 .inv-block').forEach(d => {
+            d.dataset.c = 20; 
+            if (!d.innerText.includes('(Avg)')) {
+                // e.g. changes "#1 $10" into "#1 $20 (Avg)"
+                d.innerText = d.innerText.split(' ')[0] + ' $20 (Avg)';
+            }
+            d.className = 'inv-block cost-avg';
+        });
         document.getElementById('wavg-explainer').style.display = 'block';
+        updateT('wavg'); // recalculate just to ensure sync
     }
 
     /* Inflation Toggle */
