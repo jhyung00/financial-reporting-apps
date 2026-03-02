@@ -606,6 +606,7 @@
             const [isResizing, setIsResizing] = useState(false);
             const [isMobile, setIsMobile] = useState(false);
             const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+            const fileInputRef = useRef(null);
 
             // --- Layout Logic ---
             useEffect(() => {
@@ -688,14 +689,53 @@
                     content += `${key}: ${inputs[key]}\n`;
                 });
 
+                content += `\n\n--- RAW DATA (DO NOT EDIT) ---\n`;
+                content += JSON.stringify({ inputs }, null, 2);
+
                 const blob = new Blob([content], { type: "text/plain" });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement("a");
                 a.href = url;
-                a.download = `${studentName.replace(/\s+/g, '_')}_Financial_Analysis.txt`;
+                a.download = `${studentName.replace(/\s+/g, '_') || 'Student'}_Financial_Analysis.txt`;
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
+            };
+
+            const handleFileUpload = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const content = event.target.result;
+                    try {
+                        let loadedName = studentName;
+                        const nameLine = content.split('\n').find(line => line.startsWith('Student Name:'));
+                        if (nameLine) loadedName = nameLine.replace('Student Name:', '').trim();
+
+                        const rawDataMarker = "--- RAW DATA (DO NOT EDIT) ---";
+                        const dataIndex = content.indexOf(rawDataMarker);
+                        
+                        if (dataIndex !== -1) {
+                            const jsonStr = content.substring(dataIndex + rawDataMarker.length).trim();
+                            const parsed = JSON.parse(jsonStr);
+                            
+                            if (parsed.inputs) setInputs(parsed.inputs);
+                            
+                            setStudentName(loadedName);
+                            alert("Progress loaded successfully!");
+                        } else {
+                            alert("This file appears to be from an older version or is missing the saved data block. It cannot be loaded automatically.");
+                        }
+                    } catch (err) {
+                        console.error("Failed to parse file:", err);
+                        alert("Could not read the file correctly. Please make sure you are uploading a valid saved report file.");
+                    }
+                    
+                    e.target.value = null; // Reset input
+                };
+                reader.readAsText(file);
             };
 
             // Auto-fill logic (using the 'correctValue' from structure)
@@ -953,6 +993,21 @@
                                     value={studentName}
                                     onChange={(e) => setStudentName(e.target.value)}
                                 />
+                                
+                                <input
+                                    type="file"
+                                    ref={fileInputRef}
+                                    accept=".txt"
+                                    style={{ display: 'none' }}
+                                    onChange={handleFileUpload}
+                                />
+                                <button 
+                                    onClick={() => fileInputRef.current && fileInputRef.current.click()} 
+                                    className="bg-slate-100 text-slate-700 px-4 py-1.5 rounded text-sm font-medium hover:bg-slate-200 flex items-center gap-2 transition shrink-0 border border-slate-300"
+                                >
+                                    <Icon name="upload" size={16}/> Load
+                                </button>
+
                                 <button 
                                     onClick={handleDownload}
                                     className="bg-blue-600 text-white px-4 py-1.5 rounded text-sm font-medium hover:bg-blue-700 flex items-center gap-2 transition shrink-0"
