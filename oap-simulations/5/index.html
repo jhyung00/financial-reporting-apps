@@ -1357,6 +1357,7 @@
             // Resizing State (Desktop only)
             const [sidebarWidth, setSidebarWidth] = React.useState(350); 
             const [isResizing, setIsResizing] = React.useState(false);
+            const fileInputRef = React.useRef(null);
 
             React.useEffect(() => {
                 const handleMouseMove = (e) => {
@@ -1466,7 +1467,8 @@
             };
 
             const downloadWork = () => {
-                let content = "Financial Reporting Simulation - Student Work\n\n";
+                let content = `Student Name: ${studentName || "Unknown"}\nDate: ${new Date().toLocaleString()}\n\n`;
+                content += "Financial Reporting Simulation - Student Work\n\n";
                 _DATA_MATRIX.forEach(sec => {
                     content += `--- ${sec.title} ---\n`;
                     sec.subsections.forEach(sub => {
@@ -1497,13 +1499,53 @@
                     });
                     content += "\n";
                 });
+
+                // Append raw data for restoring state later
+                content += `\n\n--- RAW DATA (DO NOT EDIT) ---\n`;
+                content += JSON.stringify({ answers }, null, 2);
+
                 const element = document.createElement("a");
                 const file = new Blob([content], {type: 'text/plain'});
                 element.href = URL.createObjectURL(file);
-                element.download = "financial_simulation_work.txt";
+                element.download = `${studentName.replace(/\s+/g, '_') || 'Student'}_financial_simulation_work.txt`;
                 document.body.appendChild(element);
                 element.click();
                 setShowNamePrompt(false);
+            };
+
+            const handleFileUpload = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const content = event.target.result;
+                    try {
+                        let loadedName = studentName;
+                        const nameLine = content.split('\n').find(line => line.startsWith('Student Name:'));
+                        if (nameLine) loadedName = nameLine.replace('Student Name:', '').trim();
+
+                        const rawDataMarker = "--- RAW DATA (DO NOT EDIT) ---";
+                        const dataIndex = content.indexOf(rawDataMarker);
+                        
+                        if (dataIndex !== -1) {
+                            const jsonStr = content.substring(dataIndex + rawDataMarker.length).trim();
+                            const parsed = JSON.parse(jsonStr);
+                            
+                            if (parsed.answers) setAnswers(parsed.answers);
+                            
+                            setStudentName(loadedName);
+                            alert("Progress loaded successfully!");
+                        } else {
+                            alert("This file appears to be from an older version or is missing the saved data block. It cannot be loaded automatically.");
+                        }
+                    } catch (err) {
+                        console.error("Failed to parse file:", err);
+                        alert("Could not read the file correctly. Please make sure you are uploading a valid saved report file.");
+                    }
+                    e.target.value = null; // Reset input
+                };
+                reader.readAsText(file);
             };
 
             return (
@@ -1535,21 +1577,28 @@
                     <div className="flex-1 flex flex-col h-full overflow-hidden w-full relative bg-white">
                         
                         {/* Header */}
-                        <header className="border-b border-gray-200 p-4 bg-white flex justify-between items-center shadow-sm z-10 shrink-0">
-                            <div className="flex items-center gap-3">
+                        <header className="border-b border-gray-200 p-4 bg-white flex flex-col md:flex-row justify-between items-center gap-4 shadow-sm z-10 shrink-0">
+                            <div className="flex items-center gap-3 w-full md:w-auto">
                                 <button className="md:hidden p-1 rounded hover:bg-gray-100" onClick={() => setMobileMenuOpen(true)}>
                                     <Icon name="menu" />
                                 </button>
                                 <div>
-                                    <h1 className="text-lg md:text-xl font-bold text-gray-800 flex items-center gap-2">
-                                        <Icon name="calculator" className="text-blue-600 hidden sm:block" />
-                                        Cash Flow and Valuation
+                                    <h1 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                                        <Icon name="calculator" className="text-blue-600" />
+                                        Financial Analysis Simulation
                                     </h1>
-                                    <p className="text-xs text-gray-500 hidden sm:block">Revenue and Income Statement Analysis</p>
+                                    <div className="text-sm text-gray-500 mt-1 flex gap-4">
+                                        <a href="https://www.sec.gov/ix?doc=/Archives/edgar/data/0000076334/000007633422000034/ph-20220630.htm" target="_blank" className="text-blue-600 hover:underline flex items-center gap-1">
+                                            <Icon name="external-link" size={12} /> PH 10-K
+                                        </a>
+                                        <a href="https://www.sec.gov/ix?doc=/Archives/edgar/data/0000049826/000004982623000008/itw-20221231.htm" target="_blank" className="text-blue-600 hover:underline flex items-center gap-1">
+                                            <Icon name="external-link" size={12} /> ITW 10-K
+                                        </a>
+                                    </div>
                                 </div>
                             </div>
 
-                            <div className="flex gap-2">
+                            <div className="flex gap-2 w-full md:w-auto justify-end">
                                 {instructorMode && (
                                     <div className="flex gap-2 mr-2">
                                          <button onClick={autoFill} className="bg-purple-100 text-purple-700 px-3 py-1 rounded text-xs font-bold hover:bg-purple-200 flex items-center gap-1">
@@ -1560,6 +1609,19 @@
                                         </button>
                                     </div>
                                 )}
+                                <input
+                                    type="file"
+                                    ref={fileInputRef}
+                                    accept=".txt"
+                                    style={{ display: 'none' }}
+                                    onChange={handleFileUpload}
+                                />
+                                <button 
+                                    onClick={() => fileInputRef.current && fileInputRef.current.click()} 
+                                    className="px-4 py-2 text-sm bg-slate-100 text-slate-700 rounded hover:bg-slate-200 shadow-sm border border-slate-300 flex items-center gap-2 font-bold"
+                                >
+                                    <Icon name="upload" size={16} /> <span className="hidden sm:inline">Load</span>
+                                </button>
                                 <button onClick={() => setShowLogin(true)} className="px-2 py-2 text-gray-400 hover:text-gray-600">
                                     {instructorMode ? <Icon name="unlock" size={18} className="text-green-600" /> : <Icon name="lock" size={18} />}
                                 </button>
