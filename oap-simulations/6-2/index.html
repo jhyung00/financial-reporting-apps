@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Long-Term Asset Analysis Simulation</title>
+    <title>Long-Term Asset Analysis Simulation (Gamified)</title>
     
     <!-- React & ReactDOM -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
@@ -19,55 +19,56 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto+Mono:wght@400;500&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=Roboto+Mono:wght@400;500;700&display=swap');
         body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
         
         /* Custom scrollbar for data panel */
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: #0f172a; 
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #334155; 
-            border-radius: 3px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: #475569; 
-        }
+        .custom-scrollbar::-webkit-scrollbar { width: 8px; height: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #0f172a; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #475569; }
 
         /* Resizer Handle */
-        .resizer {
-            width: 8px;
-            cursor: col-resize;
-            background-color: #e2e8f0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: background-color 0.2s;
-            z-index: 20;
-            flex-shrink: 0;
-        }
-        .resizer:hover, .resizer.active {
-            background-color: #3b82f6;
-        }
-        .resizer-dots {
-            height: 24px;
-            width: 2px;
-            background-color: #94a3b8;
-            border-radius: 1px;
-        }
+        .resizer { width: 8px; cursor: col-resize; background-color: #e2e8f0; display: flex; align-items: center; justify-content: center; transition: background-color 0.2s; z-index: 20; flex-shrink: 0; }
+        .resizer:hover, .resizer.active { background-color: #6366f1; }
+        .resizer-dots { height: 24px; width: 2px; background-color: #94a3b8; border-radius: 1px; }
 
         /* Fade In Animation */
-        .fade-in { animation: fadeIn 0.4s ease-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        .fade-in { animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Gamified XP Toast */
+        .toast-xp {
+            position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+            background: linear-gradient(135deg, #f59e0b, #ea580c);
+            border: 2px solid #fef3c7; color: white;
+            font-weight: 900; font-size: 1.1rem; padding: 14px 28px; border-radius: 12px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+            transform: translateY(20px) scale(0.8); opacity: 0;
+            transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); pointer-events: none;
+            display: flex; align-items: center; gap: 10px; letter-spacing: -0.025em;
+        }
+        .toast-xp.show { transform: translateY(0) scale(1); opacity: 1; }
+
+        /* Normal Toast */
+        .toast-info {
+            position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+            background-color: #1e293b; color: white; padding: 12px 24px; border-radius: 8px;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); opacity: 0; transform: translateY(10px);
+            transition: all 0.3s ease; pointer-events: none; font-weight: 600; font-size: 0.95rem;
+        }
+        .toast-info.show { opacity: 1; transform: translateY(0); }
+
+        /* Level Up Modal Animation */
+        @keyframes popIn {
+            0% { transform: scale(0.7) rotate(-5deg); opacity: 0; }
+            60% { transform: scale(1.05) rotate(2deg); opacity: 1; }
+            100% { transform: scale(1) rotate(0deg); opacity: 1; }
+        }
+        .level-up-modal { animation: popIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
 
         /* Mobile specific adjustments */
-        @media (max-width: 768px) {
-            .resizer { display: none; }
-        }
+        @media (max-width: 768px) { .resizer { display: none; } }
     </style>
 </head>
 <body oncontextmenu="return false" class="text-slate-800">
@@ -79,199 +80,65 @@
     // --- 1. THE DATASET (Source of Truth) ---
     const DATA_SETS = {
         ITW: {
-            name: "Illinois Tool Works (ITW)",
-            currency: "$ Millions",
-            sec_link: "https://www.sec.gov/ix?doc=/Archives/edgar/data/0000049826/000004982623000008/itw-20221231.htm",
+            name: "Illinois Tool Works (ITW)", currency: "$ Millions", sec_link: "https://www.sec.gov/ix?doc=/Archives/edgar/data/0000049826/000004982623000008/itw-20221231.htm",
             CASE_DATA: {
-                bs: {
-                    title: "Balance Sheet",
-                    headers: ["Item", "2022", "2021"],
-                    rows: [
-                        ["Total Current Assets", "6,270", "6,374"],
-                        ["Net Plant & Equipment", "1,848", "1,809"],
-                        ["Goodwill", "4,864", "4,965"],
-                        ["Intangible Assets", "768", "972"],
-                        ["Deferred Income Taxes", "494", "552"],
-                        ["Other Assets", "1,178", "1,405"],
-                        ["Total Assets", "15,422", "16,077"],
-                        ["Total Current Liabilities", "4,460", "3,470"],
-                        ["Long-Term Debt", "6,173", "6,909"],
-                        ["Total Noncurrent Liabilities", "7,873", "8,981"],
-                        ["Total Stockholders' Equity", "3,089", "3,626"]
-                    ]
-                },
-                common_size: {
-                    title: "Asset Significance (Common Size)",
-                    headers: ["Year", "Intangibles %", "Goodwill %"],
-                    rows: [
-                        ["2022", "5.0%", "31.5%"],
-                        ["2021", "6.0%", "30.9%"],
-                        ["2020", "5.0%", "30.0%"],
-                        ["2019", "5.6%", "29.8%"]
-                    ]
-                },
-                note_9: {
-                    title: "Note 9: MTS Acquisition (Dec 1, 2021)",
-                    hidden: true, 
-                    headers: ["Item", "Allocation"],
-                    rows: [
-                        ["Goodwill Recorded", "430"],
-                        ["Intangible Assets Recorded", "259"]
-                    ]
-                },
-                note_intangibles: {
-                    title: "Intangibles Net Carrying Value (2022)",
-                    hidden: true,
-                    headers: ["Type", "Net Value"],
-                    rows: [
-                        ["Customer lists", "267"],
-                        ["Trademarks", "172"],
-                        ["Patents", "50"],
-                        ["Other", "32"],
-                        ["Indefinite lived", "247"]
-                    ]
-                },
-                is: {
-                    title: "Income Statement",
-                    headers: ["Item", "2022", "2021"],
-                    rows: [
-                        ["Operating Revenue", "15,932", "14,455"],
-                        ["Cost of Revenue", "9,429", "8,489"],
-                        ["Gross Profit", "6,503", "5,966"],
-                        ["Operating Income", "3,790", "3,477"],
-                        ["Interest Expense", "203", "202"],
-                        ["Net Income", "3,034", "2,694"]
-                    ]
-                },
-                cf: {
-                    title: "Cash Flow & Supplemental",
-                    headers: ["Item", "2022", "2021"],
-                    rows: [
-                        ["Depreciation", "276", "277"],
-                        ["Amortization", "134", "133"],
-                        ["Capital Expenditures", "-412", "-296"]
-                    ]
-                },
-                ppe_detail: {
-                    title: "PPE Details (Notes)",
-                    headers: ["Item", "2022", "2021"],
-                    rows: [
-                        ["Land & Improvements", "247", "243"],
-                        ["Buildings & Improvements", "1,414", "1,462"],
-                        ["Machinery & Equipment", "3,891", "3,898"],
-                        ["Construction in Progress", "124", "94"],
-                        ["Total Gross PPE", "5,676", "5,697"],
-                        ["Accumulated Depreciation", "(3,904)", "(3,891)"]
-                    ]
-                }
+                bs: { title: "Balance Sheet", headers: ["Item", "2022", "2021"], rows: [ ["Total Current Assets", "6,270", "6,374"], ["Net Plant & Equipment", "1,848", "1,809"], ["Goodwill", "4,864", "4,965"], ["Intangible Assets", "768", "972"], ["Deferred Income Taxes", "494", "552"], ["Other Assets", "1,178", "1,405"], ["Total Assets", "15,422", "16,077"], ["Total Current Liabilities", "4,460", "3,470"], ["Long-Term Debt", "6,173", "6,909"], ["Total Noncurrent Liabilities", "7,873", "8,981"], ["Total Stockholders' Equity", "3,089", "3,626"] ] },
+                common_size: { title: "Asset Significance (Common Size)", headers: ["Year", "Intangibles %", "Goodwill %"], rows: [ ["2022", "5.0%", "31.5%"], ["2021", "6.0%", "30.9%"], ["2020", "5.0%", "30.0%"], ["2019", "5.6%", "29.8%"] ] },
+                note_9: { title: "Note 9: MTS Acquisition (Dec 1, 2021)", hidden: true,  headers: ["Item", "Allocation"], rows: [ ["Goodwill Recorded", "430"], ["Intangible Assets Recorded", "259"] ] },
+                note_intangibles: { title: "Intangibles Net Carrying Value (2022)", hidden: true, headers: ["Type", "Net Value"], rows: [ ["Customer lists", "267"], ["Trademarks", "172"], ["Patents", "50"], ["Other", "32"], ["Indefinite lived", "247"] ] },
+                is: { title: "Income Statement", headers: ["Item", "2022", "2021"], rows: [ ["Operating Revenue", "15,932", "14,455"], ["Cost of Revenue", "9,429", "8,489"], ["Gross Profit", "6,503", "5,966"], ["Operating Income", "3,790", "3,477"], ["Interest Expense", "203", "202"], ["Net Income", "3,034", "2,694"] ] },
+                cf: { title: "Cash Flow & Supplemental", headers: ["Item", "2022", "2021"], rows: [ ["Depreciation", "276", "277"], ["Amortization", "134", "133"], ["Capital Expenditures", "-412", "-296"] ] },
+                ppe_detail: { title: "PPE Details (Notes)", headers: ["Item", "2022", "2021"], rows: [ ["Land & Improvements", "247", "243"], ["Buildings & Improvements", "1,414", "1,462"], ["Machinery & Equipment", "3,891", "3,898"], ["Construction in Progress", "124", "94"], ["Total Gross PPE", "5,676", "5,697"], ["Accumulated Depreciation", "(3,904)", "(3,891)"] ] }
             }
         },
         PH: {
-            name: "Parker Hannifin (PH)",
-            currency: "$ Thousands",
-            sec_link: "https://www.sec.gov/ix?doc=/Archives/edgar/data/0000076334/000007633420000099/ph630202010-k.htm",
+            name: "Parker Hannifin (PH)", currency: "$ Thousands", sec_link: "https://www.sec.gov/ix?doc=/Archives/edgar/data/0000076334/000007633420000099/ph630202010-k.htm",
             CASE_DATA: {
-                bs: {
-                    title: "Consolidated Balance Sheet",
-                    headers: ["Item", "2022", "2021", "2020", "2019"],
-                    rows: [
-                        ["Cash & cash equivalents", "535,799", "733,117", "685,514", "3,219,767"],
-                        ["Marketable securities", "27,862", "39,116", "70,805", "150,931"],
-                        ["Trade A/R, net", "2,341,504", "2,183,594", "1,854,398", "2,131,054"],
-                        ["Non-trade & notes rec.", "543,757", "326,315", "244,870", "310,708"],
-                        ["Inventories", "2,214,553", "2,090,642", "1,964,195", "1,833,469"],
-                        ["Prepaid expenses & other", "6,383,169", "243,966", "214,986", "182,494"],
-                        ["Total Current Assets", "12,046,644", "5,616,750", "5,034,768", "7,828,423"],
-                        ["PPE, gross", "5,897,955", "6,040,220", "5,810,681", "5,186,730"],
-                        ["Accumulated depreciation", "(3,775,197)", "(3,773,744)", "(3,517,946)", "(3,418,443)"],
-                        ["PPE, net", "2,122,758", "2,266,476", "2,292,735", "1,768,287"],
-                        ["Deferred income taxes", "110,585", "104,251", "126,839", "150,462"],
-                        ["Investments & other assets", "788,057", "774,239", "764,563", "747,773"],
-                        ["Intangible assets, net", "3,135,817", "3,519,797", "3,798,913", "1,783,277"],
-                        ["Goodwill", "7,740,082", "8,059,687", "7,869,935", "5,453,805"],
-                        ["Total Assets", "25,943,943", "20,341,200", "19,887,753", "17,732,027"]
-                    ]
-                },
-                common_size: {
-                    title: "Common-Size (Vertical Analysis)",
-                    headers: ["Item", "2022", "2021", "2020", "2019"],
-                    rows: [
-                        ["Total current assets", "46.4%", "27.6%", "25.3%", "44.1%"],
-                        ["PPE, gross", "22.7%", "29.7%", "29.2%", "29.3%"],
-                        ["PPE, net", "8.2%", "11.1%", "11.5%", "10.0%"],
-                        ["Intangible assets, net", "12.1%", "17.3%", "19.1%", "10.1%"],
-                        ["Goodwill", "29.8%", "39.6%", "39.6%", "30.8%"],
-                        ["Total assets", "100%", "100%", "100%", "100%"]
-                    ]
-                },
-                note_3: {
-                    title: "Note 3: Acquisitions (2020 Allocation)",
-                    hidden: true,
-                    headers: ["Item", "Lord", "Exotic"],
-                    rows: [
-                        ["Cash acquired", "74,013", "8,179"],
-                        ["Accounts receivable", "153,765", "81,336"],
-                        ["Inventories", "248,600", "114,661"],
-                        ["Plant and equipment", "409,163", "178,393"],
-                        ["Intangible assets", "1,446,660", "874,470"],
-                        ["Goodwill", "1,966,865", "503,725"],
-                        ["Total assets acquired", "4,365,417", "1,765,390"],
-                        ["Net assets acquired", "3,455,443", "1,705,566"]
-                    ]
-                },
-                note_8: {
-                    title: "Note 8: Intangibles Details (2020)",
-                    hidden: true,
-                    headers: ["Item", "Gross '20", "Acc Amort '20"],
-                    rows: [
-                        ["Patents and technology", "991,596", "162,528"],
-                        ["Trademarks", "748,326", "285,197"],
-                        ["Customer lists and other", "3,791,505", "1,284,789"],
-                        ["Total", "5,531,427", "1,732,514"]
-                    ]
-                },
-                cf_2020: {
-                    title: "Cash Flows (2020 Focus)",
-                    headers: ["Item", "2020", "2019"],
-                    rows: [
-                        ["Net Income", "1,206,703", "1,512,931"],
-                        ["Depreciation", "252,899", "225,675"],
-                        ["Amortization", "284,632", "210,514"],
-                        ["Net Cash from Ops", "2,070,949", "1,730,140"]
-                    ]
-                },
-                ppe_detail: {
-                     title: "PPE Details (Notes)",
-                     headers: ["Item", "2022", "2021"],
-                     rows: [
-                         ["Land & Improvements", "364,577", "362,096"],
-                         ["Buildings & Equipment", "1,783,805", "1,848,141"],
-                         ["Machinery & Equipment", "3,588,106", "3,653,566"],
-                         ["Construction in Progress", "161,467", "176,417"],
-                         ["Total Gross PPE", "5,897,955", "6,040,220"],
-                         ["Accumulated Depreciation", "(3,775,197)", "(3,773,744)"]
-                     ]
-                },
-                is_stub: {
-                    title: "Income Statement (Summary)",
-                    headers: ["Item", "2022", "2021"],
-                    rows: [
-                        ["Net Sales", "15,861,608", "14,347,640"],
-                        ["Net Income", "1,315,605", "1,746,100"]
-                    ]
-                }
+                bs: { title: "Consolidated Balance Sheet", headers: ["Item", "2022", "2021", "2020", "2019"], rows: [ ["Cash & cash equivalents", "535,799", "733,117", "685,514", "3,219,767"], ["Marketable securities", "27,862", "39,116", "70,805", "150,931"], ["Trade A/R, net", "2,341,504", "2,183,594", "1,854,398", "2,131,054"], ["Non-trade & notes rec.", "543,757", "326,315", "244,870", "310,708"], ["Inventories", "2,214,553", "2,090,642", "1,964,195", "1,833,469"], ["Prepaid expenses & other", "6,383,169", "243,966", "214,986", "182,494"], ["Total Current Assets", "12,046,644", "5,616,750", "5,034,768", "7,828,423"], ["PPE, gross", "5,897,955", "6,040,220", "5,810,681", "5,186,730"], ["Accumulated depreciation", "(3,775,197)", "(3,773,744)", "(3,517,946)", "(3,418,443)"], ["PPE, net", "2,122,758", "2,266,476", "2,292,735", "1,768,287"], ["Deferred income taxes", "110,585", "104,251", "126,839", "150,462"], ["Investments & other assets", "788,057", "774,239", "764,563", "747,773"], ["Intangible assets, net", "3,135,817", "3,519,797", "3,798,913", "1,783,277"], ["Goodwill", "7,740,082", "8,059,687", "7,869,935", "5,453,805"], ["Total Assets", "25,943,943", "20,341,200", "19,887,753", "17,732,027"] ] },
+                common_size: { title: "Common-Size (Vertical Analysis)", headers: ["Item", "2022", "2021", "2020", "2019"], rows: [ ["Total current assets", "46.4%", "27.6%", "25.3%", "44.1%"], ["PPE, gross", "22.7%", "29.7%", "29.2%", "29.3%"], ["PPE, net", "8.2%", "11.1%", "11.5%", "10.0%"], ["Intangible assets, net", "12.1%", "17.3%", "19.1%", "10.1%"], ["Goodwill", "29.8%", "39.6%", "39.6%", "30.8%"], ["Total assets", "100%", "100%", "100%", "100%"] ] },
+                note_3: { title: "Note 3: Acquisitions (2020 Allocation)", hidden: true, headers: ["Item", "Lord", "Exotic"], rows: [ ["Cash acquired", "74,013", "8,179"], ["Accounts receivable", "153,765", "81,336"], ["Inventories", "248,600", "114,661"], ["Plant and equipment", "409,163", "178,393"], ["Intangible assets", "1,446,660", "874,470"], ["Goodwill", "1,966,865", "503,725"], ["Total assets acquired", "4,365,417", "1,765,390"], ["Net assets acquired", "3,455,443", "1,705,566"] ] },
+                note_8: { title: "Note 8: Intangibles Details (2020)", hidden: true, headers: ["Item", "Gross '20", "Acc Amort '20"], rows: [ ["Patents and technology", "991,596", "162,528"], ["Trademarks", "748,326", "285,197"], ["Customer lists and other", "3,791,505", "1,284,789"], ["Total", "5,531,427", "1,732,514"] ] },
+                cf_2020: { title: "Cash Flows (2020 Focus)", headers: ["Item", "2020", "2019"], rows: [ ["Net Income", "1,206,703", "1,512,931"], ["Depreciation", "252,899", "225,675"], ["Amortization", "284,632", "210,514"], ["Net Cash from Ops", "2,070,949", "1,730,140"] ] },
+                ppe_detail: { title: "PPE Details (Notes)", headers: ["Item", "2022", "2021"], rows: [ ["Land & Improvements", "364,577", "362,096"], ["Buildings & Equipment", "1,783,805", "1,848,141"], ["Machinery & Equipment", "3,588,106", "3,653,566"], ["Construction in Progress", "161,467", "176,417"], ["Total Gross PPE", "5,897,955", "6,040,220"], ["Accumulated Depreciation", "(3,775,197)", "(3,773,744)"] ] },
+                is_stub: { title: "Income Statement (Summary)", headers: ["Item", "2022", "2021"], rows: [ ["Net Sales", "15,861,608", "14,347,640"], ["Net Income", "1,315,605", "1,746,100"] ] }
             }
         }
     };
 
-    // --- 2. UTILITY FUNCTIONS ---
+    // Global Quiz Questions
+    const QUIZ_QUESTIONS = [
+        { q: "What types of assets does depreciation primarily apply to?", options: [ "Intangible assets like patents and trademarks", "Tangible assets like buildings, trucks, and equipment", "Financial assets like stocks and bonds", "Current assets like cash and inventory" ], correct: 1, feedback: "Correct. Depreciation applies to tangible (physical) assets that wear out over time." },
+        { q: "Why are depreciation and amortization expenses recorded over multiple periods rather than all at once?", options: [ "To minimize taxes in the current year", "To follow the Matching Principle, matching expenses with the revenue they generate", "Because cash is paid in installments", "To increase the value of the asset on the balance sheet" ], correct: 1, feedback: "Correct. The Matching Principle dictates expenses should be matched with the benefits/revenue they help generate." },
+        { q: "If an intangible asset supports general business functions (like HR software), where is its amortization typically recorded?", options: [ "Cost of Goods Sold (COGS)", "Operating Expenses (Opex)", "Interest Expense", "Other Comprehensive Income" ], correct: 1, feedback: "Correct. Assets supporting general functions are classified under Operating Expenses (Opex)." },
+        { q: "What is the typical accounting treatment for a permanent loss in value of an indefinite-lived intangible asset like Goodwill?", options: [ "Accelerated Depreciation", "Amortization over 5 years", "Impairment Charge (One-time)", "Revaluation to higher fair value" ], correct: 2, feedback: "Correct. Indefinite-lived assets are tested for impairment and written down via a one-time charge if value is lost." },
+        { q: "How are Depreciation and Amortization treated on the Statement of Cash Flows?", options: [ "Subtracted from Investing Activities", "Added back to Net Income in Operating Activities", "Subtracted from Financing Activities", "They do not appear on the Cash Flow Statement" ], correct: 1, feedback: "Correct. They are non-cash expenses, so they are added back to Net Income to calculate cash flow from operations." },
+        { q: "What does a high level of depreciation relative to revenue often signal about a company?", options: [ "It is a service-based company", "It has high capital intensity and future replacement costs", "It has very new assets", "It is about to go bankrupt" ], correct: 1, feedback: "Correct. High depreciation suggests heavy investment in physical assets (capital intensity) and future maintenance needs." },
+        { q: "A sudden, sharp spike in Amortization expense is most likely an indicator of what?", options: [ "Buying new furniture", "Significant M&A (Merger & Acquisition) activity", "Paying off debt", "Hiring more employees" ], correct: 1, feedback: "Correct. M&A activity brings new intangible assets (customer lists, patents) onto the books, increasing amortization." },
+        { q: "Why do analysts often use EBITDA to assess a company's performance?", options: [ "It includes all taxes and interest", "It represents the exact cash balance", "It excludes non-cash expenses and financing decisions to show core profitability", "It is required by GAAP" ], correct: 2, feedback: "Correct. EBITDA removes the effects of financing, accounting decisions (depreciation), and taxes to show core operational performance." }
+    ];
 
+    // --- GAMIFICATION CONFIG ---
+    const LEVELS = [
+        { threshold: 0, title: "Intern", icon: "coffee" },
+        { threshold: 800, title: "Junior Analyst", icon: "trending-up" },
+        { threshold: 1800, title: "Financial Associate", icon: "briefcase" },
+        { threshold: 2800, title: "VP of Finance", icon: "award" },
+        { threshold: 4000, title: "Chief Financial Officer", icon: "star" }
+    ];
+
+    const CATEGORY_MAP = {
+        avgNetPPE: 'Efficiency', ppeTurnover: 'Efficiency',
+        avgGrossPPE: 'Aging', avgUsefulLife: 'Aging', percentUsed: 'Aging',
+        intPct: 'Intangibles', gwPct: 'Intangibles',
+        totalIntAcq: 'Deep Dive', totalGWAcq: 'Deep Dive', patNet: 'Deep Dive', tmNet: 'Deep Dive', listNet: 'Deep Dive', amort2020: 'Deep Dive', impairmentStatus: 'Deep Dive',
+        mtsGw: 'Deep Dive', mtsInt: 'Deep Dive', ncvCust: 'Deep Dive', ncvTrade: 'Deep Dive', ncvPat: 'Deep Dive', ncvOther: 'Deep Dive', ncvIndef: 'Deep Dive', itwAmort: 'Deep Dive'
+    };
+
+    // --- 2. UTILITY FUNCTIONS ---
     const parseFinNumber = (str) => {
         if (!str) return 0;
         let clean = str.toString().replace(/,/g, '');
-        if (clean.includes('(') && clean.includes(')')) {
-            clean = '-' + clean.replace(/[()]/g, '');
-        }
+        if (clean.includes('(') && clean.includes(')')) clean = '-' + clean.replace(/[()]/g, '');
         return parseFloat(clean) || 0;
     };
 
@@ -280,106 +147,114 @@
             const sanitized = expr.replace(/[^0-9+\-*/(). ]/g, '');
             // eslint-disable-next-line no-new-func
             return new Function('return ' + sanitized)();
-        } catch (e) {
-            return null;
-        }
+        } catch (e) { return null; }
     };
 
-    // Global Quiz Questions
-    const QUIZ_QUESTIONS = [
-        {
-            q: "What types of assets does depreciation primarily apply to?",
-            options: [
-                "Intangible assets like patents and trademarks",
-                "Tangible assets like buildings, trucks, and equipment",
-                "Financial assets like stocks and bonds",
-                "Current assets like cash and inventory"
-            ],
-            correct: 1,
-            feedback: "Correct. Depreciation applies to tangible (physical) assets that wear out over time."
-        },
-        {
-            q: "Why are depreciation and amortization expenses recorded over multiple periods rather than all at once?",
-            options: [
-                "To minimize taxes in the current year",
-                "To follow the Matching Principle, matching expenses with the revenue they generate",
-                "Because cash is paid in installments",
-                "To increase the value of the asset on the balance sheet"
-            ],
-            correct: 1,
-            feedback: "Correct. The Matching Principle dictates expenses should be matched with the benefits/revenue they help generate."
-        },
-        {
-            q: "If an intangible asset supports general business functions (like HR software), where is its amortization typically recorded?",
-            options: [
-                "Cost of Goods Sold (COGS)",
-                "Operating Expenses (Opex)",
-                "Interest Expense",
-                "Other Comprehensive Income"
-            ],
-            correct: 1,
-            feedback: "Correct. Assets supporting general functions are classified under Operating Expenses (Opex)."
-        },
-        {
-            q: "What is the typical accounting treatment for a permanent loss in value of an indefinite-lived intangible asset like Goodwill?",
-            options: [
-                "Accelerated Depreciation",
-                "Amortization over 5 years",
-                "Impairment Charge (One-time)",
-                "Revaluation to higher fair value"
-            ],
-            correct: 2,
-            feedback: "Correct. Indefinite-lived assets are tested for impairment and written down via a one-time charge if value is lost."
-        },
-        {
-            q: "How are Depreciation and Amortization treated on the Statement of Cash Flows?",
-            options: [
-                "Subtracted from Investing Activities",
-                "Added back to Net Income in Operating Activities",
-                "Subtracted from Financing Activities",
-                "They do not appear on the Cash Flow Statement"
-            ],
-            correct: 1,
-            feedback: "Correct. They are non-cash expenses, so they are added back to Net Income to calculate cash flow from operations."
-        },
-        {
-            q: "What does a high level of depreciation relative to revenue often signal about a company?",
-            options: [
-                "It is a service-based company",
-                "It has high capital intensity and future replacement costs",
-                "It has very new assets",
-                "It is about to go bankrupt"
-            ],
-            correct: 1,
-            feedback: "Correct. High depreciation suggests heavy investment in physical assets (capital intensity) and future maintenance needs."
-        },
-        {
-            q: "A sudden, sharp spike in Amortization expense is most likely an indicator of what?",
-            options: [
-                "Buying new furniture",
-                "Significant M&A (Merger & Acquisition) activity",
-                "Paying off debt",
-                "Hiring more employees"
-            ],
-            correct: 1,
-            feedback: "Correct. M&A activity brings new intangible assets (customer lists, patents) onto the books, increasing amortization."
-        },
-        {
-            q: "Why do analysts often use EBITDA to assess a company's performance?",
-            options: [
-                "It includes all taxes and interest",
-                "It represents the exact cash balance",
-                "It excludes non-cash expenses and financing decisions to show core profitability",
-                "It is required by GAAP"
-            ],
-            correct: 2,
-            feedback: "Correct. EBITDA removes the effects of financing, accounting decisions (depreciation), and taxes to show core operational performance."
+    const getExpectations = (company) => {
+        const rev22 = getData(company, 'is', 'Revenue', 1) || getData(company, 'is_stub', 'Net Sales', 1) || getData(company, 'is', 'Net Sales', 1);
+        const netPPE22 = getData(company, 'bs', 'PPE, net', 1) || getData(company, 'bs', 'Plant & Equip', 1) || getData(company, 'bs', 'Net Plant', 1);
+        const netPPE21 = getData(company, 'bs', 'PPE, net', 2) || getData(company, 'bs', 'Plant & Equip', 2) || getData(company, 'bs', 'Net Plant', 2);
+        const grossPPE22 = getData(company, 'ppe_detail', 'Total Gross', 1);
+        const grossPPE21 = getData(company, 'ppe_detail', 'Total Gross', 2);
+        const depExp = company === 'ITW' ? getData(company, 'cf', 'Depreciation', 1) : getData(company, 'cf_2020', 'Depreciation', 1); 
+        const accumDep22 = Math.abs(getData(company, 'ppe_detail', 'Accumulated', 1));
+        const totalAssets = getData(company, 'bs', 'Total Assets', 1);
+        const intangibles = getData(company, 'bs', 'Intangible', 1);
+        const goodwill = getData(company, 'bs', 'Goodwill', 1);
+
+        const avgNetPPE = (netPPE22 + netPPE21) / 2;
+        const ppeTurnover = avgNetPPE ? (rev22 / avgNetPPE) : 0;
+        const avgGrossPPE = (grossPPE22 + grossPPE21) / 2;
+        const depExpValid = depExp || 0; 
+        const avgUsefulLife = depExpValid ? (avgGrossPPE / depExpValid) : 0;
+        const percentUsed = grossPPE22 ? (accumDep22 / grossPPE22) * 100 : 0;
+        const intPct = totalAssets ? (intangibles / totalAssets) * 100 : 0;
+        const gwPct = totalAssets ? (goodwill / totalAssets) * 100 : 0;
+
+        let deepDiveData = {};
+        if (company === 'PH') {
+            const totalIntAcq = getData('PH', 'note_3', 'Intangible assets', 1) + getData('PH', 'note_3', 'Intangible assets', 2);
+            const totalGWAcq = getData('PH', 'note_3', 'Goodwill', 1) + getData('PH', 'note_3', 'Goodwill', 2);
+            const patNet = getData('PH', 'note_8', 'Patents', 1) - getData('PH', 'note_8', 'Patents', 2);
+            const tmNet = getData('PH', 'note_8', 'Trademarks', 1) - getData('PH', 'note_8', 'Trademarks', 2);
+            const listNet = getData('PH', 'note_8', 'Customer', 1) - getData('PH', 'note_8', 'Customer', 2);
+            const amort2020 = getData('PH', 'cf_2020', 'Amortization', 1);
+            deepDiveData = { totalIntAcq, totalGWAcq, patNet, tmNet, listNet, amort2020, impairmentStatus: "No, no charges recorded." };
+        } else if (company === 'ITW') {
+            const mtsGw = getData('ITW', 'note_9', 'Goodwill', 1);
+            const mtsInt = getData('ITW', 'note_9', 'Intangible Assets', 1);
+            const ncvCust = getData('ITW', 'note_intangibles', 'Customer', 1);
+            const ncvTrade = getData('ITW', 'note_intangibles', 'Trademarks', 1);
+            const ncvPat = getData('ITW', 'note_intangibles', 'Patents', 1);
+            const ncvOther = getData('ITW', 'note_intangibles', 'Other', 1);
+            const ncvIndef = getData('ITW', 'note_intangibles', 'Indefinite', 1);
+            const itwAmort = getData('ITW', 'cf', 'Amortization', 1);
+            deepDiveData = { mtsGw, mtsInt, ncvCust, ncvTrade, ncvPat, ncvOther, ncvIndef, itwAmort, impairmentStatus: "No" };
         }
-    ];
+
+        return { avgNetPPE, ppeTurnover, avgGrossPPE, avgUsefulLife, percentUsed, intPct, gwPct, ...deepDiveData };
+    };
+
+    const getData = (company, section, rowName, colIndex) => {
+        if (!DATA_SETS[company].CASE_DATA[section]) return 0;
+        const rows = DATA_SETS[company].CASE_DATA[section].rows;
+        const row = rows.find(r => r[0].toLowerCase().includes(rowName.toLowerCase()));
+        if (!row) return 0;
+        return parseFinNumber(row[colIndex]);
+    };
 
     // --- 3. COMPONENTS ---
 
-    // Password Modal for Instructor
+    function Toast({ message, type, show }) {
+        const isXp = type === "xp";
+        return (
+            <div className={`${isXp ? 'toast-xp' : 'toast-info'} ${show ? 'show' : ''}`}>
+                {isXp && <i data-lucide="star" className="w-5 h-5 fill-yellow-200 text-yellow-200"></i>}
+                {message}
+            </div>
+        );
+    }
+
+    function DoughnutChart({ percent }) {
+        const radius = 60;
+        const circumference = 2 * Math.PI * radius;
+        const strokeDashoffset = circumference - (percent / 100) * circumference;
+        return (
+            <div className="relative flex items-center justify-center w-40 h-40 flex-shrink-0">
+                <svg className="transform -rotate-90 w-full h-full drop-shadow-md">
+                    <circle cx="80" cy="80" r={radius} stroke="#e2e8f0" strokeWidth="14" fill="none" />
+                    <circle cx="80" cy="80" r={radius} stroke="url(#gradient)" strokeWidth="14" fill="none"
+                        strokeDasharray={circumference} strokeDashoffset={strokeDashoffset}
+                        className="transition-all duration-1000 ease-out" strokeLinecap="round" />
+                    <defs>
+                        <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" stopColor="#6366f1" />
+                            <stop offset="100%" stopColor="#ec4899" />
+                        </linearGradient>
+                    </defs>
+                </svg>
+                <div className="absolute flex flex-col items-center justify-center">
+                    <span className="text-3xl font-black text-slate-800">{Math.round(percent)}%</span>
+                    <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Complete</span>
+                </div>
+            </div>
+        );
+    }
+
+    function ProgressBar({ label, percent, color }) {
+         return (
+             <div className="mb-4 w-full">
+                 <div className="flex justify-between text-xs mb-1.5 font-bold text-slate-600 uppercase tracking-wide">
+                     <span>{label}</span>
+                     <span className={color.replace('bg-', 'text-')}>{Math.round(percent)}%</span>
+                 </div>
+                 <div className="h-3 w-full bg-slate-200 rounded-full overflow-hidden shadow-inner">
+                     <div className={`h-full ${color} transition-all duration-1000 ease-out`} style={{ width: `${percent}%` }}></div>
+                 </div>
+             </div>
+         )
+    }
+
     const PasswordModal = ({ isOpen, onClose, onSuccess }) => {
         const [password, setPassword] = React.useState("");
         const [error, setError] = React.useState("");
@@ -389,93 +264,49 @@
         const handleSubmit = () => {
             const _0x12a4=["\x54\x30\x46\x51\x4e\x69\x30\x79\x4c\x55\x74\x6c\x65\x54\x56\x55"];
             if (btoa(password) === _0x12a4[0]) {
-                onSuccess();
-                onClose();
-                setPassword("");
-                setError("");
-            } else {
-                setError("Incorrect password");
-            }
+                onSuccess(); onClose(); setPassword(""); setError("");
+            } else { setError("Incorrect password"); }
         };
 
         return (
             <div className="fixed inset-0 bg-slate-900 bg-opacity-70 flex items-center justify-center z-50 backdrop-blur-sm">
-                <div className="bg-white rounded-xl p-6 w-80 shadow-2xl border border-slate-200">
+                <div className="bg-white rounded-xl p-6 w-80 shadow-2xl border border-slate-200 fade-in">
                     <h2 className="text-lg font-bold mb-4 text-slate-800 flex items-center gap-2">
                         <i data-lucide="lock" className="w-5 h-5 text-indigo-600"></i>
                         Instructor Access
                     </h2>
                     <p className="text-xs text-slate-500 mb-3">Enter password to enable instructor mode.</p>
-                    <input 
-                        type="password"
-                        value={password}
-                        onChange={(e) => { setPassword(e.target.value); setError(""); }}
-                        placeholder="Password"
-                        className="w-full border border-slate-300 p-2.5 rounded-lg mb-2 focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
-                        onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
-                        autoFocus
-                    />
+                    <input type="password" value={password} onChange={(e) => { setPassword(e.target.value); setError(""); }} placeholder="Password" className="w-full border border-slate-300 p-2.5 rounded-lg mb-2 focus:ring-2 focus:ring-indigo-500 outline-none text-sm" onKeyDown={(e) => e.key === 'Enter' && handleSubmit()} autoFocus />
                     {error && <p className="text-xs text-red-500 mb-3 font-medium">{error}</p>}
                     <div className="flex justify-end gap-2 mt-2">
-                        <button 
-                            onClick={() => { onClose(); setPassword(""); setError(""); }}
-                            className="px-3 py-1.5 text-slate-600 hover:bg-slate-100 rounded-lg text-sm transition-colors"
-                        >
-                            Cancel
-                        </button>
-                        <button 
-                            onClick={handleSubmit}
-                            className="px-4 py-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm font-medium shadow-sm transition-colors"
-                        >
-                            Enter
-                        </button>
+                        <button onClick={() => { onClose(); setPassword(""); setError(""); }} className="px-3 py-1.5 text-slate-600 hover:bg-slate-100 rounded-lg text-sm transition-colors">Cancel</button>
+                        <button onClick={handleSubmit} className="px-4 py-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm font-medium shadow-sm transition-colors">Enter</button>
                     </div>
                 </div>
             </div>
         );
     };
 
-    // Modal Component for Submission
     const SubmissionModal = ({ isOpen, onClose, onDownload, studentName, setStudentName }) => {
         const [name, setName] = React.useState("");
 
-        React.useEffect(() => {
-            if (isOpen) setName(studentName || "");
-        }, [isOpen, studentName]);
+        React.useEffect(() => { if (isOpen) setName(studentName || ""); }, [isOpen, studentName]);
 
         if (!isOpen) return null;
 
         return (
             <div className="fixed inset-0 bg-slate-900 bg-opacity-70 flex items-center justify-center z-50 backdrop-blur-sm">
-                <div className="bg-white rounded-xl p-6 w-96 shadow-2xl border border-slate-200">
+                <div className="bg-white rounded-xl p-6 w-96 shadow-2xl border border-slate-200 fade-in">
                     <h2 className="text-xl font-bold mb-4 text-slate-800 flex items-center gap-2">
-                        <i data-lucide="file-check" className="w-5 h-5 text-blue-600"></i>
-                        Submit Work
+                        <i data-lucide="file-check" className="w-5 h-5 text-indigo-600"></i>
+                        Save Progress
                     </h2>
                     <p className="text-sm text-slate-600 mb-4">Enter your name to generate your submission file.</p>
-                    <input 
-                        type="text"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        placeholder="Student Name"
-                        className="w-full border border-slate-300 p-3 rounded-lg mb-4 focus:ring-2 focus:ring-blue-500 outline-none text-sm"
-                    />
+                    <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Student Name" className="w-full border border-slate-300 p-3 rounded-lg mb-4 focus:ring-2 focus:ring-indigo-500 outline-none text-sm" />
                     <div className="flex justify-end gap-2">
-                        <button 
-                            onClick={onClose}
-                            className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg text-sm font-medium transition-colors"
-                        >
-                            Cancel
-                        </button>
-                        <button 
-                            onClick={() => {
-                                setStudentName(name);
-                                onDownload(name);
-                            }}
-                            disabled={!name.trim()}
-                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-sm font-medium shadow-sm transition-colors"
-                        >
-                            Download Answer File
+                        <button onClick={onClose} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg text-sm font-medium transition-colors">Cancel</button>
+                        <button onClick={() => { setStudentName(name); onDownload(name); }} disabled={!name.trim()} className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-sm font-medium shadow-sm transition-colors flex items-center gap-2">
+                            <i data-lucide="download" className="w-4 h-4"></i> Download
                         </button>
                     </div>
                 </div>
@@ -483,79 +314,74 @@
         );
     };
 
-    // Quiz Component (Stateless)
-    const Quiz = ({ answers, onSelect, showResults, setShowResults, setAnswers }) => {
-        React.useEffect(() => {
-            if (window.lucide) window.lucide.createIcons();
-        }, [showResults, answers]);
+    const Quiz = ({ answers, onSelect, showResults, setShowResults, setAnswers, onCorrectAnswer }) => {
+        React.useEffect(() => { if (window.lucide) window.lucide.createIcons(); }, [showResults, answers]);
+
+        const handleSelect = (qIdx, oIdx) => {
+            const wasCorrect = answers[qIdx] === QUIZ_QUESTIONS[qIdx].correct;
+            const isCorrect = oIdx === QUIZ_QUESTIONS[qIdx].correct;
+            onSelect(qIdx, oIdx);
+            if (!wasCorrect && isCorrect) {
+                onCorrectAnswer();
+            }
+        };
 
         return (
-            <div className="p-6 max-w-3xl mx-auto">
-                <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-6 rounded-xl shadow-lg mb-8 text-white">
-                    <h2 className="text-2xl font-bold mb-2">Knowledge Check</h2>
-                    <p className="text-blue-100 text-sm">Test your understanding of Depreciation & Amortization concepts.</p>
+            <div className="p-4 md:p-6 max-w-3xl mx-auto fade-in">
+                <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-6 rounded-2xl shadow-lg mb-8 text-white relative overflow-hidden">
+                    <div className="absolute -right-10 -top-10 opacity-20"><i data-lucide="brain-circuit" className="w-40 h-40"></i></div>
+                    <h2 className="text-2xl font-black mb-2 flex items-center gap-2 tracking-tight">
+                        <i data-lucide="brain-circuit" className="w-6 h-6"></i> Knowledge Check
+                    </h2>
+                    <p className="text-indigo-100 text-sm font-medium">Test your understanding of Depreciation & Amortization. Earn +100 XP per correct answer!</p>
                 </div>
                 
                 <div className="space-y-6">
-                    {QUIZ_QUESTIONS.map((q, i) => (
-                        <div key={i} className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-                            <p className="font-semibold text-slate-800 mb-4 text-sm md:text-base">{i + 1}. {q.q}</p>
-                            <div className="space-y-2">
-                                {q.options.map((opt, oIdx) => (
-                                    <button
-                                        key={oIdx}
-                                        onClick={() => onSelect(i, oIdx)}
-                                        className={`w-full text-left px-4 py-3 rounded-lg border text-sm transition-all duration-200 ${
-                                            answers[i] === oIdx 
-                                                ? 'border-blue-500 bg-blue-50 text-blue-800 ring-1 ring-blue-500' 
-                                                : 'border-slate-200 hover:bg-slate-50 text-slate-600'
-                                        } ${showResults && q.correct === oIdx ? 'bg-green-50 border-green-500 ring-1 ring-green-500 text-green-800' : ''}
-                                        ${showResults && answers[i] === oIdx && answers[i] !== q.correct ? 'bg-red-50 border-red-500 ring-1 ring-red-500 text-red-800' : ''}`}
-                                        disabled={showResults}
-                                    >
-                                        <div className="flex items-center">
-                                            <div className={`w-4 h-4 rounded-full border mr-3 flex items-center justify-center flex-shrink-0 ${
-                                                answers[i] === oIdx ? 'border-blue-500' : 'border-slate-400'
-                                            }`}>
-                                                {answers[i] === oIdx && <div className="w-2 h-2 rounded-full bg-blue-500"></div>}
+                    {QUIZ_QUESTIONS.map((q, i) => {
+                        const hasAnswered = answers[i] !== undefined;
+                        const isCorrect = answers[i] === q.correct;
+                        return (
+                            <div key={i} className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 relative overflow-hidden transition-all hover:shadow-md">
+                                {showResults && isCorrect && <div className="absolute top-0 left-0 w-1.5 h-full bg-green-500"></div>}
+                                {showResults && hasAnswered && !isCorrect && <div className="absolute top-0 left-0 w-1.5 h-full bg-red-500"></div>}
+                                <p className="font-bold text-slate-800 mb-4 text-sm md:text-base pr-4">{i + 1}. {q.q}</p>
+                                <div className="space-y-2 mb-4">
+                                    {q.options.map((opt, oIdx) => (
+                                        <button key={oIdx} onClick={() => handleSelect(i, oIdx)} disabled={showResults} className={`w-full text-left px-4 py-3 rounded-xl border text-sm transition-all duration-200 ${answers[i] === oIdx ? 'border-indigo-500 bg-indigo-50 text-indigo-800 ring-2 ring-indigo-200' : 'border-slate-200 hover:bg-slate-50 text-slate-600'} ${showResults && q.correct === oIdx ? '!bg-green-50 !border-green-500 ring-2 ring-green-200 !text-green-800' : ''} ${showResults && answers[i] === oIdx && answers[i] !== q.correct ? '!bg-red-50 !border-red-500 ring-2 ring-red-200 !text-red-800' : ''}`}>
+                                            <div className="flex items-center">
+                                                <div className={`w-4 h-4 rounded-full border mr-3 flex items-center justify-center flex-shrink-0 ${answers[i] === oIdx ? 'border-indigo-500' : 'border-slate-400'} ${showResults && q.correct === oIdx ? '!border-green-600' : ''}`}>
+                                                    {answers[i] === oIdx && <div className={`w-2 h-2 rounded-full ${showResults && q.correct === oIdx ? 'bg-green-600' : 'bg-indigo-500'}`}></div>}
+                                                </div>
+                                                <span className="font-medium">{opt}</span>
+                                                {showResults && q.correct === oIdx && <i data-lucide="check" className="w-4 h-4 text-green-600 ml-auto"></i>}
+                                                {showResults && answers[i] === oIdx && answers[i] !== q.correct && <i data-lucide="x" className="w-4 h-4 text-red-600 ml-auto"></i>}
                                             </div>
-                                            {opt}
-                                        </div>
-                                    </button>
-                                ))}
-                            </div>
-                            {showResults && (
-                                <div className={`mt-4 text-sm p-3 rounded-lg flex gap-2 ${
-                                    answers[i] === q.correct ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'
-                                }`}>
-                                    {answers[i] === q.correct ? <i data-lucide="check-circle" className="w-5 h-5 shrink-0"></i> : <i data-lucide="x-circle" className="w-5 h-5 shrink-0"></i>}
-                                    <span>
-                                        <strong>{answers[i] === q.correct ? 'Correct!' : 'Incorrect.'}</strong> {q.feedback}
-                                    </span>
+                                        </button>
+                                    ))}
                                 </div>
-                            )}
-                        </div>
-                    ))}
+                                {showResults && (
+                                    <div className={`mt-4 text-sm p-4 rounded-xl flex gap-3 ${isCorrect ? 'bg-green-50 text-green-900 border border-green-100' : 'bg-slate-100 text-slate-700 border border-slate-200'}`}>
+                                        <div className="shrink-0 pt-0.5">
+                                            {isCorrect ? <i data-lucide="check-circle-2" className="w-5 h-5 text-green-600"></i> : <i data-lucide="info" className="w-5 h-5 text-slate-500"></i>}
+                                        </div>
+                                        <span className="leading-relaxed">
+                                            <strong className="block text-xs uppercase tracking-wider mb-1 opacity-75">{isCorrect ? 'Excellent!' : 'Explanation:'}</strong>
+                                            {q.feedback}
+                                        </span>
+                                    </div>
+                                )}
+                            </div>
+                        )
+                    })}
                 </div>
                 <div className="mt-8 mb-12 flex justify-center">
                     {!showResults ? (
-                        <button 
-                            onClick={() => setShowResults(true)}
-                            disabled={Object.keys(answers).length < QUIZ_QUESTIONS.length}
-                            className={`px-8 py-3 rounded-lg font-bold text-white shadow-lg transition-all ${
-                                Object.keys(answers).length < QUIZ_QUESTIONS.length 
-                                ? 'bg-slate-400 cursor-not-allowed' 
-                                : 'bg-blue-600 hover:bg-blue-700 hover:shadow-xl transform hover:-translate-y-0.5'
-                            }`}
-                        >
-                            Submit Answers
+                        <button onClick={() => setShowResults(true)} disabled={Object.keys(answers).length < QUIZ_QUESTIONS.length} className={`px-8 py-3.5 rounded-xl font-bold text-white shadow-lg transition-all ${Object.keys(answers).length < QUIZ_QUESTIONS.length ? 'bg-slate-300 cursor-not-allowed' : 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 transform hover:-translate-y-1'}`}>
+                            Complete Quiz & Reveal Answers
                         </button>
                     ) : (
-                        <button 
-                            onClick={() => { setShowResults(false); setAnswers({}); }}
-                            className="px-8 py-3 rounded-lg font-bold text-slate-700 bg-slate-200 hover:bg-slate-300 transition-colors shadow-sm"
-                        >
-                            Reset Quiz
+                        <button onClick={() => { setShowResults(false); setAnswers({}); }} className="px-8 py-3.5 rounded-xl font-bold text-slate-700 bg-white border-2 border-slate-200 hover:bg-slate-50 transition-colors shadow-sm flex items-center gap-2">
+                            <i data-lucide="rotate-ccw" className="w-5 h-5"></i> Retry Quiz
                         </button>
                     )}
                 </div>
@@ -573,51 +399,33 @@
             validate(value);
         }, [value, expectedValue]);
 
-        React.useEffect(() => {
-            if (window.lucide) {
-                window.lucide.createIcons();
-            }
-        }, [status]);
+        React.useEffect(() => { if (window.lucide) window.lucide.createIcons(); }, [status]);
 
         const validate = (val) => {
             if (val === undefined || val === "" || expectedValue === null || expectedValue === undefined) {
-                setStatus('neutral');
-                return;
+                setStatus('neutral'); return;
             }
 
-            // 1. Clean the string (Handle %, commas, spaces)
             let cleanVal = String(val).replace(/[%,\s]/g, '');
             let numVal = parseFloat(cleanVal);
 
-            // Eval simple math expressions
             if (isNaN(numVal) && typeof val === 'string' && val.match(/[+\-*\/]/)) {
-                  try {
-                    // eslint-disable-next-line no-new-func
-                    numVal = Function('"use strict";return (' + val + ')')();
-                  } catch(e) {}
+                  try { numVal = Function('"use strict";return (' + val + ')')(); } catch(e) {}
             }
 
             if (isNaN(numVal)) {
-                setStatus('incorrect');
-                return;
+                if (typeof expectedValue === 'string' && String(val).toLowerCase() === expectedValue.toLowerCase()) {
+                    setStatus('correct'); return;
+                }
+                setStatus('incorrect'); return;
             }
             
-            // Tolerance: Max of 2% relative error or absolute 0.1
             const tolerance = Math.max(Math.abs(expectedValue * 0.02), 0.1); 
-            
-            // Direct Match Validation
             let isValid = Math.abs(numVal - expectedValue) <= tolerance;
 
-            // Smart Percentage Validation (Bi-directional)
             if (!isValid) {
-                 // Case A: Expected is Percentage (e.g. 29.8), User enters Decimal (0.298) -> 0.298 * 100 = 29.8
-                 if (Math.abs((numVal * 100) - expectedValue) <= tolerance) {
-                     isValid = true;
-                 }
-                 // Case B: Expected is Decimal (e.g. 0.298), User enters Percentage (29.8) -> 29.8 / 100 = 0.298
-                 if (Math.abs((numVal / 100) - expectedValue) <= tolerance) {
-                     isValid = true;
-                 }
+                 if (Math.abs((numVal * 100) - expectedValue) <= tolerance) isValid = true;
+                 if (Math.abs((numVal / 100) - expectedValue) <= tolerance) isValid = true;
             }
             
             setStatus(isValid ? 'correct' : 'incorrect');
@@ -628,10 +436,7 @@
             onChange(id, e.target.value);
         };
 
-        const handleFocusInternal = () => {
-            setIsFocused(true);
-            if (onFocus) onFocus(id);
-        };
+        const handleFocusInternal = () => { setIsFocused(true); if (onFocus) onFocus(id); };
 
         const handleBlur = () => {
             setIsFocused(false);
@@ -646,43 +451,25 @@
             }
         };
 
-        const handleKeyDown = (e) => {
-            if (e.key === 'Enter') {
-                e.target.blur();
-            }
-        };
+        const handleKeyDown = (e) => { if (e.key === 'Enter') e.target.blur(); };
 
         let borderColor = 'border-slate-300';
         let bgColor = 'bg-white';
         let textColor = 'text-slate-800';
         
-        if (isFocused) borderColor = 'border-blue-500 ring-2 ring-blue-100';
-        else if (status === 'correct') { borderColor = 'border-teal-500'; bgColor = 'bg-teal-50'; textColor = 'text-teal-900'; }
-        else if (status === 'incorrect') { borderColor = 'border-red-500'; bgColor = 'bg-red-50'; textColor = 'text-red-900'; }
+        if (isFocused) borderColor = 'border-indigo-500 ring-2 ring-indigo-100';
+        else if (status === 'correct') { borderColor = 'border-emerald-500'; bgColor = 'bg-emerald-50/50'; textColor = 'text-emerald-900'; }
+        else if (status === 'incorrect') { borderColor = 'border-rose-500'; bgColor = 'bg-rose-50/50'; textColor = 'text-rose-900'; }
 
         return (
             <div className="relative w-full group">
-                <input
-                    type="text"
-                    value={localValue}
-                    onChange={handleChange}
-                    onFocus={handleFocusInternal}
-                    onBlur={handleBlur}
-                    onKeyDown={handleKeyDown}
-                    className={`w-full px-3 py-2 border rounded-md text-sm transition-all duration-200 focus:outline-none font-mono ${borderColor} ${bgColor} ${textColor} shadow-sm`}
-                    placeholder={placeholder}
-                />
+                <input type="text" value={localValue} onChange={handleChange} onFocus={handleFocusInternal} onBlur={handleBlur} onKeyDown={handleKeyDown} className={`w-full px-4 py-2.5 border-2 rounded-xl text-sm font-semibold transition-all duration-300 focus:outline-none font-mono ${borderColor} ${bgColor} ${textColor} shadow-sm`} placeholder={placeholder} />
                 {status === 'correct' && (
-                    <div className="absolute right-2 top-2.5 text-teal-600 animate-bounce">
-                        <i data-lucide="check-circle" className="w-4 h-4"></i>
+                    <div className="absolute right-3 top-3 text-emerald-500 drop-shadow-sm transform scale-0 group-hover:scale-100 transition-transform">
+                        <i data-lucide="check-circle-2" className="w-5 h-5"></i>
                     </div>
                 )}
-                {status === 'incorrect' && (
-                    <div className="absolute right-2 top-2.5 text-red-500">
-                        <i data-lucide="alert-circle" className="w-4 h-4"></i>
-                    </div>
-                )}
-                {isPercentage && <span className="absolute right-8 top-2.5 text-xs text-slate-400 font-medium pointer-events-none">%</span>}
+                {isPercentage && <span className="absolute right-10 top-3 text-xs text-slate-400 font-bold pointer-events-none">%</span>}
             </div>
         );
     };
@@ -697,30 +484,23 @@
         };
 
         const renderTable = (sectionKey, sectionData) => (
-            <div key={sectionKey} className="mb-6 bg-[#1e293b] rounded-xl shadow-lg border border-slate-700 overflow-hidden">
-                <div className="bg-[#0f172a] px-4 py-3 border-b border-slate-700 flex items-center justify-between">
-                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest">{sectionData.title}</h3>
+            <div key={sectionKey} className="mb-6 bg-slate-900 rounded-xl shadow-lg border border-slate-700/50 overflow-hidden">
+                <div className="bg-slate-800/80 px-4 py-3 border-b border-slate-700/50 flex items-center justify-between">
+                    <h3 className="text-[11px] font-black text-indigo-300 uppercase tracking-widest">{sectionData.title}</h3>
                 </div>
                 <div className="overflow-x-auto">
                     <table className="w-full text-xs text-left">
-                        <thead className="bg-[#1e293b] text-slate-400 font-semibold border-b border-slate-700">
+                        <thead className="bg-slate-900/50 text-slate-400 font-bold border-b border-slate-700/50">
                             <tr>
-                                {sectionData.headers.map((h, i) => (
-                                    <th key={i} className={`px-4 py-2.5 ${i > 0 ? 'text-right' : ''}`}>{h}</th>
-                                ))}
+                                {sectionData.headers.map((h, i) => ( <th key={i} className={`px-4 py-3 tracking-wide ${i > 0 ? 'text-right' : ''}`}>{h}</th> ))}
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-700/50">
+                        <tbody className="divide-y divide-slate-800/50">
                             {sectionData.rows.map((row, idx) => (
-                                <tr key={idx} className="hover:bg-slate-700/50 transition-colors group">
-                                    <td className="px-4 py-2 font-medium text-slate-300">{row[0]}</td>
+                                <tr key={idx} className="hover:bg-slate-800/80 transition-colors group">
+                                    <td className="px-4 py-2.5 font-medium text-slate-300">{row[0]}</td>
                                     {row.slice(1).map((cell, cIdx) => (
-                                        <td 
-                                            key={cIdx} 
-                                            className="px-4 py-2 text-right font-mono text-blue-400 cursor-pointer hover:text-blue-300 hover:bg-slate-700 active:text-white select-none transition-all"
-                                            onMouseDown={(e) => handleCellClick(e, cell)}
-                                            title="Click to add to calculation"
-                                        >
+                                        <td key={cIdx} className="px-4 py-2.5 text-right font-mono font-semibold text-emerald-400 cursor-pointer hover:text-emerald-300 hover:bg-slate-700 active:text-white select-none transition-all" onMouseDown={(e) => handleCellClick(e, cell)} title="Inject into calculation">
                                             {cell}
                                         </td>
                                     ))}
@@ -735,10 +515,14 @@
         const visibleSections = Object.keys(data.CASE_DATA).filter(key => !data.CASE_DATA[key].hidden);
 
         return (
-            <div className="h-full overflow-y-auto custom-scrollbar p-4 bg-[#0f172a]">
-                <div className="flex flex-col gap-1 mb-6 sticky top-0 bg-[#0f172a] z-10 pb-4 border-b border-slate-800">
-                    <h2 className="text-lg font-bold text-white tracking-tight">{data.name}</h2>
-                    <span className="text-[10px] text-slate-400 font-mono bg-slate-800 px-2 py-1 rounded w-fit border border-slate-700">Currency: {data.currency}</span>
+            <div className="h-full overflow-y-auto custom-scrollbar p-5 bg-[#0b1121]">
+                <div className="flex flex-col gap-1 mb-8 sticky top-0 bg-[#0b1121]/95 backdrop-blur z-10 pb-4 border-b border-slate-800/80">
+                    <h2 className="text-xl font-black text-white tracking-tight">{data.name}</h2>
+                    <span className="text-[10px] text-slate-400 font-mono font-bold bg-slate-800/80 px-2.5 py-1 rounded-md w-fit border border-slate-700">Currency: {data.currency}</span>
+                    <div className="mt-3 text-[10px] text-indigo-300 bg-indigo-900/30 p-2 rounded border border-indigo-500/30 flex gap-2 items-center">
+                        <i data-lucide="mouse-pointer-click" className="w-3 h-3 flex-shrink-0"></i>
+                        <span>Click data numbers to inject them directly into your active input field.</span>
+                    </div>
                 </div>
                 {visibleSections.map(key => renderTable(key, data.CASE_DATA[key]))}
                 <div className="h-20"></div>
@@ -751,31 +535,29 @@
         if (!data) return null;
 
         return (
-            <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 mb-4 animate-fade-in shadow-inner">
-                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3 border-b border-slate-200 pb-2">Reference Data (from SEC Filings)</h4>
+            <div className="bg-slate-100 border-2 border-slate-200 rounded-xl p-5 mb-6 fade-in shadow-inner">
+                <h4 className="text-xs font-black text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                    <i data-lucide="book-open" className="w-4 h-4"></i> 10-K Reference Data Note Disclosures
+                </h4>
                 <div className="grid grid-cols-1 gap-6">
                 {noteKeys.map(key => {
                     const section = data.CASE_DATA[key];
                     if (!section) return null;
                     return (
                         <div key={key}>
-                            <h5 className="text-xs font-bold text-slate-700 mb-2">{section.title}</h5>
-                            <div className="bg-white rounded border border-slate-200 overflow-hidden">
+                            <h5 className="text-[11px] font-bold text-slate-700 mb-2 uppercase tracking-wide bg-white px-2 py-1 rounded inline-block border border-slate-200">{section.title}</h5>
+                            <div className="bg-white rounded-lg border border-slate-200 overflow-hidden shadow-sm">
                                 <table className="w-full text-xs text-left">
-                                    <thead className="bg-slate-100 text-slate-500 font-medium">
+                                    <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-200">
                                         <tr>
-                                            {section.headers.map((h, i) => (
-                                                <th key={i} className={`px-3 py-1.5 ${i > 0 ? 'text-right' : ''}`}>{h}</th>
-                                            ))}
+                                            {section.headers.map((h, i) => ( <th key={i} className={`px-4 py-2 ${i > 0 ? 'text-right' : ''}`}>{h}</th> ))}
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-100">
                                         {section.rows.map((row, idx) => (
-                                            <tr key={idx}>
-                                                <td className="px-3 py-1.5 font-medium text-slate-700">{row[0]}</td>
-                                                {row.slice(1).map((cell, cIdx) => (
-                                                    <td key={cIdx} className="px-3 py-1.5 text-right font-mono text-slate-600">{cell}</td>
-                                                ))}
+                                            <tr key={idx} className="hover:bg-slate-50/50">
+                                                <td className="px-4 py-2 font-semibold text-slate-700">{row[0]}</td>
+                                                {row.slice(1).map((cell, cIdx) => ( <td key={cIdx} className="px-4 py-2 text-right font-mono font-medium text-slate-600">{cell}</td> ))}
                                             </tr>
                                         ))}
                                     </tbody>
@@ -788,6 +570,46 @@
             </div>
         );
     };
+
+    const ProfileView = ({ stats, correctCount, totalCount, currentXP, currentLevelObj, nextLevelObj }) => {
+        const overallPercent = totalCount > 0 ? (correctCount / totalCount) * 100 : 0;
+        const xpToNext = nextLevelObj.threshold - currentXP;
+
+        return (
+            <div className="max-w-4xl mx-auto p-4 md:p-8 fade-in">
+                <div className="bg-white rounded-3xl shadow-lg border border-slate-200 p-8 mb-8 text-center relative overflow-hidden">
+                   <div className="absolute top-0 left-0 w-full h-3 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
+                   <div className="w-20 h-20 mx-auto mb-4 bg-indigo-50 rounded-2xl flex items-center justify-center transform rotate-3">
+                       <i data-lucide={currentLevelObj.icon} className="w-10 h-10 text-indigo-600 transform -rotate-3"></i>
+                   </div>
+                   <h2 className="text-4xl md:text-5xl font-black text-slate-800 mb-3 tracking-tight">{currentLevelObj.title}</h2>
+                   <p className="text-slate-500 font-bold mb-10 text-lg flex items-center justify-center gap-2">
+                       Total Experience: <span className="text-white bg-slate-800 px-4 py-1.5 rounded-full shadow-sm">{currentXP} XP</span>
+                   </p>
+
+                   <div className="flex flex-col md:flex-row items-center justify-center gap-12 md:gap-20 bg-slate-50 p-8 rounded-2xl border border-slate-100">
+                       <div className="flex flex-col items-center">
+                           <DoughnutChart percent={overallPercent} />
+                           <div className="mt-5 text-sm text-slate-600 font-bold uppercase tracking-wider">Overall Completion</div>
+                       </div>
+                       
+                       <div className="w-full md:w-1/2 flex flex-col gap-3">
+                           {Object.entries(stats).map(([cat, data]) => {
+                               const pct = data.total > 0 ? (data.correct / data.total) * 100 : 0;
+                               return <ProgressBar key={cat} label={cat} percent={pct} color={data.color} />;
+                           })}
+                       </div>
+                   </div>
+                   
+                   {xpToNext > 0 && (
+                       <div className="mt-8 text-sm font-medium text-slate-500">
+                           Keep going! Earn <strong className="text-amber-500 text-base">{xpToNext} more XP</strong> to unlock <strong className="text-indigo-600 font-bold">{nextLevelObj.title}</strong>!
+                       </div>
+                   )}
+                </div>
+            </div>
+        );
+    }
 
     const App = () => {
         const [activeCompany, setActiveCompany] = React.useState('ITW');
@@ -805,26 +627,28 @@
         const [quizAnswers, setQuizAnswers] = React.useState({});
         const [quizShowResults, setQuizShowResults] = React.useState(false);
 
+        // Gamification States
+        const [toastMessage, setToastMessage] = React.useState("");
+        const [toastType, setToastType] = React.useState("info");
+        const [showLevelUp, setShowLevelUp] = React.useState(false);
+        const [prevLevelTitle, setPrevLevelTitle] = React.useState(LEVELS[0].title);
+
         // Layout State
-        const [sidebarWidth, setSidebarWidth] = React.useState(40); // Percentage
+        const [sidebarWidth, setSidebarWidth] = React.useState(40);
         const sidebarRef = React.useRef(null);
         const fileInputRef = React.useRef(null);
         const isResizing = React.useRef(false);
         const [isMobile, setIsMobile] = React.useState(window.innerWidth < 768);
 
-        React.useEffect(() => {
-            if (window.lucide) window.lucide.createIcons();
-            setShowSolution(false);
-        }, [activeCompany, isInstructor]);
+        React.useEffect(() => { if (window.lucide) window.lucide.createIcons(); }, [activeCompany, isInstructor, showLevelUp, activeTab]);
+        React.useEffect(() => { setShowSolution(false); }, [activeCompany]);
 
-        // Mobile check
         React.useEffect(() => {
             const handleResize = () => setIsMobile(window.innerWidth < 768);
             window.addEventListener('resize', handleResize);
             return () => window.removeEventListener('resize', handleResize);
         }, []);
 
-        // Resizing Logic
         const startResizing = React.useCallback(() => { isResizing.current = true; }, []);
         const stopResizing = React.useCallback(() => { isResizing.current = false; }, []);
         const resize = React.useCallback((e) => {
@@ -833,315 +657,174 @@
                 if (newWidth > 20 && newWidth < 80) setSidebarWidth(newWidth);
             }
         }, []);
+        React.useEffect(() => { window.addEventListener("mousemove", resize); window.addEventListener("mouseup", stopResizing); return () => { window.removeEventListener("mousemove", resize); window.removeEventListener("mouseup", stopResizing); }; }, [resize, stopResizing]);
+
+        const showToast = (msg, type="info") => {
+            setToastMessage(msg); setToastType(type);
+            setTimeout(() => setToastMessage(""), 3000);
+        };
+
+        // --- XP & Progression Engine ---
+        const EXPECTATIONS = React.useMemo(() => ({ ITW: getExpectations('ITW'), PH: getExpectations('PH') }), []);
+
+        const checkIsCorrect = React.useCallback((comp, key, value) => {
+            const expected = EXPECTATIONS[comp][key];
+            if (value === undefined || value === "" || expected === null || expected === undefined) return false;
+            let cleanVal = String(value).replace(/[%,\s]/g, '');
+            let numVal = parseFloat(cleanVal);
+            if (isNaN(numVal) && typeof value === 'string' && value.match(/[+\-*\/]/)) {
+                try { numVal = Function('"use strict";return (' + value + ')')(); } catch(e) {}
+            }
+            if (isNaN(numVal)) {
+                if (typeof expected === 'string') return String(value).toLowerCase() === expected.toLowerCase();
+                return false;
+            }
+            const tolerance = Math.max(Math.abs(expected * 0.02), 0.1);
+            let isValid = Math.abs(numVal - expected) <= tolerance;
+            if (!isValid) {
+                if (Math.abs((numVal * 100) - expected) <= tolerance) isValid = true;
+                if (Math.abs((numVal / 100) - expected) <= tolerance) isValid = true;
+            }
+            return isValid;
+        }, [EXPECTATIONS]);
+
+        const { currentXP, correctCount, totalCount, stats } = React.useMemo(() => {
+            let xp = 0; let correct = 0; let total = 0;
+            const localStats = {
+                'Efficiency': { correct: 0, total: 0, color: 'bg-violet-500' },
+                'Aging': { correct: 0, total: 0, color: 'bg-cyan-500' },
+                'Intangibles': { correct: 0, total: 0, color: 'bg-amber-500' },
+                'Deep Dive': { correct: 0, total: 0, color: 'bg-rose-500' },
+                'Quiz': { correct: 0, total: 0, color: 'bg-indigo-500' }
+            };
+
+            Object.keys(EXPECTATIONS).forEach(comp => {
+                Object.keys(EXPECTATIONS[comp]).forEach(key => {
+                    const cat = CATEGORY_MAP[key];
+                    if (cat) {
+                        total++; localStats[cat].total++;
+                        if (checkIsCorrect(comp, key, inputValues[comp]?.[key])) {
+                            xp += 100; correct++; localStats[cat].correct++;
+                        }
+                    }
+                });
+            });
+
+            QUIZ_QUESTIONS.forEach((q, i) => {
+                total++; localStats['Quiz'].total++;
+                if (quizAnswers[i] === q.correct) {
+                    xp += 100; correct++; localStats['Quiz'].correct++;
+                }
+            });
+
+            return { currentXP: xp, correctCount: correct, totalCount: total, stats: localStats };
+        }, [inputValues, quizAnswers, EXPECTATIONS, checkIsCorrect]);
+
+        const { currentLevelObj, nextLevelObj, levelIndex } = React.useMemo(() => {
+            let curr = LEVELS[0]; let next = LEVELS[1]; let idx = 1;
+            for (let i = LEVELS.length - 1; i >= 0; i--) {
+                if (currentXP >= LEVELS[i].threshold) { curr = LEVELS[i]; next = LEVELS[i+1] || LEVELS[i]; idx = i + 1; break; }
+            }
+            return { currentLevelObj: curr, nextLevelObj: next, levelIndex: idx };
+        }, [currentXP]);
 
         React.useEffect(() => {
-            window.addEventListener("mousemove", resize);
-            window.addEventListener("mouseup", stopResizing);
-            return () => {
-                window.removeEventListener("mousemove", resize);
-                window.removeEventListener("mouseup", stopResizing);
-            };
-        }, [resize, stopResizing]);
-
-        const getData = (company, section, rowName, colIndex) => {
-            if (!DATA_SETS[company].CASE_DATA[section]) return 0;
-            const rows = DATA_SETS[company].CASE_DATA[section].rows;
-            const row = rows.find(r => r[0].toLowerCase().includes(rowName.toLowerCase()));
-            if (!row) return 0;
-            return parseFinNumber(row[colIndex]);
-        };
-
-        const getExpectations = (company) => {
-            // Standard Analysis (ITW & PH)
-            const rev22 = getData(company, 'is', 'Revenue', 1) || getData(company, 'is_stub', 'Net Sales', 1) || getData(company, 'is', 'Net Sales', 1);
-            
-            const netPPE22 = getData(company, 'bs', 'PPE, net', 1) || getData(company, 'bs', 'Plant & Equip', 1) || getData(company, 'bs', 'Net Plant', 1);
-            const netPPE21 = getData(company, 'bs', 'PPE, net', 2) || getData(company, 'bs', 'Plant & Equip', 2) || getData(company, 'bs', 'Net Plant', 2);
-            
-            const grossPPE22 = getData(company, 'ppe_detail', 'Total Gross', 1);
-            const grossPPE21 = getData(company, 'ppe_detail', 'Total Gross', 2);
-            
-            const depExp = company === 'ITW' ? getData(company, 'cf', 'Depreciation', 1) : getData(company, 'cf_2020', 'Depreciation', 1); 
-            
-            const accumDep22 = Math.abs(getData(company, 'ppe_detail', 'Accumulated', 1));
-            
-            const totalAssets = getData(company, 'bs', 'Total Assets', 1);
-            const intangibles = getData(company, 'bs', 'Intangible', 1);
-            const goodwill = getData(company, 'bs', 'Goodwill', 1);
-
-            // Calculations
-            const avgNetPPE = (netPPE22 + netPPE21) / 2;
-            const ppeTurnover = avgNetPPE ? (rev22 / avgNetPPE) : 0;
-            
-            const avgGrossPPE = (grossPPE22 + grossPPE21) / 2;
-            const depExpValid = depExp || 0; 
-            const avgUsefulLife = depExpValid ? (avgGrossPPE / depExpValid) : 0;
-            const percentUsed = grossPPE22 ? (accumDep22 / grossPPE22) * 100 : 0;
-            
-            const intPct = totalAssets ? (intangibles / totalAssets) * 100 : 0;
-            const gwPct = totalAssets ? (goodwill / totalAssets) * 100 : 0;
-
-            // --- DEEP DIVE LOGIC ---
-            let deepDiveData = {};
-
-            if (company === 'PH') {
-                const lordInt = getData('PH', 'note_3', 'Intangible assets', 1);
-                const exoticInt = getData('PH', 'note_3', 'Intangible assets', 2);
-                const totalIntAcq = lordInt + exoticInt;
-
-                const lordGW = getData('PH', 'note_3', 'Goodwill', 1);
-                const exoticGW = getData('PH', 'note_3', 'Goodwill', 2);
-                const totalGWAcq = lordGW + exoticGW;
-
-                const patGross = getData('PH', 'note_8', 'Patents', 1);
-                const patAcc = getData('PH', 'note_8', 'Patents', 2);
-                const patNet = patGross - patAcc;
-                
-                const tmGross = getData('PH', 'note_8', 'Trademarks', 1);
-                const tmAcc = getData('PH', 'note_8', 'Trademarks', 2);
-                const tmNet = tmGross - tmAcc;
-                
-                const listGross = getData('PH', 'note_8', 'Customer', 1);
-                const listAcc = getData('PH', 'note_8', 'Customer', 2);
-                const listNet = listGross - listAcc;
-
-                const amort2020 = getData('PH', 'cf_2020', 'Amortization', 1);
-
-                deepDiveData = { totalIntAcq, totalGWAcq, patNet, tmNet, listNet, amort2020, impairmentStatus: "No, no charges recorded." };
-
-            } else if (company === 'ITW') {
-                const mtsGw = getData('ITW', 'note_9', 'Goodwill', 1);
-                const mtsInt = getData('ITW', 'note_9', 'Intangible Assets', 1);
-
-                const ncvCust = getData('ITW', 'note_intangibles', 'Customer', 1);
-                const ncvTrade = getData('ITW', 'note_intangibles', 'Trademarks', 1);
-                const ncvPat = getData('ITW', 'note_intangibles', 'Patents', 1);
-                const ncvOther = getData('ITW', 'note_intangibles', 'Other', 1);
-                const ncvIndef = getData('ITW', 'note_intangibles', 'Indefinite', 1);
-
-                const itwAmort = getData('ITW', 'cf', 'Amortization', 1);
-
-                deepDiveData = { mtsGw, mtsInt, ncvCust, ncvTrade, ncvPat, ncvOther, ncvIndef, itwAmort, impairmentStatus: "No" };
+            if (currentLevelObj.title !== prevLevelTitle && currentXP > 0) {
+                const prevIndex = LEVELS.findIndex(l => l.title === prevLevelTitle);
+                const currIndex = LEVELS.findIndex(l => l.title === currentLevelObj.title);
+                if (currIndex > prevIndex) {
+                    setShowLevelUp(true); setTimeout(() => setShowLevelUp(false), 4000);
+                }
+                setPrevLevelTitle(currentLevelObj.title);
             }
+        }, [currentLevelObj.title, currentXP, prevLevelTitle]);
 
-            return {
-                avgNetPPE,
-                ppeTurnover,
-                avgGrossPPE,
-                avgUsefulLife,
-                percentUsed,
-                intPct,
-                gwPct,
-                ...deepDiveData
-            };
-        };
 
-        const expectations = getExpectations(activeCompany);
-
+        // --- Interaction Handlers ---
         const handleValueClick = (val) => {
-            if (!activeInputId) return;
+            if (!activeInputId) return showToast("Select an input box first!", "info");
             const currentVal = inputValues[activeCompany][activeInputId] || "";
             const lastChar = currentVal.toString().slice(-1);
             let nextVal = val;
-            if (/[0-9]/.test(lastChar)) {
-                nextVal = "+" + val;
-            }
-            const newVal = currentVal + nextVal;
-            setInputValues(prev => ({
-                ...prev,
-                [activeCompany]: {
-                    ...prev[activeCompany],
-                    [activeInputId]: newVal
-                }
-            }));
+            if (/[0-9]/.test(lastChar)) nextVal = "+" + val;
+            handleInputChange(activeInputId, currentVal + nextVal);
         };
 
         const handleInputChange = (id, val) => {
-            setInputValues(prev => ({
-                ...prev,
-                [activeCompany]: {
-                    ...prev[activeCompany],
-                    [id]: val
-                }
-            }));
+            const prevVal = inputValues[activeCompany]?.[id];
+            const wasCorrect = checkIsCorrect(activeCompany, id, prevVal);
+            const isNowCorrect = checkIsCorrect(activeCompany, id, val);
+            
+            setInputValues(prev => ({ ...prev, [activeCompany]: { ...prev[activeCompany], [id]: val } }));
+            if (!wasCorrect && isNowCorrect) showToast("+100 XP! Nice calculation!", "xp");
         };
 
         const handleFocus = (id) => setActiveInputId(id);
-
-        const toggleFormula = (section) => {
-            setShowFormula(prev => ({...prev, [section]: !prev[section]}));
-        };
-
+        const toggleFormula = (section) => setShowFormula(prev => ({...prev, [section]: !prev[section]}));
         const toggleSolution = () => setShowSolution(!showSolution);
 
         const handleAutoFill = () => {
-            const expITW = getExpectations('ITW');
-            const expPH = getExpectations('PH');
-
             const formatForInput = (obj) => {
                 const newObj = {};
-                for (const key in obj) {
-                    if (obj[key] !== undefined && obj[key] !== null) {
-                        newObj[key] = obj[key].toString();
-                    }
-                }
+                for (const key in obj) if (obj[key] !== undefined && obj[key] !== null) newObj[key] = obj[key].toString();
                 return newObj;
             };
-
-            setInputValues({
-                ITW: formatForInput(expITW),
-                PH: formatForInput(expPH)
-            });
+            setInputValues({ ITW: formatForInput(EXPECTATIONS.ITW), PH: formatForInput(EXPECTATIONS.PH) });
             setShowSolution(true); 
         };
 
-        const handleClear = () => {
-            setInputValues({ ITW: {}, PH: {} });
-            setShowSolution(false);
-        };
+        const handleClear = () => { setInputValues({ ITW: {}, PH: {} }); setShowSolution(false); };
+        const handleQuizAutoFill = () => { const correct = {}; QUIZ_QUESTIONS.forEach((q, i) => correct[i] = q.correct); setQuizAnswers(correct); setQuizShowResults(true); };
+        const handleQuizClear = () => { setQuizAnswers({}); setQuizShowResults(false); };
 
-        const handleQuizAutoFill = () => {
-            const correct = {};
-            QUIZ_QUESTIONS.forEach((q, i) => correct[i] = q.correct);
-            setQuizAnswers(correct);
-            setQuizShowResults(true);
-        };
-
-        const handleQuizClear = () => {
-            setQuizAnswers({});
-            setQuizShowResults(false);
-        };
-
-        // --- FILE SAVING AND LOADING LOGIC ---
         const handleDownloadSubmission = (submittedName) => {
             setStudentName(submittedName);
-            const date = new Date().toLocaleDateString();
+            let content = `Long-Term Asset Analysis Submission\nStudent: ${submittedName}\nDate: ${new Date().toLocaleDateString()}\nLevel: ${currentLevelObj.title} (${currentXP} XP)\n\n`;
             
-            let content = `Long-Term Asset Analysis Submission\n`;
-            content += `-----------------------------------\n`;
-            content += `Student Name: ${submittedName}\n`;
-            content += `Date: ${date}\n`;
-            content += `-----------------------------------\n\n`;
-
             ['ITW', 'PH'].forEach(company => {
-                content += `COMPANY ANALYSIS: ${company}\n`;
-                const vals = inputValues[company];
-                if (Object.keys(vals).length === 0) {
-                    content += `(No data entered)\n\n`;
-                    return;
-                }
-                
-                content += `\nSection 1: Efficiency\n`;
-                content += `- Avg Net PPE: ${vals.avgNetPPE || "N/A"}\n`;
-                content += `- PPE Turnover: ${vals.ppeTurnover || "N/A"}\n`;
-                
-                content += `\nSection 2: Aging\n`;
-                content += `- Avg Gross PPE: ${vals.avgGrossPPE || "N/A"}\n`;
-                content += `- Avg Useful Life: ${vals.avgUsefulLife || "N/A"}\n`;
-                content += `- % Used Up: ${vals.percentUsed || "N/A"}\n`;
-
-                content += `\nSection 3: Intangibles\n`;
-                content += `- Intangibles %: ${vals.intPct || "N/A"}\n`;
-                content += `- Goodwill %: ${vals.gwPct || "N/A"}\n`;
-
-                content += `\nSection 4: Deep Dive\n`;
-                if (company === 'PH') {
-                    content += `- Total Intangibles Acquired: ${vals.totalIntAcq || "N/A"}\n`;
-                    content += `- Total Goodwill Created: ${vals.totalGWAcq || "N/A"}\n`;
-                    content += `- Patents Net: ${vals.patNet || "N/A"}\n`;
-                    content += `- Trademarks Net: ${vals.tmNet || "N/A"}\n`;
-                    content += `- Customer Lists Net: ${vals.listNet || "N/A"}\n`;
-                    content += `- Amortization 2020: ${vals.amort2020 || "N/A"}\n`;
-                    content += `- Impairment Recorded: ${vals.impairmentStatus || "N/A"}\n`;
-                } else {
-                    content += `- MTS Goodwill: ${vals.mtsGw || "N/A"}\n`;
-                    content += `- MTS Intangibles: ${vals.mtsInt || "N/A"}\n`;
-                    content += `- Customer Lists Net: ${vals.ncvCust || "N/A"}\n`;
-                    content += `- Trademarks Net: ${vals.ncvTrade || "N/A"}\n`;
-                    content += `- Patents Net: ${vals.ncvPat || "N/A"}\n`;
-                    content += `- Indefinite Lived: ${vals.ncvIndef || "N/A"}\n`;
-                    content += `- Amortization 2022: ${vals.itwAmort || "N/A"}\n`;
-                    content += `- Impairment Recorded: ${vals.impairmentStatus || "N/A"}\n`;
-                }
-                content += `\n-----------------------------------\n\n`;
+                content += `--- ${company} ---\n`;
+                content += JSON.stringify(inputValues[company], null, 2) + `\n\n`;
             });
+            content += `--- QUIZ ---\nScore: ${QUIZ_QUESTIONS.filter((q, i) => quizAnswers[i] === q.correct).length} / ${QUIZ_QUESTIONS.length}\n`;
+            content += `\n--- RAW DATA (DO NOT EDIT) ---\n` + JSON.stringify({ inputValues, quizAnswers }, null, 2);
 
-            content += `KNOWLEDGE QUIZ RESULTS\n`;
-            const answeredCount = Object.keys(quizAnswers).length;
-            const correctCount = QUIZ_QUESTIONS.filter((q, i) => quizAnswers[i] === q.correct).length;
-            content += `Score: ${correctCount} / ${QUIZ_QUESTIONS.length}\n`;
-            
-            // Append raw data for restoring state later
-            content += `\n\n--- RAW DATA (DO NOT EDIT) ---\n`;
-            content += JSON.stringify({ inputValues, quizAnswers }, null, 2);
-
-            const blob = new Blob([content], { type: 'text/plain' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `${submittedName.replace(/\s+/g, '_')}_Asset_Analysis.txt`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
+            const blob = new Blob([content], { type: 'text/plain' }); const url = URL.createObjectURL(blob);
+            const a = document.createElement('a'); a.href = url; a.download = `${submittedName.replace(/\s+/g, '_')}_Asset_Analysis.txt`;
+            document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
             setShowSubmissionModal(false);
         };
 
         const handleFileUpload = (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-
+            const file = e.target.files[0]; if (!file) return;
             const reader = new FileReader();
             reader.onload = (event) => {
                 const content = event.target.result;
                 try {
-                    // 1. Extract Student Name
                     let loadedName = studentName;
-                    const nameLine = content.split('\n').find(line => line.startsWith('Student Name:'));
-                    if (nameLine) loadedName = nameLine.replace('Student Name:', '').trim();
+                    const nameLine = content.split('\n').find(line => line.startsWith('Student:'));
+                    if (nameLine) loadedName = nameLine.replace('Student:', '').trim();
 
-                    // 2. Extract JSON payload
-                    const rawDataMarker = "--- RAW DATA (DO NOT EDIT) ---";
-                    const dataIndex = content.indexOf(rawDataMarker);
-                    
+                    const dataIndex = content.indexOf("--- RAW DATA (DO NOT EDIT) ---");
                     if (dataIndex !== -1) {
-                        const jsonStr = content.substring(dataIndex + rawDataMarker.length).trim();
+                        const jsonStr = content.substring(dataIndex + 30).trim();
                         const parsed = JSON.parse(jsonStr);
-                        
                         if (parsed.inputValues) setInputValues(parsed.inputValues);
-                        if (parsed.quizAnswers) {
-                            setQuizAnswers(parsed.quizAnswers);
-                            if (Object.keys(parsed.quizAnswers).length > 0) {
-                                setQuizShowResults(true);
-                            }
-                        }
-                        
-                        setStudentName(loadedName);
-                        alert("Progress loaded successfully!");
-                    } else {
-                        alert("This file appears to be from an older version or is missing the saved data block. It cannot be loaded automatically.");
-                    }
-                } catch (err) {
-                    console.error("Failed to parse file:", err);
-                    alert("Could not read the file correctly. Please make sure you are uploading a valid saved report file.");
-                }
-                
-                // Reset input
+                        if (parsed.quizAnswers) { setQuizAnswers(parsed.quizAnswers); if (Object.keys(parsed.quizAnswers).length > 0) setQuizShowResults(true); }
+                        setStudentName(loadedName); showToast("Progress Loaded Successfully!", "info");
+                    } else { alert("Invalid file format."); }
+                } catch (err) { alert("Could not parse file."); }
                 e.target.value = null;
             };
             reader.readAsText(file);
         };
 
-        const SectionHeader = ({ title, sectionKey, hideFormula = false, colorClass = "text-gray-800" }) => (
-            <div className="flex justify-between items-center mb-4 pb-2 border-b border-slate-200">
-                <h3 className={`font-bold text-lg ${colorClass}`}>{title}</h3>
+        const SectionHeader = ({ title, sectionKey, hideFormula = false, colorClass = "text-slate-800" }) => (
+            <div className="flex justify-between items-center mb-4 pb-3 border-b-2 border-slate-100">
+                <h3 className={`font-black text-lg ${colorClass} tracking-tight`}>{title}</h3>
                 {!hideFormula && (
-                    <button 
-                        onClick={() => toggleFormula(sectionKey)}
-                        className="text-xs font-medium text-slate-500 hover:text-blue-600 flex items-center gap-1 transition-colors"
-                    >
-                        <i data-lucide={showFormula[sectionKey] ? "eye-off" : "eye"} className="w-3 h-3"></i>
-                        {showFormula[sectionKey] ? "Hide Formulas" : "Show Formulas"}
+                    <button onClick={() => toggleFormula(sectionKey)} className="text-[11px] font-bold uppercase tracking-wider text-slate-400 hover:text-indigo-600 flex items-center gap-1.5 transition-colors bg-slate-50 hover:bg-indigo-50 px-2.5 py-1.5 rounded-md">
+                        <i data-lucide={showFormula[sectionKey] ? "eye-off" : "eye"} className="w-3.5 h-3.5"></i>
+                        {showFormula[sectionKey] ? "Hide Formulas" : "View Formulas"}
                     </button>
                 )}
             </div>
@@ -1149,573 +832,348 @@
 
         const FormulaBox = ({ show, children, borderColor = "border-yellow-200", bgColor = "bg-yellow-50", textColor = "text-yellow-800" }) => {
             if (!show) return null;
-            return (
-                <div className={`mb-5 p-3 rounded-md border text-xs font-mono shadow-sm ${borderColor} ${bgColor} ${textColor}`}>
-                    {children}
-                </div>
-            );
+            return <div className={`mb-6 p-4 rounded-xl border-2 text-sm font-mono shadow-inner ${borderColor} ${bgColor} ${textColor} leading-relaxed`}>{children}</div>;
         };
 
+        const xpProgressPercent = nextLevelObj.threshold === currentLevelObj.threshold ? 100 : ((currentXP - currentLevelObj.threshold) / (nextLevelObj.threshold - currentLevelObj.threshold)) * 100;
+
         return (
-            <div className="flex flex-col md:flex-row h-screen w-full overflow-hidden relative bg-slate-50">
-                <SubmissionModal 
-                    isOpen={showSubmissionModal} 
-                    onClose={() => setShowSubmissionModal(false)}
-                    onDownload={handleDownloadSubmission}
-                    studentName={studentName}
-                    setStudentName={setStudentName}
-                />
-                
-                <PasswordModal
-                    isOpen={showPasswordModal}
-                    onClose={() => setShowPasswordModal(false)}
-                    onSuccess={() => setIsInstructor(true)}
-                />
+            <div className="flex flex-col h-screen w-full overflow-hidden relative bg-slate-100 font-sans">
+                <Toast message={toastMessage} type={toastType} show={!!toastMessage} />
+                <SubmissionModal isOpen={showSubmissionModal} onClose={() => setShowSubmissionModal(false)} onDownload={handleDownloadSubmission} studentName={studentName} setStudentName={setStudentName} />
+                <PasswordModal isOpen={showPasswordModal} onClose={() => setShowPasswordModal(false)} onSuccess={() => setIsInstructor(true)} />
 
-                {/* LEFT: Data Panel (Dark Sidebar) - HIDDEN IN QUIZ MODE */}
-                {activeTab === 'simulation' && (
-                    <div 
-                        className="w-full md:w-auto h-1/2 md:h-full bg-[#0f172a] border-r border-slate-800 flex-shrink-0 z-20 shadow-xl"
-                        style={{ width: !isMobile ? `${sidebarWidth}%` : '100%' }}
-                    >
-                        <DataPanel companyKey={activeCompany} onCellClick={handleValueClick} />
-                    </div>
-                )}
-
-                {/* Resizer - HIDDEN IN QUIZ MODE */}
-                {activeTab === 'simulation' && !isMobile && (
-                    <div className="resizer hidden md:flex hover:bg-blue-500" onMouseDown={startResizing}>
-                        <div className="resizer-dots"></div>
-                    </div>
-                )}
-
-                {/* RIGHT: Workspace */}
-                <div className="flex-1 h-1/2 md:h-full bg-white flex flex-col overflow-hidden relative">
-                    {/* Header */}
-                    <div className="bg-white border-b border-slate-200 p-5 shadow-sm z-10">
-                        <div className="flex justify-between items-center mb-4">
-                            <div>
-                                <h1 className="text-xl font-bold text-slate-900 tracking-tight">Long-Term Asset Analysis</h1>
-                                <p className="text-xs text-slate-500 font-medium mt-0.5">PPE & Intangibles Simulation</p>
-                            </div>
-                            
-                            <div className="flex items-center gap-3">
-                                <button 
-                                    onClick={() => {
-                                        if (isInstructor) setIsInstructor(false);
-                                        else setShowPasswordModal(true);
-                                    }}
-                                    className={`p-2 rounded-full transition-all ${isInstructor ? 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200' : 'text-slate-300 hover:text-slate-500 hover:bg-slate-100'}`}
-                                    title={isInstructor ? "Exit Instructor Mode" : "Enter Instructor Mode"}
-                                >
-                                    <i data-lucide={isInstructor ? "unlock" : "lock"} className="w-4 h-4"></i>
-                                </button>
-
-                                {/* Company Toggles - VISIBLE ONLY IN SIMULATION MODE */}
-                                {activeTab === 'simulation' && (
-                                    <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200">
-                                        <button 
-                                            onClick={() => setActiveCompany('ITW')}
-                                            className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all shadow-sm ${activeCompany === 'ITW' ? 'bg-white text-blue-700 ring-1 ring-black/5' : 'text-slate-500 hover:text-slate-700'}`}
-                                        >
-                                            ITW
-                                        </button>
-                                        <button 
-                                            onClick={() => setActiveCompany('PH')}
-                                            className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all shadow-sm ${activeCompany === 'PH' ? 'bg-white text-blue-700 ring-1 ring-black/5' : 'text-slate-500 hover:text-slate-700'}`}
-                                        >
-                                            PH
-                                        </button>
-                                    </div>
-                                )}
+                {/* Level Up Modal */}
+                {showLevelUp && (
+                    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[100]">
+                        <div className="bg-white p-10 rounded-3xl shadow-2xl text-center level-up-modal max-w-sm border-4 border-yellow-400 relative overflow-hidden">
+                            <div className="absolute -top-10 -right-10 text-yellow-100 opacity-50"><i data-lucide="star" className="w-40 h-40"></i></div>
+                            <i data-lucide="chevrons-up" className="w-16 h-16 mx-auto mb-4 text-yellow-500 animate-bounce relative z-10"></i>
+                            <h2 className="text-4xl font-black text-slate-800 tracking-tight mb-2 relative z-10">Level Up!</h2>
+                            <p className="text-slate-500 font-bold uppercase tracking-widest mb-6 relative z-10 text-sm">You are now a</p>
+                            <div className="text-2xl font-black text-indigo-700 bg-indigo-50 px-6 py-4 rounded-2xl border-2 border-indigo-100 relative z-10 shadow-sm">
+                                {currentLevelObj.title}
                             </div>
                         </div>
+                    </div>
+                )}
 
-                        {/* TAB NAVIGATION & TOOLS */}
-                        <div className="flex justify-between items-end border-b border-slate-100 pb-1">
-                            <div className="flex space-x-6">
-                                <button
-                                    onClick={() => setActiveTab('simulation')}
-                                    className={`pb-2 px-1 text-sm font-semibold transition-colors border-b-2 ${
-                                        activeTab === 'simulation' 
-                                        ? 'border-blue-600 text-blue-600' 
-                                        : 'border-transparent text-slate-500 hover:text-slate-800'
-                                    }`}
-                                >
-                                    Simulation
-                                </button>
-                                <button
-                                    onClick={() => setActiveTab('quiz')}
-                                    className={`pb-2 px-1 text-sm font-semibold transition-colors border-b-2 ${
-                                        activeTab === 'quiz' 
-                                        ? 'border-blue-600 text-blue-600' 
-                                        : 'border-transparent text-slate-500 hover:text-slate-800'
-                                    }`}
-                                >
-                                    Knowledge Quiz
-                                </button>
+                {/* Top Gamified Header */}
+                <div className="bg-slate-900 text-white px-4 py-3 flex justify-between items-center shadow-lg z-50 shrink-0 border-b border-slate-800">
+                    <div className="flex items-center gap-6 flex-1">
+                        <div className="flex items-center gap-4">
+                            <h1 className="font-black text-xl tracking-tight flex items-center gap-2">
+                                <div className="bg-indigo-500 p-1.5 rounded shadow-sm"><i data-lucide="building-2" className="w-4 h-4 text-white"></i></div>
+                                FinSim
+                                <span className="font-medium text-slate-400 text-sm hidden sm:inline ml-1 border-l border-slate-700 pl-3">Long-Term Assets</span>
+                            </h1>
+                            {activeTab === 'simulation' && (
+                                <div className="bg-slate-800 p-1 rounded-lg flex ml-2 border border-slate-700/50">
+                                    <button onClick={() => setActiveCompany('ITW')} className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${activeCompany === 'ITW' ? 'bg-indigo-600 shadow-sm text-white' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700'}`}> ITW </button>
+                                    <button onClick={() => setActiveCompany('PH')} className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${activeCompany === 'PH' ? 'bg-indigo-600 shadow-sm text-white' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700'}`}> PH </button>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Player XP HUD */}
+                        <div className="flex-1 max-w-md ml-auto mr-8 hidden lg:block cursor-help" title="Solve inputs correctly to earn XP and Level Up!">
+                            <div className="flex justify-between text-[11px] font-black mb-1.5 px-1 tracking-wider uppercase">
+                                <span className="text-yellow-400 flex items-center gap-1.5">
+                                    <i data-lucide={currentLevelObj.icon} className="w-3.5 h-3.5"></i> Lvl {levelIndex}: {currentLevelObj.title}
+                                </span>
+                                <span className="text-slate-300 font-mono">{currentXP} / {nextLevelObj.threshold === currentLevelObj.threshold ? 'MAX' : nextLevelObj.threshold} XP</span>
                             </div>
-                            
-                            {/* Action Buttons */}
-                            <div className="flex gap-2 pb-1">
-                                {isInstructor && (
-                                    <>
-                                        {activeTab === 'simulation' ? (
-                                            <>
-                                                <button 
-                                                    onClick={handleAutoFill}
-                                                    className="text-[10px] uppercase font-bold bg-teal-50 text-teal-700 px-3 py-1.5 rounded border border-teal-200 hover:bg-teal-100 flex items-center gap-1.5 transition-colors"
-                                                >
-                                                    <i data-lucide="wand-2" className="w-3 h-3"></i> Auto-Fill
-                                                </button>
-                                                <button 
-                                                    onClick={handleClear}
-                                                    className="text-[10px] uppercase font-bold bg-slate-100 text-slate-600 px-3 py-1.5 rounded border border-slate-200 hover:bg-red-50 hover:text-red-600 hover:border-red-200 flex items-center gap-1.5 transition-colors"
-                                                >
-                                                    <i data-lucide="trash-2" className="w-3 h-3"></i> Clear
-                                                </button>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <button 
-                                                    onClick={handleQuizAutoFill}
-                                                    className="text-[10px] uppercase font-bold bg-teal-50 text-teal-700 px-3 py-1.5 rounded border border-teal-200 hover:bg-teal-100 flex items-center gap-1.5 transition-colors"
-                                                >
-                                                    <i data-lucide="wand-2" className="w-3 h-3"></i> Solve Quiz
-                                                </button>
-                                                <button 
-                                                    onClick={handleQuizClear}
-                                                    className="text-[10px] uppercase font-bold bg-slate-100 text-slate-600 px-3 py-1.5 rounded border border-slate-200 hover:bg-red-50 hover:text-red-600 hover:border-red-200 flex items-center gap-1.5 transition-colors"
-                                                >
-                                                    <i data-lucide="trash-2" className="w-3 h-3"></i> Clear
-                                                </button>
-                                            </>
-                                        )}
-                                    </>
-                                )}
-                                
-                                <input
-                                    type="file"
-                                    ref={fileInputRef}
-                                    accept=".txt"
-                                    style={{ display: 'none' }}
-                                    onChange={handleFileUpload}
-                                />
-                                <button 
-                                    onClick={() => fileInputRef.current && fileInputRef.current.click()} 
-                                    className="text-[10px] uppercase font-bold bg-slate-50 text-slate-700 px-3 py-1.5 rounded border border-slate-200 hover:bg-slate-100 flex items-center gap-1.5 transition-colors"
-                                >
-                                    <i data-lucide="upload" className="w-3 h-3"></i> Load
-                                </button>
-
-                                <button 
-                                    onClick={() => setShowSubmissionModal(true)}
-                                    className="text-[10px] uppercase font-bold bg-blue-50 text-blue-700 px-3 py-1.5 rounded border border-blue-200 hover:bg-blue-100 flex items-center gap-1.5 transition-colors"
-                                >
-                                    <i data-lucide="download" className="w-3 h-3"></i> Save
-                                </button>
+                            <div className="h-2 w-full bg-slate-800 rounded-full overflow-hidden shadow-inner border border-slate-700">
+                                 <div className="h-full bg-gradient-to-r from-yellow-500 to-amber-500 transition-all duration-700 ease-out" style={{ width: `${xpProgressPercent}%` }}></div>
                             </div>
                         </div>
                     </div>
 
-                    {/* Scrollable Content */}
-                    <div className="flex-1 overflow-y-auto p-6 md:p-10 custom-scrollbar bg-slate-50">
-                        
-                        {activeTab === 'quiz' ? (
-                            <Quiz 
-                                answers={quizAnswers}
-                                onSelect={(q, o) => setQuizAnswers(prev => ({...prev, [q]: o}))}
-                                showResults={quizShowResults}
-                                setShowResults={setQuizShowResults}
-                                setAnswers={setQuizAnswers}
-                            />
-                        ) : (
-                            <div className="max-w-4xl mx-auto space-y-8">
-                                {/* Section 1: Violet Theme */}
-                                <div className="bg-white p-6 rounded-xl border border-violet-100 shadow-sm ring-1 ring-violet-50">
-                                    <div className="flex items-center gap-3 mb-4">
-                                        <div className="bg-violet-100 p-2 rounded-lg text-violet-600"><i data-lucide="activity" className="w-5 h-5"></i></div>
-                                        <div>
-                                            <SectionHeader title="1. PPE Productivity & Efficiency" sectionKey="s1" colorClass="text-violet-900" />
-                                        </div>
-                                    </div>
-                                    <FormulaBox show={showFormula.s1} borderColor="border-violet-200" bgColor="bg-violet-50" textColor="text-violet-800">
-                                        Avg Net PPE = (Net PPE 2022 + Net PPE 2021) / 2 <br/>
-                                        PPE Turnover = Revenue / Avg Net PPE
-                                    </FormulaBox>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-2">
-                                        <div>
-                                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Average Net PPE</label>
-                                            <SmartInput 
-                                                id="avgNetPPE"
-                                                value={inputValues[activeCompany].avgNetPPE || ""}
-                                                onChange={handleInputChange}
-                                                onFocus={handleFocus}
-                                                isActive={activeInputId === "avgNetPPE"}
-                                                expectedValue={expectations.avgNetPPE}
-                                                placeholder="(Year 2 + Year 1) / 2"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">PPE Turnover</label>
-                                            <SmartInput 
-                                                id="ppeTurnover"
-                                                value={inputValues[activeCompany].ppeTurnover || ""}
-                                                onChange={handleInputChange}
-                                                onFocus={handleFocus}
-                                                isActive={activeInputId === "ppeTurnover"}
-                                                expectedValue={expectations.ppeTurnover}
-                                                placeholder="Revenue / Avg Net PPE"
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Section 2: Cyan Theme */}
-                                <div className="bg-white p-6 rounded-xl border border-cyan-100 shadow-sm ring-1 ring-cyan-50">
-                                    <div className="flex items-center gap-3 mb-4">
-                                        <div className="bg-cyan-100 p-2 rounded-lg text-cyan-600"><i data-lucide="clock" className="w-5 h-5"></i></div>
-                                        <div>
-                                            <SectionHeader title="2. Asset Aging & Replacement" sectionKey="s2" colorClass="text-cyan-900" />
-                                        </div>
-                                    </div>
-                                    <FormulaBox show={showFormula.s2} borderColor="border-cyan-200" bgColor="bg-cyan-50" textColor="text-cyan-800">
-                                        Avg Gross PPE = (Gross PPE 2022 + Gross PPE 2021) / 2 <br/>
-                                        Avg Useful Life = Avg Gross PPE / Depreciation Expense <br/>
-                                        Percent Used Up = Acc. Depreciation / Total Gross PPE
-                                    </FormulaBox>
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-2">
-                                        <div>
-                                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Avg Gross PPE</label>
-                                            <SmartInput 
-                                                id="avgGrossPPE"
-                                                value={inputValues[activeCompany].avgGrossPPE || ""}
-                                                onChange={handleInputChange}
-                                                onFocus={handleFocus}
-                                                isActive={activeInputId === "avgGrossPPE"}
-                                                expectedValue={expectations.avgGrossPPE}
-                                                placeholder="(Gross 22 + Gross 21)/2"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Est. Avg Useful Life</label>
-                                            <SmartInput 
-                                                id="avgUsefulLife"
-                                                value={inputValues[activeCompany].avgUsefulLife || ""}
-                                                onChange={handleInputChange}
-                                                onFocus={handleFocus}
-                                                isActive={activeInputId === "avgUsefulLife"}
-                                                expectedValue={expectations.avgUsefulLife}
-                                                placeholder="Avg Gross / Depr. Exp"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">% Used Up (2022)</label>
-                                            <SmartInput 
-                                                id="percentUsed"
-                                                value={inputValues[activeCompany].percentUsed || ""}
-                                                onChange={handleInputChange}
-                                                onFocus={handleFocus}
-                                                isActive={activeInputId === "percentUsed"}
-                                                expectedValue={expectations.percentUsed}
-                                                placeholder="(Acc Dep / Gross) * 100"
-                                                isPercentage={true}
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Section 3: Amber Theme */}
-                                <div className="bg-white p-6 rounded-xl border border-amber-100 shadow-sm ring-1 ring-amber-50">
-                                    <div className="flex items-center gap-3 mb-4">
-                                        <div className="bg-amber-100 p-2 rounded-lg text-amber-600"><i data-lucide="layers" className="w-5 h-5"></i></div>
-                                        <div>
-                                            <SectionHeader title="3. Intangibles & Goodwill" sectionKey="s3" colorClass="text-amber-900" />
-                                        </div>
-                                    </div>
-                                    <FormulaBox show={showFormula.s3} borderColor="border-amber-200" bgColor="bg-amber-50" textColor="text-amber-800">
-                                        Intangibles % = (Intangibles / Total Assets) * 100 <br/>
-                                        Goodwill % = (Goodwill / Total Assets) * 100
-                                    </FormulaBox>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-2">
-                                        <div>
-                                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Intangibles % of Assets</label>
-                                            <SmartInput 
-                                                id="intPct"
-                                                value={inputValues[activeCompany].intPct || ""}
-                                                onChange={handleInputChange}
-                                                onFocus={handleFocus}
-                                                isActive={activeInputId === "intPct"}
-                                                expectedValue={expectations.intPct}
-                                                placeholder="(Intangibles / Assets) * 100"
-                                                isPercentage={true}
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Goodwill % of Assets</label>
-                                            <SmartInput 
-                                                id="gwPct"
-                                                value={inputValues[activeCompany].gwPct || ""}
-                                                onChange={handleInputChange}
-                                                onFocus={handleFocus}
-                                                isActive={activeInputId === "gwPct"}
-                                                expectedValue={expectations.gwPct}
-                                                placeholder="(Goodwill / Assets) * 100"
-                                                isPercentage={true}
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Section 4: Rose Theme (Deep Dive) */}
-                                <div className="bg-white p-6 rounded-xl border border-rose-100 shadow-sm ring-1 ring-rose-50">
-                                    <div className="flex items-center gap-3 mb-6">
-                                        <div className="bg-rose-100 p-2 rounded-lg text-rose-600"><i data-lucide="microscope" className="w-5 h-5"></i></div>
-                                        <div className="flex-1 flex justify-between items-center">
-                                            <div>
-                                                <h3 className="font-bold text-rose-900 text-lg">Section 4: Deep Dive - M&A & Intangibles</h3>
-                                                <p className="text-xs text-rose-700">Analyze the specific acquisition notes and intangible breakdowns.</p>
-                                            </div>
-                                            <div className="flex gap-2">
-                                                <a href={DATA_SETS[activeCompany].sec_link} target="_blank" rel="noreferrer" className="text-[10px] font-bold uppercase bg-white text-blue-600 px-3 py-1.5 rounded border border-blue-200 hover:bg-blue-50 flex items-center gap-1.5 shadow-sm transition-colors">
-                                                    10-K <i data-lucide="external-link" className="w-3 h-3"></i>
-                                                </a>
-                                                <button onClick={toggleSolution} className={`text-[10px] font-bold uppercase px-3 py-1.5 rounded border flex items-center gap-1.5 shadow-sm transition-colors ${showSolution ? 'bg-teal-100 text-teal-800 border-teal-300' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}>
-                                                    {showSolution ? "Hide Data" : "Reveal Data"} <i data-lucide={showSolution ? "eye-off" : "eye"} className="w-3 h-3"></i>
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {showSolution && (
-                                        <SolutionDataViewer companyKey={activeCompany} noteKeys={activeCompany === 'ITW' ? ['note_9', 'note_intangibles'] : ['note_3', 'note_8']} />
-                                    )}
-
-                                    {activeCompany === 'ITW' ? (
-                                        <>
-                                            <SectionHeader title="Part A: MTS Acquisition (Note 9)" sectionKey="s4" hideFormula={true} colorClass="text-slate-700 text-sm uppercase tracking-wide" />
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                                                <div>
-                                                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Goodwill Recorded</label>
-                                                    <SmartInput 
-                                                        id="mtsGw"
-                                                        value={inputValues[activeCompany].mtsGw || ""}
-                                                        onChange={handleInputChange}
-                                                        onFocus={handleFocus}
-                                                        isActive={activeInputId === "mtsGw"}
-                                                        expectedValue={expectations.mtsGw}
-                                                        placeholder="Find in Note 9"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Intangibles Recorded</label>
-                                                    <SmartInput 
-                                                        id="mtsInt"
-                                                        value={inputValues[activeCompany].mtsInt || ""}
-                                                        onChange={handleInputChange}
-                                                        onFocus={handleFocus}
-                                                        isActive={activeInputId === "mtsInt"}
-                                                        expectedValue={expectations.mtsInt}
-                                                        placeholder="Find in Note 9"
-                                                    />
-                                                </div>
-                                            </div>
-
-                                            <SectionHeader title="Part B: Net Carrying Values 2022" sectionKey="s4" hideFormula={true} colorClass="text-slate-700 text-sm uppercase tracking-wide" />
-                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                                                <div>
-                                                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Customer Lists</label>
-                                                    <SmartInput 
-                                                        id="ncvCust"
-                                                        value={inputValues[activeCompany].ncvCust || ""}
-                                                        onChange={handleInputChange}
-                                                        onFocus={handleFocus}
-                                                        isActive={activeInputId === "ncvCust"}
-                                                        expectedValue={expectations.ncvCust}
-                                                        placeholder="Net Value"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Trademarks</label>
-                                                    <SmartInput 
-                                                        id="ncvTrade"
-                                                        value={inputValues[activeCompany].ncvTrade || ""}
-                                                        onChange={handleInputChange}
-                                                        onFocus={handleFocus}
-                                                        isActive={activeInputId === "ncvTrade"}
-                                                        expectedValue={expectations.ncvTrade}
-                                                        placeholder="Net Value"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Patents</label>
-                                                    <SmartInput 
-                                                        id="ncvPat"
-                                                        value={inputValues[activeCompany].ncvPat || ""}
-                                                        onChange={handleInputChange}
-                                                        onFocus={handleFocus}
-                                                        isActive={activeInputId === "ncvPat"}
-                                                        expectedValue={expectations.ncvPat}
-                                                        placeholder="Net Value"
-                                                    />
-                                                </div>
-                                            </div>
-
-                                            <SectionHeader title="Part C: Amortization & Impairment" sectionKey="s4" hideFormula={true} colorClass="text-slate-700 text-sm uppercase tracking-wide" />
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-2">
-                                                <div>
-                                                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">2022 Amortization Expense</label>
-                                                    <SmartInput 
-                                                        id="itwAmort"
-                                                        value={inputValues[activeCompany].itwAmort || ""}
-                                                        onChange={handleInputChange}
-                                                        onFocus={handleFocus}
-                                                        isActive={activeInputId === "itwAmort"}
-                                                        expectedValue={expectations.itwAmort}
-                                                        placeholder="Find in Cash Flows"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Did ITW record Impairment?</label>
-                                                    <div className="relative">
-                                                        <select 
-                                                            value={inputValues[activeCompany].impairmentStatus || ""}
-                                                            onChange={(e) => handleInputChange('impairmentStatus', e.target.value)}
-                                                            className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 appearance-none shadow-sm"
-                                                        >
-                                                            <option value="">Select...</option>
-                                                            <option value="Yes">Yes</option>
-                                                            <option value="No">No</option>
-                                                        </select>
-                                                        <div className="absolute right-3 top-2.5 pointer-events-none text-slate-500">
-                                                            <i data-lucide="chevron-down" className="w-4 h-4"></i>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <SectionHeader title="Part A: Acquisition Impact (Note 3)" sectionKey="s4" hideFormula={true} colorClass="text-slate-700 text-sm uppercase tracking-wide" />
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                                                <div>
-                                                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Total Intangibles Acquired (2020)</label>
-                                                    <SmartInput 
-                                                        id="totalIntAcq"
-                                                        value={inputValues[activeCompany].totalIntAcq || ""}
-                                                        onChange={handleInputChange}
-                                                        onFocus={handleFocus}
-                                                        isActive={activeInputId === "totalIntAcq"}
-                                                        expectedValue={expectations.totalIntAcq}
-                                                        placeholder="Find in Note 3"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Total Goodwill Created (2020)</label>
-                                                    <SmartInput 
-                                                        id="totalGWAcq"
-                                                        value={inputValues[activeCompany].totalGWAcq || ""}
-                                                        onChange={handleInputChange}
-                                                        onFocus={handleFocus}
-                                                        isActive={activeInputId === "totalGWAcq"}
-                                                        expectedValue={expectations.totalGWAcq}
-                                                        placeholder="Find in Note 3"
-                                                    />
-                                                </div>
-                                            </div>
-
-                                            <SectionHeader title="Part B: Net Carrying Values 2020 (Note 8)" sectionKey="s4" hideFormula={true} colorClass="text-slate-700 text-sm uppercase tracking-wide" />
-                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                                                <div>
-                                                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Patents & Tech Net Value</label>
-                                                    <SmartInput 
-                                                        id="patNet"
-                                                        value={inputValues[activeCompany].patNet || ""}
-                                                        onChange={handleInputChange}
-                                                        onFocus={handleFocus}
-                                                        isActive={activeInputId === "patNet"}
-                                                        expectedValue={expectations.patNet}
-                                                        placeholder="Gross - Accum. Amort"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Trademarks Net Value</label>
-                                                    <SmartInput 
-                                                        id="tmNet"
-                                                        value={inputValues[activeCompany].tmNet || ""}
-                                                        onChange={handleInputChange}
-                                                        onFocus={handleFocus}
-                                                        isActive={activeInputId === "tmNet"}
-                                                        expectedValue={expectations.tmNet}
-                                                        placeholder="Gross - Accum. Amort"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Customer Lists Net Value</label>
-                                                    <SmartInput 
-                                                        id="listNet"
-                                                        value={inputValues[activeCompany].listNet || ""}
-                                                        onChange={handleInputChange}
-                                                        onFocus={handleFocus}
-                                                        isActive={activeInputId === "listNet"}
-                                                        expectedValue={expectations.listNet}
-                                                        placeholder="Gross - Accum. Amort"
-                                                    />
-                                                </div>
-                                            </div>
-
-                                            <SectionHeader title="Part C: Amortization & Impairment" sectionKey="s4" hideFormula={true} colorClass="text-slate-700 text-sm uppercase tracking-wide" />
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
-                                                <div>
-                                                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">2020 Amortization Expense</label>
-                                                    <SmartInput 
-                                                        id="amort2020"
-                                                        value={inputValues[activeCompany].amort2020 || ""}
-                                                        onChange={handleInputChange}
-                                                        onFocus={handleFocus}
-                                                        isActive={activeInputId === "amort2020"}
-                                                        expectedValue={expectations.amort2020}
-                                                        placeholder="Hint: Check Cash Flows"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Did PH record Impairment?</label>
-                                                    <div className="relative">
-                                                        <select 
-                                                            value={inputValues[activeCompany].impairmentStatus || ""}
-                                                            onChange={(e) => handleInputChange('impairmentStatus', e.target.value)}
-                                                            className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 appearance-none shadow-sm"
-                                                        >
-                                                            <option value="">Select...</option>
-                                                            <option value="Yes, significant charges.">Yes, significant charges.</option>
-                                                            <option value="No, no charges recorded.">No, no charges recorded.</option>
-                                                        </select>
-                                                        <div className="absolute right-3 top-2.5 pointer-events-none text-slate-500">
-                                                            <i data-lucide="chevron-down" className="w-4 h-4"></i>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div className="mt-4 p-4 bg-blue-50/50 rounded-lg border border-blue-100">
-                                                <label className="block text-xs font-bold text-blue-800 mb-2 uppercase tracking-wide">Analysis Check</label>
-                                                <p className="text-sm text-blue-900 mb-3 font-medium">Observe the sharp jump in Goodwill % in 2020 (39.6%) vs 2019 (30.8%). What does this suggest?</p>
-                                                <div className="relative">
-                                                    <select className="w-full px-3 py-2 border border-blue-200 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 appearance-none shadow-sm text-slate-700">
-                                                        <option>Select your analysis...</option>
-                                                        <option>Significant acquisitions occurred (Inorganic Growth)</option>
-                                                        <option>Organic growth of internal assets</option>
-                                                        <option>Accounting error in 2019</option>
-                                                    </select>
-                                                    <div className="absolute right-3 top-2.5 pointer-events-none text-slate-500">
-                                                        <i data-lucide="chevron-down" className="w-4 h-4"></i>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </>
-                                    )}
-                                </div>
-                            </div>
+                    <div className="flex gap-2">
+                        {isInstructor && activeTab === 'simulation' && (
+                            <>
+                                <button onClick={handleAutoFill} className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 rounded text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 hidden md:flex transition-colors"><i data-lucide="wand-2" className="w-3 h-3"></i> Solve</button>
+                                <button onClick={handleClear} className="px-3 py-1.5 bg-rose-700 hover:bg-rose-600 rounded text-xs font-bold uppercase tracking-wider hidden md:block transition-colors">Clear</button>
+                            </>
                         )}
+                        <input type="file" ref={fileInputRef} accept=".txt" style={{ display: 'none' }} onChange={handleFileUpload} />
+                        <button onClick={() => fileInputRef.current && fileInputRef.current.click()} className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded text-sm flex items-center gap-1.5 transition-colors text-slate-300 hover:text-white">
+                            <i data-lucide="upload" className="w-4 h-4"></i> <span className="hidden md:inline font-semibold text-xs uppercase tracking-wide">Load</span>
+                        </button>
+                        <button onClick={() => setShowSubmissionModal(true)} className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 border border-indigo-500 rounded text-sm flex items-center gap-1.5 transition-colors text-white">
+                            <i data-lucide="save" className="w-4 h-4"></i> <span className="hidden md:inline font-semibold text-xs uppercase tracking-wide">Save</span>
+                        </button>
+                        <button onClick={() => isInstructor ? setIsInstructor(false) : setShowPasswordModal(true)} className={`px-3 py-1.5 rounded flex items-center gap-1 transition-colors border ${isInstructor ? 'bg-amber-500/20 text-amber-400 border-amber-500/50 hover:bg-amber-500/30' : 'bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-700 hover:text-white'}`}>
+                            <i data-lucide={isInstructor ? "unlock" : "lock"} className="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div className="flex flex-col md:flex-row flex-1 overflow-hidden relative">
+                    
+                    {/* Left Data Panel - ONLY SHOW IN SIMULATION */}
+                    {activeTab === 'simulation' && (
+                        <div className="w-full md:w-auto h-1/2 md:h-full bg-[#0b1121] border-r border-slate-800 flex-shrink-0 z-20 shadow-2xl" style={{ width: !isMobile ? `${sidebarWidth}%` : '100%' }}>
+                            <DataPanel companyKey={activeCompany} onCellClick={handleValueClick} />
+                        </div>
+                    )}
+                    {activeTab === 'simulation' && !isMobile && (
+                        <div className="resizer hover:bg-indigo-500" onMouseDown={startResizing}>
+                            <div className="resizer-dots"></div>
+                        </div>
+                    )}
+
+                    {/* Right Workspace */}
+                    <div className="flex-1 h-1/2 md:h-full bg-slate-50 flex flex-col overflow-hidden relative">
+                        
+                        {/* Interactive Tab Navigation */}
+                        <div className="bg-white border-b border-slate-200 px-6 pt-4 pb-0 z-10 shadow-sm flex items-end gap-6 overflow-x-auto custom-scrollbar shrink-0">
+                            <button onClick={() => setActiveTab('simulation')} className={`pb-3 px-2 text-sm font-bold transition-colors border-b-[3px] flex items-center gap-2 whitespace-nowrap ${activeTab === 'simulation' ? 'border-indigo-600 text-indigo-700' : 'border-transparent text-slate-400 hover:text-slate-700 hover:border-slate-300'}`}>
+                                <i data-lucide="calculator" className="w-4 h-4"></i> Asset Analysis
+                            </button>
+                            <button onClick={() => setActiveTab('quiz')} className={`pb-3 px-2 text-sm font-bold transition-colors border-b-[3px] flex items-center gap-2 whitespace-nowrap ${activeTab === 'quiz' ? 'border-indigo-600 text-indigo-700' : 'border-transparent text-slate-400 hover:text-slate-700 hover:border-slate-300'}`}>
+                                <i data-lucide="help-circle" className="w-4 h-4"></i> Theory Quiz
+                            </button>
+                            <button onClick={() => setActiveTab('profile')} className={`pb-3 px-2 text-sm font-bold transition-colors border-b-[3px] flex items-center gap-2 whitespace-nowrap ml-auto ${activeTab === 'profile' ? 'border-indigo-600 text-indigo-700' : 'border-transparent text-slate-400 hover:text-slate-700 hover:border-slate-300'}`}>
+                                <i data-lucide="bar-chart-2" className="w-4 h-4"></i> Profile & Stats
+                            </button>
+                        </div>
+
+                        {/* Scrollable Content Pane */}
+                        <div className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
+                            
+                            {activeTab === 'profile' && (
+                                <ProfileView stats={stats} correctCount={correctCount} totalCount={totalCount} currentXP={currentXP} currentLevelObj={currentLevelObj} nextLevelObj={nextLevelObj} />
+                            )}
+
+                            {activeTab === 'quiz' && (
+                                <Quiz answers={quizAnswers} onSelect={(q, o) => setQuizAnswers(prev => ({...prev, [q]: o}))} showResults={quizShowResults} setShowResults={setQuizShowResults} setAnswers={setQuizAnswers} onCorrectAnswer={() => showToast("+100 XP! Brilliant!", "xp")} />
+                            )}
+
+                            {activeTab === 'simulation' && (
+                                <div className="max-w-4xl mx-auto space-y-8 fade-in pb-20">
+                                    
+                                    {/* Section 1 */}
+                                    <div className="bg-white p-6 md:p-8 rounded-2xl border border-violet-100 shadow-sm hover:shadow-md transition-shadow">
+                                        <div className="flex items-center gap-4 mb-6">
+                                            <div className="bg-violet-100 p-3 rounded-xl text-violet-600"><i data-lucide="activity" className="w-6 h-6"></i></div>
+                                            <div className="flex-1"><SectionHeader title="1. PPE Productivity & Efficiency" sectionKey="s1" colorClass="text-violet-900" /></div>
+                                        </div>
+                                        <FormulaBox show={showFormula.s1} borderColor="border-violet-200" bgColor="bg-violet-50/50" textColor="text-violet-800">
+                                            Avg Net PPE = (Net PPE 2022 + Net PPE 2021) / 2 <br/>
+                                            PPE Turnover = Revenue / Avg Net PPE
+                                        </FormulaBox>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            <div>
+                                                <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2">Average Net PPE</label>
+                                                <SmartInput id="avgNetPPE" value={inputValues[activeCompany].avgNetPPE || ""} onChange={handleInputChange} onFocus={handleFocus} isActive={activeInputId === "avgNetPPE"} expectedValue={EXPECTATIONS[activeCompany].avgNetPPE} placeholder="(Y2 + Y1) / 2" />
+                                            </div>
+                                            <div>
+                                                <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2">PPE Turnover</label>
+                                                <SmartInput id="ppeTurnover" value={inputValues[activeCompany].ppeTurnover || ""} onChange={handleInputChange} onFocus={handleFocus} isActive={activeInputId === "ppeTurnover"} expectedValue={EXPECTATIONS[activeCompany].ppeTurnover} placeholder="Revenue / Avg Net" />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Section 2 */}
+                                    <div className="bg-white p-6 md:p-8 rounded-2xl border border-cyan-100 shadow-sm hover:shadow-md transition-shadow">
+                                        <div className="flex items-center gap-4 mb-6">
+                                            <div className="bg-cyan-100 p-3 rounded-xl text-cyan-600"><i data-lucide="clock" className="w-6 h-6"></i></div>
+                                            <div className="flex-1"><SectionHeader title="2. Asset Aging & Replacement" sectionKey="s2" colorClass="text-cyan-900" /></div>
+                                        </div>
+                                        <FormulaBox show={showFormula.s2} borderColor="border-cyan-200" bgColor="bg-cyan-50/50" textColor="text-cyan-800">
+                                            Avg Gross PPE = (Gross PPE 2022 + Gross PPE 2021) / 2 <br/>
+                                            Avg Useful Life = Avg Gross PPE / Depreciation Expense <br/>
+                                            Percent Used Up = Acc. Depreciation / Total Gross PPE
+                                        </FormulaBox>
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                            <div>
+                                                <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2">Avg Gross PPE</label>
+                                                <SmartInput id="avgGrossPPE" value={inputValues[activeCompany].avgGrossPPE || ""} onChange={handleInputChange} onFocus={handleFocus} isActive={activeInputId === "avgGrossPPE"} expectedValue={EXPECTATIONS[activeCompany].avgGrossPPE} placeholder="(G22+G21)/2" />
+                                            </div>
+                                            <div>
+                                                <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2">Est. Useful Life</label>
+                                                <SmartInput id="avgUsefulLife" value={inputValues[activeCompany].avgUsefulLife || ""} onChange={handleInputChange} onFocus={handleFocus} isActive={activeInputId === "avgUsefulLife"} expectedValue={EXPECTATIONS[activeCompany].avgUsefulLife} placeholder="Avg Gross/Depr" />
+                                            </div>
+                                            <div>
+                                                <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2">% Used Up (2022)</label>
+                                                <SmartInput id="percentUsed" value={inputValues[activeCompany].percentUsed || ""} onChange={handleInputChange} onFocus={handleFocus} isActive={activeInputId === "percentUsed"} expectedValue={EXPECTATIONS[activeCompany].percentUsed} placeholder="(Acc Dep/Gross)" isPercentage={true} />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Section 3 */}
+                                    <div className="bg-white p-6 md:p-8 rounded-2xl border border-amber-100 shadow-sm hover:shadow-md transition-shadow">
+                                        <div className="flex items-center gap-4 mb-6">
+                                            <div className="bg-amber-100 p-3 rounded-xl text-amber-600"><i data-lucide="layers" className="w-6 h-6"></i></div>
+                                            <div className="flex-1"><SectionHeader title="3. Intangibles & Goodwill" sectionKey="s3" colorClass="text-amber-900" /></div>
+                                        </div>
+                                        <FormulaBox show={showFormula.s3} borderColor="border-amber-200" bgColor="bg-amber-50/50" textColor="text-amber-800">
+                                            Intangibles % = (Intangibles / Total Assets) * 100 <br/>
+                                            Goodwill % = (Goodwill / Total Assets) * 100
+                                        </FormulaBox>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            <div>
+                                                <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2">Intangibles % of Assets</label>
+                                                <SmartInput id="intPct" value={inputValues[activeCompany].intPct || ""} onChange={handleInputChange} onFocus={handleFocus} isActive={activeInputId === "intPct"} expectedValue={EXPECTATIONS[activeCompany].intPct} placeholder="(Int / Assets)" isPercentage={true} />
+                                            </div>
+                                            <div>
+                                                <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2">Goodwill % of Assets</label>
+                                                <SmartInput id="gwPct" value={inputValues[activeCompany].gwPct || ""} onChange={handleInputChange} onFocus={handleFocus} isActive={activeInputId === "gwPct"} expectedValue={EXPECTATIONS[activeCompany].gwPct} placeholder="(GW / Assets)" isPercentage={true} />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Section 4 (Deep Dive) */}
+                                    <div className="bg-gradient-to-br from-white to-rose-50/30 p-6 md:p-8 rounded-2xl border border-rose-100 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden">
+                                        <div className="absolute -right-6 -bottom-6 opacity-10"><i data-lucide="microscope" className="w-48 h-48 text-rose-500"></i></div>
+                                        
+                                        <div className="flex items-start gap-4 mb-8 relative z-10">
+                                            <div className="bg-rose-100 p-3 rounded-xl text-rose-600 shadow-sm"><i data-lucide="microscope" className="w-6 h-6"></i></div>
+                                            <div className="flex-1">
+                                                <div className="flex justify-between items-center mb-1">
+                                                    <h3 className="font-black text-xl text-rose-900 tracking-tight">4. Deep Dive Analysis</h3>
+                                                    <div className="flex gap-2">
+                                                        <button onClick={toggleSolution} className={`text-[10px] font-bold uppercase px-3 py-1.5 rounded-lg border flex items-center gap-1.5 shadow-sm transition-all ${showSolution ? 'bg-indigo-100 text-indigo-800 border-indigo-200' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'}`}>
+                                                            {showSolution ? "Hide Data Notes" : "View Data Notes"} <i data-lucide={showSolution ? "eye-off" : "eye"} className="w-3.5 h-3.5"></i>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                <p className="text-sm font-medium text-rose-700/80">Investigate the specific M&A notes and intangible breakdowns.</p>
+                                            </div>
+                                        </div>
+
+                                        {showSolution && <div className="relative z-10"><SolutionDataViewer companyKey={activeCompany} noteKeys={activeCompany === 'ITW' ? ['note_9', 'note_intangibles'] : ['note_3', 'note_8']} /></div>}
+
+                                        {activeCompany === 'ITW' ? (
+                                            <div className="relative z-10 space-y-8">
+                                                <div>
+                                                    <SectionHeader title="Part A: MTS Acquisition (Note 9)" sectionKey="s4" hideFormula={true} colorClass="text-slate-800 text-sm uppercase tracking-wider" />
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                        <div>
+                                                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Goodwill Recorded</label>
+                                                            <SmartInput id="mtsGw" value={inputValues[activeCompany].mtsGw || ""} onChange={handleInputChange} onFocus={handleFocus} isActive={activeInputId === "mtsGw"} expectedValue={EXPECTATIONS[activeCompany].mtsGw} placeholder="See Note 9" />
+                                                        </div>
+                                                        <div>
+                                                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Intangibles Recorded</label>
+                                                            <SmartInput id="mtsInt" value={inputValues[activeCompany].mtsInt || ""} onChange={handleInputChange} onFocus={handleFocus} isActive={activeInputId === "mtsInt"} expectedValue={EXPECTATIONS[activeCompany].mtsInt} placeholder="See Note 9" />
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div>
+                                                    <SectionHeader title="Part B: Net Carrying Values 2022" sectionKey="s4" hideFormula={true} colorClass="text-slate-800 text-sm uppercase tracking-wider" />
+                                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                                        <div>
+                                                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Customer Lists</label>
+                                                            <SmartInput id="ncvCust" value={inputValues[activeCompany].ncvCust || ""} onChange={handleInputChange} onFocus={handleFocus} isActive={activeInputId === "ncvCust"} expectedValue={EXPECTATIONS[activeCompany].ncvCust} placeholder="Net Value" />
+                                                        </div>
+                                                        <div>
+                                                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Trademarks</label>
+                                                            <SmartInput id="ncvTrade" value={inputValues[activeCompany].ncvTrade || ""} onChange={handleInputChange} onFocus={handleFocus} isActive={activeInputId === "ncvTrade"} expectedValue={EXPECTATIONS[activeCompany].ncvTrade} placeholder="Net Value" />
+                                                        </div>
+                                                        <div>
+                                                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Patents</label>
+                                                            <SmartInput id="ncvPat" value={inputValues[activeCompany].ncvPat || ""} onChange={handleInputChange} onFocus={handleFocus} isActive={activeInputId === "ncvPat"} expectedValue={EXPECTATIONS[activeCompany].ncvPat} placeholder="Net Value" />
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div>
+                                                    <SectionHeader title="Part C: Amortization & Impairment" sectionKey="s4" hideFormula={true} colorClass="text-slate-800 text-sm uppercase tracking-wider" />
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                        <div>
+                                                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">2022 Amortization Expense</label>
+                                                            <SmartInput id="itwAmort" value={inputValues[activeCompany].itwAmort || ""} onChange={handleInputChange} onFocus={handleFocus} isActive={activeInputId === "itwAmort"} expectedValue={EXPECTATIONS[activeCompany].itwAmort} placeholder="From Cash Flows" />
+                                                        </div>
+                                                        <div>
+                                                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Did ITW record Impairment?</label>
+                                                            <div className="relative group">
+                                                                <select value={inputValues[activeCompany].impairmentStatus || ""} onChange={(e) => handleInputChange('impairmentStatus', e.target.value)} className="w-full px-4 py-2.5 border-2 border-slate-300 rounded-xl text-sm font-semibold focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 appearance-none shadow-sm transition-all bg-white text-slate-700">
+                                                                    <option value="">Select insight...</option>
+                                                                    <option value="Yes">Yes</option>
+                                                                    <option value="No">No</option>
+                                                                </select>
+                                                                <div className="absolute right-4 top-3.5 pointer-events-none text-slate-400 group-hover:text-indigo-500 transition-colors"><i data-lucide="chevron-down" className="w-4 h-4"></i></div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="relative z-10 space-y-8">
+                                                <div>
+                                                    <SectionHeader title="Part A: Acquisition Impact (Note 3)" sectionKey="s4" hideFormula={true} colorClass="text-slate-800 text-sm uppercase tracking-wider" />
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                        <div>
+                                                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Total Intangibles Acquired (2020)</label>
+                                                            <SmartInput id="totalIntAcq" value={inputValues[activeCompany].totalIntAcq || ""} onChange={handleInputChange} onFocus={handleFocus} isActive={activeInputId === "totalIntAcq"} expectedValue={EXPECTATIONS[activeCompany].totalIntAcq} placeholder="See Note 3" />
+                                                        </div>
+                                                        <div>
+                                                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Total Goodwill Created (2020)</label>
+                                                            <SmartInput id="totalGWAcq" value={inputValues[activeCompany].totalGWAcq || ""} onChange={handleInputChange} onFocus={handleFocus} isActive={activeInputId === "totalGWAcq"} expectedValue={EXPECTATIONS[activeCompany].totalGWAcq} placeholder="See Note 3" />
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div>
+                                                    <SectionHeader title="Part B: Net Carrying Values 2020 (Note 8)" sectionKey="s4" hideFormula={true} colorClass="text-slate-800 text-sm uppercase tracking-wider" />
+                                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                                        <div>
+                                                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Patents & Tech Net Value</label>
+                                                            <SmartInput id="patNet" value={inputValues[activeCompany].patNet || ""} onChange={handleInputChange} onFocus={handleFocus} isActive={activeInputId === "patNet"} expectedValue={EXPECTATIONS[activeCompany].patNet} placeholder="Gross - Acc. Amort" />
+                                                        </div>
+                                                        <div>
+                                                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Trademarks Net Value</label>
+                                                            <SmartInput id="tmNet" value={inputValues[activeCompany].tmNet || ""} onChange={handleInputChange} onFocus={handleFocus} isActive={activeInputId === "tmNet"} expectedValue={EXPECTATIONS[activeCompany].tmNet} placeholder="Gross - Acc. Amort" />
+                                                        </div>
+                                                        <div>
+                                                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Customer Lists Net Value</label>
+                                                            <SmartInput id="listNet" value={inputValues[activeCompany].listNet || ""} onChange={handleInputChange} onFocus={handleFocus} isActive={activeInputId === "listNet"} expectedValue={EXPECTATIONS[activeCompany].listNet} placeholder="Gross - Acc. Amort" />
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div>
+                                                    <SectionHeader title="Part C: Amortization & Impairment" sectionKey="s4" hideFormula={true} colorClass="text-slate-800 text-sm uppercase tracking-wider" />
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                                                        <div>
+                                                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">2020 Amortization Expense</label>
+                                                            <SmartInput id="amort2020" value={inputValues[activeCompany].amort2020 || ""} onChange={handleInputChange} onFocus={handleFocus} isActive={activeInputId === "amort2020"} expectedValue={EXPECTATIONS[activeCompany].amort2020} placeholder="From Cash Flows" />
+                                                        </div>
+                                                        <div>
+                                                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Did PH record Impairment?</label>
+                                                            <div className="relative group">
+                                                                <select value={inputValues[activeCompany].impairmentStatus || ""} onChange={(e) => handleInputChange('impairmentStatus', e.target.value)} className="w-full px-4 py-2.5 border-2 border-slate-300 rounded-xl text-sm font-semibold focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 appearance-none shadow-sm transition-all bg-white text-slate-700">
+                                                                    <option value="">Select insight...</option>
+                                                                    <option value="Yes, significant charges.">Yes, significant charges.</option>
+                                                                    <option value="No, no charges recorded.">No, no charges recorded.</option>
+                                                                </select>
+                                                                <div className="absolute right-4 top-3.5 pointer-events-none text-slate-400 group-hover:text-indigo-500 transition-colors"><i data-lucide="chevron-down" className="w-4 h-4"></i></div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="p-5 bg-indigo-50/80 rounded-xl border border-indigo-100 shadow-sm">
+                                                        <label className="block text-[11px] font-black text-indigo-800 mb-2 uppercase tracking-widest flex items-center gap-2"><i data-lucide="lightbulb" className="w-4 h-4"></i> Analysis Insight</label>
+                                                        <p className="text-sm text-indigo-900/80 mb-3 font-semibold">Observe the sharp jump in Goodwill % in 2020 (39.6%) vs 2019 (30.8%). What does this suggest?</p>
+                                                        <div className="relative group">
+                                                            <select className="w-full px-4 py-2.5 border-2 border-indigo-200 rounded-xl text-sm font-semibold focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 appearance-none shadow-sm text-slate-700 bg-white">
+                                                                <option>Select your analysis...</option>
+                                                                <option>Significant acquisitions occurred (Inorganic Growth)</option>
+                                                                <option>Organic growth of internal assets</option>
+                                                                <option>Accounting error in 2019</option>
+                                                            </select>
+                                                            <div className="absolute right-4 top-3.5 pointer-events-none text-indigo-400 group-hover:text-indigo-600 transition-colors"><i data-lucide="chevron-down" className="w-4 h-4"></i></div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
