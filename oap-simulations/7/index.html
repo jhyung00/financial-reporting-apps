@@ -17,6 +17,9 @@
     
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Confetti for Gamification -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
@@ -50,16 +53,61 @@
         .fade-in { animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        .hint-popover {
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity 0.2s, visibility 0.2s;
+        /* XP Gamification Animations */
+        @keyframes floatUp {
+            0% { opacity: 1; transform: translateY(0) scale(0.8); }
+            50% { opacity: 1; transform: translateY(-25px) scale(1.2); }
+            100% { opacity: 0; transform: translateY(-50px) scale(1); }
         }
-        .group:hover .hint-popover {
-            opacity: 1;
-            visibility: visible;
+        .animate-float-xp {
+            animation: floatUp 1.5s ease-out forwards;
+        }
+
+        /* Coin Spin Animation */
+        @keyframes spin-once {
+            0% { transform: rotateY(0deg) scale(1); }
+            50% { transform: rotateY(180deg) scale(1.3); }
+            100% { transform: rotateY(360deg) scale(1); }
+        }
+        .animate-spin-once {
+            animation: spin-once 0.6s ease-out;
+            display: inline-block;
         }
         
+        /* Animated Gradients for Top Rank */
+        @keyframes gradient-x {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+        .animate-gradient-x {
+            background-size: 200% 200%;
+            animation: gradient-x 3s ease infinite;
+        }
+
+        /* Level Up Toast Animation */
+        .level-up-toast {
+            animation: slideInDown 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275), fadeOutUp 0.5s 3.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+        @keyframes slideInDown {
+            from { transform: translate(-50%, -150%); opacity: 0; }
+            to { transform: translate(-50%, 0); opacity: 1; }
+        }
+        @keyframes fadeOutUp {
+            from { transform: translate(-50%, 0); opacity: 1; }
+            to { transform: translate(-50%, -150%); opacity: 0; }
+        }
+        
+        /* Progress Bar Striping */
+        @keyframes progressStripes {
+            0% { background-position: 1rem 0; }
+            100% { background-position: 0 0; }
+        }
+        .bg-stripes {
+            background-image: linear-gradient(45deg, rgba(255,255,255,0.2) 25%, transparent 25%, transparent 50%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0.2) 75%, transparent 75%, transparent);
+            background-size: 1rem 1rem;
+            animation: progressStripes 1s linear infinite;
+        }
+
         /* Resize Handle Styles */
         .resize-handle {
             transition: background-color 0.2s;
@@ -74,6 +122,43 @@
 
     <script type="text/babel">
         const { useState, useEffect, useMemo, useRef, useCallback } = React;
+
+        // --- GLOBAL SOUND SYNTHESIZER ---
+        const playCoinSound = () => {
+            try {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                if (!AudioContext) return;
+                const ctx = new AudioContext();
+                
+                // First tone "Cha"
+                const osc1 = ctx.createOscillator();
+                const gain1 = ctx.createGain();
+                osc1.connect(gain1);
+                gain1.connect(ctx.destination);
+                osc1.type = 'square';
+                osc1.frequency.setValueAtTime(1000, ctx.currentTime);
+                osc1.frequency.exponentialRampToValueAtTime(500, ctx.currentTime + 0.1);
+                gain1.gain.setValueAtTime(0, ctx.currentTime);
+                gain1.gain.linearRampToValueAtTime(0.05, ctx.currentTime + 0.02);
+                gain1.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
+                osc1.start(ctx.currentTime);
+                osc1.stop(ctx.currentTime + 0.1);
+
+                // Second tone "Ching"
+                const osc2 = ctx.createOscillator();
+                const gain2 = ctx.createGain();
+                osc2.connect(gain2);
+                gain2.connect(ctx.destination);
+                osc2.type = 'sine';
+                osc2.frequency.setValueAtTime(1200, ctx.currentTime + 0.1);
+                osc2.frequency.exponentialRampToValueAtTime(2000, ctx.currentTime + 0.3);
+                gain2.gain.setValueAtTime(0, ctx.currentTime + 0.1);
+                gain2.gain.linearRampToValueAtTime(0.1, ctx.currentTime + 0.12);
+                gain2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.6);
+                osc2.start(ctx.currentTime + 0.1);
+                osc2.stop(ctx.currentTime + 0.6);
+            } catch(e) {}
+        };
 
         // --- DATA & CONSTANTS ---
         const RAW_DATA = [
@@ -209,6 +294,7 @@
             "itw_ae_22": 1673, "itw_ae_pct": 10.8,
             "itw_at_22": 147, "itw_at_pct": 1.0,
             "analysis_2b": "PH had a large derivative contract ('deal contingent forward') related to a pending acquisition.",
+            "analysis_2c": "ITW carries a significantly higher percentage of Accrued Expenses compared to PH, indicating they may have more operational flexibility or differing compensation/supplier payment cycles.",
             "w_liab_21": 46, "w_liab_pct_21": 0.29, 
             "w_liab_22": 42, "w_liab_pct_22": 0.27,
             "w_exp_21": 34, "w_exp_pct_21": 0.24,
@@ -216,6 +302,7 @@
             "w_set_21": 34, 
             "w_set_22": 40,
             "w_compare": "The amount expensed is nearly identical to the amount paid to settle claims.",
+            "analysis_3b": "The liability percentage relative to total assets could decrease if the company's total assets grew at a much faster rate than their warranty provisions, or if product quality improved, requiring less reserved capital.",
             "itw_cp_22": 1053, "itw_cplt_22": 535, "itw_cll_22": 55,
             "ph_cp_22": 1422000, "ph_cplt_22": 302280, "ph_cll_22": 36023,
             "itw_nbv": 6708, "ph_nbv": 10058105,
@@ -223,8 +310,52 @@
             "rate_trend": "increase",
             "itw_mat_23": 535, "itw_mat_24": 1340, "itw_mat_25": 0, "itw_mat_26": 996, "itw_mat_27": 531,
             "ph_mat_23": 302000, "ph_mat_24": 1976000, "ph_mat_25": 1234000, "ph_mat_26": 400000, "ph_mat_27": 700000,
+            "analysis_4b": "PH faces a higher refinancing risk in the near term because they have almost $2 billion coming due in 2024 compared to ITW's $1.34 billion, combined with PH's higher overall reliance on Commercial Paper.",
             "ph_env_22": 16.4, "itw_cont_disc": "no"
         };
+
+        // Shared Validation Function
+        const validateAnswer = (val, correctValue, isPct = false) => {
+            if (correctValue === undefined || val === undefined || val === "") return false;
+
+            // Handle String Matching (Textareas or dropdowns)
+            if (typeof correctValue === 'string') {
+                if (correctValue.length > 20) {
+                    // For long explanations, just check if they typed a substantial answer
+                    return String(val).trim().length > 10;
+                } else {
+                    // Exact match for dropdowns or short texts
+                    return String(val).trim().toLowerCase() === correctValue.toLowerCase();
+                }
+            }
+
+            // Clean the string (Handle %, commas, spaces)
+            let cleanVal = String(val).replace(/[%,\s]/g, '');
+            let numVal = parseFloat(cleanVal);
+
+            // Eval simple math expressions
+            if (isNaN(numVal) && typeof val === 'string' && val.match(/[+\-*\/]/)) {
+                  try {
+                    numVal = Function('"use strict";return (' + val + ')')();
+                  } catch(e) {}
+            }
+
+            if (isNaN(numVal)) return false;
+            
+            // Tolerance: Max of 2% relative error or absolute 0.1
+            const tolerance = Math.max(Math.abs(correctValue * 0.02), 0.1); 
+            
+            // Direct Match Validation
+            let isValid = Math.abs(numVal - correctValue) <= tolerance;
+
+            // Smart Percentage Validation (Bi-directional)
+            if (isPct || Math.abs(correctValue) <= 1.0) {
+                 if (!isValid && Math.abs((numVal * 100) - correctValue) <= tolerance) isValid = true;
+                 if (!isValid && Math.abs((numVal / 100) - correctValue) <= tolerance) isValid = true;
+            }
+            return isValid;
+        };
+
 
         // --- GLOBAL COMPONENTS ---
 
@@ -232,23 +363,46 @@
             const selected = answers[id];
             const isCorrect = selected == correctIndex;
             const [showHint, setShowHint] = useState(false);
+            const [showXP, setShowXP] = useState(false);
+
+            const handleSelect = (idx) => {
+                onAnswer(id, idx);
+                if (idx == correctIndex && selected != correctIndex) {
+                    playCoinSound();
+                    setShowXP(true);
+                    setTimeout(() => setShowXP(false), 1500);
+                }
+            };
 
             return (
-                <div className="mb-6 border-b border-slate-200 pb-6 last:border-0">
-                    <div className="flex justify-between items-start mb-2">
-                        <h4 className="font-semibold text-slate-800 text-sm">{question}</h4>
-                        <button onClick={()=>setShowHint(!showHint)} className="text-blue-600 text-xs hover:underline font-medium">Hint?</button>
+                <div className="mb-6 border-b border-slate-200 pb-6 last:border-0 relative">
+                    <div className="flex justify-between items-start mb-2 relative">
+                        <h4 className="font-semibold text-slate-800 text-sm flex-1 mr-4">{question}</h4>
+                        
+                        {/* Hoverable Hint */}
+                        <div 
+                            className="text-blue-600 text-xs hover:underline font-medium cursor-help relative inline-block shrink-0 pt-0.5"
+                            onMouseEnter={() => setShowHint(true)}
+                            onMouseLeave={() => setShowHint(false)}
+                        >
+                            Hint?
+                            {/* Absolute Hint Popover */}
+                            {showHint && (
+                                <div className="absolute top-full right-0 mt-1 w-48 bg-slate-800 text-white text-xs p-2 rounded shadow-lg z-50 normal-case font-normal text-left">
+                                    {hint}
+                                </div>
+                            )}
+                        </div>
                     </div>
-                    {showHint && <div className="bg-blue-50 text-blue-800 text-xs p-2 mb-2 rounded border border-blue-100 italic">{hint}</div>}
                     
-                    <div className="space-y-2">
+                    <div className="space-y-2 relative">
                         {options.map((opt, idx) => (
                             <label key={idx} className={`flex items-center p-3 rounded-lg border cursor-pointer transition-all text-sm ${selected == idx ? (isCorrect ? 'bg-teal-50 border-teal-200 ring-1 ring-teal-200' : 'bg-red-50 border-red-200') : 'bg-white hover:bg-slate-50 border-slate-200'}`}>
                                 <input 
                                     type="radio" 
                                     name={id} 
                                     checked={selected == idx} 
-                                    onChange={() => onAnswer(id, idx)}
+                                    onChange={() => handleSelect(idx)}
                                     className="mr-3 accent-blue-600"
                                 />
                                 {opt}
@@ -256,6 +410,7 @@
                             </label>
                         ))}
                     </div>
+                    {showXP && <div className="absolute top-1/2 right-4 text-amber-500 font-black text-xl pointer-events-none animate-float-xp z-20 drop-shadow-md flex items-center gap-1"><span className="text-2xl animate-spin-once">🪙</span> +100 XP</div>}
                     {selected !== undefined && (
                         <div className={`mt-2 text-xs font-bold ${isCorrect ? 'text-teal-600' : 'text-red-500'}`}>
                             {isCorrect ? "Correct!" : "Try again."}
@@ -269,59 +424,31 @@
             const [localVal, setLocalVal] = useState(value || "");
             const [status, setStatus] = useState("neutral"); // neutral, correct, incorrect
             const [showHint, setShowHint] = useState(false);
+            const [showXP, setShowXP] = useState(false);
 
             useEffect(() => {
                 setLocalVal(value || "");
                 if (value === undefined || value === "" || value === null) {
                     setStatus("neutral");
                 } else {
-                    validate(value);
+                    validateLocal(value);
                 }
             }, [value]);
 
-            const validate = (val) => {
+            const validateLocal = (val) => {
                 if (correctValue === undefined) return;
-
-                // 1. Clean the string (Handle %, commas, spaces)
-                let cleanVal = String(val).replace(/[%,\s]/g, '');
-                let numVal = parseFloat(cleanVal);
-
-                // Eval simple math expressions
-                if (isNaN(numVal) && typeof val === 'string' && val.match(/[+\-*\/]/)) {
-                      try {
-                        numVal = Function('"use strict";return (' + val + ')')();
-                      } catch(e) {}
-                }
-
-                if (isNaN(numVal)) {
+                const isValid = validateAnswer(val, correctValue, isPct);
+                
+                if (isValid) {
+                    if (status !== "correct") {
+                        playCoinSound();
+                        setShowXP(true);
+                        setTimeout(() => setShowXP(false), 1500);
+                    }
+                    setStatus("correct");
+                } else {
                     setStatus("incorrect");
-                    return;
                 }
-                
-                // Tolerance: Max of 2% relative error or absolute 0.1
-                const tolerance = Math.max(Math.abs(correctValue * 0.02), 0.1); 
-                
-                // Direct Match Validation
-                let isValid = Math.abs(numVal - correctValue) <= tolerance;
-
-                // Smart Percentage Validation (Bi-directional)
-                // If the field implies percentage (isPct) or looks like a small decimal
-                if (isPct || Math.abs(correctValue) <= 1.0) {
-                     // Case A: Correct Value is stored as Percentage (e.g., 6.7)
-                     // User inputs Decimal (0.067) -> 0.067 * 100 = 6.7 (Match)
-                     if (!isValid && Math.abs((numVal * 100) - correctValue) <= tolerance) {
-                         isValid = true;
-                     }
-
-                     // Case B: Correct Value is stored as Decimal (e.g., 0.067)
-                     // User inputs Percentage Number (6.7) -> 6.7 / 100 = 0.067 (Match)
-                     if (!isValid && Math.abs((numVal / 100) - correctValue) <= tolerance) {
-                         isValid = true;
-                     }
-                }
-                
-                if (isValid) setStatus("correct");
-                else setStatus("incorrect");
             };
 
             const calculateExpression = (val) => {
@@ -351,11 +478,11 @@
                 if (calculated !== null) {
                     onAnswer(id, calculated);
                     setLocalVal(calculated);
-                    validate(calculated);
+                    validateLocal(calculated);
                     return;
                 }
                 onAnswer(id, val);
-                validate(val);
+                validateLocal(val);
             };
 
             const handleKeyDown = (e) => {
@@ -369,7 +496,7 @@
                                 isActive ? 'border-blue-500 ring-2 ring-blue-100 bg-white' : 'border-slate-300 bg-white';
 
             return (
-                <div className="flex flex-col group relative">
+                <div className="flex flex-col relative">
                     {label && <label className="text-[10px] text-slate-500 mb-1 uppercase font-bold tracking-wider">{label}</label>}
                     <div className="relative flex items-center">
                         <input
@@ -393,22 +520,24 @@
                                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
                              </div>
                          )}
+                         
+                         {showXP && <div className="absolute right-0 -top-8 text-amber-500 font-black text-lg pointer-events-none animate-float-xp z-50 drop-shadow-md whitespace-nowrap flex items-center gap-1"><span className="text-2xl animate-spin-once">🪙</span> +100 XP</div>}
 
                         {hint && (
-                            <button 
-                                className="ml-1 text-slate-300 hover:text-blue-500 focus:outline-none transition-colors"
-                                onClick={() => setShowHint(!showHint)}
-                                title="Click for Hint"
+                            <div 
+                                className="ml-2 text-slate-400 hover:text-amber-500 cursor-help transition-colors relative flex items-center justify-center h-full"
+                                onMouseEnter={() => setShowHint(true)}
+                                onMouseLeave={() => setShowHint(false)}
                             >
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-                            </button>
-                        )}
-
-                        {/* Hint Popover */}
-                        {showHint && (
-                            <div className="absolute z-10 bottom-full mb-2 right-0 w-48 bg-slate-800 text-white text-xs rounded p-2 shadow-lg z-50">
-                                {hint}
-                                <div className="absolute top-full right-2 border-4 border-transparent border-t-slate-800"></div>
+                                
+                                {/* Hint Popover */}
+                                {showHint && (
+                                    <div className="absolute z-50 bottom-full mb-2 right-0 w-48 bg-slate-800 text-white text-xs rounded p-2 shadow-lg font-sans text-left leading-relaxed">
+                                        {hint}
+                                        <div className="absolute top-full right-0.5 border-4 border-transparent border-t-slate-800"></div>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>
@@ -439,6 +568,46 @@
             const [isMobile, setIsMobile] = useState(false);
             const fileInputRef = useRef(null);
 
+            // --- GAMIFICATION LOGIC ---
+            const { score, totalPoints, pctComplete, rankInfo } = useMemo(() => {
+                let pts = 0;
+                let total = Object.keys(FULL_ANSWER_KEY).length;
+                
+                Object.keys(FULL_ANSWER_KEY).forEach(key => {
+                    const corVal = FULL_ANSWER_KEY[key];
+                    const stuVal = studentAnswers[key];
+                    if (stuVal === undefined || stuVal === "") return;
+                    
+                    if (validateAnswer(stuVal, corVal, true)) {
+                        pts++;
+                    }
+                });
+
+                const pct = total === 0 ? 0 : Math.round((pts / total) * 100);
+                
+                let rank = { name: "Novice Analyst", icon: "📘", color: "from-slate-400 to-slate-500", glow: "shadow-slate-900/50 text-slate-100" };
+                if (pct >= 100) rank = { name: "Master Analyst", icon: "🏛️", color: "from-yellow-300 via-amber-400 to-orange-500 animate-gradient-x", glow: "shadow-amber-500/40 text-white" };
+                else if (pct >= 80) rank = { name: "Principal Analyst", icon: "📊", color: "from-blue-600 to-indigo-800", glow: "shadow-blue-500/40 text-blue-100" };
+                else if (pct >= 60) rank = { name: "Lead Analyst", icon: "📈", color: "from-indigo-500 to-purple-600", glow: "shadow-purple-500/40 text-indigo-100" };
+                else if (pct >= 40) rank = { name: "Senior Associate", icon: "📋", color: "from-teal-400 to-emerald-500", glow: "shadow-teal-500/40 text-teal-50" };
+                else if (pct >= 20) rank = { name: "Financial Associate", icon: "📝", color: "from-cyan-500 to-blue-500", glow: "shadow-cyan-500/40 text-cyan-50" };
+
+                return { score: pts, totalPoints: total, pctComplete: pct, rankInfo: rank };
+            }, [studentAnswers]);
+
+            // Track Rank Changes for Level Up Hype
+            const prevRank = useRef("Novice Analyst");
+            const [showLevelUp, setShowLevelUp] = useState(null);
+
+            useEffect(() => {
+                if (rankInfo.name !== prevRank.current && score > 0) {
+                    setShowLevelUp(rankInfo);
+                    confetti({ particleCount: 150, spread: 80, origin: { y: 0.3 }, zIndex: 1000 });
+                    setTimeout(() => setShowLevelUp(null), 4000);
+                    prevRank.current = rankInfo.name;
+                }
+            }, [rankInfo.name, score]);
+
             // --- RESIZE LOGIC ---
             
             useEffect(() => {
@@ -462,7 +631,7 @@
             const resize = useCallback((mouseMoveEvent) => {
                 if (isResizing) {
                     const newWidth = mouseMoveEvent.clientX;
-                    if (newWidth > 200 && newWidth < 800) { // Min/Max constraints
+                    if (newWidth > 250 && newWidth < 800) { // Min/Max constraints
                         setSidebarWidth(newWidth);
                     }
                 }
@@ -544,7 +713,7 @@
                 if (!name) return;
                 setStudentName(name);
 
-                let content = `Financial Reporting and Analysis Simulation\nStudent: ${name}\nDate: ${new Date().toLocaleDateString()}\n\n-- ANSWERS --\n\n`;
+                let content = `Financial Analysis Simulation\nStudent: ${name}\nDate: ${new Date().toLocaleDateString()}\n\n-- ANSWERS --\n\n`;
                 Object.entries(studentAnswers).forEach(([key, val]) => {
                     content += `${key}: ${val}\n`;
                 });
@@ -557,7 +726,7 @@
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement("a");
                 a.href = url;
-                a.download = `${name.replace(/\s+/g, '_')}_Financial_Report.txt`;
+                a.download = `${name.replace(/\s+/g, '_')}_Financial_Analysis.txt`;
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
@@ -600,12 +769,51 @@
                 reader.readAsText(file);
             };
 
+            // Helpers for displaying active module icon in header
+            const getModuleIcon = () => {
+                switch(currentModule) {
+                    case 'conceptual': return <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>;
+                    case 'operating': return <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>;
+                    case 'warranty': return <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>;
+                    case 'debt': return <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>;
+                    case 'contingencies': return <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a10 10 0 1 0 10 10 4 4 0 0 1-5-5 4 4 0 0 1-5-5"></path><path d="M8.5 8.5v.01"></path><path d="M16 15.5v.01"></path><path d="M12 12v.01"></path><path d="M11 17v.01"></path><path d="M7 14v.01"></path></svg>;
+                    default: return null;
+                }
+            }
+            
+            const getModuleColorClass = () => {
+                switch(currentModule) {
+                    case 'conceptual': return 'text-violet-600 bg-violet-100';
+                    case 'operating': return 'text-cyan-600 bg-cyan-100';
+                    case 'warranty': return 'text-amber-600 bg-amber-100';
+                    case 'debt': return 'text-indigo-600 bg-indigo-100';
+                    case 'contingencies': return 'text-rose-600 bg-rose-100';
+                    default: return 'text-blue-600 bg-blue-100';
+                }
+            }
+
             // --- RENDER ---
             return (
                 <div className="flex flex-col md:flex-row h-screen overflow-hidden relative font-sans text-slate-800">
+                    
+                    {/* LEVEL UP MODAL */}
+                    {showLevelUp && (
+                        <div className="fixed top-12 left-1/2 -translate-x-1/2 z-[100] level-up-toast pointer-events-none">
+                            <div className="bg-slate-900/80 backdrop-blur-md p-6 rounded-2xl shadow-[0_0_40px_rgba(0,0,0,0.3)] flex items-center gap-5 border border-white/10">
+                                <div className="text-5xl animate-bounce drop-shadow-lg">{showLevelUp.icon}</div>
+                                <div>
+                                    <div className="text-white font-black text-2xl uppercase tracking-widest drop-shadow-md">Rank Up!</div>
+                                    <div className={`font-bold text-transparent bg-clip-text bg-gradient-to-r ${showLevelUp.color}`}>
+                                        You are now a {showLevelUp.name}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {/* CONFIRMATION MODAL */}
                     {confirmation.isOpen && (
-                        <div className="fixed inset-0 bg-slate-900 bg-opacity-70 flex items-center justify-center z-50 backdrop-blur-sm">
+                        <div className="fixed inset-0 bg-slate-900/70 flex items-center justify-center z-50 backdrop-blur-sm">
                             <div className="bg-white p-6 rounded-lg shadow-2xl w-96 animate-in fade-in zoom-in duration-200 border border-slate-200">
                                 <h3 className="font-bold text-lg mb-4 text-slate-800 flex items-center gap-2">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" className="text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
@@ -622,7 +830,7 @@
 
                     {/* PASSWORD MODAL */}
                     {showPwdModal && (
-                        <div className="fixed inset-0 bg-slate-900 bg-opacity-70 flex items-center justify-center z-50 backdrop-blur-sm">
+                        <div className="fixed inset-0 bg-slate-900/70 flex items-center justify-center z-50 backdrop-blur-sm">
                             <div className="bg-white p-6 rounded-lg shadow-2xl w-80 animate-in fade-in zoom-in duration-200 border border-slate-200">
                                 <h3 className="font-bold text-lg mb-4 text-slate-800 flex items-center gap-2">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" className="text-blue-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
@@ -654,14 +862,16 @@
                         style={{ width: isMobile ? '100%' : (isSidebarOpen ? sidebarWidth : '4rem') }}
                         className={`bg-[#0f172a] text-slate-300 flex flex-col shadow-2xl z-20 shrink-0 transition-width duration-200 ease-linear ${isMobile ? 'h-auto' : 'h-full'}`}
                     >
-                        <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-[#0f172a]">
+                        <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-[#0b1120]">
                             {(isSidebarOpen || isMobile) && (
                                 <div className="flex flex-col">
-                                    <h1 className="font-bold text-sm leading-tight text-white tracking-wide">Financial Reporting</h1>
-                                    <span className="text-[10px] text-blue-400 font-medium uppercase tracking-wider">& Analysis</span>
+                                    <h1 className="font-bold text-[15px] leading-tight text-white tracking-wide flex items-center gap-2 truncate">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" className="text-blue-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+                                        <span className="truncate">Financial Analysis Simulation</span>
+                                    </h1>
                                 </div>
                             )}
-                            <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-1.5 hover:bg-slate-800 text-slate-400 hover:text-white rounded ml-auto transition-colors">
+                            <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-1.5 hover:bg-slate-800 text-slate-400 hover:text-white rounded ml-auto transition-colors shrink-0">
                                 {isMobile ? (
                                     isSidebarOpen ? <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg> : <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
                                 ) : (
@@ -671,21 +881,73 @@
                         </div>
 
                         {/* Sidebar Content (Accordion on Mobile, Full on Desktop) */}
-                        <div className={`${isSidebarOpen ? 'block' : (isMobile ? 'hidden' : 'hidden')} flex-1 overflow-y-auto hide-scrollbar p-4 space-y-6 bg-[#0f172a]`}>
-                            <nav className="space-y-1">
+                        <div className={`${isSidebarOpen ? 'block' : (isMobile ? 'hidden' : 'hidden')} flex-1 overflow-y-auto hide-scrollbar bg-[#0f172a] flex flex-col`}>
+                            
+                            {/* PLAYER PROFILE CARD (Overarching Name Input & Rank) */}
+                            <div className="p-4 border-b border-slate-800 bg-[#0f172a] relative overflow-hidden shrink-0">
+                                {/* Decorative glow */}
+                                <div className={`absolute -top-10 -right-10 w-32 h-32 bg-gradient-to-br ${rankInfo.color} rounded-full blur-[40px] opacity-30 pointer-events-none transition-all duration-1000`}></div>
+                                
+                                <div className="relative z-10">
+                                    <input 
+                                        type="text" 
+                                        placeholder="Enter Player Name..." 
+                                        className="w-full bg-slate-900/80 border border-slate-700 text-white rounded-md px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all font-bold mb-4 placeholder:text-slate-500 shadow-inner"
+                                        value={studentName}
+                                        onChange={(e) => setStudentName(e.target.value)}
+                                    />
+
+                                    <div className={`rounded-xl p-[2px] bg-gradient-to-br ${rankInfo.color} ${rankInfo.glow} shadow-lg transition-all duration-1000`}>
+                                        <div className="bg-[#0b1120] rounded-[10px] p-3 h-full w-full relative overflow-hidden flex flex-col justify-center">
+                                            
+                                            <div className="flex justify-between items-end mb-2">
+                                                <div>
+                                                    <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-0.5">Current Rank</div>
+                                                    <div className={`font-black text-transparent bg-clip-text bg-gradient-to-br ${rankInfo.color} flex items-center gap-1.5`}>
+                                                        <span className="text-base drop-shadow-md">{rankInfo.icon}</span> 
+                                                        <span className={pctComplete===100?'text-white':''}>{rankInfo.name}</span>
+                                                    </div>
+                                                </div>
+                                                <div className="text-right">
+                                                    <div className="text-xl font-black text-white tracking-tighter drop-shadow-sm flex items-center gap-1">
+                                                        {score > 0 && <span className="text-sm">🪙</span>}
+                                                        {score * 100} <span className="text-[10px] text-slate-400 font-bold tracking-widest">XP</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Progress bar */}
+                                            <div className="w-full bg-slate-800/80 rounded-full h-2.5 shadow-inner overflow-hidden mt-1 ring-1 ring-white/5">
+                                                <div 
+                                                    className={`h-full rounded-full transition-all duration-1000 ease-out bg-stripes bg-gradient-to-r ${rankInfo.color}`}
+                                                    style={{ width: `${pctComplete}%` }}
+                                                ></div>
+                                            </div>
+                                            <div className="flex justify-between mt-1.5">
+                                                <span className="text-[9px] font-bold text-slate-500">Progress</span>
+                                                <span className={`text-[9px] font-bold ${pctComplete===100?'text-teal-400':'text-blue-400'}`}>{pctComplete}%</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* NAVIGATION */}
+                            <div className="p-4 space-y-1">
                                 <NavBtn id="conceptual" label="1. Conceptual Questions" active={currentModule} set={setCurrentModule} color="violet" />
                                 <NavBtn id="operating" label="2. Operating Liabilities" active={currentModule} set={setCurrentModule} color="cyan" />
                                 <NavBtn id="warranty" label="3. Warranty (ITW)" active={currentModule} set={setCurrentModule} color="amber" />
                                 <NavBtn id="debt" label="4. Debt & Liquidity" active={currentModule} set={setCurrentModule} color="indigo" />
                                 <NavBtn id="contingencies" label="5. Contingencies" active={currentModule} set={setCurrentModule} color="rose" />
-                            </nav>
+                            </div>
 
-                            <div className="border-t border-slate-800 pt-5">
+                            {/* REFERENCE DATA */}
+                            <div className="border-t border-slate-800 p-4 mt-auto">
                                 <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">Reference Data</h3>
-                                <p className="text-[11px] text-slate-400 mb-4 leading-relaxed bg-slate-900 p-2 rounded border border-slate-800">
+                                <p className="text-[11px] text-slate-400 mb-4 leading-relaxed bg-slate-900/50 p-2 rounded border border-slate-800/50">
                                     Use the tables below or the 10-K links. Click any number to insert it.
                                 </p>
-                                <div className="flex flex-col gap-2 mb-4 text-xs">
+                                <div className="flex flex-col gap-2 mb-4 text-xs font-medium">
                                     <a href="https://www.sec.gov/ix?doc=/Archives/edgar/data/0000076334/000007633422000034/ph-20220630.htm" target="_blank" className="text-blue-400 hover:text-blue-300 flex items-center gap-2 hover:underline decoration-blue-400/30 underline-offset-2 transition-all">
                                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
                                         PH 10-K (2022)
@@ -703,23 +965,43 @@
                             </div>
                         </div>
 
-                         {/* Footer Actions (Only shown when open) */}
-                        <div className={`${isSidebarOpen ? 'block' : (isMobile ? 'hidden' : 'hidden')} p-4 border-t border-slate-800 bg-[#0b1120] sticky bottom-0`}>
+                         {/* Footer Actions (Save/Load/Instructor) */}
+                        <div className={`${isSidebarOpen ? 'block' : (isMobile ? 'hidden' : 'hidden')} p-4 border-t border-slate-800 bg-[#0b1120] sticky bottom-0 space-y-3 z-30`}>
+                            
+                            {/* Save & Load Utilities Moved Here */}
+                            <div className="grid grid-cols-2 gap-2">
+                                <input
+                                    type="file"
+                                    ref={fileInputRef}
+                                    accept=".txt"
+                                    style={{ display: 'none' }}
+                                    onChange={handleFileUpload}
+                                />
+                                <button onClick={() => fileInputRef.current && fileInputRef.current.click()} className="bg-slate-800 hover:bg-slate-700 text-slate-300 py-1.5 px-2 rounded-md shadow-sm border border-slate-700 text-xs font-bold flex items-center justify-center gap-1.5 transition-all">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                                    Load
+                                </button>
+                                <button onClick={downloadAnswers} className="bg-blue-600/20 hover:bg-blue-600 text-blue-400 hover:text-white py-1.5 px-2 rounded-md shadow-sm border border-blue-500/30 hover:border-blue-500 text-xs font-bold flex items-center justify-center gap-1.5 transition-all">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                                    Save
+                                </button>
+                            </div>
+
                              {!teacherMode ? (
-                                 <button onClick={() => setShowPwdModal(true)} className="text-xs text-slate-500 hover:text-slate-300 flex items-center gap-2 transition-colors w-full p-1 rounded hover:bg-slate-800">
-                                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                                 <button onClick={() => setShowPwdModal(true)} className="text-[10px] text-slate-500 hover:text-slate-300 flex items-center justify-center gap-1.5 transition-colors w-full p-1 rounded hover:bg-slate-800 font-medium">
+                                     <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
                                      Instructor Access
                                  </button>
                              ) : (
                                  <div className="space-y-3">
-                                     <div className="text-xs text-teal-400 font-bold flex items-center gap-2 bg-teal-950/30 p-2 rounded border border-teal-900/50">
+                                     <div className="text-[10px] text-teal-400 font-bold flex items-center justify-center gap-1.5 bg-teal-950/30 p-1.5 rounded border border-teal-900/50 uppercase tracking-wider">
                                          <span>🔓 Instructor Mode</span>
                                      </div>
                                      <div className="grid grid-cols-2 gap-2">
-                                        <button onClick={autoFillAnswers} className="bg-teal-700 hover:bg-teal-600 text-white text-[10px] py-1.5 px-2 rounded shadow transition-colors font-medium">
+                                        <button onClick={autoFillAnswers} className="bg-teal-700 hover:bg-teal-600 text-white text-[10px] py-1.5 px-2 rounded shadow transition-colors font-bold">
                                             Auto-Fill
                                         </button>
-                                        <button onClick={clearAnswers} className="bg-slate-700 hover:bg-red-600 text-white text-[10px] py-1.5 px-2 rounded shadow transition-colors font-medium">
+                                        <button onClick={clearAnswers} className="bg-rose-900 hover:bg-rose-600 text-white text-[10px] py-1.5 px-2 rounded shadow transition-colors font-bold">
                                             Clear All
                                         </button>
                                      </div>
@@ -736,48 +1018,24 @@
                         />
                     )}
 
-                    {/* MAIN CONTENT */}
-                    <div className="flex-1 overflow-y-auto bg-slate-50 p-4 md:p-8">
-                        <header className="mb-8 flex flex-col md:flex-row gap-4 justify-between items-start md:items-center bg-white p-5 rounded-xl shadow-sm border border-slate-200">
-                            <div>
-                                <h2 className="text-xl font-bold text-slate-800 tracking-tight">
-                                    {currentModule === 'conceptual' && "1. Conceptual Questions & Research"}
-                                    {currentModule === 'operating' && "2. Operating Liabilities & Obligations"}
-                                    {currentModule === 'warranty' && "3. Warranty Liabilities (ITW Only)"}
-                                    {currentModule === 'debt' && "4. Debt & Liquidity Analysis"}
-                                    {currentModule === 'contingencies' && "5. Contingencies"}
-                                </h2>
-                                <p className="text-slate-500 text-xs mt-1 font-medium">
-                                    Financial Reporting & Analysis Simulation
-                                </p>
-                            </div>
-                            <div className="flex gap-3 items-center w-full md:w-auto">
-                                <input 
-                                    type="text" 
-                                    placeholder="Enter Student Name" 
-                                    className="border border-slate-300 rounded-md px-3 py-2 text-sm w-full md:w-56 focus:ring-2 focus:ring-blue-100 focus:border-blue-400 outline-none transition-all"
-                                    value={studentName}
-                                    onChange={(e) => setStudentName(e.target.value)}
-                                />
-                                <input
-                                    type="file"
-                                    ref={fileInputRef}
-                                    accept=".txt"
-                                    style={{ display: 'none' }}
-                                    onChange={handleFileUpload}
-                                />
-                                <button onClick={() => fileInputRef.current && fileInputRef.current.click()} className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-md shadow-sm border border-slate-300 text-sm font-medium flex items-center gap-2 transition-all shrink-0">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                                    Load
-                                </button>
-                                <button onClick={downloadAnswers} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md shadow-sm hover:shadow text-sm font-medium flex items-center gap-2 transition-all shrink-0">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                                    Save
-                                </button>
-                            </div>
+                    {/* MAIN CONTENT AREA */}
+                    <div className="flex-1 overflow-y-auto bg-slate-50 p-4 md:p-8 flex flex-col relative">
+                        
+                        {/* Streamlined Main Header */}
+                        <header className="mb-6">
+                            <h2 className="text-2xl font-extrabold text-slate-800 tracking-tight flex items-center gap-3">
+                                <span className={`p-2 rounded-lg shadow-sm ${getModuleColorClass()}`}>
+                                    {getModuleIcon()}
+                                </span>
+                                {currentModule === 'conceptual' && "1. Conceptual Questions & Research"}
+                                {currentModule === 'operating' && "2. Operating Liabilities & Obligations"}
+                                {currentModule === 'warranty' && "3. Warranty Liabilities (ITW Only)"}
+                                {currentModule === 'debt' && "4. Debt & Liquidity Analysis"}
+                                {currentModule === 'contingencies' && "5. Contingencies"}
+                            </h2>
                         </header>
 
-                        <div className="max-w-6xl mx-auto bg-white rounded-xl shadow-sm border border-slate-200 p-6 md:p-10 min-h-[600px]">
+                        <div className="max-w-6xl w-full bg-white rounded-xl shadow-sm border border-slate-200 p-6 md:p-10 min-h-[600px]">
                             {currentModule === 'conceptual' && (
                                 <ModuleConceptual 
                                     answers={studentAnswers}
@@ -846,7 +1104,7 @@
             return (
                 <button 
                     onClick={() => set(id)}
-                    className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-medium transition-all duration-200 ${isActive ? activeClass : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}
+                    className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-bold transition-all duration-200 ${isActive ? activeClass : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}
                 >
                     {label}
                 </button>
@@ -879,7 +1137,7 @@
                     <select 
                         value={statement} 
                         onChange={(e) => setStatement(e.target.value)}
-                        className="w-full mb-3 bg-slate-800 text-slate-200 text-[11px] p-2 rounded border border-slate-700 outline-none focus:border-blue-500 transition-colors"
+                        className="w-full mb-3 bg-slate-800 text-slate-200 text-[11px] font-bold p-2 rounded border border-slate-700 outline-none focus:border-blue-500 transition-colors"
                     >
                         <option value="Balance Sheet">Balance Sheet</option>
                         <option value="Income Statement">Income Statement</option>
@@ -928,7 +1186,7 @@
                         </div>
                         <div>
                             <h3 className="font-bold text-violet-900 text-lg mb-1">1. Conceptual Framework</h3>
-                            <p className="text-violet-700 text-sm leading-relaxed">Before analyzing the numbers, verify your understanding of the underlying financial concepts.</p>
+                            <p className="text-violet-700 text-sm leading-relaxed font-medium">Before analyzing the numbers, verify your understanding of the underlying financial concepts.</p>
                         </div>
                     </div>
 
@@ -991,8 +1249,8 @@
                              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
                         </div>
                         <div>
-                            <h3 className="font-semibold text-cyan-900 text-lg mb-1">2. Operating Liabilities</h3>
-                            <p className="text-sm text-cyan-800 leading-relaxed">
+                            <h3 className="font-bold text-cyan-900 text-lg mb-1">2. Operating Liabilities</h3>
+                            <p className="text-sm text-cyan-800 leading-relaxed font-medium">
                                 Perform common-size analysis (Liability / Total Assets) to compare structures.
                                 <br/><span className="italic text-xs opacity-80">Note: PH figures in thousands, ITW in millions. Use reference data.</span>
                             </p>
@@ -1001,7 +1259,7 @@
 
                     <div className="flex flex-col gap-10">
                         {/* Parker Hannifin - Stacked Top */}
-                        <div className="border border-slate-200 p-6 rounded-xl bg-white shadow-sm ring-1 ring-slate-100">
+                        <div className="border border-slate-200 p-6 rounded-xl bg-white shadow-sm ring-1 ring-slate-100 relative group">
                             <div className="flex items-center gap-2 border-b border-slate-100 pb-3 mb-5">
                                 <div className="w-2 h-6 bg-blue-600 rounded-sm"></div>
                                 <h4 className="font-bold text-slate-800 text-lg">Parker Hannifin (2022)</h4>
@@ -1039,7 +1297,7 @@
                         </div>
 
                         {/* ITW - Stacked Bottom */}
-                        <div className="border border-slate-200 p-6 rounded-xl bg-white shadow-sm ring-1 ring-slate-100">
+                        <div className="border border-slate-200 p-6 rounded-xl bg-white shadow-sm ring-1 ring-slate-100 relative group">
                              <div className="flex items-center gap-2 border-b border-slate-100 pb-3 mb-5">
                                 <div className="w-2 h-6 bg-cyan-600 rounded-sm"></div>
                                 <h4 className="font-bold text-slate-800 text-lg">ITW (2022)</h4>
@@ -1080,7 +1338,7 @@
                              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" className="text-cyan-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="21" y1="10" x2="3" y2="10"></line><line x1="21" y1="6" x2="3" y2="6"></line><line x1="21" y1="14" x2="3" y2="14"></line><line x1="21" y1="18" x2="3" y2="18"></line></svg>
                              Analysis Question:
                         </h4>
-                        <p className="mb-3 text-sm text-slate-600">Compare the "Other" liabilities for PH in 2022 vs 2021. Why is there a significant increase?</p>
+                        <p className="mb-3 text-sm text-slate-600 font-medium">Compare the "Other" liabilities for PH in 2022 vs 2021. Why is there a significant increase?</p>
                         <textarea 
                             className="w-full p-3 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-400 outline-none transition-all" 
                             rows="3" 
@@ -1088,7 +1346,21 @@
                             value={answers['analysis_2b'] || ''}
                             onChange={(e) => onAnswer('analysis_2b', e.target.value)}
                         />
-                        {teacherMode && <div className="mt-3 p-3 bg-teal-50 border border-teal-100 rounded text-teal-800 text-xs font-medium">Answer: PH had a large derivative contract ("deal contingent forward") related to a pending acquisition.</div>}
+                        {teacherMode && <div className="mt-3 p-3 bg-teal-50 border border-teal-100 rounded text-teal-800 text-xs font-bold">Answer: PH had a large derivative contract ("deal contingent forward") related to a pending acquisition.</div>}
+                        
+                        <h4 className="font-bold text-slate-800 mb-2 flex items-center gap-2 mt-6">
+                             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" className="text-blue-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                             Critical Thinking: Working Capital
+                        </h4>
+                        <p className="mb-3 text-sm text-slate-600 font-medium">How does the reliance on Operating Liabilities differ between PH and ITW, and what does this suggest about their working capital management?</p>
+                        <textarea 
+                            className="w-full p-3 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-400 outline-none transition-all" 
+                            rows="3" 
+                            placeholder="Type your analysis here..."
+                            value={answers['analysis_2c'] || ''}
+                            onChange={(e) => onAnswer('analysis_2c', e.target.value)}
+                        />
+                        {teacherMode && <div className="mt-3 p-3 bg-teal-50 border border-teal-100 rounded text-teal-800 text-xs font-bold">Answer: ITW carries a significantly higher percentage of Accrued Expenses compared to PH, indicating they may have more operational flexibility or differing compensation/supplier payment cycles.</div>}
                     </div>
                 </div>
             );
@@ -1102,8 +1374,8 @@
                              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
                         </div>
                         <div>
-                            <h3 className="font-semibold text-amber-900 text-lg mb-1">3. Warranty Liability Analysis (ITW)</h3>
-                            <div className="text-sm text-amber-800 leading-relaxed">
+                            <h3 className="font-bold text-amber-900 text-lg mb-1">3. Warranty Liability Analysis (ITW)</h3>
+                            <div className="text-sm text-amber-800 leading-relaxed font-medium">
                                 Examine ITW's warranty data (See Notes in 10-K). 
                                 <br/>Calculate percentages: 
                                 <ul className="list-disc list-inside mt-1 ml-2 opacity-80">
@@ -1114,34 +1386,34 @@
                         </div>
                     </div>
 
-                    <div className="overflow-x-auto bg-white rounded-xl shadow-sm border border-slate-200">
+                    <div className="overflow-x-auto bg-white rounded-xl shadow-sm border border-slate-200 relative group">
                         <table className="w-full text-sm text-left border-collapse">
                             <thead>
                                 <tr className="bg-slate-50 border-b border-slate-200">
-                                    <th className="p-4 text-slate-700 font-bold">ITW ($ millions)</th>
-                                    <th className="p-4 w-32 text-slate-700 font-bold text-center">2021</th>
-                                    <th className="p-4 w-32 text-slate-700 font-bold text-center">%</th>
-                                    <th className="p-4 w-32 text-slate-700 font-bold text-center">2022</th>
-                                    <th className="p-4 w-32 text-slate-700 font-bold text-center">%</th>
+                                    <th className="p-4 text-slate-700 font-extrabold">ITW ($ millions)</th>
+                                    <th className="p-4 w-32 text-slate-700 font-extrabold text-center">2021</th>
+                                    <th className="p-4 w-32 text-slate-700 font-extrabold text-center">%</th>
+                                    <th className="p-4 w-32 text-slate-700 font-extrabold text-center">2022</th>
+                                    <th className="p-4 w-32 text-slate-700 font-extrabold text-center">%</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
                                 <tr className="hover:bg-slate-50/50">
-                                    <td className="p-4 font-medium text-slate-700">Warranty Liability (End of Year)</td>
+                                    <td className="p-4 font-bold text-slate-700">Warranty Liability (End of Year)</td>
                                     <td className="p-4"><SmartInput id="w_liab_21" value={answers.w_liab_21} correctValue={46} onFocus={onFocus} onAnswer={onAnswer} isActive={activeId === 'w_liab_21'} teacherMode={teacherMode} hint="Check Notes"/></td>
                                     <td className="p-4"><SmartInput id="w_liab_pct_21" value={answers.w_liab_pct_21} correctValue={0.29} isPct onFocus={onFocus} onAnswer={onAnswer} isActive={activeId === 'w_liab_pct_21'} teacherMode={teacherMode} hint="Liab / Assets"/></td>
                                     <td className="p-4"><SmartInput id="w_liab_22" value={answers.w_liab_22} correctValue={42} onFocus={onFocus} onAnswer={onAnswer} isActive={activeId === 'w_liab_22'} teacherMode={teacherMode} hint="Check Notes"/></td>
                                     <td className="p-4"><SmartInput id="w_liab_pct_22" value={answers.w_liab_pct_22} correctValue={0.27} isPct onFocus={onFocus} onAnswer={onAnswer} isActive={activeId === 'w_liab_pct_22'} teacherMode={teacherMode} hint="Liab / Assets"/></td>
                                 </tr>
                                 <tr className="hover:bg-slate-50/50">
-                                    <td className="p-4 font-medium text-slate-700">Warranty Expense</td>
+                                    <td className="p-4 font-bold text-slate-700">Warranty Expense</td>
                                     <td className="p-4"><SmartInput id="w_exp_21" value={answers.w_exp_21} correctValue={34} onFocus={onFocus} onAnswer={onAnswer} isActive={activeId === 'w_exp_21'} teacherMode={teacherMode} hint="Check Notes"/></td>
                                     <td className="p-4"><SmartInput id="w_exp_pct_21" value={answers.w_exp_pct_21} correctValue={0.24} isPct onFocus={onFocus} onAnswer={onAnswer} isActive={activeId === 'w_exp_pct_21'} teacherMode={teacherMode} hint="Exp / Rev"/></td>
                                     <td className="p-4"><SmartInput id="w_exp_22" value={answers.w_exp_22} correctValue={41} onFocus={onFocus} onAnswer={onAnswer} isActive={activeId === 'w_exp_22'} teacherMode={teacherMode} hint="Check Notes"/></td>
                                     <td className="p-4"><SmartInput id="w_exp_pct_22" value={answers.w_exp_pct_22} correctValue={0.26} isPct onFocus={onFocus} onAnswer={onAnswer} isActive={activeId === 'w_exp_pct_22'} teacherMode={teacherMode} hint="Exp / Rev"/></td>
                                 </tr>
                                 <tr className="bg-slate-50/30">
-                                    <td className="p-4 font-medium text-slate-700">Warranty Settlements (Paid)</td>
+                                    <td className="p-4 font-bold text-slate-700">Warranty Settlements (Paid)</td>
                                     <td className="p-4"><SmartInput id="w_set_21" value={answers.w_set_21} correctValue={34} onFocus={onFocus} onAnswer={onAnswer} isActive={activeId === 'w_set_21'} teacherMode={teacherMode} hint="Check Notes"/></td>
                                     <td className="p-4 bg-slate-100/50"></td>
                                     <td className="p-4"><SmartInput id="w_set_22" value={answers.w_set_22} correctValue={40} onFocus={onFocus} onAnswer={onAnswer} isActive={activeId === 'w_set_22'} teacherMode={teacherMode} hint="Check Notes"/></td>
@@ -1156,7 +1428,7 @@
                              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" className="text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
                              Observation:
                         </h4>
-                        <p className="mb-3 text-sm text-slate-600">Compare the <strong>Warranty Expense</strong> and <strong>Warranty Settlements</strong> rows. What do you notice about the relationship between the amount expensed and the amount paid?</p>
+                        <p className="mb-3 text-sm text-slate-600 font-medium">Compare the <strong>Warranty Expense</strong> and <strong>Warranty Settlements</strong> rows. What do you notice about the relationship between the amount expensed and the amount paid?</p>
                         <textarea 
                             className="w-full p-3 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-100 focus:border-amber-400 outline-none transition-all" 
                             rows="2" 
@@ -1165,6 +1437,20 @@
                             onChange={(e) => onAnswer('w_compare', e.target.value)}
                         />
                         {teacherMode && <div className="mt-3 p-3 bg-white border border-amber-200 rounded text-amber-800 text-xs shadow-sm"><strong>Key Point:</strong> The amount expensed is nearly identical to the amount "paid" to settle the warranty claims.</div>}
+
+                        <h4 className="font-bold text-slate-800 mb-2 flex items-center gap-2 mt-6">
+                             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" className="text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                             Critical Thinking: Liability Trends
+                        </h4>
+                        <p className="mb-3 text-sm text-slate-600 font-medium">Why might a company's warranty liability percentage (as a % of total assets) decrease year-over-year even if total sales increased?</p>
+                        <textarea 
+                            className="w-full p-3 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-100 focus:border-amber-400 outline-none transition-all" 
+                            rows="3" 
+                            placeholder="Type your analysis here..."
+                            value={answers['analysis_3b'] || ''}
+                            onChange={(e) => onAnswer('analysis_3b', e.target.value)}
+                        />
+                        {teacherMode && <div className="mt-3 p-3 bg-white border border-amber-200 rounded text-amber-800 text-xs shadow-sm"><strong>Answer:</strong> The liability percentage relative to total assets could decrease if the company's total assets grew at a much faster rate than their warranty provisions, or if product quality improved, requiring less reserved capital.</div>}
                     </div>
                 </div>
             );
@@ -1176,10 +1462,10 @@
                     
                     {/* Overarching Tip */}
                     <div className="bg-indigo-50 p-4 rounded-lg border border-indigo-100 flex items-start gap-3">
-                         <div className="bg-indigo-100 p-1.5 rounded-full text-indigo-600 mt-0.5">
+                         <div className="bg-indigo-100 p-1.5 rounded-full text-indigo-600 mt-0.5 shadow-sm">
                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
                          </div>
-                         <p className="text-sm text-indigo-800">
+                         <p className="text-sm text-indigo-800 font-medium">
                             <strong>Tip:</strong> Refer to <strong>Note 9 (Financial Arrangements)</strong>, <strong>Note 10 (Debt)</strong>, and <strong>Note 11 (Leases)</strong> in the 10-K filings to find the Fair Value and specific maturity schedules.
                         </p>
                     </div>
@@ -1187,12 +1473,12 @@
                     {/* Short Term */}
                     <div>
                         <h3 className="font-bold text-lg mb-5 text-slate-800 flex items-center gap-2">
-                             <span className="bg-indigo-600 text-white text-xs px-2 py-0.5 rounded">4.1</span>
+                             <span className="bg-indigo-600 text-white text-xs px-2 py-0.5 rounded shadow-sm">4.1</span>
                              Short-Term Debt & Liquidity (2022)
                         </h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                             
-                             <div className="bg-white p-6 border border-slate-200 rounded-xl shadow-sm hover:shadow-md transition-shadow">
+                             <div className="bg-white p-6 border border-slate-200 rounded-xl shadow-sm hover:shadow-md transition-shadow relative">
                                 <h4 className="font-bold text-center mb-5 text-blue-700 border-b border-blue-100 pb-3">PH ($ Thousands)</h4>
                                 <div className="space-y-4">
                                     <SmartInput label="Commercial Paper" id="ph_cp_22" value={answers.ph_cp_22} correctValue={1422000} onFocus={onFocus} onAnswer={onAnswer} isActive={activeId === 'ph_cp_22'} teacherMode={teacherMode} hint="See Debt Note: Commercial Paper"/>
@@ -1201,7 +1487,7 @@
                                 </div>
                             </div>
 
-                            <div className="bg-white p-6 border border-slate-200 rounded-xl shadow-sm hover:shadow-md transition-shadow">
+                            <div className="bg-white p-6 border border-slate-200 rounded-xl shadow-sm hover:shadow-md transition-shadow relative">
                                 <h4 className="font-bold text-center mb-5 text-cyan-700 border-b border-cyan-100 pb-3">ITW ($ Millions)</h4>
                                 <div className="space-y-4">
                                     <SmartInput label="Commercial Paper" id="itw_cp_22" value={answers.itw_cp_22} correctValue={1053} onFocus={onFocus} onAnswer={onAnswer} isActive={activeId === 'itw_cp_22'} teacherMode={teacherMode} hint="See Debt Note: Commercial Paper"/>
@@ -1216,31 +1502,31 @@
                     {/* Long Term */}
                     <div>
                          <h3 className="font-bold text-lg mb-5 text-slate-800 flex items-center gap-2">
-                             <span className="bg-indigo-600 text-white text-xs px-2 py-0.5 rounded">4.2</span>
+                             <span className="bg-indigo-600 text-white text-xs px-2 py-0.5 rounded shadow-sm">4.2</span>
                              Long-Term Debt Analysis (2022)
                         </h3>
                         
                         <div className="bg-indigo-50/50 p-6 border border-indigo-100 rounded-xl mb-6">
-                            <h4 className="font-semibold text-indigo-900 mb-2">Book Value vs. Fair Value</h4>
-                            <p className="text-sm mb-5 text-slate-600">Compare the Net Book Value to the Fair Value of debt. What does this imply about interest rates?</p>
+                            <h4 className="font-bold text-indigo-900 mb-2">Book Value vs. Fair Value</h4>
+                            <p className="text-sm mb-5 text-slate-600 font-medium">Compare the Net Book Value to the Fair Value of debt. What does this imply about interest rates?</p>
                             
                             <div className="overflow-x-auto bg-white rounded-lg border border-indigo-100 shadow-sm">
                                 <table className="w-full text-sm">
                                     <thead>
                                         <tr className="bg-indigo-50 text-left text-indigo-900 border-b border-indigo-100">
-                                            <th className="p-4 font-semibold">Metric</th>
-                                            <th className="p-4 font-semibold">PH (Thousands)</th>
-                                            <th className="p-4 font-semibold">ITW (Millions)</th>
+                                            <th className="p-4 font-bold">Metric</th>
+                                            <th className="p-4 font-bold">PH (Thousands)</th>
+                                            <th className="p-4 font-bold">ITW (Millions)</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-50">
                                         <tr>
-                                            <td className="p-4 font-medium text-slate-700">Net Book Value (Total Debt)</td>
+                                            <td className="p-4 font-bold text-slate-700">Net Book Value (Total Debt)</td>
                                             <td className="p-4"><SmartInput id="ph_nbv" value={answers.ph_nbv} correctValue={10058105} onFocus={onFocus} onAnswer={onAnswer} isActive={activeId === 'ph_nbv'} teacherMode={teacherMode} hint="Sum of ST + LT debt or see Notes"/></td>
                                             <td className="p-4"><SmartInput id="itw_nbv" value={answers.itw_nbv} correctValue={6708} onFocus={onFocus} onAnswer={onAnswer} isActive={activeId === 'itw_nbv'} teacherMode={teacherMode} hint="Sum of ST + LT debt or see Notes"/></td>
                                         </tr>
                                         <tr>
-                                            <td className="p-4 font-medium text-slate-700">Fair Value (Disclosed in Notes :Note 16 for PH;Note 11 for ITW)</td>
+                                            <td className="p-4 font-bold text-slate-700">Fair Value (Disclosed in Notes)</td>
                                             <td className="p-4"><SmartInput id="ph_fv" value={answers.ph_fv} correctValue={9709407} onFocus={onFocus} onAnswer={onAnswer} isActive={activeId === 'ph_fv'} teacherMode={teacherMode} hint="Search 'Fair Value' in Notes"/></td>
                                             <td className="p-4"><SmartInput id="itw_fv" value={answers.itw_fv} correctValue={6228} onFocus={onFocus} onAnswer={onAnswer} isActive={activeId === 'itw_fv'} teacherMode={teacherMode} hint="Search 'Fair Value' in Notes"/></td>
                                         </tr>
@@ -1251,7 +1537,7 @@
                             <div className="mt-5 p-4 bg-white rounded-lg border border-slate-200">
                                 <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">Conclusion (Rate Trend)</label>
                                 <select 
-                                    className="block w-full p-2.5 border border-slate-300 rounded-md bg-slate-50 text-sm focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 outline-none"
+                                    className="block w-full p-2.5 border border-slate-300 rounded-md bg-slate-50 text-sm font-bold focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 outline-none cursor-pointer"
                                     value={answers.rate_trend || ''}
                                     onChange={(e) => onAnswer('rate_trend', e.target.value)}
                                 >
@@ -1297,6 +1583,22 @@
                                     <SmartInput id="itw_mat_27" value={answers.itw_mat_27} correctValue={531} onFocus={onFocus} onAnswer={onAnswer} isActive={activeId === 'itw_mat_27'} teacherMode={teacherMode} hint="Table"/>
                                 </div>
                             </div>
+
+                            <div className="mt-8 p-6 bg-indigo-50/50 border border-indigo-100 rounded-xl">
+                                <h4 className="font-bold text-slate-800 mb-2 flex items-center gap-2">
+                                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" className="text-indigo-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                                     Critical Thinking: Refinancing Risk
+                                </h4>
+                                <p className="mb-3 text-sm text-slate-600 font-medium">Given the debt maturity schedules, which company faces a higher refinancing risk in the near term (2023-2024), and why?</p>
+                                <textarea 
+                                    className="w-full p-3 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 outline-none transition-all" 
+                                    rows="3" 
+                                    placeholder="Type your analysis here..."
+                                    value={answers['analysis_4b'] || ''}
+                                    onChange={(e) => onAnswer('analysis_4b', e.target.value)}
+                                />
+                                {teacherMode && <div className="mt-3 p-3 bg-white border border-indigo-200 rounded text-indigo-800 text-xs shadow-sm"><strong>Answer:</strong> PH faces a higher refinancing risk in the near term because they have almost $2 billion coming due in 2024 compared to ITW's $1.34 billion, combined with PH's higher overall reliance on Commercial Paper.</div>}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1312,7 +1614,7 @@
                         </div>
                         <div>
                              <h3 className="font-bold text-lg text-rose-900 mb-1">5. Contingencies & Legal Proceedings</h3>
-                             <p className="text-sm text-rose-800">
+                             <p className="text-sm text-rose-800 font-medium">
                                 Review the notes for both companies regarding legal/environmental contingencies.
                             </p>
                         </div>
@@ -1336,7 +1638,7 @@
                                 hint="Search 'Environmental' in Notes"
                             />
                              <div className="mt-3 text-xs text-slate-500 bg-slate-50 p-2.5 rounded border border-slate-100 flex items-center gap-2">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" className="text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" className="text-slate-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
                                 <strong>Common Types:</strong> Product liability, workers comp, environmental issues.
                             </div>
                         </div>
@@ -1346,7 +1648,7 @@
                             </h4>
                             <label className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-2 block">Accrued Amount Disclosed?</label>
                             <select 
-                                className="w-full p-2.5 border border-slate-300 rounded-md text-sm bg-white focus:ring-2 focus:ring-blue-100 outline-none"
+                                className="w-full p-2.5 border border-slate-300 rounded-md text-sm bg-white font-bold cursor-pointer focus:ring-2 focus:ring-blue-100 outline-none"
                                 value={answers.itw_cont_disc || ''}
                                 onChange={(e) => onAnswer('itw_cont_disc', e.target.value)}
                             >
