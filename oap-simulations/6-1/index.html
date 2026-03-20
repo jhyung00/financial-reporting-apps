@@ -153,12 +153,15 @@
             }
             if (typeof keyVal === 'number') {
                 let tolerancePercent = 0.01;
-                // Apply specific 0.5% tolerance leeway for Cash effect answers
+                // Apply specific 1% tolerance leeway for Cash effect answers
                 if (inputId && ['cash_eff_dso', 'cash_eff_dio', 'cash_eff_dpo', 'total_cash_eff'].includes(inputId)) {
-                    tolerancePercent = 0.005;
+                    tolerancePercent = 0.01; // 1%
                 }
                 const diff = Math.abs(userNum - keyVal);
-                const allowableDiff = Math.abs(keyVal * tolerancePercent);
+                
+                // Use the 1% tolerance, but ensure a minimum leeway of 5 to absorb minor integer rounding near zero
+                const allowableDiff = Math.max(Math.abs(keyVal * tolerancePercent), 5);
+                
                 if (diff <= allowableDiff || (keyVal < 5 && diff < 0.1)) return "correct";
                 if (Math.abs((userNum * 100) - keyVal) <= allowableDiff || Math.abs((userNum * 100) - keyVal) <= 1.0) return "correct";
                 if (Math.abs((userNum / 100) - keyVal) <= allowableDiff || Math.abs((userNum / 100) - keyVal) <= 0.01) return "correct";
