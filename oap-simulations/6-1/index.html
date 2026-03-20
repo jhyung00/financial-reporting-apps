@@ -109,7 +109,7 @@
         };
 
         const ANSWER_KEYS = {
-            PH: { 'inv_policy': 'FIFO', 'inv_common_size_2022': 8.5, 'avg_inventory': 2152598, 'inv_turn_calc': 5.3, 'dio_calc': 69.0, 'avg_ar': 2270000, 'ar_turn_calc': 7.0, 'dso_calc': 52.2, 'avg_ap': 1699902, 'ap_turn_calc': 6.7, 'dpo_calc': 54.5, 'ccc_calc': 66.7, 'rev_per_day': 43456, 'cogs_per_day': 31198, 'cash_eff_dso': -30508, 'cash_eff_dio': 56729, 'cash_eff_dpo': 185383, 'total_cash_eff': 207347, 'q1': 'B', 'q2': 'B', 'q3': 'C', 'q4': 'C', 'q5': 'B', 'q6': 'B', 'q7': 'C', 'q8': 'A' },
+            PH: { 'inv_policy': 'FIFO', 'inv_common_size_2022': 8.5, 'avg_inventory': 2152598, 'inv_turn_calc': 5.3, 'dio_calc': 69.0, 'avg_ar': 2270000, 'ar_turn_calc': 7.0, 'dso_calc': 52.2, 'avg_ap': 1699902, 'ap_turn_calc': 6.7, 'dpo_calc': 54.5, 'ccc_calc': 66.7, 'rev_per_day': 43456, 'cogs_per_day': 31198, 'cash_eff_dso': -30508, 'cash_eff_dio': [56729, 56156, -56156], 'cash_eff_dpo': 185383, 'total_cash_eff': [207347, 211031, 98719], 'q1': 'B', 'q2': 'B', 'q3': 'C', 'q4': 'C', 'q5': 'B', 'q6': 'B', 'q7': 'C', 'q8': 'A' },
             ITW: { 'inv_policy': 'LIFO', 'inv_common_size_2022': 13.3, 'avg_inventory': 1874, 'inv_turn_calc': 5.0, 'dio_calc': 72.5, 'avg_ar': 3005, 'ar_turn_calc': 5.3, 'dso_calc': 68.9, 'avg_ap': 590, 'ap_turn_calc': 16.0, 'dpo_calc': 22.8, 'ccc_calc': 118.6, 'rev_per_day': 44, 'cogs_per_day': 26, 'cash_eff_dso': -59, 'cash_eff_dio': -273, 'cash_eff_dpo': -32, 'total_cash_eff': -364, 'lifo_reserve_2022': 111, 'fifo_inventory_2022': 2165, 'fifo_cogs_2022': 9436, 'q1': 'B', 'q2': 'B', 'q3': 'C', 'q4': 'C', 'q5': 'B', 'q6': 'B', 'q7': 'C', 'q8': 'A' }
         };
 
@@ -145,27 +145,40 @@
         const checkValue = (userVal, keyVal, inputId = null) => {
             if (userVal === "" || userVal === undefined) return "neutral";
             const userNum = parseFloat(userVal);
-            if (isNaN(userNum)) {
-                if (typeof keyVal === 'string' && typeof userVal === 'string') {
-                    return userVal.toLowerCase() === keyVal.toLowerCase() ? 'correct' : 'incorrect';
-                }
-                return "incorrect";
-            }
-            if (typeof keyVal === 'number') {
+            
+            const validateNum = (uNum, kVal) => {
                 let tolerancePercent = 0.01;
                 // Apply specific 1% tolerance leeway for Cash effect answers
                 if (inputId && ['cash_eff_dso', 'cash_eff_dio', 'cash_eff_dpo', 'total_cash_eff'].includes(inputId)) {
                     tolerancePercent = 0.01; // 1%
                 }
-                const diff = Math.abs(userNum - keyVal);
+                const diff = Math.abs(uNum - kVal);
                 
                 // Use the 1% tolerance, but ensure a minimum leeway of 5 to absorb minor integer rounding near zero
-                const allowableDiff = Math.max(Math.abs(keyVal * tolerancePercent), 5);
+                const allowableDiff = Math.max(Math.abs(kVal * tolerancePercent), 5);
                 
-                if (diff <= allowableDiff || (keyVal < 5 && diff < 0.1)) return "correct";
-                if (Math.abs((userNum * 100) - keyVal) <= allowableDiff || Math.abs((userNum * 100) - keyVal) <= 1.0) return "correct";
-                if (Math.abs((userNum / 100) - keyVal) <= allowableDiff || Math.abs((userNum / 100) - keyVal) <= 0.01) return "correct";
+                if (diff <= allowableDiff || (Math.abs(kVal) < 5 && diff < 0.1)) return true;
+                if (Math.abs((uNum * 100) - kVal) <= allowableDiff || Math.abs((uNum * 100) - kVal) <= 1.0) return true;
+                if (Math.abs((uNum / 100) - kVal) <= allowableDiff || Math.abs((uNum / 100) - kVal) <= 0.01) return true;
+                return false;
+            };
+
+            if (isNaN(userNum)) {
+                if (Array.isArray(keyVal)) {
+                    return keyVal.some(k => typeof k === 'string' && userVal.toLowerCase() === k.toLowerCase()) ? 'correct' : 'incorrect';
+                }
+                if (typeof keyVal === 'string' && typeof userVal === 'string') {
+                    return userVal.toLowerCase() === keyVal.toLowerCase() ? 'correct' : 'incorrect';
+                }
                 return "incorrect";
+            }
+            
+            if (Array.isArray(keyVal)) {
+                return keyVal.some(k => typeof k === 'number' && validateNum(userNum, k)) ? 'correct' : 'incorrect';
+            }
+
+            if (typeof keyVal === 'number') {
+                return validateNum(userNum, keyVal) ? 'correct' : 'incorrect';
             }
             return userVal.toString().toLowerCase() === keyVal.toString().toLowerCase() ? 'correct' : 'incorrect';
         };
@@ -772,7 +785,22 @@
             };
 
             const handleLogin = () => { if (btoa(password.trim()) === "T0FQNi0xLUtleTRa") { setInstructorMode(true); setShowLogin(false); setPassword(""); } else { alert("Incorrect Password"); } };
-            const handleAutoFill = () => { if (!instructorMode) return; setAllInputs(prev => ({ ...prev, [company]: { ...ANSWER_KEYS[company] } })); };
+            const handleAutoFill = () => { 
+                if (!instructorMode) return; 
+                
+                const filledITW = { ...ANSWER_KEYS.ITW };
+                const filledPH = { ...ANSWER_KEYS.PH };
+                
+                // Automatically grab the first valid answer if the answer key is an array
+                Object.keys(filledPH).forEach(k => {
+                    if (Array.isArray(filledPH[k])) filledPH[k] = filledPH[k][0];
+                });
+                Object.keys(filledITW).forEach(k => {
+                    if (Array.isArray(filledITW[k])) filledITW[k] = filledITW[k][0];
+                });
+
+                setAllInputs(prev => ({ ...prev, ITW: filledITW, PH: filledPH })); 
+            };
             const handleClear = () => { if (!instructorMode && !confirm("Clear all work?")) return; setAllInputs(prev => ({ ...prev, [company]: {} })); };
 
             const handleSave = () => {
