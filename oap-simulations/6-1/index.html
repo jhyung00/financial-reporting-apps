@@ -109,7 +109,7 @@
         };
 
         const ANSWER_KEYS = {
-            PH: { 'inv_policy': 'FIFO', 'inv_common_size_2022': 8.5, 'avg_inventory': 2152598, 'inv_turn_calc': 5.3, 'dio_calc': 69.0, 'avg_ar': 2270000, 'ar_turn_calc': 7.0, 'dso_calc': 52.2, 'avg_ap': 1699902, 'ap_turn_calc': 6.7, 'dpo_calc': 54.5, 'ccc_calc': 66.7, 'rev_per_day': 43456, 'cogs_per_day': 31198, 'cash_eff_dso': -30508, 'cash_eff_dio': [56729, 56156, -56156], 'cash_eff_dpo': 185383, 'total_cash_eff': [207347, 211031, 98719], 'q1': 'B', 'q2': 'B', 'q3': 'C', 'q4': 'C', 'q5': 'B', 'q6': 'B', 'q7': 'C', 'q8': 'A' },
+            PH: { 'inv_policy': 'FIFO', 'inv_common_size_2022': 8.5, 'avg_inventory': 2152598, 'inv_turn_calc': 5.3, 'dio_calc': 69.0, 'avg_ar': 2270000, 'ar_turn_calc': 7.0, 'dso_calc': 52.2, 'avg_ap': 1699902, 'ap_turn_calc': 6.7, 'dpo_calc': 54.5, 'ccc_calc': 66.7, 'rev_per_day': 43456, 'cogs_per_day': 31198, 'cash_eff_dso': [-30508, -34765], 'cash_eff_dio': [56729, 56156, -56156], 'cash_eff_dpo': 185383, 'total_cash_eff': [207347, 211031, 98719], 'q1': 'B', 'q2': 'B', 'q3': 'C', 'q4': 'C', 'q5': 'B', 'q6': 'B', 'q7': 'C', 'q8': 'A' },
             ITW: { 'inv_policy': 'LIFO', 'inv_common_size_2022': 13.3, 'avg_inventory': 1874, 'inv_turn_calc': 5.0, 'dio_calc': 72.5, 'avg_ar': 3005, 'ar_turn_calc': 5.3, 'dso_calc': 68.9, 'avg_ap': 590, 'ap_turn_calc': 16.0, 'dpo_calc': 22.8, 'ccc_calc': 118.6, 'rev_per_day': 44, 'cogs_per_day': 26, 'cash_eff_dso': -59, 'cash_eff_dio': -273, 'cash_eff_dpo': -32, 'total_cash_eff': -364, 'lifo_reserve_2022': 111, 'fifo_inventory_2022': 2165, 'fifo_cogs_2022': 9436, 'q1': 'B', 'q2': 'B', 'q3': 'C', 'q4': 'C', 'q5': 'B', 'q6': 'B', 'q7': 'C', 'q8': 'A' }
         };
 
@@ -440,6 +440,14 @@
             const [activeTab, setActiveTab] = useState('analysis');
             const keys = ANSWER_KEYS[companyKey];
             
+            const hasAllThreeEffects = inputs['cash_eff_dso'] !== undefined && inputs['cash_eff_dio'] !== undefined && inputs['cash_eff_dpo'] !== undefined && 
+                                       inputs['cash_eff_dso'] !== "" && inputs['cash_eff_dio'] !== "" && inputs['cash_eff_dpo'] !== "";
+            let totalCashEffAnswer = keys['total_cash_eff'];
+            if (hasAllThreeEffects) {
+                const dynamicSum = (parseFloat(inputs['cash_eff_dso']) || 0) + (parseFloat(inputs['cash_eff_dio']) || 0) + (parseFloat(inputs['cash_eff_dpo']) || 0);
+                totalCashEffAnswer = Array.isArray(totalCashEffAnswer) ? [...totalCashEffAnswer, dynamicSum] : [totalCashEffAnswer, dynamicSum];
+            }
+
             return (
                 <div className="bg-slate-50 h-full overflow-y-auto custom-scroll p-4 md:p-6 pb-20 relative">
                     
@@ -635,7 +643,7 @@
                                     <SmartInput id="cash_eff_dio" label="Effect of DIO Change" value={inputs['cash_eff_dio']} onChange={updateInput} answerKey={keys['cash_eff_dio']} activeInputRef={activeInputRef} type="int" placeholder="-(ΔDIO) * COGS/Day" />
                                     <SmartInput id="cash_eff_dpo" label="Effect of DPO Change" value={inputs['cash_eff_dpo']} onChange={updateInput} answerKey={keys['cash_eff_dpo']} activeInputRef={activeInputRef} type="int" placeholder="+(ΔDPO) * COGS/Day" />
                                     <div className="pt-4 mt-4 border-t border-emerald-200">
-                                        <SmartInput id="total_cash_eff" label="Total Cash Impact (Sum)" value={inputs['total_cash_eff']} onChange={updateInput} answerKey={keys['total_cash_eff']} activeInputRef={activeInputRef} type="int" />
+                                        <SmartInput id="total_cash_eff" label="Total Cash Impact (Sum)" value={inputs['total_cash_eff']} onChange={updateInput} answerKey={totalCashEffAnswer} activeInputRef={activeInputRef} type="int" />
                                     </div>
                                 </div>
                             </div>
@@ -691,8 +699,18 @@
             const activeInputRef = useRef(null);
 
             // Determine XP and Stats dynamically
-            const checkIsCorrect = useCallback((comp, key, value) => {
-                const answer = ANSWER_KEYS[comp][key];
+            const checkIsCorrect = useCallback((comp, key, value, compInputs) => {
+                let answer = ANSWER_KEYS[comp][key];
+                
+                if (key === 'total_cash_eff' && compInputs) {
+                    const hasAllThree = compInputs['cash_eff_dso'] !== undefined && compInputs['cash_eff_dio'] !== undefined && compInputs['cash_eff_dpo'] !== undefined &&
+                                        compInputs['cash_eff_dso'] !== "" && compInputs['cash_eff_dio'] !== "" && compInputs['cash_eff_dpo'] !== "";
+                    if (hasAllThree) {
+                        const dynamicSum = (parseFloat(compInputs['cash_eff_dso']) || 0) + (parseFloat(compInputs['cash_eff_dio']) || 0) + (parseFloat(compInputs['cash_eff_dpo']) || 0);
+                        answer = Array.isArray(answer) ? [...answer, dynamicSum] : [answer, dynamicSum];
+                    }
+                }
+
                 return checkValue(value, answer, key) === 'correct';
             }, []);
 
@@ -712,7 +730,7 @@
                         const cat = CATEGORY_MAP[key];
                         if(cat) localStats[cat].total++;
 
-                        if (checkIsCorrect(comp, key, allInputs[comp]?.[key])) {
+                        if (checkIsCorrect(comp, key, allInputs[comp]?.[key], allInputs[comp])) {
                             xp += 100;
                             correct++;
                             if(cat) localStats[cat].correct++;
@@ -771,13 +789,13 @@
             };
 
             const updateInput = (id, value) => {
+                const newCompInputs = { ...allInputs[company], [id]: value };
+                
                 // Check if this newly inputted value is changing from wrong -> right
-                const prevVal = allInputs[company]?.[id];
-                const key = ANSWER_KEYS[company][id];
-                const wasCorrect = checkValue(prevVal, key, id) === 'correct';
-                const isNowCorrect = checkValue(value, key, id) === 'correct';
+                const wasCorrect = checkIsCorrect(company, id, allInputs[company]?.[id], allInputs[company]);
+                const isNowCorrect = checkIsCorrect(company, id, value, newCompInputs);
 
-                setAllInputs(prev => ({ ...prev, [company]: { ...prev[company], [id]: value } }));
+                setAllInputs(prev => ({ ...prev, [company]: newCompInputs }));
 
                 if (!wasCorrect && isNowCorrect) {
                     showToast("+100 XP! Great Job!", "xp");
