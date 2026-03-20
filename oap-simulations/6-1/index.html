@@ -142,7 +142,7 @@
             } catch (e) { return NaN; }
         };
 
-        const checkValue = (userVal, keyVal) => {
+        const checkValue = (userVal, keyVal, inputId = null) => {
             if (userVal === "" || userVal === undefined) return "neutral";
             const userNum = parseFloat(userVal);
             if (isNaN(userNum)) {
@@ -152,7 +152,11 @@
                 return "incorrect";
             }
             if (typeof keyVal === 'number') {
-                const tolerancePercent = 0.01; 
+                let tolerancePercent = 0.01;
+                // Apply specific 0.5% tolerance leeway for Cash effect answers
+                if (inputId && ['cash_eff_dso', 'cash_eff_dio', 'cash_eff_dpo', 'total_cash_eff'].includes(inputId)) {
+                    tolerancePercent = 0.005;
+                }
                 const diff = Math.abs(userNum - keyVal);
                 const allowableDiff = Math.abs(keyVal * tolerancePercent);
                 if (diff <= allowableDiff || (keyVal < 5 && diff < 0.1)) return "correct";
@@ -165,11 +169,22 @@
 
         // --- COMPONENTS ---
 
+        // Icon component wrapper to prevent React crashing from direct DOM mutation by lucide
+        function Icon({ name, className = "" }) {
+            const iconRef = useRef(null);
+            useEffect(() => {
+                if (window.lucide && iconRef.current) {
+                    window.lucide.createIcons({ root: iconRef.current });
+                }
+            });
+            return <span ref={iconRef} style={{ display: 'contents' }} dangerouslySetInnerHTML={{ __html: `<i data-lucide="${name}" class="${className}"></i>` }} />;
+        }
+
         function Toast({ message, type, show }) {
             const isXp = type === "xp";
             return (
                 <div className={`${isXp ? 'toast-xp' : 'toast'} ${show ? 'show' : ''}`}>
-                    {isXp && <i data-lucide="star" className="w-5 h-5 fill-yellow-200"></i>}
+                    {isXp && <Icon name="star" className="w-5 h-5 fill-yellow-200" />}
                     {message}
                 </div>
             );
@@ -220,7 +235,7 @@
             return (
                 <div className="mb-4">
                     <button onClick={() => setIsOpen(!isOpen)} className="text-xs text-indigo-600 font-bold hover:underline flex items-center gap-1 mb-1" >
-                        <i data-lucide="info" className="w-3 h-3"></i> {isOpen ? "Hide Formulas" : "Show Formulas"}
+                        <Icon name="info" className="w-3 h-3" /> {isOpen ? "Hide Formulas" : "Show Formulas"}
                     </button>
                     <div className={`formula-box ${isOpen ? 'open' : ''}`}>
                         {children}
@@ -243,8 +258,8 @@
                                 <span className={`text-sm ${value === opt.key && opt.key === data.answer ? 'font-bold text-green-700' : 'text-slate-700'}`}>
                                     {opt.text}
                                 </span>
-                                {hasAnswered && opt.key === data.answer && <i data-lucide="check" className="w-4 h-4 text-green-600 ml-auto"></i>}
-                                {hasAnswered && value === opt.key && value !== data.answer && <i data-lucide="x" className="w-4 h-4 text-red-600 ml-auto"></i>}
+                                {hasAnswered && opt.key === data.answer && <Icon name="check" className="w-4 h-4 text-green-600 ml-auto" />}
+                                {hasAnswered && value === opt.key && value !== data.answer && <Icon name="x" className="w-4 h-4 text-red-600 ml-auto" />}
                             </label>
                         ))}
                     </div>
@@ -280,7 +295,7 @@
 
             const handleKeyDown = (e) => { if (e.key === 'Enter') { triggerCalculation(); e.target.blur(); } };
 
-            const status = checkValue(value, answerKey);
+            const status = checkValue(value, answerKey, id);
             const statusClass = status === 'correct' ? 'input-correct' : status === 'incorrect' ? 'input-incorrect' : 'border-slate-300 focus:border-indigo-500';
 
             return (
@@ -308,7 +323,7 @@
                             };
                         }} placeholder={placeholder} />
                         {suffix && <span className="absolute right-3 top-2 text-xs text-slate-400 font-bold">{suffix}</span>}
-                        {status === 'correct' && <div className="absolute -right-2 -top-2 bg-green-500 text-white rounded-full p-0.5 shadow-md transform scale-0 group-hover:scale-100 transition-transform"><i data-lucide="check" className="w-3 h-3"></i></div>}
+                        {status === 'correct' && <div className="absolute -right-2 -top-2 bg-green-500 text-white rounded-full p-0.5 shadow-md transform scale-0 group-hover:scale-100 transition-transform"><Icon name="check" className="w-3 h-3" /></div>}
                     </div>
                 </div>
             );
@@ -331,11 +346,11 @@
                                 <span className="text-xs text-slate-500 font-mono">Currency: {data.currency}</span>
                             </div>
                             <a href={data.sec_link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-2 py-1 rounded border border-indigo-200 transition-colors">
-                                <i data-lucide="external-link" className="w-3 h-3"></i> 10-K
+                                <Icon name="external-link" className="w-3 h-3" /> 10-K
                             </a>
                         </div>
                         <div className="mt-2 text-xs text-indigo-600 bg-indigo-50 p-2 rounded border border-indigo-100 flex gap-2 items-center">
-                            <i data-lucide="mouse-pointer-click" className="w-4 h-4 flex-shrink-0"></i>
+                            <Icon name="mouse-pointer-click" className="w-4 h-4 flex-shrink-0" />
                             <span>Click numbers to inject them. Type Math (+,-,*,/) and press Enter.</span>
                         </div>
                     </div>
@@ -377,7 +392,7 @@
                 <div className="max-w-4xl mx-auto p-4 md:p-8 animate-fade-in">
                     <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8 mb-8 text-center relative overflow-hidden">
                        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
-                       <i data-lucide={currentLevelObj.icon} className="w-16 h-16 mx-auto mb-4 text-indigo-500 bg-indigo-50 p-3 rounded-full"></i>
+                       <Icon name={currentLevelObj.icon} className="w-16 h-16 mx-auto mb-4 text-indigo-500 bg-indigo-50 p-3 rounded-full" />
                        <h2 className="text-3xl md:text-4xl font-black text-slate-800 mb-2 tracking-tight">{currentLevelObj.title}</h2>
                        <p className="text-slate-500 font-bold mb-8 text-lg">Total Experience: <span className="text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full">{currentXP} XP</span></p>
 
@@ -409,8 +424,6 @@
             const [activeTab, setActiveTab] = useState('analysis');
             const keys = ANSWER_KEYS[companyKey];
             
-            useEffect(() => { if (window.lucide) window.lucide.createIcons(); }, [activeTab]);
-
             return (
                 <div className="bg-slate-50 h-full overflow-y-auto custom-scroll p-4 md:p-6 pb-20 relative">
                     
@@ -421,13 +434,13 @@
                         </div>
                         <div className="flex space-x-1 bg-slate-200 p-1 rounded-lg w-full lg:w-auto overflow-x-auto">
                             <button onClick={() => setActiveTab('analysis')} className={`px-4 py-1.5 text-sm font-semibold rounded transition-all whitespace-nowrap flex items-center gap-2 ${activeTab === 'analysis' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-600 hover:text-slate-800'}`}>
-                                <i data-lucide="calculator" className="w-4 h-4"></i> Analysis
+                                <Icon name="calculator" className="w-4 h-4" /> Analysis
                             </button>
                             <button onClick={() => setActiveTab('quiz')} className={`px-4 py-1.5 text-sm font-semibold rounded transition-all whitespace-nowrap flex items-center gap-2 ${activeTab === 'quiz' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-600 hover:text-slate-800'}`}>
-                                <i data-lucide="help-circle" className="w-4 h-4"></i> Quiz Check
+                                <Icon name="help-circle" className="w-4 h-4" /> Quiz Check
                             </button>
                             <button onClick={() => setActiveTab('profile')} className={`px-4 py-1.5 text-sm font-semibold rounded transition-all whitespace-nowrap flex items-center gap-2 ${activeTab === 'profile' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600 hover:text-indigo-600 hover:bg-indigo-50'}`}>
-                                <i data-lucide="bar-chart-2" className="w-4 h-4"></i> Profile & Stats
+                                <Icon name="bar-chart-2" className="w-4 h-4" /> Profile & Stats
                             </button>
                         </div>
                     </div>
@@ -438,7 +451,7 @@
                         <div className="max-w-3xl mx-auto animate-fade-in">
                             <div className="bg-indigo-50 border border-indigo-100 p-4 rounded-lg mb-6 shadow-sm">
                                 <h3 className="text-indigo-900 font-bold mb-1 flex items-center gap-2">
-                                    <i data-lucide="brain-circuit" className="w-5 h-5"></i> Concept Mastery
+                                    <Icon name="brain-circuit" className="w-5 h-5" /> Concept Mastery
                                 </h3>
                                 <p className="text-sm text-indigo-800">Test your theoretical understanding. Earn +100 XP for every correct selection!</p>
                             </div>
@@ -452,7 +465,7 @@
                             {/* Section 1: Inventory */}
                             <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 mb-6 transition-all hover:shadow-md">
                                 <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2 border-b pb-2">
-                                    <div className="bg-blue-100 p-1.5 rounded-md text-blue-600"><i data-lucide="package" className="w-5 h-5"></i></div>
+                                    <div className="bg-blue-100 p-1.5 rounded-md text-blue-600"><Icon name="package" className="w-5 h-5" /></div>
                                     1. Inventory Mechanics
                                 </h2>
                                 
@@ -465,7 +478,7 @@
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div className="flex flex-col mb-4">
                                         <label className="text-xs font-semibold text-slate-500 mb-1">Costing Method</label>
-                                        <select className={`w-full p-2 text-sm border rounded shadow-sm outline-none transition-colors ${checkValue(inputs['inv_policy'], keys['inv_policy']) === 'correct' ? 'input-correct' : 'border-slate-300 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500'}`} value={inputs['inv_policy'] || ""} onChange={(e) => updateInput('inv_policy', e.target.value)}>
+                                        <select className={`w-full p-2 text-sm border rounded shadow-sm outline-none transition-colors ${checkValue(inputs['inv_policy'], keys['inv_policy'], 'inv_policy') === 'correct' ? 'input-correct' : 'border-slate-300 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500'}`} value={inputs['inv_policy'] || ""} onChange={(e) => updateInput('inv_policy', e.target.value)}>
                                             <option value="">Select Method...</option>
                                             <option value="FIFO">FIFO</option>
                                             <option value="LIFO">LIFO</option>
@@ -481,7 +494,7 @@
                             {/* Section 2: Receivables */}
                             <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 mb-6 transition-all hover:shadow-md">
                                 <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2 border-b pb-2">
-                                    <div className="bg-green-100 p-1.5 rounded-md text-green-600"><i data-lucide="users" className="w-5 h-5"></i></div>
+                                    <div className="bg-green-100 p-1.5 rounded-md text-green-600"><Icon name="users" className="w-5 h-5" /></div>
                                     2. Receivables Mechanics
                                 </h2>
 
@@ -501,7 +514,7 @@
                             {/* Section 3: Payables */}
                             <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 mb-6 transition-all hover:shadow-md">
                                 <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2 border-b pb-2">
-                                    <div className="bg-red-100 p-1.5 rounded-md text-red-600"><i data-lucide="file-minus" className="w-5 h-5"></i></div>
+                                    <div className="bg-red-100 p-1.5 rounded-md text-red-600"><Icon name="file-minus" className="w-5 h-5" /></div>
                                     3. Payables Mechanics
                                 </h2>
 
@@ -521,7 +534,7 @@
                             {/* Section 4: Cash Conversion Cycle */}
                             <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 mb-6 transition-all hover:shadow-md">
                                 <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2 border-b pb-2">
-                                    <div className="bg-purple-100 p-1.5 rounded-md text-purple-600"><i data-lucide="refresh-cw" className="w-5 h-5"></i></div>
+                                    <div className="bg-purple-100 p-1.5 rounded-md text-purple-600"><Icon name="refresh-cw" className="w-5 h-5" /></div>
                                     4. Cash Conversion Cycle (CCC)
                                 </h2>
                                 
@@ -581,7 +594,7 @@
                             {/* Section 5: Cash Flow Impact */}
                             <div className="bg-gradient-to-br from-emerald-50 to-teal-50 p-6 rounded-xl shadow-sm border border-emerald-200 mb-6">
                                 <h2 className="text-xl font-bold text-emerald-900 mb-4 flex items-center gap-2 border-b border-emerald-200 pb-2">
-                                    <div className="bg-emerald-100 p-1.5 rounded-md text-emerald-600"><i data-lucide="dollar-sign" className="w-5 h-5"></i></div>
+                                    <div className="bg-emerald-100 p-1.5 rounded-md text-emerald-600"><Icon name="dollar-sign" className="w-5 h-5" /></div>
                                     5. Cash Flow Impact (YoY)
                                 </h2>
 
@@ -615,7 +628,7 @@
                             {companyKey === 'ITW' && (
                                 <div className="bg-amber-50 p-6 rounded-xl shadow-sm border border-amber-200 mb-6">
                                     <h2 className="text-xl font-bold text-amber-900 mb-4 flex items-center gap-2 border-b border-amber-200 pb-2">
-                                        <div className="bg-amber-100 p-1.5 rounded-md text-amber-600"><i data-lucide="layers" className="w-5 h-5"></i></div>
+                                        <div className="bg-amber-100 p-1.5 rounded-md text-amber-600"><Icon name="layers" className="w-5 h-5" /></div>
                                         LIFO Reserve Mechanics
                                     </h2>
                                     <FormulaToggle>
@@ -661,12 +674,10 @@
 
             const activeInputRef = useRef(null);
 
-            useEffect(() => { if (window.lucide) window.lucide.createIcons(); }, [company, instructorMode, showLevelUp]);
-
             // Determine XP and Stats dynamically
             const checkIsCorrect = useCallback((comp, key, value) => {
                 const answer = ANSWER_KEYS[comp][key];
-                return checkValue(value, answer) === 'correct';
+                return checkValue(value, answer, key) === 'correct';
             }, []);
 
             const { currentXP, correctCount, totalCount, stats } = useMemo(() => {
@@ -747,8 +758,8 @@
                 // Check if this newly inputted value is changing from wrong -> right
                 const prevVal = allInputs[company]?.[id];
                 const key = ANSWER_KEYS[company][id];
-                const wasCorrect = checkValue(prevVal, key) === 'correct';
-                const isNowCorrect = checkValue(value, key) === 'correct';
+                const wasCorrect = checkValue(prevVal, key, id) === 'correct';
+                const isNowCorrect = checkValue(value, key, id) === 'correct';
 
                 setAllInputs(prev => ({ ...prev, [company]: { ...prev[company], [id]: value } }));
 
@@ -814,7 +825,7 @@
                     {showLevelUp && (
                         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[100]">
                             <div className="bg-white p-10 rounded-2xl shadow-2xl text-center level-up-modal max-w-sm border-4 border-yellow-400">
-                                <i data-lucide="chevrons-up" className="w-16 h-16 mx-auto mb-4 text-yellow-500 animate-bounce"></i>
+                                <Icon name="chevrons-up" className="w-16 h-16 mx-auto mb-4 text-yellow-500 animate-bounce" />
                                 <h2 className="text-4xl font-black text-slate-800 tracking-tight mb-2">Level Up!</h2>
                                 <p className="text-slate-600 font-medium mb-6">You are now a</p>
                                 <div className="text-2xl font-black text-indigo-700 bg-indigo-50 px-6 py-3 rounded-xl border border-indigo-100">
@@ -829,7 +840,7 @@
                         <div className="flex items-center gap-6 flex-1">
                             <div className="flex items-center gap-4">
                                 <h1 className="font-black text-xl tracking-tight flex items-center gap-2">
-                                    <i data-lucide="bar-chart" className="w-5 h-5 text-indigo-400"></i> FinSim 
+                                    <Icon name="bar-chart" className="w-5 h-5 text-indigo-400" /> FinSim 
                                     <span className="font-normal text-slate-400 text-sm hidden sm:inline">| Module 6</span>
                                 </h1>
                                 <div className="bg-slate-800 p-1 rounded flex">
@@ -842,7 +853,7 @@
                             <div className="flex-1 max-w-md ml-auto mr-8 hidden lg:block cursor-help" title="Solve inputs correctly to earn XP and Level Up!">
                                 <div className="flex justify-between text-xs font-bold mb-1.5 px-1">
                                     <span className="text-yellow-400 flex items-center gap-1.5 uppercase tracking-wider">
-                                        <i data-lucide={currentLevelObj.icon} className="w-3.5 h-3.5"></i> Lvl {levelIndex}: {currentLevelObj.title}
+                                        <Icon name={currentLevelObj.icon} className="w-3.5 h-3.5" /> Lvl {levelIndex}: {currentLevelObj.title}
                                     </span>
                                     <span className="text-slate-300 font-mono">{currentXP} / {nextLevelObj.threshold === currentLevelObj.threshold ? 'MAX' : nextLevelObj.threshold} XP</span>
                                 </div>
@@ -855,19 +866,19 @@
                         <div className="flex gap-2">
                              {instructorMode && (
                                 <>
-                                    <button onClick={handleAutoFill} className="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 rounded text-xs font-bold uppercase tracking-wider flex items-center gap-1 hidden md:flex"><i data-lucide="zap" className="w-3 h-3"></i> Auto-Fill</button>
+                                    <button onClick={handleAutoFill} className="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 rounded text-xs font-bold uppercase tracking-wider flex items-center gap-1 hidden md:flex"><Icon name="zap" className="w-3 h-3" /> Auto-Fill</button>
                                     <button onClick={handleClear} className="px-3 py-1 bg-red-800 hover:bg-red-700 rounded text-xs font-bold uppercase tracking-wider hidden md:block">Clear</button>
                                 </>
                             )}
                             <input type="file" ref={fileInputRef} accept=".txt" style={{ display: 'none' }} onChange={handleFileUpload} />
                             <button onClick={() => fileInputRef.current && fileInputRef.current.click()} className="px-3 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded text-sm flex items-center gap-1 transition-colors">
-                                <i data-lucide="upload" className="w-4 h-4"></i> <span className="hidden md:inline font-medium">Load</span>
+                                <Icon name="upload" className="w-4 h-4" /> <span className="hidden md:inline font-medium">Load</span>
                             </button>
                             <button onClick={() => setShowSaveModal(true)} className="px-3 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded text-sm flex items-center gap-1 transition-colors">
-                                <i data-lucide="save" className="w-4 h-4"></i> <span className="hidden md:inline font-medium">Save</span>
+                                <Icon name="save" className="w-4 h-4" /> <span className="hidden md:inline font-medium">Save</span>
                             </button>
                             <button onClick={() => instructorMode ? setInstructorMode(false) : setShowLogin(true)} className={`px-3 py-1 rounded text-sm flex items-center gap-1 transition-colors ${instructorMode ? 'bg-amber-600 border border-amber-500' : 'bg-slate-800 border border-slate-700 hover:bg-slate-700'}`}>
-                                <i data-lucide={instructorMode ? "unlock" : "lock"} className="w-4 h-4"></i>
+                                <Icon name={instructorMode ? "unlock" : "lock"} className="w-4 h-4" />
                             </button>
                         </div>
                     </div>
@@ -924,7 +935,7 @@
                                 <input type="text" placeholder="John Doe" className="w-full border-2 border-slate-200 focus:border-indigo-500 focus:ring-0 p-2.5 mb-5 rounded-lg outline-none transition-colors" value={studentName} onChange={e => setStudentName(e.target.value)} onKeyDown={(e)=>e.key==='Enter' && handleSave()}/>
                                 <div className="flex justify-end gap-2">
                                     <button onClick={() => setShowSaveModal(false)} className="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">Cancel</button>
-                                    <button onClick={handleSave} disabled={!studentName} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg text-sm disabled:opacity-50 transition-colors shadow-sm flex items-center gap-2"><i data-lucide="download" className="w-4 h-4"></i> Download</button>
+                                    <button onClick={handleSave} disabled={!studentName} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg text-sm disabled:opacity-50 transition-colors shadow-sm flex items-center gap-2"><Icon name="download" className="w-4 h-4" /> Download</button>
                                 </div>
                             </div>
                         </div>
