@@ -1,0 +1,1736 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Asset Accounting: Real-World Cases</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Righteous&family=Outfit:wght@300;400;500;600;700;800&display=swap');
+        
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: #f8fafc; 
+            color: #0f172a;
+            /* Bright, pastel animated background */
+            background: radial-gradient(circle at 15% 50%, #eff6ff, #f8fafc 50%),
+                        radial-gradient(circle at 85% 30%, #f5f3ff, #f8fafc 50%);
+            background-attachment: fixed;
+            overflow: hidden;
+        }
+
+        h1, h2, h3, .font-gamified {
+            font-family: 'Righteous', cursive;
+            letter-spacing: 0.5px;
+        }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 1);
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.05);
+        }
+
+        .tab-active {
+            background: linear-gradient(135deg, #3b82f6 0%, #4f46e5 100%);
+            color: white;
+            border-color: transparent;
+            box-shadow: 0 4px 14px 0 rgba(59, 130, 246, 0.3);
+        }
+        
+        .tab-inactive {
+            background: rgba(241, 245, 249, 0.7);
+            color: #64748b;
+            border: 1px solid rgba(226, 232, 240, 0.8);
+        }
+
+        .tab-inactive:hover {
+            background: rgba(226, 232, 240, 0.9);
+            color: #0f172a;
+            transform: translateY(-1px);
+        }
+
+        /* Custom Range Slider */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 22px;
+            width: 22px;
+            border-radius: 50%;
+            background: #3b82f6;
+            cursor: pointer;
+            margin-top: -9px;
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.4);
+            border: 2px solid #fff;
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: #cbd5e1;
+            border-radius: 2px;
+        }
+
+        .fade-in { animation: fadeIn 0.5s ease-out forwards; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .module-section { display: none; }
+        .module-section.active { display: block; }
+        
+        .quiz-option { transition: all 0.2s ease; }
+        .quiz-option:hover:not(:disabled) {
+            background-color: #eff6ff;
+            border-color: #3b82f6;
+            cursor: pointer;
+            transform: translateY(-2px);
+        }
+        .quiz-option.correct {
+            background-color: #ecfdf5;
+            border-color: #10b981;
+            box-shadow: 0 0 0 1px #10b981;
+        }
+        .quiz-option.incorrect {
+            background-color: #fef2f2;
+            border-color: #ef4444;
+            opacity: 0.6;
+        }
+
+        /* FSET Table Styles (Responsive) */
+        .fset-grid { display: grid; grid-template-columns: repeat(1, minmax(0, 1fr)); gap: 8px; text-align: center; }
+        @media (min-width: 640px) {
+            .fset-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        }
+        .fset-box { background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); overflow: hidden; }
+        .fset-header { font-weight: 800; text-transform: uppercase; color: #64748b; margin-bottom: 4px; font-size: 0.75rem; letter-spacing: 0.1em; }
+        .fset-val { font-family: 'Righteous', cursive; font-weight: 400; }
+        .fset-pos { color: #059669; }
+        .fset-neg { color: #e11d48; }
+        .fset-neu { color: #94a3b8; }
+
+        /* Scrollbar Hide for Mobile Tabs */
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+        #resizer { width: 6px; cursor: col-resize; background: rgba(99, 102, 241, 0.05); transition: background 0.2s; z-index: 50; border-right: 1px solid #e2e8f0;}
+        #resizer:hover, #resizer.active { background: rgba(99, 102, 241, 0.2); }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px) rotate(-3deg); }
+            75% { transform: translateX(5px) rotate(3deg); }
+        }
+        .shake { animation: shake 0.4s ease-in-out; }
+
+        .particle { position: fixed; pointer-events: none; z-index: 9999; transition: transform 1s cubic-bezier(0.1, 0.8, 0.3, 1), opacity 1s ease-in; }
+
+        /* Toggle Switch */
+        .toggle-radio:checked + div { background-color: #3b82f6; border-color: #3b82f6; color: white; }
+    </style>
+</head>
+<body class="h-screen flex flex-col md:flex-row selection:bg-blue-200">
+
+    <!-- Sidebar / Top Navigation (Responsive) -->
+    <nav id="sidebar" class="w-full md:w-[320px] flex-shrink-0 glass-panel p-4 md:p-6 flex flex-col gap-3 md:gap-5 z-20 shadow-md md:shadow-[5px_0_30px_rgba(0,0,0,0.03)] bg-white/95 md:bg-white/85 backdrop-blur-xl md:overflow-y-auto sticky top-0 md:relative">
+        <div class="flex flex-row md:flex-col items-center justify-between md:items-start md:justify-start gap-2">
+            <div class="flex items-center gap-3">
+                <div class="p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-md text-white shrink-0">
+                    <i data-lucide="landmark" class="w-5 h-5 md:w-6 md:h-6"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl md:text-2xl text-transparent bg-clip-text bg-gradient-to-r from-blue-700 to-indigo-700 leading-tight">Mastering<br class="hidden md:block">Assets</h1>
+                    <p class="text-[9px] md:text-[10px] text-slate-500 font-bold tracking-widest uppercase md:ml-12">Real-World Cases</p>
+                </div>
+            </div>
+            
+            <div class="bg-white border border-slate-200 rounded-xl p-2 md:p-4 shadow-sm shrink-0 md:w-full">
+                <div class="flex justify-between items-center md:mb-3 gap-3">
+                    <span class="text-[10px] md:text-xs font-bold text-slate-600 uppercase tracking-wider hidden sm:block">Quiz Progress</span>
+                    <span class="text-xs md:text-sm font-gamified text-blue-700 bg-blue-50 px-2 py-0.5 md:px-3 md:py-1 rounded-md border border-blue-100" id="score-display">0 / 7</span>
+                </div>
+                <div class="w-full bg-slate-100 rounded-full h-1.5 md:h-2 shadow-inner mt-1 md:mt-0">
+                    <div id="progress-bar" class="bg-gradient-to-r from-blue-400 to-indigo-500 h-1.5 md:h-2 rounded-full transition-all duration-700 ease-out" style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex flex-row md:flex-col gap-2 mt-1 md:mt-2 overflow-x-auto pb-2 md:pb-0 scrollbar-hide snap-x" id="nav-tabs">
+            <button onclick="switchTab('ppe')" id="tab-ppe" class="tab-active flex items-center gap-2 md:gap-3 px-3 py-2.5 md:px-4 md:py-3 rounded-xl transition-all duration-300 text-left font-semibold text-xs md:text-sm shrink-0 snap-start">
+                <i data-lucide="server" class="w-4 h-4 opacity-90"></i>
+                1. Cloud Infra (PP&E)
+            </button>
+            <button onclick="switchTab('netflix')" id="tab-netflix" class="tab-inactive flex items-center gap-2 md:gap-3 px-3 py-2.5 md:px-4 md:py-3 rounded-xl transition-all duration-300 text-left font-semibold text-xs md:text-sm shrink-0 snap-start">
+                <i data-lucide="play-circle" class="w-4 h-4 opacity-80 text-red-600"></i>
+                2. Netflix (Content Assets)
+            </button>
+            <button onclick="switchTab('intangibles')" id="tab-intangibles" class="tab-inactive flex items-center gap-2 md:gap-3 px-3 py-2.5 md:px-4 md:py-3 rounded-xl transition-all duration-300 text-left font-semibold text-xs md:text-sm shrink-0 snap-start">
+                <i data-lucide="film" class="w-4 h-4 opacity-80"></i>
+                3. Disney (Intangibles)
+            </button>
+            <button onclick="switchTab('goodwill')" id="tab-goodwill" class="tab-inactive flex items-center gap-2 md:gap-3 px-3 py-2.5 md:px-4 md:py-3 rounded-xl transition-all duration-300 text-left font-semibold text-xs md:text-sm shrink-0 snap-start">
+                <i data-lucide="gamepad-2" class="w-4 h-4 opacity-80"></i>
+                4. Microsoft (M&A)
+            </button>
+            <button onclick="switchTab('crypto')" id="tab-crypto" class="tab-inactive flex items-center gap-2 md:gap-3 px-3 py-2.5 md:px-4 md:py-3 rounded-xl transition-all duration-300 text-left font-semibold text-xs md:text-sm shrink-0 snap-start">
+                <i data-lucide="bitcoin" class="w-4 h-4 opacity-80"></i>
+                5. MicroStrategy (Crypto)
+            </button>
+            <button onclick="switchTab('walgreens')" id="tab-walgreens" class="tab-inactive flex items-center gap-2 md:gap-3 px-3 py-2.5 md:px-4 md:py-3 rounded-xl transition-all duration-300 text-left font-semibold text-xs md:text-sm shrink-0 snap-start">
+                <i data-lucide="activity" class="w-4 h-4 opacity-80 text-rose-500"></i>
+                6. Walgreens (Impairment)
+            </button>
+            <button onclick="switchTab('kraft')" id="tab-kraft" class="tab-inactive flex items-center gap-2 md:gap-3 px-3 py-2.5 md:px-4 md:py-3 rounded-xl transition-all duration-300 text-left font-semibold text-xs md:text-sm shrink-0 snap-start">
+                <i data-lucide="shopping-basket" class="w-4 h-4 opacity-80 text-amber-500"></i>
+                7. Kraft Heinz (Write-Down)
+            </button>
+        </div>
+    </nav>
+
+    <!-- Resizer Handle (Hidden on Mobile) -->
+    <div id="resizer" class="hidden md:block"></div>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 p-4 md:p-10 overflow-y-auto h-full relative scroll-smooth" id="main-content">
+        <!-- Ambient Backgrounds -->
+        <div class="absolute top-20 right-20 w-[300px] md:w-[500px] h-[300px] md:h-[500px] bg-blue-400/10 rounded-full blur-[80px] md:blur-[100px] -z-10 pointer-events-none"></div>
+        <div class="absolute bottom-10 left-1/4 w-[400px] md:w-[600px] h-[400px] md:h-[600px] bg-purple-400/10 rounded-full blur-[100px] md:blur-[120px] -z-10 pointer-events-none"></div>
+
+        <!-- MODULE 1: PP&E -->
+        <section id="module-ppe" class="module-section active fade-in max-w-5xl mx-auto pb-20">
+            <header class="mb-6 md:mb-8">
+                <div class="inline-flex items-center gap-2 px-3 py-1.5 md:px-4 rounded-full bg-orange-100 border border-orange-200 text-orange-700 text-xs md:text-sm font-bold tracking-wide mb-4 shadow-sm">
+                    <i data-lucide="server" class="w-3 h-3 md:w-4 md:h-4"></i> Property, Plant & Equipment
+                </div>
+                <h2 class="text-3xl md:text-4xl text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-amber-600 leading-tight">Cloud Infrastructure Economics</h2>
+                <p class="text-slate-600 text-base md:text-lg leading-relaxed max-w-3xl mt-3 md:mt-4">Tech giants spend billions on data centers. By capitalizing these costs, they spread the expense over the useful life of the servers. Let's analyze the critical choice of <b>US GAAP Accounting Methods</b> and Asset Retirement.</p>
+            </header>
+
+            <!-- Gateway Challenge -->
+            <div class="bg-white border border-slate-200 rounded-2xl md:rounded-3xl p-6 md:p-8 shadow-xl relative overflow-hidden mb-8 md:mb-10" id="quiz-1-container">
+                <div class="absolute -top-10 -right-10 w-40 h-40 md:w-48 md:h-48 opacity-[0.03] pointer-events-none z-0 flex items-center justify-center">
+                    <i data-lucide="server" class="w-full h-full text-slate-900"></i>
+                </div>
+                <div class="flex items-center gap-3 mb-4 relative z-10">
+                    <div class="bg-indigo-100 p-2 rounded-lg text-indigo-600"><i data-lucide="unlock" class="w-5 h-5 md:w-6 md:h-6"></i></div>
+                    <h3 class="text-xl md:text-2xl text-slate-800">Scenario Challenge</h3>
+                </div>
+                <p class="text-slate-600 text-base md:text-lg mb-6 relative z-10 font-medium">A cloud provider scraps a rack of obsolete servers. The servers originally cost $10M and have $8M in Accumulated Depreciation. They receive $0 for the scrap. What is the impact on the FSET?</p>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 relative z-10" id="quiz-1-options">
+                    <button class="quiz-option p-4 md:p-5 rounded-xl md:rounded-2xl border border-slate-200 bg-slate-50 text-left shadow-sm" onclick="handleQuiz(1, 0, false)">
+                        <div class="font-bold text-slate-800 mb-1 md:mb-2 text-base md:text-lg">No Gain or Loss</div>
+                        <div class="text-xs md:text-sm text-slate-500 leading-snug">Assets decline by $10M, Accumulated Depreciation declines by $10M. Net Income is unaffected.</div>
+                    </button>
+                    <button class="quiz-option p-4 md:p-5 rounded-xl md:rounded-2xl border border-slate-200 bg-slate-50 text-left shadow-sm" onclick="handleQuiz(1, 1, true)">
+                        <div class="font-bold text-slate-800 mb-1 md:mb-2 text-base md:text-lg">$2M Loss on Disposal</div>
+                        <div class="text-xs md:text-sm text-slate-500 leading-snug">The remaining Net Book Value ($10M - $8M = $2M) must be expensed as a loss because proceeds were $0.</div>
+                    </button>
+                </div>
+                
+                <div id="quiz-1-feedback" class="mt-6 hidden fade-in bg-emerald-50 border border-emerald-200 rounded-xl md:rounded-2xl p-4 md:p-6 relative z-10">
+                    <div class="flex items-center gap-2 text-emerald-700 text-sm md:text-base font-bold mb-3">
+                        <i data-lucide="check-circle" class="w-5 h-5"></i> Correct! The remaining NBV is written off. You've unlocked the simulators below!
+                    </div>
+                </div>
+            </div>
+
+            <!-- HIDDEN CONTENT UNLOCKED AFTER QUIZ -->
+            <div id="mod-ppe-content" class="hidden fade-in">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
+                    <!-- Interactive Calculator -->
+                    <div class="glass-panel p-6 md:p-8 rounded-2xl md:rounded-3xl relative overflow-hidden bg-white">
+                        <h3 class="text-lg md:text-xl flex items-center gap-2 text-slate-800 mb-6"><i data-lucide="calculator" class="w-5 h-5 text-orange-500"></i> Depreciation Engine</h3>
+                        
+                        <div class="space-y-5 md:space-y-6 relative z-10">
+                            <div>
+                                <label class="block text-xs md:text-sm font-semibold text-slate-600 mb-2">Server Farm CapEx ($ Millions)</label>
+                                <input type="number" id="ppe-cost" value="500" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 text-slate-900 font-mono text-base md:text-lg focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all shadow-inner" oninput="calculateDepreciation()">
+                            </div>
+                            <div class="grid grid-cols-2 gap-3 md:gap-4">
+                                <div>
+                                    <label class="block text-xs md:text-sm font-semibold text-slate-600 mb-2">Salvage Value ($M)</label>
+                                    <input type="number" id="ppe-salvage" value="50" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 text-slate-900 font-mono text-base md:text-lg focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all shadow-inner" oninput="calculateDepreciation()">
+                                </div>
+                                <div>
+                                    <label class="block text-xs md:text-sm font-semibold text-slate-600 mb-2">Useful Life (Yrs)</label>
+                                    <input type="number" id="ppe-life" value="5" min="3" max="10" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 text-slate-900 font-mono text-base md:text-lg focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all shadow-inner" oninput="calculateDepreciation()">
+                                </div>
+                            </div>
+
+                            <!-- Method Toggle -->
+                            <div class="mt-4">
+                                <label class="block text-xs md:text-sm font-semibold text-slate-600 mb-3">GAAP Depreciation Method:</label>
+                                <div class="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
+                                    <label class="flex-1 cursor-pointer">
+                                        <input type="radio" name="deprMethod" value="SL" class="peer hidden toggle-radio" checked onchange="calculateDepreciation()">
+                                        <div class="text-center py-2 rounded-lg text-xs md:text-sm font-bold text-slate-500 transition-all border border-transparent peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-blue-400">Straight-Line (SL)</div>
+                                    </label>
+                                    <label class="flex-1 cursor-pointer">
+                                        <input type="radio" name="deprMethod" value="DDB" class="peer hidden toggle-radio" onchange="calculateDepreciation()">
+                                        <div class="text-center py-2 rounded-lg text-xs md:text-sm font-bold text-slate-500 transition-all border border-transparent peer-checked:bg-orange-500 peer-checked:text-white peer-checked:border-orange-400">Double-Declining (DDB)</div>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="mt-6 p-4 md:p-5 bg-slate-50 rounded-xl md:rounded-2xl border border-slate-200 shadow-sm relative z-10">
+                                <div class="flex justify-between items-center mb-1">
+                                    <span class="text-xs md:text-sm font-bold text-slate-600">Year 1 Depr. Expense:</span>
+                                    <span class="text-xl md:text-2xl font-gamified text-orange-600 tracking-tight" id="ppe-annual-exp">$90.0M</span>
+                                </div>
+                                <p class="text-[10px] md:text-xs text-slate-500 leading-snug">The portion that hits the Income Statement in Year 1.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Concept Card & Visualizer -->
+                    <div class="flex flex-col gap-6">
+                        <div class="glass-panel p-6 rounded-2xl md:rounded-3xl flex-1 relative border-t-4 border-t-blue-500 bg-white" id="ppe-chart-panel">
+                            <h3 class="text-xs md:text-sm font-bold mb-2 text-slate-700 uppercase tracking-widest text-center">Total Expense Profiler</h3>
+                            <p class="text-[10px] md:text-xs text-slate-600 mb-4 text-center leading-relaxed">
+                                Maintenance costs naturally <b class="text-rose-600">increase</b> as hardware ages. 
+                                <span id="ppe-desc-text" class="font-bold text-slate-800 bg-slate-100 px-2 py-1 rounded inline-block mt-1">Toggle the methods to see the impact!</span>
+                            </p>
+                            
+                            <div class="flex justify-center gap-3 md:gap-4 mb-4 text-[9px] md:text-[10px] font-bold text-slate-500 uppercase">
+                                <div class="flex items-center gap-1.5"><div class="w-2 h-2 md:w-3 md:h-3 rounded bg-blue-500"></div> Depreciation Exp</div>
+                                <div class="flex items-center gap-1.5"><div class="w-2 h-2 md:w-3 md:h-3 rounded bg-rose-500"></div> Maintenance Exp</div>
+                            </div>
+
+                            <!-- Chart -->
+                            <div class="flex-1 flex items-end justify-between border-l-2 border-b-2 border-slate-300 pb-1 pl-1 h-32 md:h-40" id="ppe-chart">
+                                <!-- Bars generated by JS -->
+                            </div>
+                            <div class="flex justify-between text-[10px] md:text-xs font-bold text-slate-500 mt-2 px-1" id="ppe-chart-labels">
+                                <!-- Labels generated by JS -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Accounting Estimates Section -->
+                <div class="mt-8 mb-10">
+                    <h3 class="text-2xl md:text-3xl text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 mb-3 md:mb-4">Part 2: The Power of Estimates (Meta's Lever)</h3>
+                    <p class="text-slate-600 text-base md:text-lg leading-relaxed max-w-3xl mb-6">Management can adjust an asset's useful life if they can justify it. In its 2025 disclosure, Meta extended the estimated useful lives of its servers to <b>5.5 years</b>. Let's use Meta's actual balance sheet data to explore how this estimate impacts the <b>Financial Statements</b> and future <b>Cash Flows</b>.</p>
+                    
+                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                        <!-- Left: Estimate Adjuster -->
+                        <div class="glass-panel p-6 md:p-8 rounded-2xl md:rounded-3xl lg:col-span-5 relative overflow-hidden border-t-4 border-t-blue-400 bg-white">
+                            <h4 class="text-lg md:text-xl text-slate-800 mb-4 md:mb-6 font-bold flex items-center gap-2"><i data-lucide="sliders" class="w-5 h-5 text-blue-500"></i> Estimate Adjuster</h4>
+                            
+                            <div class="bg-slate-50 rounded-xl p-3 md:p-4 mb-6 border border-slate-200 overflow-x-auto w-full">
+                                <h5 class="text-[10px] md:text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 md:mb-3 whitespace-nowrap">Meta PP&E Composition ($B)</h5>
+                                <table class="w-full text-xs md:text-sm text-left whitespace-nowrap">
+                                    <tbody class="divide-y divide-slate-200/60">
+                                        <tr><td class="py-1 text-slate-500">Land <span class="text-[8px] md:text-[9px] uppercase font-bold">(Non-Depr)</span></td><td class="py-1 text-right font-mono">$3.7</td></tr>
+                                        <tr><td class="py-1 text-slate-500 border-b border-slate-200">Const. in Progress <span class="text-[8px] md:text-[9px] uppercase font-bold">(Non-Depr)</span></td><td class="py-1 text-right font-mono border-b border-slate-200">$50.5</td></tr>
+                                        <tr class="bg-blue-50"><td class="py-1 text-slate-700 pl-2">Servers & network <span class="text-[8px] md:text-[9px] font-bold text-blue-500">(5 to 5.5 Yrs)</span></td><td class="py-1 text-right font-mono text-slate-800 pr-2">$98.0</td></tr>
+                                        <tr class="bg-blue-50"><td class="py-1 text-slate-700 pl-2">Buildings <span class="text-[8px] md:text-[9px] font-bold text-slate-400">(25 to 30 Yrs)</span></td><td class="py-1 text-right font-mono text-slate-800 pr-2">$55.6</td></tr>
+                                        <tr class="bg-blue-50"><td class="py-1 text-slate-700 pl-2">Equipment and other <span class="text-[8px] md:text-[9px] font-bold text-slate-400">(1-25 Yrs)</span></td><td class="py-1 text-right font-mono text-slate-800 pr-2">$9.4</td></tr>
+                                        <tr class="bg-blue-50"><td class="py-1 text-slate-700 pl-2">Leasehold improvements</td><td class="py-1 text-right font-mono text-slate-800 pr-2">$8.3</td></tr>
+                                        <tr class="bg-blue-50"><td class="py-1 text-slate-700 pl-2 rounded-bl-lg">Finance lease ROU <span class="text-[8px] md:text-[9px] font-bold text-slate-400">(5-20 Yrs)</span></td><td class="py-1 text-right font-mono text-slate-800 pr-2 rounded-br-lg">$8.2</td></tr>
+                                        <tr class="border-t-2 border-slate-300"><td class="py-1.5 font-bold text-slate-800">Total Gross PP&E</td><td class="py-1.5 text-right font-mono font-bold text-slate-800">$233.7</td></tr>
+                                        <tr><td class="py-1.5 text-rose-500 font-medium">Less: Accum. Depr.</td><td class="py-1.5 text-right font-mono text-rose-500 font-medium">-$57.3</td></tr>
+                                        <tr class="border-t-2 border-slate-300"><td class="py-2 font-bold text-blue-700">Total Net PP&E</td><td class="py-2 text-right font-mono font-bold text-blue-700">$176.4</td></tr>
+                                    </tbody>
+                                </table>
+                                <div class="mt-3 text-center text-[9px] md:text-[10px] text-slate-400 font-medium flex flex-col gap-1.5 items-center">
+                                    <span>*Recalculation relies on the <b>Depreciable NBV ($122.2B)</b>.</span>
+                                    <a href="https://www.sec.gov/ix?doc=/Archives/edgar/data/0001326801/000162828026003942/meta-20251231.htm#fact-identifier-100" target="_blank" class="text-blue-500 hover:text-blue-600 hover:underline flex items-center justify-center gap-1 transition-colors"><i data-lucide="external-link" class="w-3 h-3"></i> SEC Form 10-K (Dec 2025)</a>
+                                </div>
+                            </div>
+                            
+                            <label class="block text-xs md:text-sm font-bold text-slate-600 mb-3 flex justify-between items-center">
+                                Avg Remaining Life: <span id="est-life-display" class="text-blue-700 font-gamified text-lg md:text-xl bg-blue-50 px-2 md:px-3 py-0.5 rounded-lg border border-blue-200">5.5 Yrs</span>
+                            </label>
+                            <input type="range" id="est-life" min="2" max="10" step="0.5" value="5.5" oninput="calculateEstimate()">
+                            <div class="flex justify-between text-[10px] md:text-xs text-slate-400 mt-2 font-mono font-bold"><span>2 Yrs</span><span>10 Yrs</span></div>
+                            
+                            <div class="mt-6 p-4 bg-slate-50 rounded-xl md:rounded-2xl border border-slate-200 shadow-sm text-center">
+                                <div class="text-[9px] md:text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">New Annual Depr. Expense</div>
+                                <div class="text-2xl md:text-3xl font-gamified text-rose-600 transition-colors duration-300" id="est-exp-display">$22.2B</div>
+                            </div>
+                        </div>
+
+                        <!-- Right: Fleet Analytics & Cash Flow -->
+                        <div class="glass-panel p-6 md:p-8 rounded-2xl md:rounded-3xl lg:col-span-7 flex flex-col justify-center relative bg-white">
+                            <h4 class="text-xs md:text-sm font-black text-slate-500 uppercase tracking-widest text-center mb-4 md:mb-6">Fleet Analytics & Reality</h4>
+                            
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+                                <!-- % Used Up -->
+                                <div class="bg-slate-50 p-3 md:p-4 rounded-xl md:rounded-2xl border border-slate-200 text-center shadow-sm">
+                                    <div class="text-[8px] md:text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">% Used Up</div>
+                                    <div class="text-xl md:text-2xl font-gamified text-blue-600" id="est-used">32%</div>
+                                    <div class="text-[9px] md:text-[10px] text-slate-600 mt-1 font-bold font-mono" id="est-used-calc"></div>
+                                    <div class="text-[7px] md:text-[8px] text-slate-400 font-bold">(Acc Depr / Gross Depr)</div>
+                                </div>
+                                <!-- Avg Useful Life -->
+                                <div class="bg-slate-50 p-3 md:p-4 rounded-xl md:rounded-2xl border border-slate-200 text-center shadow-sm">
+                                    <div class="text-[8px] md:text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Avg Useful Life</div>
+                                    <div class="text-xl md:text-2xl font-gamified text-purple-600" id="est-avg-life">8.1 Yrs</div>
+                                    <div class="text-[9px] md:text-[10px] text-slate-600 mt-1 font-bold font-mono" id="est-avg-life-calc"></div>
+                                    <div class="text-[7px] md:text-[8px] text-slate-400 font-bold">(Gross Depr / Depr Exp)</div>
+                                </div>
+                                <!-- Avg Rem Life -->
+                                <div class="bg-slate-50 p-3 md:p-4 rounded-xl md:rounded-2xl border border-slate-200 text-center shadow-sm">
+                                    <div class="text-[8px] md:text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Avg Rem. Life</div>
+                                    <div class="text-xl md:text-2xl font-gamified text-emerald-600" id="est-rem-life">5.5 Yrs</div>
+                                    <div class="text-[9px] md:text-[10px] text-slate-600 mt-1 font-bold font-mono" id="est-rem-life-calc"></div>
+                                    <div class="text-[7px] md:text-[8px] text-slate-400 font-bold">(Depr NBV / Depr Exp)</div>
+                                </div>
+                            </div>
+
+                            <div class="space-y-3 md:space-y-4">
+                                <div class="bg-indigo-50 p-4 md:p-5 rounded-xl md:rounded-2xl border border-indigo-200">
+                                    <h5 class="text-xs md:text-sm font-bold text-indigo-800 mb-2 flex items-center gap-2"><i data-lucide="calculator" class="w-4 h-4 shrink-0"></i> Accounting Impact (Non-Cash)</h5>
+                                    <p class="text-xs md:text-sm text-indigo-900/80 leading-relaxed" id="est-analysis-text">
+                                        By extending the remaining life to <b>5.5 years</b>, Meta reduces its annual depreciation expense to <b>$22.2B</b>. This accounting change significantly boosts reported Net Income, even though it generates zero actual cash.
+                                    </p>
+                                </div>
+                                
+                                <div class="bg-rose-50 p-4 md:p-5 rounded-xl md:rounded-2xl border border-rose-200">
+                                    <h5 class="text-xs md:text-sm font-bold text-rose-800 mb-2 flex items-center gap-2"><i data-lucide="activity" class="w-4 h-4 shrink-0"></i> Cash Flow Reality</h5>
+                                    <p class="text-xs md:text-sm text-rose-900/80 leading-relaxed">
+                                        The fleet is physically <b>32% used up</b>. Regardless of the paper lifespan management chooses, the hardware is degrading. A high % used up signals an impending <b>CapEx cliff</b>—a massive <i>real cash outflow</i> will soon be required to replace these dying servers.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- MODULE 2: NETFLIX CONTENT ASSETS -->
+        <section id="module-netflix" class="module-section fade-in max-w-5xl mx-auto pb-20">
+            <header class="mb-6 md:mb-8">
+                <div class="inline-flex items-center gap-2 px-3 py-1.5 md:px-4 rounded-full bg-red-100 border border-red-200 text-red-700 text-xs md:text-sm font-bold tracking-wide mb-4 shadow-sm">
+                    <i data-lucide="play-circle" class="w-3 h-3 md:w-4 md:h-4"></i> Content Capitalization
+                </div>
+                <h2 class="text-3xl md:text-4xl text-transparent bg-clip-text bg-gradient-to-r from-red-600 to-rose-800 leading-tight">Netflix's Binge-Worthy Balance Sheet</h2>
+                <p class="text-slate-600 text-base md:text-lg leading-relaxed max-w-3xl mt-3 md:mt-4">Netflix doesn't have a massive traditional "Inventory" or "R&D" line item for its original shows. Instead, direct production costs are capitalized into an asset account called <b>Content Assets</b> and then aggressively amortized to match how fast subscribers binge the content.</p>
+            </header>
+
+            <!-- Gateway Challenge -->
+            <div class="bg-white border border-slate-200 rounded-2xl md:rounded-3xl p-6 md:p-8 shadow-xl relative overflow-hidden mb-8 md:mb-10" id="quiz-5-container">
+                <div class="absolute -top-10 -right-10 w-40 h-40 md:w-48 md:h-48 opacity-[0.03] pointer-events-none z-0 flex items-center justify-center">
+                    <i data-lucide="play-circle" class="w-full h-full text-slate-900"></i>
+                </div>
+                <div class="flex items-center gap-3 mb-4 relative z-10">
+                    <div class="bg-indigo-100 p-2 rounded-lg text-indigo-600"><i data-lucide="unlock" class="w-5 h-5 md:w-6 md:h-6"></i></div>
+                    <h3 class="text-xl md:text-2xl text-slate-800">Scenario Challenge</h3>
+                </div>
+                <p class="text-slate-600 text-base md:text-lg mb-6 relative z-10 font-medium">Why does US GAAP allow Netflix to capitalize the billions of dollars it spends producing original shows, rather than expensing it immediately as Research & Development (R&D)?</p>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 relative z-10" id="quiz-5-options">
+                    <button class="quiz-option p-4 md:p-5 rounded-xl md:rounded-2xl border border-slate-200 bg-slate-50 text-left shadow-sm" onclick="handleQuiz(5, 0, false)">
+                        <div class="font-bold text-slate-800 mb-1 md:mb-2 text-base md:text-lg">It is a scientific discovery</div>
+                        <div class="text-xs md:text-sm text-slate-500 leading-snug">Because shows use cutting-edge CGI, they qualify as technological R&D that provides an uncertain future benefit.</div>
+                    </button>
+                    <button class="quiz-option p-4 md:p-5 rounded-xl md:rounded-2xl border border-slate-200 bg-slate-50 text-left shadow-sm" onclick="handleQuiz(5, 1, true)">
+                        <div class="font-bold text-slate-800 mb-1 md:mb-2 text-base md:text-lg">It creates a commercial product</div>
+                        <div class="text-xs md:text-sm text-slate-500 leading-snug">Producing a TV show uses known techniques to create a commercial entertainment product with a clear path to revenue, lacking the technological uncertainty required for true R&D.</div>
+                    </button>
+                </div>
+                <div id="quiz-5-feedback" class="mt-6 hidden fade-in bg-emerald-50 border border-emerald-200 rounded-xl md:rounded-2xl p-4 md:p-6 relative z-10 text-emerald-700 text-xs md:text-sm font-bold"></div>
+            </div>
+
+            <!-- HIDDEN CONTENT UNLOCKED AFTER QUIZ -->
+            <div id="mod-netflix-content" class="hidden fade-in">
+                <div class="glass-panel p-6 md:p-8 rounded-2xl md:rounded-3xl mb-10 border-t-4 border-t-red-600 relative overflow-hidden bg-white">
+                    <div class="absolute inset-0 bg-red-50/30 pointer-events-none"></div>
+                    <h3 class="text-xl md:text-2xl mb-4 md:mb-6 text-slate-800 text-center font-bold relative z-10">The Binge-Watching Simulator</h3>
+                    <p class="text-center text-slate-600 mb-4 text-xs md:text-sm relative z-10 px-2 max-w-2xl mx-auto">Netflix just released a new $100M blockbuster movie. Viewership is massive in the first month but will trail off quickly. Because of this, Netflix uses an <b>Accelerated Amortization</b> model to match the cost with the value provided to subscribers.</p>
+                    <div class="mb-8 text-center relative z-10">
+                        <a href="https://www.sec.gov/ix?doc=/Archives/edgar/data/1065280/000106528026000034/nflx-20251231.htm#fact-identifier-352" target="_blank" class="inline-flex items-center justify-center gap-1 text-[10px] md:text-xs font-bold text-red-600 hover:text-red-800 hover:underline transition-colors"><i data-lucide="external-link" class="w-3 h-3"></i> Source: Netflix SEC Form 10-K (Dec 2025)</a>
+                    </div>
+
+                    <div class="flex flex-col gap-6 items-center relative z-10 w-full max-w-2xl mx-auto">
+                        <div class="bg-white p-5 md:p-6 rounded-xl md:rounded-2xl border border-slate-200 w-full shadow-sm">
+                            <h4 class="font-bold text-slate-700 mb-3 md:mb-4 text-center uppercase tracking-wider text-[10px] md:text-xs">Content Asset: "The Blockbuster"</h4>
+                            <div class="flex justify-between mb-2 md:mb-3 text-xs md:text-sm"><span class="text-slate-500">Gross Content Asset</span><span class="font-mono text-slate-700 font-bold">$100.0M</span></div>
+                            <div class="flex justify-between mb-2 md:mb-3 text-xs md:text-sm"><span class="text-red-600 font-bold">Accumulated Amortization</span><span class="font-gamified text-lg md:text-xl text-red-600 transition-all duration-1000" id="netflix-amort-val">$0.0M</span></div>
+                            <div class="h-px bg-slate-200 my-2 md:my-3"></div>
+                            <div class="flex justify-between font-bold text-xs md:text-sm"><span class="text-slate-800">Net Book Value</span><span class="font-mono text-slate-800 transition-all duration-1000" id="netflix-nbv-val">$100.0M</span></div>
+                        </div>
+                        
+                        <button onclick="executeNetflixAmortization()" id="btn-amortize-nflx" class="px-6 py-3 md:px-8 md:py-4 w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white rounded-xl md:rounded-2xl font-bold shadow-lg flex items-center justify-center gap-2 transition-all shrink-0 text-sm md:text-base">
+                            <i data-lucide="fast-forward" class="w-5 h-5 md:w-6 md:h-6 shrink-0"></i> Execute Year 1 Amortization
+                        </button>
+                        
+                        <div class="w-full" id="netflix-fset-container">
+                            <div class="bg-slate-50 border border-slate-200 rounded-xl md:rounded-2xl p-6 md:p-8 flex items-center justify-center h-full min-h-[120px] md:min-h-[160px]">
+                                <div class="text-center text-slate-400 italic text-xs md:text-sm flex flex-col items-center gap-2">
+                                    <i data-lucide="arrow-up" class="w-4 h-4 md:w-5 md:h-5 animate-bounce"></i>
+                                    Click to execute the accelerated amortization.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- MODULE 3: INTANGIBLES -->
+        <section id="module-intangibles" class="module-section fade-in max-w-5xl mx-auto pb-20">
+            <header class="mb-6 md:mb-8">
+                <div class="inline-flex items-center gap-2 px-3 py-1.5 md:px-4 rounded-full bg-blue-100 border border-blue-200 text-blue-700 text-xs md:text-sm font-bold tracking-wide mb-4 shadow-sm">
+                    <i data-lucide="film" class="w-3 h-3 md:w-4 md:h-4"></i> Asset Impairment
+                </div>
+                <h2 class="text-3xl md:text-4xl text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 leading-tight">The Walt Disney Company's Content Purge</h2>
+                <p class="text-slate-600 text-base md:text-lg leading-relaxed max-w-3xl mt-3 md:mt-4">Disney capitalizes billions of dollars to produce original shows and movies for Disney+ and Hulu. But what happens to the balance sheet when those shows fail to attract viewers and are permanently removed from the platforms?</p>
+            </header>
+
+            <!-- Gateway Challenge -->
+            <div class="bg-white border border-slate-200 rounded-2xl md:rounded-3xl p-6 md:p-8 shadow-xl relative overflow-hidden mb-8 md:mb-10" id="quiz-2-container">
+                <div class="absolute -top-10 -right-10 w-40 h-40 md:w-48 md:h-48 opacity-[0.03] pointer-events-none z-0 flex items-center justify-center">
+                    <i data-lucide="clapperboard" class="w-full h-full text-slate-900"></i>
+                </div>
+                <div class="flex items-center gap-3 mb-4 relative z-10">
+                    <div class="bg-indigo-100 p-2 rounded-lg text-indigo-600"><i data-lucide="unlock" class="w-5 h-5 md:w-6 md:h-6"></i></div>
+                    <h3 class="text-xl md:text-2xl text-slate-800">Scenario Challenge</h3>
+                </div>
+                <p class="text-slate-600 text-base md:text-lg mb-6 relative z-10 font-medium">In 2023, Disney executives decided to permanently remove dozens of underperforming shows from Disney+ and Hulu to cut licensing and residual costs. How must Disney account for the capitalized "Content Assets" associated with these abandoned shows?</p>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 relative z-10" id="quiz-2-options">
+                    <button class="quiz-option p-4 md:p-5 rounded-xl md:rounded-2xl border border-slate-200 bg-slate-50 text-left shadow-sm" onclick="handleQuiz(2, 0, false)">
+                        <div class="font-bold text-slate-800 mb-1 md:mb-2 text-base md:text-lg">Continue Amortizing</div>
+                        <div class="text-xs md:text-sm text-slate-500 leading-snug">Keep the assets on the balance sheet and amortize them over their originally planned useful life.</div>
+                    </button>
+                    <button class="quiz-option p-4 md:p-5 rounded-xl md:rounded-2xl border border-slate-200 bg-slate-50 text-left shadow-sm" onclick="handleQuiz(2, 1, true)">
+                        <div class="font-bold text-slate-800 mb-1 md:mb-2 text-base md:text-lg">Recognize an Impairment Loss</div>
+                        <div class="text-xs md:text-sm text-slate-500 leading-snug">Because the content is abandoned and will generate $0 future cash flows, the unamortized asset value must be written off immediately.</div>
+                    </button>
+                </div>
+                <div id="quiz-2-feedback" class="mt-6 hidden fade-in bg-emerald-50 border border-emerald-200 rounded-xl md:rounded-2xl p-4 md:p-6 relative z-10">
+                    <div class="flex items-center gap-2 text-emerald-700 text-sm md:text-base font-bold mb-3">
+                        <i data-lucide="check-circle" class="w-5 h-5 shrink-0"></i> Correct! Unlocked the Impairment Simulator. FSET impact:
+                    </div>
+                    <div class="fset-grid mt-2">
+                        <div class="fset-box">
+                            <div class="fset-header">Assets</div>
+                            <div class="fset-val fset-neg text-xl sm:text-2xl">Drop</div>
+                            <div class="text-[9px] font-sans font-bold text-slate-500">(Content Asset)</div>
+                        </div>
+                        <div class="fset-box hidden sm:block">
+                            <div class="fset-header">Liabilities</div>
+                            <div class="fset-val fset-neu text-xl sm:text-2xl">No Effect</div>
+                        </div>
+                        <div class="fset-box">
+                            <div class="fset-header">Equity</div>
+                            <div class="fset-val fset-neg text-xl sm:text-2xl">Drop</div>
+                            <div class="text-[9px] font-sans font-bold text-slate-500">(Impairment Expense)</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- HIDDEN CONTENT UNLOCKED AFTER QUIZ -->
+            <div id="mod-intangibles-content" class="hidden fade-in">
+                
+                <!-- The Content Purge Simulator -->
+                <div class="glass-panel p-6 md:p-8 rounded-2xl md:rounded-3xl mb-8 md:mb-10 relative overflow-hidden bg-white border-t-4 border-t-red-500 shadow-sm">
+                    <div class="absolute inset-0 bg-red-50/30 pointer-events-none"></div>
+                    <h3 class="text-xl md:text-2xl mb-4 md:mb-6 text-slate-800 text-center font-bold relative z-10">The $2.4 Billion Purge Simulator</h3>
+                    <p class="text-center text-slate-600 mb-4 text-xs md:text-sm relative z-10 px-2 max-w-2xl mx-auto">During Q3 2023, Disney strategically removed content from its Direct-to-Consumer platforms. Execute the historic impairment charge that forced a massive reality check on streaming profitability.</p>
+                    <div class="mb-8 text-center relative z-10">
+                        <a href="https://www.sec.gov/ix?doc=/Archives/edgar/data/0001744489/000174448923000171/dis-20230701.htm" target="_blank" class="inline-flex items-center justify-center gap-1 text-[10px] md:text-xs font-bold text-blue-600 hover:text-blue-800 hover:underline transition-colors"><i data-lucide="external-link" class="w-3 h-3"></i> Source: Disney SEC Form 10-Q (Q3 2023)</a>
+                    </div>
+
+                    <div class="flex flex-col gap-6 items-center relative z-10 w-full max-w-2xl mx-auto">
+                        <div class="bg-white p-5 md:p-6 rounded-xl md:rounded-2xl border border-slate-200 w-full shadow-sm">
+                            <h4 class="font-bold text-slate-700 mb-3 md:mb-4 text-center uppercase tracking-wider text-[10px] md:text-xs">Pre-Purge Carrying Values</h4>
+                            <div class="flex justify-between mb-2 md:mb-3 text-xs md:text-sm"><span class="text-slate-500">Other Corporate Assets</span><span class="font-mono text-slate-700 font-bold">$202.0B</span></div>
+                            <div class="flex justify-between mb-2 md:mb-3 text-xs md:text-sm"><span class="text-red-600 font-bold">Abandoned Content Assets</span><span class="font-gamified text-lg md:text-xl text-red-600 transition-all duration-1000" id="disney-asset-val">$2.4B</span></div>
+                            <div class="h-px bg-slate-200 my-2 md:my-3"></div>
+                            <div class="flex justify-between font-bold text-xs md:text-sm"><span class="text-slate-800">Total Assets</span><span class="font-mono text-slate-800 transition-all duration-1000" id="disney-total-val">$204.4B</span></div>
+                        </div>
+                        
+                        <button onclick="executeDisneyImpairment()" id="btn-impair-disney" class="px-6 py-3 md:px-8 md:py-4 w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white rounded-xl md:rounded-2xl font-bold shadow-lg flex items-center justify-center gap-2 transition-all shrink-0 text-sm md:text-base">
+                            <i data-lucide="trash-2" class="w-5 h-5 md:w-6 md:h-6 shrink-0"></i> Purge Content ($2.4B)
+                        </button>
+                        
+                        <div class="w-full" id="disney-fset-container">
+                            <div class="bg-slate-50 border border-slate-200 rounded-xl md:rounded-2xl p-6 md:p-8 flex items-center justify-center h-full min-h-[120px] md:min-h-[160px]">
+                                <div class="text-center text-slate-400 italic text-xs md:text-sm flex flex-col items-center gap-2">
+                                    <i data-lucide="arrow-up" class="w-4 h-4 md:w-5 md:h-5 animate-bounce"></i>
+                                    Click to execute the purge and see the FSET impact.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-10">
+                    <div class="glass-panel p-6 md:p-8 rounded-2xl md:rounded-3xl lg:col-span-5 flex flex-col justify-center border-t-4 border-t-blue-500 bg-blue-50">
+                        <div class="bg-white w-12 h-12 md:w-16 md:h-16 rounded-xl md:rounded-2xl flex items-center justify-center mb-4 md:mb-6 shadow-sm border border-blue-200">
+                            <i data-lucide="scale" class="w-6 h-6 md:w-8 md:h-8 text-blue-600"></i>
+                        </div>
+                        <h4 class="text-xl md:text-2xl text-slate-800 mb-3 md:mb-4 font-bold">The Golden Rule of Intangibles</h4>
+                        <p class="text-slate-600 leading-relaxed font-medium text-xs md:text-sm">
+                            <span class="text-rose-500 font-bold">Internally generated</span> intangibles (like building the Mickey Mouse brand) are almost always <b>expensed immediately</b> because determining their exact cost and lifespan is subjective.<br><br>
+                            <span class="text-emerald-600 font-bold">Purchased</span> intangibles (like acquiring Pixar or Marvel) have a clear market price. They are <b>capitalized</b> onto the balance sheet.
+                        </p>
+                    </div>
+
+                    <div class="glass-panel p-6 md:p-8 rounded-2xl md:rounded-3xl lg:col-span-7 bg-white">
+                        <h3 class="text-lg md:text-xl font-bold mb-2 text-slate-800">Asset Sorting Engine</h3>
+                        <p class="text-xs md:text-sm text-slate-500 mb-4 md:mb-6 font-medium">Classify how Disney must record these outlays according to US GAAP.</p>
+
+                        <div class="space-y-3 md:space-y-4" id="intangibles-list">
+                            <!-- Items generated by JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- MODULE 4: GOODWILL -->
+        <section id="module-goodwill" class="module-section fade-in max-w-5xl mx-auto pb-20">
+            <header class="mb-6 md:mb-8">
+                <div class="inline-flex items-center gap-2 px-3 py-1.5 md:px-4 rounded-full bg-emerald-100 border border-emerald-200 text-emerald-700 text-xs md:text-sm font-bold tracking-wide mb-4 shadow-sm">
+                    <i data-lucide="network" class="w-3 h-3 md:w-4 md:h-4"></i> M&A Accounting
+                </div>
+                <h2 class="text-3xl md:text-4xl text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-600 leading-tight">Microsoft Acquires Activision</h2>
+                <p class="text-slate-600 text-base md:text-lg leading-relaxed max-w-3xl mt-3 md:mt-4">In a historic 2023 deal, Microsoft purchased Activision Blizzard for roughly $74.2 Billion gross ($68.7B net of cash). To account for this, Microsoft performed a <strong>Purchase Price Allocation (PPA)</strong>.</p>
+            </header>
+
+            <!-- Gateway Challenge -->
+            <div class="bg-white border border-slate-200 rounded-2xl md:rounded-3xl p-6 md:p-8 shadow-xl relative overflow-hidden mb-8 md:mb-10" id="quiz-3-container">
+                <div class="absolute -top-10 -right-10 w-40 h-40 md:w-48 md:h-48 opacity-[0.03] pointer-events-none z-0 flex items-center justify-center">
+                    <i data-lucide="gamepad-2" class="w-full h-full text-slate-900"></i>
+                </div>
+                <div class="flex items-center gap-3 mb-4 relative z-10">
+                    <div class="bg-indigo-100 p-2 rounded-lg text-indigo-600"><i data-lucide="unlock" class="w-5 h-5 md:w-6 md:h-6"></i></div>
+                    <h3 class="text-xl md:text-2xl text-slate-800">Scenario Challenge</h3>
+                </div>
+                <p class="text-slate-600 text-base md:text-lg mb-6 relative z-10 font-medium">Under US GAAP, Microsoft tests Goodwill for impairment annually. They determine the Activision reporting unit is impaired by $5 Billion. How is this recorded in the FSET?</p>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 relative z-10" id="quiz-3-options">
+                    <button class="quiz-option p-4 md:p-5 rounded-xl md:rounded-2xl border border-slate-200 bg-slate-50 text-left shadow-sm flex flex-col justify-between" onclick="handleQuiz(3, 0, false)">
+                        <div class="font-bold text-slate-800 mb-2 md:mb-3 text-base md:text-lg">Option A</div>
+                        <div class="text-[10px] md:text-[11px] text-slate-600 space-y-1 font-mono bg-white border border-slate-200 p-2 rounded">
+                            <div>Assets: -$5B (Goodwill)</div>
+                            <div>Liab: No Effect</div>
+                            <div>Equity: -$5B (Dividend)</div>
+                        </div>
+                    </button>
+                    <button class="quiz-option p-4 md:p-5 rounded-xl md:rounded-2xl border border-slate-200 bg-slate-50 text-left shadow-sm flex flex-col justify-between" onclick="handleQuiz(3, 1, true)">
+                        <div class="font-bold text-slate-800 mb-2 md:mb-3 text-base md:text-lg">Option B</div>
+                        <div class="text-[10px] md:text-[11px] text-slate-600 space-y-1 font-mono bg-white border border-slate-200 p-2 rounded">
+                            <div>Assets: -$5B (Goodwill)</div>
+                            <div>Liab: No Effect</div>
+                            <div>Equity: -$5B (via Net Income)</div>
+                        </div>
+                    </button>
+                    <button class="quiz-option p-4 md:p-5 rounded-xl md:rounded-2xl border border-slate-200 bg-slate-50 text-left shadow-sm flex flex-col justify-between sm:col-span-2 lg:col-span-1" onclick="handleQuiz(3, 2, false)">
+                        <div class="font-bold text-slate-800 mb-2 md:mb-3 text-base md:text-lg">Option C</div>
+                        <div class="text-[10px] md:text-[11px] text-slate-600 space-y-1 font-mono bg-white border border-slate-200 p-2 rounded">
+                            <div>Assets: No Effect</div>
+                            <div>Liab: +$5B (Impairment Liab)</div>
+                            <div>Equity: -$5B (via Net Income)</div>
+                        </div>
+                    </button>
+                </div>
+                <div id="quiz-3-feedback" class="mt-6 hidden fade-in bg-emerald-50 border border-emerald-200 rounded-xl md:rounded-2xl p-4 md:p-6 relative z-10">
+                    <div class="flex items-center gap-2 text-emerald-700 text-sm md:text-base font-bold mb-3">
+                        <i data-lucide="check-circle" class="w-5 h-5 shrink-0"></i> Correct! Unlocked the PPA Calculator. Impairment directly reduces the asset and flows through Net Income to reduce Equity.
+                    </div>
+                </div>
+            </div>
+
+            <!-- HIDDEN CONTENT UNLOCKED AFTER QUIZ -->
+            <div id="mod-goodwill-content" class="hidden fade-in">
+                <div class="glass-panel p-6 md:p-8 rounded-2xl md:rounded-3xl mb-10 border-t-4 border-t-emerald-500 bg-white">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12">
+                        <!-- Data Entry -->
+                        <div>
+                            <h3 class="text-xl md:text-2xl mb-4 md:mb-6 text-slate-800 flex items-center gap-3 font-bold">
+                                <div class="p-2 bg-emerald-100 rounded-lg shrink-0"><i data-lucide="sliders-horizontal" class="text-emerald-600 w-5 h-5"></i></div>
+                                The Purchase Price Allocation (PPA) Calculator ($B)
+                            </h3>
+                            
+                            <div class="space-y-3">
+                                <div class="bg-slate-50 p-3 rounded-xl md:rounded-2xl border border-slate-200 shadow-sm">
+                                    <label class="block text-[10px] md:text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">1. Purchase Price (Net of Cash) ($B)</label>
+                                    <input type="number" id="gw-price" value="68.7" step="0.1" class="w-full bg-transparent text-xl md:text-2xl font-gamified text-slate-800 focus:outline-none" oninput="calculateGoodwill()">
+                                </div>
+
+                                <div class="h-px w-full bg-slate-200 my-3"></div>
+                                <p class="text-[10px] md:text-xs text-slate-500 font-semibold mb-2 uppercase tracking-wider">Allocate Fair Values (Target's Balance Sheet):</p>
+
+                                <div class="bg-slate-50 p-3 rounded-xl md:rounded-2xl border border-slate-200 border-l-4 border-l-blue-400">
+                                    <label class="block text-[9px] md:text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">2. Net Tangible Assets ($B)</label>
+                                    <input type="number" id="gw-tangible" value="10.4" step="0.1" class="w-full bg-transparent text-lg md:text-xl font-gamified text-blue-700 focus:outline-none" oninput="calculateGoodwill()">
+                                </div>
+
+                                <!-- Specific Intangibles based on MSFT 10-Q -->
+                                <div class="grid grid-cols-2 gap-2 md:gap-3">
+                                    <div class="bg-slate-50 p-3 rounded-xl md:rounded-2xl border border-slate-200 border-l-4 border-l-purple-400">
+                                        <label class="block text-[8px] md:text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1">Tech-based IP</label>
+                                        <input type="number" id="gw-tech" value="8.0" step="0.1" class="w-full bg-transparent text-base md:text-lg font-gamified text-purple-700 focus:outline-none" oninput="calculateGoodwill()">
+                                    </div>
+                                    <div class="bg-slate-50 p-3 rounded-xl md:rounded-2xl border border-slate-200 border-l-4 border-l-fuchsia-400">
+                                        <label class="block text-[8px] md:text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1">Trade Names</label>
+                                        <input type="number" id="gw-brand" value="5.5" step="0.1" class="w-full bg-transparent text-base md:text-lg font-gamified text-fuchsia-700 focus:outline-none" oninput="calculateGoodwill()">
+                                    </div>
+                                    <div class="bg-slate-50 p-3 rounded-xl md:rounded-2xl border border-slate-200 border-l-4 border-l-rose-400 col-span-2">
+                                        <label class="block text-[8px] md:text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1">Customer-Related (Subscribers)</label>
+                                        <input type="number" id="gw-cust" value="1.9" step="0.1" class="w-full bg-transparent text-base md:text-lg font-gamified text-rose-700 focus:outline-none" oninput="calculateGoodwill()">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Visualization -->
+                        <div class="flex flex-col justify-center mt-6 lg:mt-0">
+                            <h3 class="text-center text-[10px] md:text-xs font-black text-slate-500 uppercase tracking-widest mb-4 md:mb-8">Allocation Visualizer</h3>
+                            
+                            <!-- Stacked Bar Chart -->
+                            <div class="w-full bg-slate-100 rounded-xl md:rounded-2xl h-12 md:h-16 flex overflow-hidden border border-slate-300 shadow-sm mb-4" id="gw-stacked-bar">
+                                <div id="bar-tangible" class="h-full bg-blue-500 flex items-center justify-center transition-all duration-700 ease-out border-r border-white/50">
+                                    <span class="text-[8px] md:text-[10px] font-bold text-white hidden sm:block uppercase tracking-wider truncate px-1">Tangible</span>
+                                </div>
+                                <div id="bar-tech" class="h-full bg-purple-500 flex items-center justify-center transition-all duration-700 ease-out border-r border-white/50">
+                                    <span class="text-[8px] md:text-[10px] font-bold text-white hidden sm:block uppercase tracking-wider truncate px-1">Tech</span>
+                                </div>
+                                <div id="bar-brand" class="h-full bg-fuchsia-500 flex items-center justify-center transition-all duration-700 ease-out border-r border-white/50">
+                                    <span class="text-[8px] md:text-[10px] font-bold text-white hidden sm:block uppercase tracking-wider truncate px-1">Brand</span>
+                                </div>
+                                <div id="bar-cust" class="h-full bg-rose-500 flex items-center justify-center transition-all duration-700 ease-out border-r border-white/50">
+                                    <span class="text-[8px] md:text-[10px] font-bold text-white hidden sm:block uppercase tracking-wider truncate px-1">Cust</span>
+                                </div>
+                                <div id="bar-goodwill" class="h-full bg-emerald-400 flex items-center justify-center transition-all duration-700 ease-out">
+                                    <span class="text-[8px] md:text-[10px] font-bold text-slate-900 hidden sm:block uppercase tracking-wider truncate px-1">Goodwill</span>
+                                </div>
+                            </div>
+
+                            <!-- Legend & Output -->
+                            <div class="bg-slate-50 rounded-xl md:rounded-2xl p-4 md:p-6 border border-slate-200 mt-2 shadow-sm">
+                                <div class="flex justify-between items-center mb-3 md:mb-4">
+                                    <span class="text-xs md:text-sm font-bold text-emerald-600 uppercase tracking-wider flex items-center gap-1.5 md:gap-2">
+                                        <i data-lucide="sparkles" class="w-3 h-3 md:w-4 md:h-4 shrink-0"></i> Residual Goodwill
+                                    </span>
+                                    <span class="text-2xl md:text-4xl font-gamified text-emerald-600" id="disp-gw">$42.9B</span>
+                                </div>
+                                <p class="text-[10px] md:text-[11px] text-slate-500 leading-relaxed font-medium">Goodwill ($42.9B per MSFT SEC filings) is the ultimate "plug" number. It represents the premium paid for unidentifiable assets: synergies, assembled workforce, and future growth potential.</p>
+                                <div class="mt-4 text-center">
+                                    <a href="https://www.sec.gov/ix?doc=/Archives/edgar/data/0000789019/000095017023035122/msft-20230630.htm" target="_blank" class="inline-flex items-center justify-center gap-1 text-[9px] md:text-[10px] font-bold text-emerald-600 hover:text-emerald-800 hover:underline transition-colors"><i data-lucide="external-link" class="w-3 h-3"></i> Source: Microsoft SEC Form 10-K (June 2023)</a>
+                                </div>
+                            </div>
+
+                            <div id="gw-error" class="mt-4 p-3 md:p-4 bg-rose-50 border border-rose-200 rounded-xl text-center text-rose-600 text-xs md:text-sm hidden font-bold">
+                                <i data-lucide="alert-triangle" class="w-4 h-4 md:w-5 md:h-5 inline mb-1 mr-1"></i> 
+                                Bargain Purchase! The fair value of assets exceeds the purchase price.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- MODULE 5: CRYPTO -->
+        <section id="module-crypto" class="module-section fade-in max-w-5xl mx-auto pb-20">
+            <header class="mb-6 md:mb-8">
+                <div class="inline-flex items-center gap-2 px-3 py-1.5 md:px-4 rounded-full bg-purple-100 border border-purple-200 text-purple-700 text-xs md:text-sm font-bold tracking-wide mb-4 shadow-sm">
+                    <i data-lucide="bitcoin" class="w-3 h-3 md:w-4 md:h-4"></i> Treasury Management
+                </div>
+                <h2 class="text-3xl md:text-4xl text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-fuchsia-600 leading-tight">MicroStrategy's Bitcoin Treasury</h2>
+                <p class="text-slate-600 text-base md:text-lg leading-relaxed max-w-3xl mt-3 md:mt-4">MicroStrategy holds massive amounts of Bitcoin. Under the new <b>FASB ASU 2023-08</b> rules, crypto is measured at Fair Value, creating volatility in their reported earnings, eliminating the old "impairment-only" model.</p>
+            </header>
+
+            <!-- Gateway Challenge -->
+            <div class="bg-white border border-slate-200 rounded-2xl md:rounded-3xl p-6 md:p-8 shadow-xl relative overflow-hidden mb-8 md:mb-10" id="quiz-4-container">
+                <div class="absolute -top-10 -right-10 w-40 h-40 md:w-48 md:h-48 opacity-[0.03] pointer-events-none z-0 flex items-center justify-center">
+                    <i data-lucide="bitcoin" class="w-full h-full text-slate-900"></i>
+                </div>
+                <div class="flex items-center gap-3 mb-4 relative z-10">
+                    <div class="bg-indigo-100 p-2 rounded-lg text-indigo-600"><i data-lucide="unlock" class="w-5 h-5 md:w-6 md:h-6"></i></div>
+                    <h3 class="text-xl md:text-2xl text-slate-800">Scenario Challenge</h3>
+                </div>
+                <p class="text-slate-600 text-base md:text-lg mb-6 relative z-10 font-medium">Before ASU 2023-08, crypto was treated as an indefinite-lived intangible asset. How does the new Fair Value rule fundamentally change accounting?</p>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 relative z-10" id="quiz-4-options">
+                    <button class="quiz-option p-4 md:p-5 rounded-xl md:rounded-2xl border border-slate-200 bg-slate-50 text-left shadow-sm" onclick="handleQuiz(4, 0, false)">
+                        <div class="font-bold text-slate-800 mb-1 md:mb-2 text-base md:text-lg">It stabilizes Net Income</div>
+                        <div class="text-xs md:text-sm text-slate-500 leading-snug">Crypto is now amortized smoothly over 10 years, hiding market volatility from the Income Statement.</div>
+                    </button>
+                    <button class="quiz-option p-4 md:p-5 rounded-xl md:rounded-2xl border border-slate-200 bg-slate-50 text-left shadow-sm" onclick="handleQuiz(4, 1, true)">
+                        <div class="font-bold text-slate-800 mb-1 md:mb-2 text-base md:text-lg">Recognizes Unrealized Gains</div>
+                        <div class="text-xs md:text-sm text-slate-500 leading-snug">Previously, they could only write it down (impairment), never up. Now, price increases immediately boost Net Income.</div>
+                    </button>
+                </div>
+                <div id="quiz-4-feedback" class="mt-6 text-sm hidden font-medium fade-in bg-emerald-50 border border-emerald-200 rounded-xl md:rounded-2xl p-4 md:p-6 relative z-10 text-emerald-700"></div>
+            </div>
+
+            <!-- HIDDEN CONTENT UNLOCKED AFTER QUIZ -->
+            <div id="mod-crypto-content" class="hidden fade-in">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 mb-10">
+                    
+                    <div class="glass-panel p-6 md:p-8 rounded-2xl md:rounded-3xl relative overflow-hidden flex flex-col justify-between bg-white">
+                        <div class="absolute inset-0 bg-gradient-to-t from-purple-50 to-transparent pointer-events-none"></div>
+                        <div class="relative z-10">
+                            <h3 class="text-xl md:text-2xl mb-3 text-slate-800 font-bold">The Treasury Simulator</h3>
+                            <p class="text-xs md:text-sm text-slate-600 mb-2 font-medium">Assuming an initial cost basis of exactly <b class="text-purple-600">200,000 BTC</b> purchased at an average of <b class="text-purple-600">$40,000</b> per coin. Total Historical Cost: $8.0 Billion.</p>
+                            <div class="mb-6">
+                                <a href="https://www.sec.gov/ix?doc=/Archives/edgar/data/0001050446/000105044626000020/mstr-20251231.htm#fact-identifier-105" target="_blank" class="inline-flex items-center justify-center gap-1 text-[9px] md:text-[10px] font-bold text-purple-600 hover:text-purple-800 hover:underline transition-colors"><i data-lucide="external-link" class="w-3 h-3"></i> Source: MicroStrategy SEC Form 10-K</a>
+                            </div>
+                            
+                            <div class="bg-slate-50 p-4 md:p-5 rounded-xl md:rounded-2xl border border-slate-200 shadow-sm mb-6">
+                                <label class="block text-xs md:text-sm font-bold text-slate-600 mb-3 md:mb-4 flex justify-between items-end">
+                                    <span>Adjust Market Price per BTC:</span>
+                                    <span id="crypto-price-display" class="font-gamified text-purple-600 text-lg md:text-2xl bg-purple-100 px-2 py-0.5 md:px-3 md:py-1 rounded border border-purple-200">$40,000</span>
+                                </label>
+                                <input type="range" id="crypto-price" min="15000" max="100000" step="1000" value="40000" oninput="updateCrypto()">
+                                <div class="flex justify-between text-[10px] md:text-xs text-slate-400 mt-2 md:mt-3 font-mono font-bold">
+                                    <span>$15k</span>
+                                    <span>$100k</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Interactive Chart: Cost vs FV -->
+                        <div class="bg-white p-4 md:p-5 rounded-xl md:rounded-2xl border border-slate-200 relative z-10 mt-auto shadow-sm">
+                            <div class="text-[10px] md:text-xs font-bold text-slate-500 uppercase tracking-widest mb-4 text-center">Cost Basis vs. Fair Value</div>
+                            <div class="flex h-24 md:h-32 gap-4 md:gap-6 items-end justify-center px-4">
+                                <!-- Cost Bar (Static) -->
+                                <div class="w-16 md:w-24 bg-slate-300 rounded-t-xl relative flex items-end justify-center pb-2 transition-all duration-500" style="height: 40%">
+                                    <span class="absolute -top-5 md:-top-6 text-[10px] md:text-xs font-bold text-slate-600">$8.0B</span>
+                                    <span class="text-[8px] md:text-[10px] font-bold text-slate-700 uppercase tracking-widest">Cost</span>
+                                </div>
+                                <!-- FV Bar (Dynamic) -->
+                                <div id="crypto-bar-fv" class="w-16 md:w-24 bg-purple-400 rounded-t-xl relative flex items-end justify-center pb-2 transition-all duration-500 shadow-md" style="height: 40%">
+                                    <span id="crypto-bar-fv-label" class="absolute -top-5 md:-top-6 text-[10px] md:text-xs font-bold text-purple-600">$8.0B</span>
+                                    <span class="text-[8px] md:text-[10px] font-bold text-white uppercase tracking-widest">FV</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="glass-panel p-6 md:p-8 rounded-2xl md:rounded-3xl flex flex-col justify-center border-t-4 border-t-purple-500 relative bg-white">
+                        <h3 class="text-xs md:text-sm font-black text-slate-500 uppercase tracking-widest text-center mb-4 md:mb-6">Income Statement Impact (Fair Value)</h3>
+                        
+                        <div class="flex justify-center mb-6">
+                            <button onclick="tryAmortizeCrypto(this)" class="px-4 py-2 md:px-6 md:py-2 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-full text-xs md:text-sm font-bold text-slate-700 transition-all flex items-center gap-2 shadow-sm w-full sm:w-auto justify-center">
+                                <i data-lucide="calculator" class="w-3 h-3 md:w-4 md:h-4 text-slate-500 shrink-0"></i> Try to Amortize Crypto
+                            </button>
+                        </div>
+
+                        <div id="crypto-pnl-box" class="bg-slate-50 border border-slate-200 rounded-2xl md:rounded-3xl p-4 md:p-6 text-center transition-all duration-500 shadow-sm relative overflow-hidden">
+                            <div class="text-xs md:text-sm font-bold text-slate-500 mb-2 md:mb-3 relative z-10">Unrealized Gain / (Loss)</div>
+                            <div id="crypto-pnl-value" class="text-2xl md:text-4xl font-gamified text-slate-700 relative z-10">$0</div>
+                            <div id="crypto-pnl-text" class="text-[10px] md:text-xs font-bold text-slate-500 mt-2 md:mt-3 relative z-10 bg-white inline-block px-3 py-1 md:px-4 md:py-1.5 rounded-full border border-slate-200">No change in Fair Value</div>
+                        </div>
+                        
+                        <div class="mt-6">
+                            <div class="text-[9px] md:text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 text-center">FSET Impact of Price Change</div>
+                            <div class="fset-grid" id="crypto-fset">
+                                <!-- Populated by JS -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- MODULE 6: WALGREENS IMPAIRMENT -->
+        <section id="module-walgreens" class="module-section fade-in max-w-5xl mx-auto pb-20">
+            <header class="mb-6 md:mb-8">
+                <div class="inline-flex items-center gap-2 px-3 py-1.5 md:px-4 rounded-full bg-rose-100 border border-rose-200 text-rose-700 text-xs md:text-sm font-bold tracking-wide mb-4 shadow-sm">
+                    <i data-lucide="activity" class="w-3 h-3 md:w-4 md:h-4"></i> Asset Impairment
+                </div>
+                <h2 class="text-3xl md:text-4xl text-transparent bg-clip-text bg-gradient-to-r from-rose-500 to-red-600 leading-tight">Walgreens' $5.8B Clinic Collapse</h2>
+                <p class="text-slate-600 text-base md:text-lg leading-relaxed max-w-3xl mt-3 md:mt-4">In early 2024, retail pharmacy giant Walgreens admitted its massive pivot into primary care was failing. They had acquired VillageMD for billions, creating massive Goodwill on their balance sheet. But as clinics underperformed and cash flows plummeted, accounting rules forced a harsh reality check.</p>
+            </header>
+
+            <!-- Gateway Challenge -->
+            <div class="bg-white border border-slate-200 rounded-2xl md:rounded-3xl p-6 md:p-8 shadow-xl relative overflow-hidden mb-8 md:mb-10" id="quiz-6-container">
+                <div class="absolute -top-10 -right-10 w-40 h-40 md:w-48 md:h-48 opacity-[0.03] pointer-events-none z-0 flex items-center justify-center">
+                    <i data-lucide="activity" class="w-full h-full text-slate-900"></i>
+                </div>
+                <div class="flex items-center gap-3 mb-4 relative z-10">
+                    <div class="bg-indigo-100 p-2 rounded-lg text-indigo-600"><i data-lucide="unlock" class="w-5 h-5 md:w-6 md:h-6"></i></div>
+                    <h3 class="text-xl md:text-2xl text-slate-800">Scenario Challenge</h3>
+                </div>
+                <p class="text-slate-600 text-base md:text-lg mb-6 relative z-10 font-medium">If Walgreens determines that the future expected cash flows of VillageMD are now significantly lower than what they originally projected when they bought it, what must happen to the VillageMD Goodwill sitting on the balance sheet under US GAAP?</p>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 relative z-10" id="quiz-6-options">
+                    <button class="quiz-option p-4 md:p-5 rounded-xl md:rounded-2xl border border-slate-200 bg-slate-50 text-left shadow-sm" onclick="handleQuiz(6, 0, false)">
+                        <div class="font-bold text-slate-800 mb-1 md:mb-2 text-base md:text-lg">Nothing Immediately</div>
+                        <div class="text-xs md:text-sm text-slate-500 leading-snug">Goodwill remains at historical cost, but Walgreens must disclose the lower cash flows in the footnotes of their 10-K.</div>
+                    </button>
+                    <button class="quiz-option p-4 md:p-5 rounded-xl md:rounded-2xl border border-slate-200 bg-slate-50 text-left shadow-sm" onclick="handleQuiz(6, 1, true)">
+                        <div class="font-bold text-slate-800 mb-1 md:mb-2 text-base md:text-lg">Record an Impairment Loss</div>
+                        <div class="text-xs md:text-sm text-slate-500 leading-snug">Because the carrying value of the reporting unit now exceeds its fair value, the Goodwill must be written down via an immediate expense.</div>
+                    </button>
+                </div>
+                <div id="quiz-6-feedback" class="mt-6 text-sm hidden font-medium fade-in bg-emerald-50 border border-emerald-200 rounded-xl md:rounded-2xl p-4 md:p-6 relative z-10 text-emerald-700"></div>
+            </div>
+
+            <!-- HIDDEN CONTENT UNLOCKED AFTER QUIZ -->
+            <div id="mod-walgreens-content" class="hidden fade-in">
+                <div class="glass-panel p-6 md:p-8 rounded-2xl md:rounded-3xl relative overflow-hidden bg-white border-t-4 border-t-rose-500 shadow-xl">
+                    <div class="absolute inset-0 bg-rose-50/50 pointer-events-none"></div>
+                    <h3 class="text-xl md:text-2xl mb-4 md:mb-6 text-slate-800 text-center font-bold relative z-10">The Impairment Execution Simulator</h3>
+                    <p class="text-center text-slate-600 mb-4 max-w-2xl mx-auto text-xs md:text-sm relative z-10 px-2">You are auditing Walgreens in early 2024. After closing dozens of underperforming VillageMD clinics, the fair value of the unit has collapsed. You must execute a <b>$5.8 Billion impairment charge</b> to correct the balance sheet.</p>
+                    <div class="mb-8 text-center relative z-10">
+                        <a href="https://www.sec.gov/ix?doc=/Archives/edgar/data/1618921/000161892124000035/wba-20240229.htm" target="_blank" class="inline-flex items-center justify-center gap-1 text-[10px] md:text-xs font-bold text-rose-600 hover:text-rose-800 hover:underline transition-colors"><i data-lucide="external-link" class="w-3 h-3"></i> Source: Walgreens SEC Form 10-Q (Q2 2024)</a>
+                    </div>
+
+                    <div class="flex flex-col gap-6 items-center relative z-10 w-full max-w-2xl mx-auto">
+                        <div class="bg-white p-5 md:p-6 rounded-xl md:rounded-2xl border border-slate-200 w-full shadow-sm">
+                            <h4 class="font-bold text-slate-700 mb-3 md:mb-4 text-center uppercase tracking-wider text-[10px] md:text-xs">Pre-Impairment Carrying Values</h4>
+                            <div class="flex justify-between mb-2 md:mb-3 text-xs md:text-sm"><span class="text-slate-500">Other Corporate Assets</span><span class="font-mono text-slate-700 font-bold">$90.0B</span></div>
+                            <div class="flex justify-between mb-2 md:mb-3 text-xs md:text-sm"><span class="text-rose-600 font-bold">VillageMD Goodwill</span><span class="font-gamified text-lg md:text-xl text-rose-600 transition-all duration-1000" id="walgreens-asset-val">$5.8B</span></div>
+                            <div class="h-px bg-slate-200 my-2 md:my-3"></div>
+                            <div class="flex justify-between font-bold text-xs md:text-sm"><span class="text-slate-800">Total Assets</span><span class="font-mono text-slate-800 transition-all duration-1000" id="walgreens-total-val">$95.8B</span></div>
+                        </div>
+                        
+                        <button onclick="executeWalgreensImpairment()" id="btn-impair" class="px-6 py-3 md:px-8 md:py-4 w-full sm:w-auto bg-rose-600 hover:bg-rose-700 text-white rounded-xl md:rounded-2xl font-bold shadow-lg flex items-center justify-center gap-2 transition-all shrink-0 text-sm md:text-base">
+                            <i data-lucide="trending-down" class="w-5 h-5 md:w-6 md:h-6 shrink-0"></i> Execute $5.8B Impairment
+                        </button>
+                        
+                        <div class="w-full" id="walgreens-fset-container">
+                            <div class="bg-slate-50 border border-slate-200 rounded-xl md:rounded-2xl p-6 md:p-8 flex items-center justify-center h-full min-h-[120px] md:min-h-[160px]">
+                                <div class="text-center text-slate-400 italic text-xs md:text-sm flex flex-col items-center gap-2">
+                                    <i data-lucide="arrow-up" class="w-4 h-4 md:w-5 md:h-5 animate-bounce"></i>
+                                    Click to execute the impairment and see the FSET impact.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- MODULE 7: KRAFT HEINZ IMPAIRMENT -->
+        <section id="module-kraft" class="module-section fade-in max-w-5xl mx-auto pb-20">
+            <header class="mb-6 md:mb-8">
+                <div class="inline-flex items-center gap-2 px-3 py-1.5 md:px-4 rounded-full bg-amber-100 border border-amber-200 text-amber-700 text-xs md:text-sm font-bold tracking-wide mb-4 shadow-sm">
+                    <i data-lucide="shopping-basket" class="w-3 h-3 md:w-4 md:h-4"></i> Mega-Merger Impairment
+                </div>
+                <h2 class="text-3xl md:text-4xl text-transparent bg-clip-text bg-gradient-to-r from-amber-500 to-orange-600 leading-tight">Kraft Heinz's $15.4B Reality Check</h2>
+                <p class="text-slate-600 text-base md:text-lg leading-relaxed max-w-3xl mt-3 md:mt-4">In 2015, Kraft and Heinz merged in a massive deal that generated billions in Goodwill and indefinite-lived brand assets. By 2019, shifting consumer preferences away from processed foods triggered a catastrophic drop in their future cash flow projections.</p>
+            </header>
+
+            <!-- Gateway Challenge -->
+            <div class="bg-white border border-slate-200 rounded-2xl md:rounded-3xl p-6 md:p-8 shadow-xl relative overflow-hidden mb-8 md:mb-10" id="quiz-7-container">
+                <div class="absolute -top-10 -right-10 w-40 h-40 md:w-48 md:h-48 opacity-[0.03] pointer-events-none z-0 flex items-center justify-center">
+                    <i data-lucide="shopping-basket" class="w-full h-full text-slate-900"></i>
+                </div>
+                <div class="flex items-center gap-3 mb-4 relative z-10">
+                    <div class="bg-indigo-100 p-2 rounded-lg text-indigo-600"><i data-lucide="unlock" class="w-5 h-5 md:w-6 md:h-6"></i></div>
+                    <h3 class="text-xl md:text-2xl text-slate-800">Scenario Challenge</h3>
+                </div>
+                <p class="text-slate-600 text-base md:text-lg mb-6 relative z-10 font-medium">In 2019, Kraft Heinz recognized a staggering $15.4 Billion impairment loss on Goodwill and indefinite-lived intangible assets (like the Oscar Mayer brand). Which of the following is true regarding this write-down under US GAAP?</p>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-4 relative z-10" id="quiz-7-options">
+                    <button class="quiz-option p-4 md:p-5 rounded-xl md:rounded-2xl border border-slate-200 bg-slate-50 text-left shadow-sm flex flex-col justify-between" onclick="handleQuiz(7, 0, false)">
+                        <div class="font-bold text-slate-800 mb-2 md:mb-3 text-base md:text-lg">Reversible Loss</div>
+                        <div class="text-xs md:text-sm text-slate-500 leading-snug">The company can reverse this impairment in future years if the brands regain their former popularity.</div>
+                    </button>
+                    <button class="quiz-option p-4 md:p-5 rounded-xl md:rounded-2xl border border-slate-200 bg-slate-50 text-left shadow-sm flex flex-col justify-between" onclick="handleQuiz(7, 1, false)">
+                        <div class="font-bold text-slate-800 mb-2 md:mb-3 text-base md:text-lg">Massive Cash Drain</div>
+                        <div class="text-xs md:text-sm text-slate-500 leading-snug">The $15.4B charge represents an immediate cash outflow, devastating Operating Cash Flow for 2019.</div>
+                    </button>
+                    <button class="quiz-option p-4 md:p-5 rounded-xl md:rounded-2xl border border-slate-200 bg-slate-50 text-left shadow-sm flex flex-col justify-between" onclick="handleQuiz(7, 2, true)">
+                        <div class="font-bold text-slate-800 mb-2 md:mb-3 text-base md:text-lg">Non-Cash, Permanent Hit</div>
+                        <div class="text-xs md:text-sm text-slate-500 leading-snug">It is a non-cash expense that permanently crushes Net Income. Goodwill impairment cannot be reversed.</div>
+                    </button>
+                </div>
+                <div id="quiz-7-feedback" class="mt-6 text-sm hidden font-medium fade-in bg-emerald-50 border border-emerald-200 rounded-xl md:rounded-2xl p-4 md:p-6 relative z-10 text-emerald-700"></div>
+            </div>
+
+            <!-- HIDDEN CONTENT UNLOCKED AFTER QUIZ -->
+            <div id="mod-kraft-content" class="hidden fade-in">
+                <div class="glass-panel p-6 md:p-8 rounded-2xl md:rounded-3xl relative overflow-hidden bg-white border-t-4 border-t-amber-500 shadow-xl">
+                    <div class="absolute inset-0 bg-amber-50/50 pointer-events-none"></div>
+                    <h3 class="text-xl md:text-2xl mb-4 md:mb-6 text-slate-800 text-center font-bold relative z-10">The Mega-Merger Hangover Simulator</h3>
+                    <p class="text-center text-slate-600 mb-4 max-w-2xl mx-auto text-xs md:text-sm relative z-10 px-2">It's early 2019. The carrying value of your brands and goodwill far exceeds their actual fair value based on new, lower sales projections for packaged foods. You must execute a historic <b>$15.4 Billion impairment charge</b>.</p>
+                    <div class="mb-8 text-center relative z-10">
+                        <a href="https://www.sec.gov/ix?doc=/Archives/edgar/data/0001637459/000163745920000027/form10-k2019.htm" target="_blank" class="inline-flex items-center justify-center gap-1 text-[10px] md:text-xs font-bold text-amber-600 hover:text-amber-800 hover:underline transition-colors"><i data-lucide="external-link" class="w-3 h-3"></i> Source: Kraft Heinz SEC Form 10-K (2019)</a>
+                    </div>
+
+                    <div class="flex flex-col gap-6 items-center relative z-10 w-full max-w-2xl mx-auto">
+                        <div class="bg-white p-5 md:p-6 rounded-xl md:rounded-2xl border border-slate-200 w-full shadow-sm">
+                            <h4 class="font-bold text-slate-700 mb-3 md:mb-4 text-center uppercase tracking-wider text-[10px] md:text-xs">Pre-Impairment Carrying Values (2018)</h4>
+                            <div class="flex justify-between mb-2 md:mb-3 text-xs md:text-sm"><span class="text-slate-500">Other Corporate Assets</span><span class="font-mono text-slate-700 font-bold">$74.6B</span></div>
+                            <div class="flex justify-between mb-2 md:mb-3 text-xs md:text-sm"><span class="text-amber-600 font-bold">Goodwill & Brand Intangibles</span><span class="font-gamified text-lg md:text-xl text-amber-600 transition-all duration-1000" id="kraft-asset-val">$45.4B</span></div>
+                            <div class="h-px bg-slate-200 my-2 md:my-3"></div>
+                            <div class="flex justify-between font-bold text-xs md:text-sm"><span class="text-slate-800">Total Assets</span><span class="font-mono text-slate-800 transition-all duration-1000" id="kraft-total-val">$120.0B</span></div>
+                        </div>
+                        
+                        <button onclick="executeKraftImpairment()" id="btn-impair-kraft" class="px-6 py-3 md:px-8 md:py-4 w-full sm:w-auto bg-amber-500 hover:bg-amber-600 text-white rounded-xl md:rounded-2xl font-bold shadow-lg flex items-center justify-center gap-2 transition-all shrink-0 text-sm md:text-base">
+                            <i data-lucide="shopping-basket" class="w-5 h-5 md:w-6 md:h-6 shrink-0"></i> Execute $15.4B Impairment
+                        </button>
+                        
+                        <div class="w-full" id="kraft-fset-container">
+                            <div class="bg-slate-50 border border-slate-200 rounded-xl md:rounded-2xl p-6 md:p-8 flex items-center justify-center h-full min-h-[120px] md:min-h-[160px]">
+                                <div class="text-center text-slate-400 italic text-xs md:text-sm flex flex-col items-center gap-2">
+                                    <i data-lucide="arrow-up" class="w-4 h-4 md:w-5 md:h-5 animate-bounce"></i>
+                                    Click to execute the impairment and see the FSET impact.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        // --- Initialization ---
+        document.addEventListener("DOMContentLoaded", () => {
+            lucide.createIcons();
+            calculateDepreciation();
+            calculateEstimate();
+            renderIntangibles();
+            calculateGoodwill();
+            updateCrypto();
+            setupResizer();
+        });
+
+        // --- Navigation ---
+        function switchTab(tabId) {
+            const tabs = ['ppe', 'netflix', 'intangibles', 'goodwill', 'crypto', 'walgreens', 'kraft'];
+            tabs.forEach(t => {
+                const btn = document.getElementById(`tab-${t}`);
+                if (!btn) return;
+                if (t === tabId) {
+                    btn.classList.remove('tab-inactive');
+                    btn.classList.add('tab-active');
+                    
+                    // scroll active tab into view in horizontal nav on mobile
+                    if (window.innerWidth < 768) {
+                        btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                    }
+                } else {
+                    btn.classList.remove('tab-active');
+                    btn.classList.add('tab-inactive');
+                }
+            });
+
+            document.querySelectorAll('.module-section').forEach(sec => {
+                sec.classList.remove('active');
+            });
+            const activeSection = document.getElementById(`module-${tabId}`);
+            if (activeSection) activeSection.classList.add('active');
+            
+            const mainContent = document.getElementById('main-content');
+            if (mainContent) mainContent.scrollTo(0,0);
+        }
+
+        // --- Resizer Logic ---
+        function setupResizer() {
+            const resizer = document.getElementById('resizer');
+            const sidebar = document.getElementById('sidebar');
+            if (!resizer || !sidebar) return;
+            
+            let isResizing = false;
+
+            resizer.addEventListener('mousedown', (e) => {
+                isResizing = true;
+                resizer.classList.add('active');
+                document.body.style.cursor = 'col-resize';
+                e.preventDefault(); 
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (!isResizing) return;
+                let newWidth = Math.max(250, Math.min(e.clientX, 500));
+                sidebar.style.width = `${newWidth}px`;
+            });
+
+            document.addEventListener('mouseup', () => {
+                if (isResizing) {
+                    isResizing = false;
+                    resizer.classList.remove('active');
+                    document.body.style.cursor = 'default';
+                }
+            });
+        }
+
+        // --- Particle Engine ---
+        function spawnParticles(svgType, count, colorClass, targetId) {
+            const target = document.getElementById(targetId);
+            if(!target) return;
+            const rect = target.getBoundingClientRect();
+            
+            // Custom Mickey SVG (more realistic silhouette)
+            const mickeySvg = `<svg viewBox="0 0 24 24" fill="currentColor" class="w-full h-full"><path d="M12 10c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zm-5.5-2c-1.93 0-3.5-1.57-3.5-3.5S4.57 1 6.5 1s3.5 1.57 3.5 3.5S8.43 8 6.5 8zm11 0c-1.93 0-3.5-1.57-3.5-3.5S15.57 1 17.5 1 21 2.57 21 4.5 19.43 8 17.5 8z"/></svg>`;
+
+            for(let i=0; i<count; i++) {
+                const container = document.createElement('div');
+                container.className = `particle text-${colorClass} w-6 h-6 md:w-8 md:h-8`;
+                
+                if(svgType === 'mickey') {
+                    container.innerHTML = mickeySvg;
+                } else {
+                    const icon = document.createElement('i');
+                    icon.setAttribute('data-lucide', svgType);
+                    container.appendChild(icon);
+                }
+                
+                const startX = rect.left + rect.width / 2;
+                const startY = rect.top + rect.height / 2;
+                container.style.left = `${startX}px`;
+                container.style.top = `${startY}px`;
+                
+                document.body.appendChild(container);
+                
+                if(svgType !== 'mickey') {
+                    lucide.createIcons({ nameAttr: 'data-lucide', root: container });
+                }
+
+                const angle = Math.random() * Math.PI * 2;
+                const velocity = 60 + Math.random() * 150;
+                const tx = Math.cos(angle) * velocity;
+                const ty = Math.sin(angle) * velocity - 30; 
+                const rot = (Math.random() - 0.5) * 360;
+
+                requestAnimationFrame(() => {
+                    container.style.transform = `translate(${tx}px, ${ty}px) rotate(${rot}deg) scale(${0.5 + Math.random()})`;
+                    container.style.opacity = '0';
+                });
+
+                setTimeout(() => container.remove(), 1200);
+            }
+        }
+
+        // --- Quiz System ---
+        let quizzesCompleted = { 1: false, 2: false, 3: false, 4: false, 5: false, 6: false, 7: false };
+        let score = 0;
+
+        function handleQuiz(quizId, selectedIndex, isCorrect) {
+            if (quizzesCompleted[quizId]) return; 
+            
+            const optionsContainer = document.getElementById(`quiz-${quizId}-options`);
+            const feedback = document.getElementById(`quiz-${quizId}-feedback`);
+            if (!optionsContainer || !feedback) return;
+            
+            const options = optionsContainer.children;
+
+            // Save original HTML and Class State for reset purposes
+            if (!feedback.hasAttribute('data-original-html')) {
+                feedback.setAttribute('data-original-html', feedback.innerHTML);
+                feedback.setAttribute('data-original-class', feedback.className);
+            }
+
+            for (let i = 0; i < options.length; i++) {
+                options[i].disabled = true;
+                options[i].classList.remove('cursor-pointer');
+                
+                if (i === selectedIndex) {
+                    if (isCorrect) {
+                        quizzesCompleted[quizId] = true;
+                        options[i].classList.add('correct');
+                        
+                        // Restore original feedback structure in case they failed previously
+                        feedback.innerHTML = feedback.getAttribute('data-original-html');
+                        feedback.className = feedback.getAttribute('data-original-class');
+
+                        if(quizId === 4) {
+                            feedback.innerHTML = `<i data-lucide="check-circle" class="w-4 h-4 md:w-5 md:h-5 inline mb-0.5"></i> Correct! Unlocked the Treasury Simulator. Mark-to-market accounting brings economic reality to the FSET.`;
+                        } else if (quizId === 5) {
+                            feedback.innerHTML = `<i data-lucide="check-circle" class="w-4 h-4 md:w-5 md:h-5 inline mb-0.5"></i> Correct! TV production uses known techniques to build commercial assets, not scientific R&D. You've unlocked the Amortization Simulator!`;
+                        } else if (quizId === 6) {
+                            feedback.innerHTML = `<i data-lucide="check-circle" class="w-4 h-4 md:w-5 md:h-5 inline mb-0.5"></i> Correct! Unlocked the Impairment Simulator. When expected cash flows permanently decline, associated Goodwill must be written down.`;
+                        } else if (quizId === 7) {
+                            feedback.innerHTML = `<i data-lucide="check-circle" class="w-4 h-4 md:w-5 md:h-5 inline mb-0.5"></i> Correct! Unlocked the Impairment Simulator. Under US GAAP, Goodwill impairment is a permanent, non-cash reduction of equity.`;
+                        } else if (quizId === 2) {
+                            feedback.innerHTML = `<i data-lucide="check-circle" class="w-4 h-4 md:w-5 md:h-5 inline mb-0.5"></i> Correct! Unlocked the Content Purge Simulator! Abandoned assets must be written off immediately.`;
+                        }
+                        
+                        feedback.classList.remove('hidden');
+                        feedback.classList.add('block');
+                        score++;
+
+                        // Map quiz IDs to content sections to unlock
+                        let contentSectionId = '';
+                        if(quizId === 1) { contentSectionId = 'mod-ppe-content'; spawnParticles('server', 25, 'orange-500', `quiz-1-container`); }
+                        else if(quizId === 5) { contentSectionId = 'mod-netflix-content'; spawnParticles('play-circle', 25, 'red-600', `quiz-5-container`); }
+                        else if(quizId === 2) { contentSectionId = 'mod-intangibles-content'; spawnParticles('mickey', 25, 'blue-500', `quiz-2-container`); }
+                        else if(quizId === 3) { contentSectionId = 'mod-goodwill-content'; spawnParticles('gamepad-2', 25, 'emerald-500', `quiz-3-container`); }
+                        else if(quizId === 4) { contentSectionId = 'mod-crypto-content'; spawnParticles('bitcoin', 25, 'purple-500', `quiz-4-container`); }
+                        else if(quizId === 6) { contentSectionId = 'mod-walgreens-content'; spawnParticles('activity', 25, 'rose-500', `quiz-6-container`); }
+                        else if(quizId === 7) { contentSectionId = 'mod-kraft-content'; spawnParticles('shopping-basket', 25, 'amber-500', `quiz-7-container`); }
+
+                        // UNLOCK CONTENT
+                        if(contentSectionId) {
+                            const contentDiv = document.getElementById(contentSectionId);
+                            if(contentDiv) {
+                                contentDiv.classList.remove('hidden');
+                                // slight delay to allow particle animation to be seen before scrolling
+                                setTimeout(() => {
+                                    contentDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                }, 600);
+                            }
+                        }
+
+                    } else {
+                        // INCORRECT LOGIC
+                        options[i].classList.add('incorrect');
+                        
+                        let errorMsg = (quizId === 4 || quizId === 5 || quizId === 6 || quizId === 7) ? "Incorrect. Review the concepts above!" : "Incorrect. Review the FSET rules above!";
+                        
+                        feedback.innerHTML = `
+                            <div class="flex flex-col sm:flex-row items-center justify-between gap-3 md:gap-4">
+                                <div class="text-rose-600 font-bold flex items-start sm:items-center gap-2 text-xs md:text-sm">
+                                    <i data-lucide="x-circle" class="w-4 h-4 md:w-5 md:h-5 shrink-0 mt-0.5 sm:mt-0"></i> ${errorMsg}
+                                </div>
+                                <button onclick="resetQuiz(${quizId})" class="px-4 py-2 bg-white hover:bg-rose-50 text-rose-700 border border-rose-200 rounded-lg md:rounded-xl text-xs md:text-sm font-bold transition-all shadow-sm flex items-center justify-center gap-2 w-full sm:w-auto">
+                                    <i data-lucide="rotate-ccw" class="w-3 h-3 md:w-4 md:h-4"></i> Try Again
+                                </button>
+                            </div>
+                        `;
+                        feedback.className = "mt-4 md:mt-6 fade-in bg-rose-50 border border-rose-200 rounded-xl md:rounded-2xl p-4 md:p-6 relative z-10 block";
+                    }
+                } else {
+                    if (isCorrect) {
+                        options[i].style.opacity = '0.4';
+                    } else {
+                        // Hide correct answer from students when they guess wrong
+                        options[i].style.opacity = '0.5';
+                    }
+                }
+            }
+
+            const scoreDisplay = document.getElementById('score-display');
+            const progressBar = document.getElementById('progress-bar');
+            
+            if (scoreDisplay) scoreDisplay.innerText = `${score} / 7`;
+            if (progressBar) progressBar.style.width = `${(score/7)*100}%`;
+            
+            lucide.createIcons();
+        }
+
+        function resetQuiz(quizId) {
+            const optionsContainer = document.getElementById(`quiz-${quizId}-options`);
+            const feedback = document.getElementById(`quiz-${quizId}-feedback`);
+            if (!optionsContainer || !feedback) return;
+
+            // Re-enable options
+            const options = optionsContainer.children;
+            for (let i = 0; i < options.length; i++) {
+                options[i].disabled = false;
+                options[i].classList.add('cursor-pointer');
+                options[i].classList.remove('incorrect', 'correct');
+                options[i].style.opacity = '1';
+            }
+
+            // Restore feedback to hidden state with original HTML/Class
+            feedback.innerHTML = feedback.getAttribute('data-original-html');
+            feedback.className = feedback.getAttribute('data-original-class');
+            feedback.classList.add('hidden');
+            feedback.classList.remove('block');
+            
+            lucide.createIcons();
+        }
+
+        // --- formatting utility ---
+        const formatMoneyM = (num) => '$' + num.toLocaleString('en-US', {minimumFractionDigits: 1, maximumFractionDigits: 1}) + 'M';
+        const formatMoneyB = (num) => '$' + num.toLocaleString('en-US', {minimumFractionDigits: 1, maximumFractionDigits: 1}) + 'B';
+
+        // --- Module 1: PP&E (Amazon) ---
+        function calculateDepreciation() {
+            const costInput = document.getElementById('ppe-cost');
+            if (!costInput) return;
+            
+            const cost = parseFloat(costInput.value) || 0;
+            const salvage = parseFloat(document.getElementById('ppe-salvage')?.value) || 0;
+            const life = parseInt(document.getElementById('ppe-life')?.value) || 5;
+            
+            const methodRadio = document.querySelector('input[name="deprMethod"]:checked');
+            const method = methodRadio ? methodRadio.value : 'SL';
+
+            const depreciableBase = cost - salvage;
+            let firstYearExp = 0;
+
+            if (method === 'SL') {
+                firstYearExp = life > 0 ? depreciableBase / life : 0;
+            } else {
+                firstYearExp = life > 0 ? cost * (2 / life) : 0;
+            }
+
+            const annExpDisp = document.getElementById('ppe-annual-exp');
+            if (annExpDisp) annExpDisp.innerText = formatMoneyM(firstYearExp);
+            
+            // Adjust description text
+            const desc = document.getElementById('ppe-desc-text');
+            if (desc) {
+                if (method === 'SL') {
+                    desc.innerHTML = `Using Straight-Line, total expenses <b class="text-rose-600">rise drastically</b> over the asset's life.`;
+                } else {
+                    desc.innerHTML = `Using DDB, falling depreciation offsets rising maintenance, resulting in a <b class="text-emerald-600">flatter, matching expense</b> curve.`;
+                }
+            }
+
+            // Chart Generation: Expense Profiler (Depreciation + Maintenance)
+            const chartContainer = document.getElementById('ppe-chart');
+            const labelsContainer = document.getElementById('ppe-chart-labels');
+            if (chartContainer) chartContainer.innerHTML = '';
+            if (labelsContainer) labelsContainer.innerHTML = '';
+
+            let currentBV = cost;
+            const ddbRate = 2 / life;
+            
+            let maxTotalExp = 0;
+            let expenses = [];
+
+            for (let i = 1; i <= life; i++) {
+                let deprExp = 0;
+                if (method === 'SL') {
+                    deprExp = depreciableBase / life;
+                } else {
+                    deprExp = currentBV * ddbRate;
+                    if (currentBV - deprExp < salvage) {
+                        deprExp = currentBV - salvage; 
+                    }
+                }
+                currentBV -= deprExp;
+
+                // Simple linear maintenance to easily illustrate DDB matching
+                let maintExp = cost * 0.02 + (cost * 0.35 * (i / life));
+                
+                let totalExp = deprExp + maintExp;
+                if (totalExp > maxTotalExp) maxTotalExp = totalExp;
+
+                expenses.push({ depr: deprExp, maint: maintExp, total: totalExp });
+            }
+
+            for (let i = 0; i < life; i++) {
+                let d = expenses[i];
+                let hDepr = maxTotalExp > 0 ? (d.depr / maxTotalExp) * 100 : 0;
+                let hMaint = maxTotalExp > 0 ? (d.maint / maxTotalExp) * 100 : 0;
+
+                if (chartContainer) chartContainer.innerHTML += `
+                    <div class="flex flex-col items-center justify-end h-full w-full group relative px-1">
+                        <div class="w-full flex flex-col justify-end gap-0 h-full">
+                            <div class="w-full bg-rose-400 transition-all duration-500 rounded-t-[2px]" style="height: ${hMaint}%"></div>
+                            <div class="w-full bg-blue-500 transition-all duration-500" style="height: ${hDepr}%"></div>
+                        </div>
+                        <div class="absolute -top-10 md:-top-12 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-white text-[8px] md:text-[10px] px-1.5 md:px-2 py-1 rounded text-slate-800 whitespace-nowrap z-10 border border-slate-200 font-mono text-center leading-tight shadow-xl">
+                            Total: ${formatMoneyM(d.total)}<br><span class="text-blue-600">Depr: ${formatMoneyM(d.depr)}</span><br><span class="text-rose-600">Maint: ${formatMoneyM(d.maint)}</span>
+                        </div>
+                    </div>`;
+                if (labelsContainer) labelsContainer.innerHTML += `<span>Y${i+1}</span>`;
+            }
+        }
+        
+        function calculateEstimate() {
+            const lifeInput = document.getElementById('est-life');
+            if(!lifeInput) return;
+            const remainingLife = parseFloat(lifeInput.value);
+            
+            const lifeDisplay = document.getElementById('est-life-display');
+            if(lifeDisplay) lifeDisplay.innerText = remainingLife.toFixed(1) + ' Yrs';
+            
+            const nbv = 122.2; // 179.5 Gross Depr - 57.3 Acc Depr
+            const grossDepr = 179.5;
+            const accDepr = 57.3;
+            
+            const newExp = nbv / remainingLife;
+            const expDisplay = document.getElementById('est-exp-display');
+            if(expDisplay) {
+                expDisplay.innerText = '$' + newExp.toFixed(1) + 'B';
+                if(newExp > 20) {
+                    expDisplay.className = "text-2xl md:text-3xl font-gamified text-rose-600 transition-colors duration-300";
+                } else {
+                    expDisplay.className = "text-2xl md:text-3xl font-gamified text-emerald-600 transition-colors duration-300";
+                }
+            }
+
+            const usedUp = (accDepr / grossDepr) * 100;
+            const usedDisplay = document.getElementById('est-used');
+            const usedCalc = document.getElementById('est-used-calc');
+            if(usedDisplay) usedDisplay.innerText = usedUp.toFixed(0) + '%';
+            if(usedCalc) usedCalc.innerText = `(${accDepr.toFixed(1)} / ${grossDepr.toFixed(1)})`;
+            
+            const avgLife = grossDepr / newExp;
+            const avgLifeDisplay = document.getElementById('est-avg-life');
+            const avgLifeCalc = document.getElementById('est-avg-life-calc');
+            if(avgLifeDisplay) avgLifeDisplay.innerText = avgLife.toFixed(1) + ' Yrs';
+            if(avgLifeCalc) avgLifeCalc.innerText = `(${grossDepr.toFixed(1)} / ${newExp.toFixed(1)})`;
+
+            const avgRemLife = nbv / newExp;
+            const remLifeDisplay = document.getElementById('est-rem-life');
+            const remLifeCalc = document.getElementById('est-rem-life-calc');
+            if(remLifeDisplay) remLifeDisplay.innerText = avgRemLife.toFixed(1) + ' Yrs';
+            if(remLifeCalc) remLifeCalc.innerText = `(${nbv.toFixed(1)} / ${newExp.toFixed(1)})`;
+
+            const analysisText = document.getElementById('est-analysis-text');
+            if(analysisText) {
+                if (remainingLife >= 5.5) {
+                    analysisText.innerHTML = `By extending the remaining life to <b>${remainingLife.toFixed(1)} years</b>, Meta reduces its annual depreciation expense to <b>$${newExp.toFixed(1)}B</b>. This accounting change significantly boosts reported Net Income, even though it generates zero actual cash.`;
+                } else {
+                    analysisText.innerHTML = `By accelerating the remaining life to <b>${remainingLife.toFixed(1)} ${remainingLife === 1 ? 'year' : 'years'}</b>, Meta incurs a massive <b>$${newExp.toFixed(1)}B</b> annual depreciation expense, crushing Net Income but keeping the balance sheet conservative.`;
+                }
+            }
+        }
+
+        // --- Module 3: Intangibles (Disney) ---
+        function executeDisneyImpairment() {
+            const btn = document.getElementById('btn-impair-disney');
+            const assetVal = document.getElementById('disney-asset-val');
+            const totalVal = document.getElementById('disney-total-val');
+            const fsetContainer = document.getElementById('disney-fset-container');
+            
+            if(!btn || !assetVal || !totalVal || !fsetContainer) return;
+            
+            btn.disabled = true;
+            btn.innerHTML = `<i data-lucide="check" class="w-5 h-5 md:w-6 md:h-6 shrink-0"></i> Content Purged`;
+            btn.className = "px-6 py-3 md:px-8 md:py-4 w-full sm:w-auto bg-slate-200 text-slate-400 rounded-xl md:rounded-2xl font-bold flex items-center justify-center gap-2 transition-all shrink-0 cursor-not-allowed text-sm md:text-base";
+            lucide.createIcons();
+
+            // Update UI balances
+            assetVal.innerText = "$0.0B";
+            assetVal.classList.replace("text-red-600", "text-slate-400");
+            totalVal.innerText = "$202.0B";
+            
+            // Show FSET
+            fsetContainer.innerHTML = `
+                <div class="bg-white border border-slate-200 rounded-xl md:rounded-2xl p-4 md:p-6 shadow-md fade-in">
+                    <h4 class="text-xs md:text-sm font-bold text-slate-700 uppercase tracking-widest text-center mb-3 md:mb-4">Financial Statement Effects</h4>
+                    <div class="fset-grid">
+                        <div class="fset-box !bg-slate-50">
+                            <div class="fset-header">Assets</div>
+                            <div class="fset-val fset-neg text-xl sm:text-2xl">-$2.4B</div>
+                            <div class="text-[8px] md:text-[9px] text-slate-500 mt-1 font-bold font-sans">(Content Assets to $0)</div>
+                        </div>
+                        <div class="fset-box !bg-slate-50 hidden sm:block">
+                            <div class="fset-header">Liabilities</div>
+                            <div class="fset-val fset-neu text-xl sm:text-2xl">No Effect</div>
+                        </div>
+                        <div class="fset-box !bg-slate-50">
+                            <div class="fset-header">Equity</div>
+                            <div class="fset-val fset-neg text-xl sm:text-2xl">-$2.4B</div>
+                            <div class="text-[8px] md:text-[9px] text-slate-500 mt-1 font-bold font-sans">(Impairment Expense)</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            spawnParticles('trash-2', 30, 'red-600', 'disney-asset-val');
+        }
+
+        const intangibleItems = [
+            { id: 1, name: "Purchased Pixar IP (Indefinite)", correct: "capital", explanation: "Capitalized. Indefinite lives are NOT amortized; they are tested annually for impairment." },
+            { id: 2, name: "5-Year Streaming License Rights", correct: "capital", explanation: "Capitalized. Because it has a finite life, it MUST be amortized over the 5 years." },
+            { id: 3, name: "R&D to code new Disney+ App", correct: "expense", explanation: "Most internal R&D is expensed as incurred under US GAAP due to uncertain future benefits." },
+            { id: 4, name: "Super Bowl Ads for Star Wars", correct: "expense", explanation: "Advertising is always expensed immediately, even if it builds brand value." }
+        ];
+
+        let itemStatus = {};
+
+        function renderIntangibles() {
+            const container = document.getElementById('intangibles-list');
+            if(!container) return;
+            container.innerHTML = '';
+
+            intangibleItems.forEach(item => {
+                const status = itemStatus[item.id];
+                let bgClass = "bg-slate-50 border-slate-200";
+                let iconHtml = `<i data-lucide="help-circle" class="w-5 h-5 md:w-6 md:h-6 text-slate-400"></i>`;
+                let explHtml = '';
+
+                if (status === 'correct') {
+                    bgClass = "bg-emerald-50 border-emerald-300";
+                    iconHtml = `<i data-lucide="check-circle" class="w-5 h-5 md:w-6 md:h-6 text-emerald-600"></i>`;
+                    explHtml = `<p class="text-[10px] md:text-[11px] text-emerald-800 mt-2 md:mt-3 ml-7 md:ml-9 font-medium leading-relaxed">${item.explanation}</p>`;
+                } else if (status === 'incorrect') {
+                    bgClass = "bg-rose-50 border-rose-300";
+                    iconHtml = `<i data-lucide="x-circle" class="w-5 h-5 md:w-6 md:h-6 text-rose-500"></i>`;
+                }
+
+                const rowHtml = `
+                    <div class="p-3 md:p-4 rounded-xl md:rounded-2xl border transition-all duration-300 shadow-sm ${bgClass}">
+                        <div class="flex items-center justify-between flex-wrap gap-3 md:gap-4">
+                            <div class="flex items-center gap-2 md:gap-3 font-bold text-slate-800 text-sm md:text-md">
+                                ${iconHtml}
+                                ${item.name}
+                            </div>
+                            <div class="flex gap-2 w-full sm:w-auto">
+                                <button onclick="guessIntangible(${item.id}, 'expense')" class="flex-1 sm:flex-none px-2 py-1.5 md:px-3 md:py-1.5 text-[10px] md:text-xs font-bold rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-700 transition-all">Expense It</button>
+                                <button onclick="guessIntangible(${item.id}, 'capital')" class="flex-1 sm:flex-none px-2 py-1.5 md:px-3 md:py-1.5 text-[10px] md:text-xs font-bold rounded-lg bg-blue-600 hover:bg-blue-700 transition-all text-white">Capitalize It</button>
+                            </div>
+                        </div>
+                        ${explHtml}
+                    </div>
+                `;
+                container.innerHTML += rowHtml;
+            });
+            lucide.createIcons();
+        }
+
+        function guessIntangible(id, guess) {
+            const item = intangibleItems.find(i => i.id === id);
+            itemStatus[id] = (item.correct === guess) ? 'correct' : 'incorrect';
+            renderIntangibles();
+        }
+
+        // --- Module 4: Goodwill (Microsoft) ---
+        function calculateGoodwill() {
+            const priceInput = document.getElementById('gw-price');
+            if(!priceInput) return;
+
+            const price = parseFloat(priceInput.value) || 0;
+            const tangible = parseFloat(document.getElementById('gw-tangible')?.value) || 0;
+            const tech = parseFloat(document.getElementById('gw-tech')?.value) || 0;
+            const brand = parseFloat(document.getElementById('gw-brand')?.value) || 0;
+            const cust = parseFloat(document.getElementById('gw-cust')?.value) || 0;
+
+            const totalIntangibles = tech + brand + cust;
+            const identifiedAssets = tangible + totalIntangibles;
+            const goodwill = price - identifiedAssets;
+
+            const gwElement = document.getElementById('disp-gw');
+            const errorElement = document.getElementById('gw-error');
+            
+            const barTangible = document.getElementById('bar-tangible');
+            const barTech = document.getElementById('bar-tech');
+            const barBrand = document.getElementById('bar-brand');
+            const barCust = document.getElementById('bar-cust');
+            const barGoodwill = document.getElementById('bar-goodwill');
+
+            if (goodwill >= 0 && price > 0) {
+                if(gwElement) gwElement.innerText = formatMoneyB(goodwill);
+                if(errorElement) errorElement.classList.add('hidden');
+                
+                const pctTangible = (tangible / price) * 100;
+                const pctTech = (tech / price) * 100;
+                const pctBrand = (brand / price) * 100;
+                const pctCust = (cust / price) * 100;
+                const pctGoodwill = (goodwill / price) * 100;
+
+                if(barTangible) { barTangible.style.width = `${pctTangible}%`; barTangible.querySelector('span').style.display = pctTangible < 8 ? 'none' : 'block'; }
+                if(barTech) { barTech.style.width = `${pctTech}%`; barTech.querySelector('span').style.display = pctTech < 8 ? 'none' : 'block'; }
+                if(barBrand) { barBrand.style.width = `${pctBrand}%`; barBrand.querySelector('span').style.display = pctBrand < 8 ? 'none' : 'block'; }
+                if(barCust) { barCust.style.width = `${pctCust}%`; barCust.querySelector('span').style.display = pctCust < 8 ? 'none' : 'block'; }
+                if(barGoodwill) { barGoodwill.style.width = `${pctGoodwill}%`; barGoodwill.querySelector('span').style.display = pctGoodwill < 15 ? 'none' : 'block'; }
+
+            } else {
+                if(gwElement) gwElement.innerText = "N/A";
+                if(errorElement) errorElement.classList.remove('hidden');
+                
+                if(identifiedAssets > 0) {
+                    if(barTangible) barTangible.style.width = `${(tangible/identifiedAssets)*100}%`;
+                    const sharedP = (1 / identifiedAssets) * 100;
+                    if(barTech) barTech.style.width = `${tech*sharedP}%`;
+                    if(barBrand) barBrand.style.width = `${brand*sharedP}%`;
+                    if(barCust) barCust.style.width = `${cust*sharedP}%`;
+                }
+                if(barGoodwill) barGoodwill.style.width = `0%`;
+            }
+        }
+
+        // --- Module 5: Crypto (MicroStrategy) ---
+        function tryAmortizeCrypto(btn) {
+            if(!btn) return;
+            btn.classList.add('shake', 'bg-rose-100', 'text-rose-700', 'border-rose-400');
+            btn.innerHTML = `<i data-lucide="shield-alert" class="w-3 h-3 md:w-4 md:h-4"></i> <span class="text-xs md:text-sm">ERROR: Cannot amortize!</span>`;
+            lucide.createIcons();
+            
+            setTimeout(() => btn.classList.remove('shake'), 400);
+
+            setTimeout(() => {
+                btn.classList.remove('bg-rose-100', 'text-rose-700', 'border-rose-400');
+                btn.innerHTML = `<i data-lucide="calculator" class="w-3 h-3 md:w-4 md:h-4 text-slate-500"></i> <span class="text-xs md:text-sm">Try to Amortize Crypto</span>`;
+                lucide.createIcons();
+            }, 2500);
+        }
+
+        function updateCrypto() {
+            const priceInput = document.getElementById('crypto-price');
+            if(!priceInput) return;
+
+            const price = parseInt(priceInput.value);
+            const initialPrice = 40000;
+            const coins = 200000;
+            
+            const currentTotal = price * coins;
+            const pnl = currentTotal - (initialPrice * coins);
+
+            const priceDisplay = document.getElementById('crypto-price-display');
+            const bsValue = document.getElementById('crypto-bs-value');
+            if(priceDisplay) priceDisplay.innerText = '$' + price.toLocaleString();
+            if(bsValue) bsValue.innerText = '$' + (currentTotal / 1000000000).toFixed(2) + ' Billion';
+
+            // Chart scaling
+            const maxFv = 100000 * coins;
+            const fvPct = (currentTotal / maxFv) * 100;
+            
+            const barFv = document.getElementById('crypto-bar-fv');
+            const barFvLabel = document.getElementById('crypto-bar-fv-label');
+            
+            if(barFv && barFvLabel) {
+                barFv.style.height = `${Math.max(fvPct, 5)}%`;
+                barFvLabel.innerText = '$' + (currentTotal / 1000000000).toFixed(1) + 'B';
+                if(currentTotal > (initialPrice * coins)) {
+                    barFv.className = "w-16 md:w-24 bg-emerald-400 rounded-t-xl relative flex items-end justify-center pb-2 transition-all duration-500 shadow-md";
+                    barFvLabel.className = "absolute -top-5 md:-top-6 text-[10px] md:text-xs font-bold text-emerald-600";
+                } else if(currentTotal < (initialPrice * coins)) {
+                    barFv.className = "w-16 md:w-24 bg-rose-400 rounded-t-xl relative flex items-end justify-center pb-2 transition-all duration-500 shadow-md";
+                    barFvLabel.className = "absolute -top-5 md:-top-6 text-[10px] md:text-xs font-bold text-rose-600";
+                } else {
+                    barFv.className = "w-16 md:w-24 bg-purple-400 rounded-t-xl relative flex items-end justify-center pb-2 transition-all duration-500 shadow-md";
+                    barFvLabel.className = "absolute -top-5 md:-top-6 text-[10px] md:text-xs font-bold text-purple-600";
+                }
+            }
+
+            const pnlBox = document.getElementById('crypto-pnl-box');
+            const pnlValue = document.getElementById('crypto-pnl-value');
+            const pnlText = document.getElementById('crypto-pnl-text');
+            const fsetGrid = document.getElementById('crypto-fset');
+
+            if (pnl > 0) {
+                if(pnlBox) pnlBox.className = "bg-emerald-50 border border-emerald-200 rounded-xl md:rounded-3xl p-4 md:p-6 text-center transition-all duration-500 shadow-sm relative overflow-hidden";
+                if(pnlValue) {
+                    pnlValue.className = "text-2xl md:text-4xl font-gamified text-emerald-600 relative z-10";
+                    pnlValue.innerText = "+$" + (pnl / 1000000000).toFixed(2) + 'B';
+                }
+                if(pnlText) {
+                    pnlText.innerText = "Increases Net Income & EPS";
+                    pnlText.className = "text-[10px] md:text-xs font-bold text-emerald-700 mt-2 md:mt-3 relative z-10 bg-white inline-block px-3 md:px-4 py-1 md:py-1.5 rounded-full border border-emerald-200";
+                }
+                if(fsetGrid) fsetGrid.innerHTML = `
+                    <div class="fset-box"><div class="fset-header">Assets</div><div class="fset-val fset-pos text-xl sm:text-2xl">+${formatMoneyB(pnl / 1000000000)}</div><div class="text-[9px] md:text-[10px] text-slate-500 font-sans font-bold">(Crypto)</div></div>
+                    <div class="fset-box hidden sm:block"><div class="fset-header">Liabilities</div><div class="fset-val fset-neu text-xl sm:text-2xl">No Effect</div></div>
+                    <div class="fset-box"><div class="fset-header">Equity</div><div class="fset-val fset-pos text-xl sm:text-2xl">+${formatMoneyB(pnl / 1000000000)}</div><div class="text-[9px] md:text-[10px] text-slate-500 font-sans font-bold">(Ret. Earnings)</div></div>
+                `;
+            } else if (pnl < 0) {
+                if(pnlBox) pnlBox.className = "bg-rose-50 border border-rose-200 rounded-xl md:rounded-3xl p-4 md:p-6 text-center transition-all duration-500 shadow-sm relative overflow-hidden";
+                if(pnlValue) {
+                    pnlValue.className = "text-2xl md:text-4xl font-gamified text-rose-600 relative z-10";
+                    pnlValue.innerText = "-$" + (Math.abs(pnl) / 1000000000).toFixed(2) + 'B'; 
+                }
+                if(pnlText) {
+                    pnlText.innerText = "Decreases Net Income & EPS";
+                    pnlText.className = "text-[10px] md:text-xs font-bold text-rose-700 mt-2 md:mt-3 relative z-10 bg-white inline-block px-3 md:px-4 py-1 md:py-1.5 rounded-full border border-rose-200";
+                }
+                if(fsetGrid) fsetGrid.innerHTML = `
+                    <div class="fset-box"><div class="fset-header">Assets</div><div class="fset-val fset-neg text-xl sm:text-2xl">${formatMoneyB(pnl / 1000000000)}</div><div class="text-[9px] md:text-[10px] text-slate-500 font-sans font-bold">(Crypto)</div></div>
+                    <div class="fset-box hidden sm:block"><div class="fset-header">Liabilities</div><div class="fset-val fset-neu text-xl sm:text-2xl">No Effect</div></div>
+                    <div class="fset-box"><div class="fset-header">Equity</div><div class="fset-val fset-neg text-xl sm:text-2xl">${formatMoneyB(pnl / 1000000000)}</div><div class="text-[9px] md:text-[10px] text-slate-500 font-sans font-bold">(Ret. Earnings)</div></div>
+                `;
+            } else {
+                if(pnlBox) pnlBox.className = "bg-slate-50 border border-slate-200 rounded-xl md:rounded-3xl p-4 md:p-6 text-center transition-all duration-500 shadow-sm relative overflow-hidden";
+                if(pnlValue) {
+                    pnlValue.className = "text-2xl md:text-4xl font-gamified text-slate-700 relative z-10";
+                    pnlValue.innerText = "$0";
+                }
+                if(pnlText) {
+                    pnlText.innerText = "No change in Fair Value";
+                    pnlText.className = "text-[10px] md:text-xs font-bold text-slate-500 mt-2 md:mt-3 relative z-10 bg-white inline-block px-3 md:px-4 py-1 md:py-1.5 rounded-full border border-slate-200";
+                }
+                if(fsetGrid) fsetGrid.innerHTML = `
+                    <div class="fset-box"><div class="fset-header">Assets</div><div class="fset-val fset-neu text-xl sm:text-2xl">No Effect</div></div>
+                    <div class="fset-box hidden sm:block"><div class="fset-header">Liabilities</div><div class="fset-val fset-neu text-xl sm:text-2xl">No Effect</div></div>
+                    <div class="fset-box"><div class="fset-header">Equity</div><div class="fset-val fset-neu text-xl sm:text-2xl">No Effect</div></div>
+                `;
+            }
+        }
+
+        // --- Module 6: Walgreens Impairment ---
+        function executeWalgreensImpairment() {
+            const btn = document.getElementById('btn-impair');
+            const assetVal = document.getElementById('walgreens-asset-val');
+            const totalVal = document.getElementById('walgreens-total-val');
+            const fsetContainer = document.getElementById('walgreens-fset-container');
+            
+            if(!btn || !assetVal || !totalVal || !fsetContainer) return;
+            
+            btn.disabled = true;
+            btn.innerHTML = `<i data-lucide="check" class="w-5 h-5 md:w-6 md:h-6 shrink-0"></i> Assets Written Off`;
+            btn.className = "px-6 py-3 md:px-8 md:py-4 w-full sm:w-auto bg-slate-200 text-slate-400 rounded-xl md:rounded-2xl font-bold flex items-center justify-center gap-2 transition-all shrink-0 cursor-not-allowed text-sm md:text-base";
+            lucide.createIcons();
+
+            // Update UI balances
+            assetVal.innerText = "$0";
+            assetVal.classList.replace("text-rose-600", "text-slate-400");
+            totalVal.innerText = "$90.0B";
+            
+            // Show FSET
+            fsetContainer.innerHTML = `
+                <div class="bg-white border border-slate-200 rounded-xl md:rounded-2xl p-4 md:p-6 shadow-md fade-in">
+                    <h4 class="text-xs md:text-sm font-bold text-slate-700 uppercase tracking-widest text-center mb-3 md:mb-4">Financial Statement Effects</h4>
+                    <div class="fset-grid">
+                        <div class="fset-box !bg-slate-50">
+                            <div class="fset-header">Assets</div>
+                            <div class="fset-val fset-neg text-xl sm:text-2xl">-$5.8B</div>
+                            <div class="text-[8px] md:text-[9px] text-slate-500 mt-1 font-bold font-sans">(VillageMD Goodwill to $0)</div>
+                        </div>
+                        <div class="fset-box !bg-slate-50 hidden sm:block">
+                            <div class="fset-header">Liabilities</div>
+                            <div class="fset-val fset-neu text-xl sm:text-2xl">No Effect</div>
+                        </div>
+                        <div class="fset-box !bg-slate-50">
+                            <div class="fset-header">Equity</div>
+                            <div class="fset-val fset-neg text-xl sm:text-2xl">-$5.8B</div>
+                            <div class="text-[8px] md:text-[9px] text-slate-500 mt-1 font-bold font-sans">(Net Income / Ret. Earnings)</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            spawnParticles('activity', 30, 'rose-500', 'walgreens-asset-val');
+        }
+
+        // --- Module 7: Kraft Heinz Impairment ---
+        function executeKraftImpairment() {
+            const btn = document.getElementById('btn-impair-kraft');
+            const assetVal = document.getElementById('kraft-asset-val');
+            const totalVal = document.getElementById('kraft-total-val');
+            const fsetContainer = document.getElementById('kraft-fset-container');
+            
+            if(!btn || !assetVal || !totalVal || !fsetContainer) return;
+            
+            btn.disabled = true;
+            btn.innerHTML = `<i data-lucide="check" class="w-5 h-5 md:w-6 md:h-6 shrink-0"></i> Impairment Executed`;
+            btn.className = "px-6 py-3 md:px-8 md:py-4 w-full sm:w-auto bg-slate-200 text-slate-400 rounded-xl md:rounded-2xl font-bold flex items-center justify-center gap-2 transition-all shrink-0 cursor-not-allowed text-sm md:text-base";
+            lucide.createIcons();
+
+            // Update UI balances (45.4 - 15.4 = 30.0)
+            assetVal.innerText = "$30.0B";
+            totalVal.innerText = "$104.6B"; // 120 - 15.4
+            
+            // Show FSET
+            fsetContainer.innerHTML = `
+                <div class="bg-white border border-slate-200 rounded-xl md:rounded-2xl p-4 md:p-6 shadow-md fade-in">
+                    <h4 class="text-xs md:text-sm font-bold text-slate-700 uppercase tracking-widest text-center mb-3 md:mb-4">Financial Statement Effects</h4>
+                    <div class="fset-grid">
+                        <div class="fset-box !bg-slate-50">
+                            <div class="fset-header">Assets</div>
+                            <div class="fset-val fset-neg text-xl sm:text-2xl">-$15.4B</div>
+                            <div class="text-[8px] md:text-[9px] text-slate-500 mt-1 font-bold font-sans">(Goodwill & Brand written down)</div>
+                        </div>
+                        <div class="fset-box !bg-slate-50 hidden sm:block">
+                            <div class="fset-header">Liabilities</div>
+                            <div class="fset-val fset-neu text-xl sm:text-2xl">No Effect</div>
+                        </div>
+                        <div class="fset-box !bg-slate-50">
+                            <div class="fset-header">Equity</div>
+                            <div class="fset-val fset-neg text-xl sm:text-2xl">-$15.4B</div>
+                            <div class="text-[8px] md:text-[9px] text-slate-500 mt-1 font-bold font-sans">(Impairment Loss on Income Statement)</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            spawnParticles('shopping-basket', 30, 'amber-500', 'kraft-asset-val');
+        }
+
+    </script>
+</body>
+</html>
