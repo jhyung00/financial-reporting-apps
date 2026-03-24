@@ -117,13 +117,19 @@
         { q: "Why do analysts often use EBITDA to assess a company's performance?", options: [ "It includes all taxes and interest", "It represents the exact cash balance", "It excludes non-cash expenses and financing decisions to show core profitability", "It is required by GAAP" ], correct: 2, feedback: "Correct. EBITDA removes the effects of financing, accounting decisions (depreciation), and taxes to show core operational performance." }
     ];
 
+    const COMPARE_QUESTIONS = [
+        { id: 'c1', text: "Which company is more efficient at generating revenue from its physical assets (Highest PPE Turnover)?", options: ["ITW", "PH"], correct: "ITW" },
+        { id: 'c2', text: "Which company's balance sheet indicates a heavier reliance on historical acquisitions (Highest Goodwill %)?", options: ["ITW", "PH"], correct: "PH" },
+        { id: 'c3', text: "Which company has a more depleted/older physical asset base (Highest % Used Up)?", options: ["ITW", "PH"], correct: "ITW" }
+    ];
+
     // --- GAMIFICATION CONFIG ---
     const LEVELS = [
         { threshold: 0, title: "Intern", icon: "coffee" },
         { threshold: 800, title: "Junior Analyst", icon: "trending-up" },
         { threshold: 1800, title: "Financial Associate", icon: "briefcase" },
         { threshold: 2800, title: "VP of Finance", icon: "award" },
-        { threshold: 4000, title: "Chief Financial Officer", icon: "star" }
+        { threshold: 4500, title: "Chief Financial Officer", icon: "star" }
     ];
 
     const CATEGORY_MAP = {
@@ -314,16 +320,11 @@
         );
     };
 
-    const Quiz = ({ answers, onSelect, showResults, setShowResults, setAnswers, onCorrectAnswer }) => {
+    const Quiz = ({ answers, onSelect, showResults, setShowResults, setAnswers, onSubmit }) => {
         React.useEffect(() => { if (window.lucide) window.lucide.createIcons(); }, [showResults, answers]);
 
         const handleSelect = (qIdx, oIdx) => {
-            const wasCorrect = answers[qIdx] === QUIZ_QUESTIONS[qIdx].correct;
-            const isCorrect = oIdx === QUIZ_QUESTIONS[qIdx].correct;
             onSelect(qIdx, oIdx);
-            if (!wasCorrect && isCorrect) {
-                onCorrectAnswer();
-            }
         };
 
         return (
@@ -333,7 +334,7 @@
                     <h2 className="text-2xl font-black mb-2 flex items-center gap-2 tracking-tight">
                         <i data-lucide="brain-circuit" className="w-6 h-6"></i> Knowledge Check
                     </h2>
-                    <p className="text-indigo-100 text-sm font-medium">Test your understanding of Depreciation & Amortization. Earn +100 XP per correct answer!</p>
+                    <p className="text-indigo-100 text-sm font-medium">Test your understanding of Depreciation & Amortization. Submit to reveal answers and earn XP!</p>
                 </div>
                 
                 <div className="space-y-6">
@@ -347,9 +348,9 @@
                                 <p className="font-bold text-slate-800 mb-4 text-sm md:text-base pr-4">{i + 1}. {q.q}</p>
                                 <div className="space-y-2 mb-4">
                                     {q.options.map((opt, oIdx) => (
-                                        <button key={oIdx} onClick={() => handleSelect(i, oIdx)} disabled={showResults} className={`w-full text-left px-4 py-3 rounded-xl border text-sm transition-all duration-200 ${answers[i] === oIdx ? 'border-indigo-500 bg-indigo-50 text-indigo-800 ring-2 ring-indigo-200' : 'border-slate-200 hover:bg-slate-50 text-slate-600'} ${showResults && q.correct === oIdx ? '!bg-green-50 !border-green-500 ring-2 ring-green-200 !text-green-800' : ''} ${showResults && answers[i] === oIdx && answers[i] !== q.correct ? '!bg-red-50 !border-red-500 ring-2 ring-red-200 !text-red-800' : ''}`}>
+                                        <button key={oIdx} onClick={() => handleSelect(i, oIdx)} disabled={showResults} className={`w-full text-left px-4 py-3 rounded-xl border text-sm transition-all duration-200 ${answers[i] === oIdx && !showResults ? 'border-indigo-500 bg-indigo-50 text-indigo-800 ring-2 ring-indigo-200' : 'border-slate-200 hover:bg-slate-50 text-slate-600'} ${showResults && q.correct === oIdx ? '!bg-green-50 !border-green-500 ring-2 ring-green-200 !text-green-800' : ''} ${showResults && answers[i] === oIdx && answers[i] !== q.correct ? '!bg-red-50 !border-red-500 ring-2 ring-red-200 !text-red-800' : ''}`}>
                                             <div className="flex items-center">
-                                                <div className={`w-4 h-4 rounded-full border mr-3 flex items-center justify-center flex-shrink-0 ${answers[i] === oIdx ? 'border-indigo-500' : 'border-slate-400'} ${showResults && q.correct === oIdx ? '!border-green-600' : ''}`}>
+                                                <div className={`w-4 h-4 rounded-full border mr-3 flex items-center justify-center flex-shrink-0 ${answers[i] === oIdx && !showResults ? 'border-indigo-500' : 'border-slate-400'} ${showResults && q.correct === oIdx ? '!border-green-600' : ''}`}>
                                                     {answers[i] === oIdx && <div className={`w-2 h-2 rounded-full ${showResults && q.correct === oIdx ? 'bg-green-600' : 'bg-indigo-500'}`}></div>}
                                                 </div>
                                                 <span className="font-medium">{opt}</span>
@@ -376,12 +377,113 @@
                 </div>
                 <div className="mt-8 mb-12 flex justify-center">
                     {!showResults ? (
-                        <button onClick={() => setShowResults(true)} disabled={Object.keys(answers).length < QUIZ_QUESTIONS.length} className={`px-8 py-3.5 rounded-xl font-bold text-white shadow-lg transition-all ${Object.keys(answers).length < QUIZ_QUESTIONS.length ? 'bg-slate-300 cursor-not-allowed' : 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 transform hover:-translate-y-1'}`}>
+                        <button onClick={onSubmit} disabled={Object.keys(answers).length < QUIZ_QUESTIONS.length} className={`px-8 py-3.5 rounded-xl font-bold text-white shadow-lg transition-all ${Object.keys(answers).length < QUIZ_QUESTIONS.length ? 'bg-slate-300 cursor-not-allowed' : 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 transform hover:-translate-y-1'}`}>
                             Complete Quiz & Reveal Answers
                         </button>
                     ) : (
                         <button onClick={() => { setShowResults(false); setAnswers({}); }} className="px-8 py-3.5 rounded-xl font-bold text-slate-700 bg-white border-2 border-slate-200 hover:bg-slate-50 transition-colors shadow-sm flex items-center gap-2">
                             <i data-lucide="rotate-ccw" className="w-5 h-5"></i> Retry Quiz
+                        </button>
+                    )}
+                </div>
+            </div>
+        );
+    };
+
+    const CompareView = ({ inputValues, compareAnswers, setCompareAnswers, showResults, setShowResults, onSubmit }) => {
+        React.useEffect(() => { if (window.lucide) window.lucide.createIcons(); }, [showResults, compareAnswers]);
+
+        const handleCompareChange = (id, val) => {
+            if (!showResults) setCompareAnswers(prev => ({...prev, [id]: val}));
+        };
+
+        return (
+            <div className="max-w-4xl mx-auto p-4 md:p-8 fade-in space-y-8 pb-20">
+                <div className="bg-gradient-to-r from-teal-600 to-emerald-600 p-6 rounded-2xl shadow-lg text-white relative overflow-hidden">
+                    <div className="absolute -right-10 -top-10 opacity-20"><i data-lucide="scale" className="w-40 h-40"></i></div>
+                    <h2 className="text-2xl font-black mb-2 flex items-center gap-2 tracking-tight">
+                        <i data-lucide="scale" className="w-6 h-6"></i> Strategic Comparison
+                    </h2>
+                    <p className="text-teal-100 text-sm font-medium relative z-10">Compare the metrics you calculated to draw real-world strategic conclusions. Submit for XP!</p>
+                </div>
+
+                {/* Side by side data table */}
+                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                   <table className="w-full text-sm text-left">
+                       <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-widest text-[10px] font-black">
+                           <tr>
+                               <th className="p-4">Metric</th>
+                               <th className="p-4 text-center border-l border-slate-200">ITW</th>
+                               <th className="p-4 text-center border-l border-slate-200">PH</th>
+                           </tr>
+                       </thead>
+                       <tbody className="divide-y divide-slate-100 font-mono font-medium text-slate-700">
+                           <tr>
+                               <td className="p-4 font-sans font-bold text-slate-800">PPE Turnover</td>
+                               <td className="p-4 text-center border-l border-slate-200">{inputValues.ITW?.ppeTurnover || "---"}</td>
+                               <td className="p-4 text-center border-l border-slate-200">{inputValues.PH?.ppeTurnover || "---"}</td>
+                           </tr>
+                           <tr>
+                               <td className="p-4 font-sans font-bold text-slate-800">% Used Up</td>
+                               <td className="p-4 text-center border-l border-slate-200">{inputValues.ITW?.percentUsed ? inputValues.ITW.percentUsed + '%' : "---"}</td>
+                               <td className="p-4 text-center border-l border-slate-200">{inputValues.PH?.percentUsed ? inputValues.PH.percentUsed + '%' : "---"}</td>
+                           </tr>
+                           <tr>
+                               <td className="p-4 font-sans font-bold text-slate-800">Goodwill %</td>
+                               <td className="p-4 text-center border-l border-slate-200">{inputValues.ITW?.gwPct ? inputValues.ITW.gwPct + '%' : "---"}</td>
+                               <td className="p-4 text-center border-l border-slate-200">{inputValues.PH?.gwPct ? inputValues.PH.gwPct + '%' : "---"}</td>
+                           </tr>
+                       </tbody>
+                   </table>
+                </div>
+
+                {/* Questions */}
+                <div className="space-y-4">
+                    {COMPARE_QUESTIONS.map(q => {
+                        const isCorrect = compareAnswers[q.id] === q.correct;
+                        return (
+                            <div key={q.id} className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-6 items-center justify-between">
+                                <p className="font-bold text-slate-700 flex-1">{q.text}</p>
+                                <div className="flex gap-2 shrink-0">
+                                    {q.options.map(opt => {
+                                        let btnClass = 'bg-white border-slate-200 text-slate-500 hover:border-teal-300 hover:text-teal-600';
+                                        
+                                        if (compareAnswers[q.id] === opt) {
+                                            if (showResults) {
+                                                btnClass = isCorrect ? 'bg-emerald-50 border-emerald-500 text-emerald-700 ring-2 ring-emerald-200' : 'bg-rose-50 border-rose-500 text-rose-700 ring-2 ring-rose-200';
+                                            } else {
+                                                btnClass = 'bg-teal-50 border-teal-500 text-teal-700 ring-2 ring-teal-200';
+                                            }
+                                        } else if (showResults && opt === q.correct) {
+                                            btnClass = 'bg-emerald-50 border-emerald-500 text-emerald-700 opacity-60';
+                                        }
+
+                                        return (
+                                            <button
+                                                key={opt}
+                                                onClick={() => handleCompareChange(q.id, opt)}
+                                                disabled={showResults}
+                                                className={`px-6 py-2.5 rounded-lg font-bold transition-all border-2 flex items-center gap-2 ${btnClass}`}
+                                            >
+                                                {opt}
+                                                {showResults && compareAnswers[q.id] === opt && (isCorrect ? <i data-lucide="check" className="w-4 h-4"></i> : <i data-lucide="x" className="w-4 h-4"></i>)}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )
+                    })}
+                </div>
+
+                <div className="mt-8 flex justify-center">
+                    {!showResults ? (
+                        <button onClick={onSubmit} disabled={Object.keys(compareAnswers).length < COMPARE_QUESTIONS.length} className={`px-8 py-3.5 rounded-xl font-bold text-white shadow-lg transition-all ${Object.keys(compareAnswers).length < COMPARE_QUESTIONS.length ? 'bg-slate-300 cursor-not-allowed' : 'bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 transform hover:-translate-y-1'}`}>
+                            Submit Analysis
+                        </button>
+                    ) : (
+                        <button onClick={() => { setShowResults(false); setCompareAnswers({}); }} className="px-8 py-3.5 rounded-xl font-bold text-slate-700 bg-white border-2 border-slate-200 hover:bg-slate-50 transition-colors shadow-sm flex items-center gap-2">
+                            <i data-lucide="rotate-ccw" className="w-5 h-5"></i> Reset Analysis
                         </button>
                     )}
                 </div>
@@ -623,9 +725,11 @@
         const [showPasswordModal, setShowPasswordModal] = React.useState(false);
         const [studentName, setStudentName] = React.useState("");
         
-        // Quiz State
+        // Quiz & Compare State
         const [quizAnswers, setQuizAnswers] = React.useState({});
         const [quizShowResults, setQuizShowResults] = React.useState(false);
+        const [compareAnswers, setCompareAnswers] = React.useState({});
+        const [showCompareResults, setShowCompareResults] = React.useState(false);
 
         // Gamification States
         const [toastMessage, setToastMessage] = React.useState("");
@@ -695,9 +799,11 @@
                 'Aging': { correct: 0, total: 0, color: 'bg-cyan-500' },
                 'Intangibles': { correct: 0, total: 0, color: 'bg-amber-500' },
                 'Deep Dive': { correct: 0, total: 0, color: 'bg-rose-500' },
+                'Analysis': { correct: 0, total: 0, color: 'bg-teal-500' },
                 'Quiz': { correct: 0, total: 0, color: 'bg-indigo-500' }
             };
 
+            // Calculate Simulation XP
             Object.keys(EXPECTATIONS).forEach(comp => {
                 Object.keys(EXPECTATIONS[comp]).forEach(key => {
                     const cat = CATEGORY_MAP[key];
@@ -710,15 +816,24 @@
                 });
             });
 
+            // Calculate Quiz XP (only if submitted)
             QUIZ_QUESTIONS.forEach((q, i) => {
                 total++; localStats['Quiz'].total++;
-                if (quizAnswers[i] === q.correct) {
+                if (quizShowResults && quizAnswers[i] === q.correct) {
                     xp += 100; correct++; localStats['Quiz'].correct++;
                 }
             });
 
+            // Calculate Compare XP (only if submitted)
+            COMPARE_QUESTIONS.forEach((q, i) => {
+                total++; localStats['Analysis'].total++;
+                if (showCompareResults && compareAnswers[q.id] === q.correct) {
+                    xp += 150; correct++; localStats['Analysis'].correct++;
+                }
+            });
+
             return { currentXP: xp, correctCount: correct, totalCount: total, stats: localStats };
-        }, [inputValues, quizAnswers, EXPECTATIONS, checkIsCorrect]);
+        }, [inputValues, quizAnswers, compareAnswers, quizShowResults, showCompareResults, EXPECTATIONS, checkIsCorrect]);
 
         const { currentLevelObj, nextLevelObj, levelIndex } = React.useMemo(() => {
             let curr = LEVELS[0]; let next = LEVELS[1]; let idx = 1;
@@ -738,7 +853,6 @@
                 setPrevLevelTitle(currentLevelObj.title);
             }
         }, [currentLevelObj.title, currentXP, prevLevelTitle]);
-
 
         // --- Interaction Handlers ---
         const handleValueClick = (val) => {
@@ -774,8 +888,18 @@
         };
 
         const handleClear = () => { setInputValues({ ITW: {}, PH: {} }); setShowSolution(false); };
-        const handleQuizAutoFill = () => { const correct = {}; QUIZ_QUESTIONS.forEach((q, i) => correct[i] = q.correct); setQuizAnswers(correct); setQuizShowResults(true); };
-        const handleQuizClear = () => { setQuizAnswers({}); setQuizShowResults(false); };
+        
+        const handleQuizSubmit = () => { 
+            setQuizShowResults(true); 
+            const correct = QUIZ_QUESTIONS.filter((q, i) => quizAnswers[i] === q.correct).length;
+            if (correct > 0) showToast(`+${correct * 100} XP! Quiz Complete!`, "xp");
+        };
+
+        const handleCompareSubmit = () => {
+            setShowCompareResults(true);
+            const correct = COMPARE_QUESTIONS.filter(q => compareAnswers[q.id] === q.correct).length;
+            if (correct > 0) showToast(`+${correct * 150} XP! Great Analysis!`, "xp");
+        };
 
         const handleDownloadSubmission = (submittedName) => {
             setStudentName(submittedName);
@@ -785,8 +909,10 @@
                 content += `--- ${company} ---\n`;
                 content += JSON.stringify(inputValues[company], null, 2) + `\n\n`;
             });
+            content += `--- COMPARE ---\n`;
+            content += JSON.stringify(compareAnswers, null, 2) + `\n\n`;
             content += `--- QUIZ ---\nScore: ${QUIZ_QUESTIONS.filter((q, i) => quizAnswers[i] === q.correct).length} / ${QUIZ_QUESTIONS.length}\n`;
-            content += `\n--- RAW DATA (DO NOT EDIT) ---\n` + JSON.stringify({ inputValues, quizAnswers }, null, 2);
+            content += `\n--- RAW DATA (DO NOT EDIT) ---\n` + JSON.stringify({ inputValues, quizAnswers, compareAnswers }, null, 2);
 
             const blob = new Blob([content], { type: 'text/plain' }); const url = URL.createObjectURL(blob);
             const a = document.createElement('a'); a.href = url; a.download = `${submittedName.replace(/\s+/g, '_')}_Asset_Analysis.txt`;
@@ -810,6 +936,7 @@
                         const parsed = JSON.parse(jsonStr);
                         if (parsed.inputValues) setInputValues(parsed.inputValues);
                         if (parsed.quizAnswers) { setQuizAnswers(parsed.quizAnswers); if (Object.keys(parsed.quizAnswers).length > 0) setQuizShowResults(true); }
+                        if (parsed.compareAnswers) { setCompareAnswers(parsed.compareAnswers); if (Object.keys(parsed.compareAnswers).length > 0) setShowCompareResults(true); }
                         setStudentName(loadedName); showToast("Progress Loaded Successfully!", "info");
                     } else { alert("Invalid file format."); }
                 } catch (err) { alert("Could not parse file."); }
@@ -931,6 +1058,9 @@
                             <button onClick={() => setActiveTab('simulation')} className={`pb-3 px-2 text-sm font-bold transition-colors border-b-[3px] flex items-center gap-2 whitespace-nowrap ${activeTab === 'simulation' ? 'border-indigo-600 text-indigo-700' : 'border-transparent text-slate-400 hover:text-slate-700 hover:border-slate-300'}`}>
                                 <i data-lucide="calculator" className="w-4 h-4"></i> Asset Analysis
                             </button>
+                            <button onClick={() => setActiveTab('compare')} className={`pb-3 px-2 text-sm font-bold transition-colors border-b-[3px] flex items-center gap-2 whitespace-nowrap ${activeTab === 'compare' ? 'border-teal-600 text-teal-700' : 'border-transparent text-slate-400 hover:text-slate-700 hover:border-slate-300'}`}>
+                                <i data-lucide="scale" className="w-4 h-4"></i> Comparison
+                            </button>
                             <button onClick={() => setActiveTab('quiz')} className={`pb-3 px-2 text-sm font-bold transition-colors border-b-[3px] flex items-center gap-2 whitespace-nowrap ${activeTab === 'quiz' ? 'border-indigo-600 text-indigo-700' : 'border-transparent text-slate-400 hover:text-slate-700 hover:border-slate-300'}`}>
                                 <i data-lucide="help-circle" className="w-4 h-4"></i> Theory Quiz
                             </button>
@@ -946,8 +1076,12 @@
                                 <ProfileView stats={stats} correctCount={correctCount} totalCount={totalCount} currentXP={currentXP} currentLevelObj={currentLevelObj} nextLevelObj={nextLevelObj} />
                             )}
 
+                            {activeTab === 'compare' && (
+                                <CompareView inputValues={inputValues} compareAnswers={compareAnswers} setCompareAnswers={setCompareAnswers} showResults={showCompareResults} setShowResults={setShowCompareResults} onSubmit={handleCompareSubmit} />
+                            )}
+
                             {activeTab === 'quiz' && (
-                                <Quiz answers={quizAnswers} onSelect={(q, o) => setQuizAnswers(prev => ({...prev, [q]: o}))} showResults={quizShowResults} setShowResults={setQuizShowResults} setAnswers={setQuizAnswers} onCorrectAnswer={() => showToast("+100 XP! Brilliant!", "xp")} />
+                                <Quiz answers={quizAnswers} onSelect={(q, o) => setQuizAnswers(prev => ({...prev, [q]: o}))} showResults={quizShowResults} setShowResults={setQuizShowResults} setAnswers={setQuizAnswers} onSubmit={handleQuizSubmit} />
                             )}
 
                             {activeTab === 'simulation' && (
