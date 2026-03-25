@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Iron Ledger: Master of Coin</title>
+    
+    <!-- Fonts for Medieval / Premium Look -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;800&family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=MedievalSharp&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'cinzel': ['Cinzel', 'serif'],
+                        'lora': ['Lora', 'serif'],
+                        'medieval': ['MedievalSharp', 'cursive'],
+                    },
+                    colors: {
+                        'got-dark': '#0a0c10',
+                        'got-panel': '#15181e',
+                        'got-border': '#3f3a2f',
+                        'got-gold': '#c5a059',
+                        'got-gold-light': '#e8c985',
+                        'got-red': '#8a1c1c',
+                        'got-fire': '#e25822',
+                    },
+                }
+            }
+        }
+    </script>
+
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        body {
+            background-color: #050505;
+            color: #d1d5db;
+            margin: 0;
+            overflow-x: hidden;
+        }
+        .glowing-gold {
+            text-shadow: 0 0 15px rgba(197, 160, 89, 0.6), 0 0 5px rgba(255, 255, 255, 0.3);
+        }
+        .glowing-red {
+            text-shadow: 0 0 20px rgba(255, 0, 0, 0.8), 0 0 10px rgba(255, 100, 0, 0.5);
+        }
+        .custom-scrollbar::-webkit-scrollbar { width: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #0f1115; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #3f3a2f; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #c5a059; }
+        
+        /* Particle Effects */
+        @keyframes fall {
+            0% { transform: translateY(-10vh) translateX(0); opacity: 1; }
+            100% { transform: translateY(110vh) translateX(20px); opacity: 0; }
+        }
+        .snow-flake {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            animation: fall linear infinite;
+            box-shadow: 0 0 5px white;
+            pointer-events: none;
+        }
+
+        @keyframes rise {
+            0% { transform: translateY(110vh) scale(1); opacity: 0.6; }
+            100% { transform: translateY(-10vh) scale(0.2); opacity: 0; }
+        }
+        .fire-particle {
+            position: absolute;
+            background: radial-gradient(circle, #ff9d00, #ff4000, transparent);
+            border-radius: 50%;
+            animation: rise linear infinite;
+            filter: blur(2px);
+            pointer-events: none;
+            mix-blend-mode: screen;
+        }
+
+        @keyframes coinFall {
+            0% { transform: translateY(-20vh) rotateY(0deg); opacity: 1; }
+            100% { transform: translateY(110vh) rotateY(720deg); opacity: 0; }
+        }
+        .gold-coin {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            background: radial-gradient(circle, #ffd700, #b8860b);
+            border-radius: 50%;
+            border: 2px solid #daa520;
+            animation: coinFall linear forwards;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.5), inset 0 0 5px rgba(255,255,255,0.8);
+            pointer-events: none;
+        }
+
+        /* Dynamic Gamified Punishment Effects */
+        @keyframes dynamicDragonFly {
+            0% { transform: translate(var(--startX), var(--startY)) scale(0.5) rotate(var(--startRot)) scaleX(var(--scaleX)); opacity: 0; filter: brightness(1); }
+            20% { opacity: 1; filter: brightness(1.2) drop-shadow(0 0 20px #ff4500); }
+            50% { transform: translate(var(--midX), var(--midY)) scale(2) rotate(calc(var(--startRot) / 2)) scaleX(var(--scaleX)); filter: brightness(1.5) drop-shadow(0 0 50px #ff0000); }
+            80% { opacity: 1; filter: brightness(1.2) drop-shadow(0 0 20px #ff4500); }
+            100% { transform: translate(var(--endX), var(--endY)) scale(3.5) rotate(var(--endRot)) scaleX(var(--scaleX)); opacity: 0; filter: brightness(1); }
+        }
+        .dynamic-dragon {
+            position: fixed;
+            top: 0; left: 0;
+            width: 450px;
+            height: 450px;
+            animation: dynamicDragonFly 3s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        @keyframes fireBreath {
+            0% { opacity: 0; background: transparent; }
+            30% { opacity: 0.3; background: radial-gradient(circle, rgba(255,136,0,0.8) 0%, transparent 70%); }
+            40% { opacity: 0.9; background: radial-gradient(circle, rgba(255,0,0,0.9) 0%, rgba(255,68,0,0.8) 50%, transparent 100%); }
+            45% { opacity: 1; background: #ff2200; }
+            70% { opacity: 0.7; background: #ff6600; }
+            100% { opacity: 0; background: transparent; }
+        }
+        .fire-flash {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            animation: fireBreath 3.5s ease-out forwards;
+            pointer-events: none;
+            z-index: 90;
+            mix-blend-mode: overlay;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translate(0, 0); }
+            10%, 30%, 50%, 70%, 90% { transform: translate(-10px, -10px); }
+            20%, 40%, 60%, 80% { transform: translate(10px, 10px); }
+        }
+        .shake-screen {
+            animation: shake 0.5s ease-in-out 1.2s; /* coincides with fire breath */
+        }
+        
+        .bg-transition {
+            transition: background-image 1.5s ease-in-out;
+        }
+
+        /* Input styling */
+        .house-input {
+            background: rgba(10, 12, 16, 0.8);
+            border: 2px solid #3f3a2f;
+            color: #e8c985;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+        .house-input:focus {
+            border-color: #c5a059;
+            box-shadow: 0 0 15px rgba(197, 160, 89, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // --- SVGs & Graphics ---
+        const Icons = {
+            Hourglass: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 22h14"/><path d="M5 2h14"/><path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22"/><path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2"/></svg>,
+            Scroll: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>,
+            Crown: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/></svg>,
+            Flame: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="#e25822" stroke="#ff9d00" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>,
+            Check: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
+            X: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
+            ChevronRight: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>,
+            Users: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
+            Send: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>,
+
+            // Gamification Animations
+            DragonFlight: ({ style }) => null, 
+            DragonFire: ({ style }) => null,   
+            
+            // --- The 3 Dragon Variations ---
+            DragonRider1: ({ style }) => (
+                <div className="dynamic-dragon flex items-center justify-center" style={style}>
+                    <img 
+                        src="dragon1.png" 
+                        alt="Dragon Rider 1" 
+                        onError={(e) => { e.target.onerror = null; e.target.src = 'https://images.unsplash.com/photo-1542261777448-23d2a287091c?q=80&w=800&auto=format&fit=crop'; }}
+                        style={{ width: '100%', height: '100%', objectFit: 'contain', filter: 'drop-shadow(0px 15px 35px rgba(255, 69, 0, 0.9)) contrast(1.1) brightness(1.1)', borderRadius: '12px' }} 
+                    />
+                </div>
+            ),
+            DragonRider2: ({ style }) => (
+                <div className="dynamic-dragon flex items-center justify-center" style={style}>
+                    <img 
+                        src="dragon2.png" 
+                        alt="Dragon Rider 2" 
+                        onError={(e) => { e.target.onerror = null; e.target.src = 'https://images.unsplash.com/photo-1542261777448-23d2a287091c?q=80&w=800&auto=format&fit=crop'; }}
+                        style={{ width: '100%', height: '100%', objectFit: 'contain', filter: 'drop-shadow(0px 15px 35px rgba(255, 69, 0, 0.9)) contrast(1.1) brightness(1.1)', borderRadius: '12px' }} 
+                    />
+                </div>
+            ),
+            DragonRider3: ({ style }) => (
+                <div className="dynamic-dragon flex items-center justify-center" style={style}>
+                    <img 
+                        src="dragon3.png" 
+                        alt="Dragon Rider 3" 
+                        onError={(e) => { e.target.onerror = null; e.target.src = 'https://images.unsplash.com/photo-1542261777448-23d2a287091c?q=80&w=800&auto=format&fit=crop'; }}
+                        style={{ width: '100%', height: '100%', objectFit: 'contain', filter: 'drop-shadow(0px 15px 35px rgba(255, 69, 0, 0.9)) contrast(1.1) brightness(1.1)', borderRadius: '12px' }} 
+                    />
+                </div>
+            )
+        };
+
+        // --- Game Data ---
+        const CASES = [
+            {
+                id: 1,
+                theme: 'snow',
+                bgImage: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=1920&auto=format&fit=crop',
+                title: "The Winter Grain",
+                subtitle: "Inventory, Holding Gains & LIFO Liquidation",
+                lore: "Inflation in grain markets has been severe across the Seven Kingdoms. The Crown's primary bakery utilizes LIFO. The Hand of the King demands an accurate account of the grain stores.",
+                data: "Purchases (bags of flour):\n• January: 1,000 @ 2.0 gold\n• March: 1,200 @ 2.5 gold\n• June: 1,500 @ 3.2 gold\n\nSales: 3,200 bags used during the year.\nEnding physical inventory: 500 bags.",
+                questions: [
+                    { id: "q1", text: "Compute Cost of Goods Sold (COGS) under LIFO.", options: ["7,500 gold", "8,200 gold", "8,800 gold", "9,000 gold"], correct: 2, explanation: "Must identify layers consumed from the top down: June (1,500 × 3.2 = 4,800), March (1,200 × 2.5 = 3,000), and January (500 × 2.0 = 1,000). 4,800 + 3,000 + 1,000 = 8,800." },
+                    { id: "q2", text: "Suppose the bakery had instead used FIFO. Compute FIFO COGS, and identify the inventory holding gain embedded in LIFO income.", options: ["FIFO COGS: 8,200 | Holding Gain: 600", "FIFO COGS: 8,800 | Holding Gain: 0", "FIFO COGS: 8,000 | Holding Gain: 800", "FIFO COGS: 8,200 | Holding Gain: 0"], correct: 0, explanation: "FIFO COGS consumes oldest first: Jan (1,000×2=2,000) + Mar (1,200×2.5=3,000) + Jun (1,000×3.2=3,200) = 8,200. Holding Gain = LIFO COGS (8,800) - FIFO COGS (8,200) = 600." }
+                ]
+            },
+            {
+                id: 2,
+                theme: 'dark',
+                bgImage: 'https://images.unsplash.com/photo-1509023464722-18d996393ca8?q=80&w=1920&auto=format&fit=crop',
+                title: "The Plague Blight",
+                subtitle: "Abnormal Spoilage & Capitalization",
+                lore: "During a severe outbreak of the Pale Mare, granary storage conditions deteriorated rapidly. You must separate the cost of doing business from the cost of disaster.",
+                data: "Total inventory available: 2,000 bags @ avg cost 3 gold per bag.\nNormal (expected) spoilage rate: 3%\nActual spoilage suffered: 10%",
+                questions: [
+                    { id: "q4", text: "If the High Baker's management forces you to capitalize abnormal spoilage into inventory, what is the economic effect?", options: ["Depresses current income, inflates future margins.", "No effect on current or future income.", "Decreases the asset base permanently.", "Inflates current income, depresses future margins."], correct: 3, explanation: "Capitalizing an expense defers it. This artificially increases current net income (by avoiding the expense) and inflates the inventory asset. When that inventory is eventually sold, the bloated cost will flow to COGS, depressing future margins." }
+                ]
+            },
+            {
+                id: 3,
+                theme: 'fire',
+                bgImage: 'https://images.unsplash.com/photo-1505545121959-1aad465e317d?q=80&w=1920&auto=format&fit=crop',
+                title: "The Dragon's Hearth",
+                subtitle: "Multi-Component PPE & Replacement",
+                lore: "The bakery utilizes a massive stone oven system to feed the Gold Cloaks. Parts of it wither faster than the stone itself.",
+                data: "Structure: 10,000 gold (20-year useful life)\nHeating Core: 4,000 gold (5-year useful life)\n\nExactly after 5 years, the Heating Core fails completely and is replaced for 5,500 gold. The old core has no salvage value. Assume straight-line depreciation.",
+                questions: [
+                    { id: "q5", text: "Compute the total annual depreciation for the oven system during the first 5 years, and the Book Value of the old heating core at the moment of replacement.", options: ["Depreciation: 500/yr | Core BV: 4,000", "Depreciation: 1,300/yr | Core BV: 800", "Depreciation: 1,300/yr | Core BV: 0", "Depreciation: 800/yr | Core BV: 0"], correct: 2, explanation: "Structure depreciation = 10,000 / 20 = 500/yr. Core = 4,000 / 5 = 800/yr. Total = 1,300/yr. After 5 years, the 5-year core is fully depreciated, leaving a Net Book Value of 0." },
+                    { id: "q6", text: "Assume instead the initial Heating Core had an estimated 7-year life, but was still replaced after 5 years due to melting. What is the loss on disposal of the old core?", options: ["0 gold", "1,143 gold", "2,857 gold", "4,000 gold"], correct: 1, explanation: "Annual depr = 4,000 / 7 ≈ 571.43. Accumulated depr after 5 years = 5 × 571.43 = 2,857. Remaining NBV = 4,000 - 2,857 = 1,143. Since it was replaced with no salvage value, the loss on disposal is 1,143." }
+                ]
+            },
+            {
+                id: 4,
+                theme: 'dark',
+                bgImage: 'https://images.unsplash.com/photo-1606760227091-3dd870d97f1d?q=80&w=1920&auto=format&fit=crop',
+                title: "The King's Decree",
+                subtitle: "Capitalization vs Expense Boundary",
+                lore: "You are presented with a scroll detailing three distinct expenditures on the kingdom's infrastructure. You must judge which are worthy of capitalization.",
+                data: "Expenditure 1: Reinforcing the oven walls with Valyrian steel (extends useful life by 3 years) - 2,000 gold\nExpenditure 2: Routine scraping of ash from the flues - 300 gold\nExpenditure 3: Recalibration of the airflow, yielding no extra life but improving baking output efficiency by 15% - 1,200 gold",
+                questions: [
+                    { id: "q7", text: "Classify each expenditure respectively: Reinforcement, Cleaning, Efficiency Upgrade.", options: ["Capitalize / Capitalize / Capitalize", "Expense / Expense / Capitalize", "Capitalize / Expense / Expense", "Capitalize / Expense / Capitalize"], correct: 3, explanation: "Reinforcement extends useful life (Capitalize). Routine cleaning maintains current status (Expense). The upgrade increases future economic benefit/efficiency, which qualifies for capitalization even without extending life." }
+                ]
+            },
+            {
+                id: 9,
+                theme: 'fire',
+                bgImage: 'https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?q=80&w=1920&auto=format&fit=crop',
+                title: "The Iron Fleet's Reach",
+                subtitle: "PP&E Estimates & Economic Reality",
+                lore: "Lord Reaper of Pyke has decreed that the Iron Fleet's longships will now sail for 8 years instead of the originally estimated 5 years. This accounting decree comes right before he must present the kingdom's profitability to the Iron Bank. (A tactic inspired by modern server life extensions).",
+                data: "Original Longship Fleet Cost: 50,000 gold.\nOriginal Estimated Life: 5 years (Straight-line, no salvage).\nAt the start of Year 3 (after exactly 2 years of depreciation), the total life is officially extended to 8 years.",
+                questions: [
+                    { id: "q12", text: "What is the new annual depreciation expense starting in Year 3?", options: ["10,000 gold", "5,000 gold", "6,250 gold", "3,750 gold"], correct: 1, explanation: "Accumulated Depr after Y2 = (50,000 / 5) * 2 = 20,000. Net Book Value = 30,000. Remaining life = 8 - 2 = 6 years. New Depr = 30,000 / 6 = 5,000 gold." },
+                    { id: "q13", text: "What is the underlying financial reality of this accounting change?", options: ["It creates physical cash out of thin air.", "It reduces the actual physical wear and tear on the ships.", "It artificially boosts current Net Income without generating any new cash, while delaying inevitable replacement CapEx.", "It accelerates the cash outflow for new ships."], correct: 2, explanation: "Extending the life reduces annual depreciation expense, boosting Net Income on paper. However, it generates $0 real cash and masks the physical aging of the fleet, setting up a massive future CapEx cliff when the ships inevitably rot." }
+                ]
+            },
+            {
+                id: 10,
+                theme: 'dark',
+                bgImage: 'https://images.unsplash.com/photo-1614726365723-4994d93027b4?q=80&w=1920&auto=format&fit=crop',
+                title: "The Citadel's Purge",
+                subtitle: "Intangible Asset Abandonment",
+                lore: "The Archmaesters spent heavily to transcribe the 'Chronicles of Valyria', capitalizing the costs as an intangible asset. However, the Grand Maester has now ordered these specific scrolls permanently sealed and removed from circulation. (A reality inspired by major content purges).",
+                data: "Carrying Value of 'Chronicles of Valyria' Asset: 2,400 gold.\nExpected Future Cash/Tithe Flows from these scrolls: 0 gold.",
+                questions: [
+                    { id: "q14", text: "How must the Citadel account for the capitalized costs of these abandoned scrolls?", options: ["Continue amortizing over their original 10-year life to smooth the loss.", "Recognize an immediate impairment loss of 2,400 gold, wiping out the asset.", "Keep them on the balance sheet at historical cost but disclose the abandonment.", "Reclassify them as Goodwill."], correct: 1, explanation: "Because the content is permanently abandoned and will generate 0 future cash flows, the entire unamortized asset value must be written off immediately as an impairment loss." }
+                ]
+            },
+            {
+                id: 11,
+                theme: 'snow',
+                bgImage: 'https://images.unsplash.com/photo-1541944743827-e04aa6427c33?q=80&w=1920&auto=format&fit=crop',
+                title: "The Healer's Collapse",
+                subtitle: "Goodwill Impairment & Overpayment",
+                lore: "The Crown acquired a vast network of independent healers across the Riverlands at a massive premium, recording immense Goodwill. Two years later, the network is bleeding coin, and future cash flow projections have plummeted.",
+                data: "Carrying Value of the Healer Network (including Goodwill): 9,000 gold.\nRevised Fair Value of the Healer Network based on disastrous new cash flows: 3,200 gold.",
+                questions: [
+                    { id: "q15", text: "What is the required accounting action and its effect on the Crown's ledgers?", options: ["Record a 5,800 gold impairment loss, which permanently reduces equity but requires no immediate cash outflow.", "Record a 5,800 gold impairment loss, which drains 5,800 gold from the treasury.", "Do nothing until the healers are actually fired.", "Amortize the 5,800 gold difference over the next 5 years."], correct: 0, explanation: "When the fair value of a reporting unit drops below its carrying value, Goodwill must be impaired. This is a massive hit to Net Income and Equity, but it is a non-cash charge (the cash was already lost when they originally overpaid for the acquisition)." }
+                ]
+            },
+            {
+                id: 8,
+                theme: 'dark',
+                bgImage: 'https://images.unsplash.com/photo-1618397746666-63405ce5d015?q=80&w=1920&auto=format&fit=crop',
+                title: "The Master's Capstone",
+                subtitle: "Integrated Performance Distortion",
+                lore: "You review the collective actions of a corrupt regional governor who manages the realm's eastern assets.",
+                data: "The governor's accounting policies:\n• Adopts LIFO during a period of heavy inflation.\n• Aggressively capitalizes borderline maintenance costs.\n• Delays recognizing impairments on dying trade route licenses.",
+                questions: [
+                    { id: "q11", text: "How do these choices jointly affect the entity's Return on Assets (ROA)?", options: ["All choices conservatively decrease ROA, understating performance.", "ROA perfectly reflects economic reality as the policies cancel each other out.", "Decreases assets permanently without affecting income.", "LIFO depresses income, but capitalization and delayed impairment artificially inflate both assets and income, resulting in a distorted, likely overstated ROA."], correct: 3, explanation: "LIFO lowers income (conservative). Capitalizing costs and delaying impairment inflates assets (denominator) and inflates current income (numerator) by avoiding expenses. The net effect is a highly distorted financial picture where asset quality is poor and ROA is misstated." }
+                ]
+            }
+        ];
+
+        // --- Particle Components ---
+        const SnowEffect = () => {
+            const flakes = Array.from({ length: 40 }).map((_, i) => ({
+                id: i, left: `${Math.random() * 100}vw`, animationDuration: `${Math.random() * 3 + 2}s`, animationDelay: `${Math.random() * 5}s`, width: `${Math.random() * 4 + 2}px`, height: `${Math.random() * 4 + 2}px`, opacity: Math.random() * 0.8 + 0.2
+            }));
+            return (
+                <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+                    {flakes.map(f => (
+                        <div key={f.id} className="snow-flake" style={{ left: f.left, width: f.width, height: f.height, animationDuration: f.animationDuration, animationDelay: f.animationDelay, opacity: f.opacity }} />
+                    ))}
+                </div>
+            );
+        };
+
+        const FireEffect = () => {
+            const particles = Array.from({ length: 30 }).map((_, i) => ({
+                id: i, left: `${Math.random() * 100}vw`, animationDuration: `${Math.random() * 2 + 1.5}s`, animationDelay: `${Math.random() * 2}s`, width: `${Math.random() * 15 + 10}px`, height: `${Math.random() * 15 + 10}px`
+            }));
+            return (
+                <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden mix-blend-screen">
+                    {particles.map(p => (
+                        <div key={p.id} className="fire-particle" style={{ left: p.left, width: p.width, height: p.height, animationDuration: p.animationDuration, animationDelay: p.animationDelay }} />
+                    ))}
+                </div>
+            );
+        };
+
+        const GoldShower = () => {
+            const coins = Array.from({ length: 50 }).map((_, i) => ({
+                id: i, left: `${Math.random() * 100}vw`, animationDuration: `${Math.random() * 1.5 + 1}s`, animationDelay: `${Math.random() * 0.5}s`
+            }));
+            return (
+                <div className="fixed inset-0 pointer-events-none z-50 overflow-hidden">
+                    {coins.map(c => (
+                        <div key={c.id} className="gold-coin" style={{ left: c.left, animationDuration: c.animationDuration, animationDelay: c.animationDelay }} />
+                    ))}
+                </div>
+            );
+        };
+
+        // --- App Component ---
+        const App = () => {
+            const [gameState, setGameState] = useState('intro'); // intro, reading, answering, judging, results
+            const [currentCaseIndex, setCurrentCaseIndex] = useState(0);
+            const [answers, setAnswers] = useState({});
+            const [timeElapsed, setTimeElapsed] = useState(0);
+            const [totalTime, setTotalTime] = useState(0);
+            const [judgment, setJudgment] = useState(null); // 'success' or 'failure'
+            const [activeMessage, setActiveMessage] = useState({ title: '', text: '' });
+            
+            // Player & Group Info
+            const [playerName, setPlayerName] = useState('');
+            const [isSubmitting, setIsSubmitting] = useState(false);
+            const [submitSuccess, setSubmitSuccess] = useState(false);
+
+            // Gamification States
+            const [streak, setStreak] = useState(0);
+            const [totalGold, setTotalGold] = useState(0);
+            const [dragonStyle, setDragonStyle] = useState({});
+            
+            // Initialize with the first dragon
+            const [activeDragonIcon, setActiveDragonIcon] = useState('DragonRider1');
+
+            const audioRefs = useRef(null);
+
+            useEffect(() => {
+                // Initialize Sound Effects
+                audioRefs.current = {
+                    success: new Audio('https://actions.google.com/sounds/v1/foley/coins_dropping.ogg'),
+                    roar: new Audio('https://actions.google.com/sounds/v1/horror/monster_zombie_roar.ogg'),
+                    fire: new Audio('https://actions.google.com/sounds/v1/weapons/rocket_launch_and_explosion.ogg'), 
+                    sword: new Audio('https://actions.google.com/sounds/v1/weapons/blade_scrape.ogg'), 
+                    boom: new Audio('https://actions.google.com/sounds/v1/impacts/crash.ogg')
+                };
+                
+                if (audioRefs.current) {
+                    audioRefs.current.success.volume = 0.8;
+                    audioRefs.current.roar.volume = 1.0;
+                    audioRefs.current.fire.volume = 0.7;
+                    audioRefs.current.sword.volume = 0.6;
+                    audioRefs.current.boom.volume = 0.7;
+                }
+            }, []);
+
+            const SUCCESS_MESSAGES = [
+                { title: "The Iron Bank is Pleased", text: "Your accounting is flawless. The Crown rewards your competence with a shower of Golden Dragons." },
+                { title: "A Lannister Pays His Debts", text: "Your ledgers balance perfectly. Casterly Rock extends its regards and its gold." },
+                { title: "Warden of the Wealth", text: "The realm prospers under your watchful eye. Enjoy the spoils of peace." },
+                { title: "Master of Coin", text: "Even the Master of Whispers couldn't find a flaw in these books. The Small Council is impressed." },
+                { title: "Highgarden's Bounty", text: "A surplus as rich as the Reach. The Tyrells send a wagon of gold for your meticulous reckoning." },
+                { title: "True Steel", text: "Sharp as Valyrian steel. Your calculations have saved the Kingdom from financial ruin." },
+                { title: "The Seal of the Hand", text: "The Hand of the King has personally verified your ledgers. You are granted a royal bonus." },
+                { title: "Bravosi Brilliance", text: "Even the merchants of Braavos commend your skill. The ledger is perfectly balanced." }
+            ];
+
+            const FAILURE_MESSAGES = [
+                { title: "DRACARYS", text: "You have miscounted the King's coin. The penalty for treasonous math is fire." },
+                { title: "The Night is Dark & Full of Errors", text: "Your ledgers are a mess. The Lord of Light demands a sacrifice for this incompetence." },
+                { title: "Heads, Spikes, Walls", text: "The King does not tolerate unbalanced sheets. The royal executioner has been summoned." },
+                { title: "Winter Came For You", text: "Your financial foresight failed entirely. The White Walkers have breached the treasury." },
+                { title: "The Lannisters Send Their Regards", text: "A dagger to the heart of your balance sheet. You've been outplayed in the game of ledgers." }
+            ];
+
+            const generateDragonAttack = () => {
+                // Randomly pick one of the three dragon variations
+                const dragonVariations = ['DragonRider1', 'DragonRider2', 'DragonRider3'];
+                const selectedDragon = dragonVariations[Math.floor(Math.random() * dragonVariations.length)];
+                setActiveDragonIcon(selectedDragon); 
+                
+                const direction = Math.floor(Math.random() * 4); // 0: L->R, 1: R->L, 2: T->B, 3: B->T
+                
+                let config = { '--scaleX': 1 };
+                
+                if (direction === 0) { // L to R
+                    config['--startX'] = '-50vw'; config['--startY'] = `${Math.random() * 40 - 20}vh`;
+                    config['--midX'] = '40vw'; config['--midY'] = '30vh';
+                    config['--endX'] = '150vw'; config['--endY'] = `${Math.random() * 40 - 20}vh`;
+                    config['--startRot'] = '15deg'; config['--endRot'] = '-15deg';
+                } else if (direction === 1) { // R to L
+                    config['--startX'] = '150vw'; config['--startY'] = `${Math.random() * 40 - 20}vh`;
+                    config['--midX'] = '40vw'; config['--midY'] = '30vh';
+                    config['--endX'] = '-50vw'; config['--endY'] = `${Math.random() * 40 - 20}vh`;
+                    config['--startRot'] = '-15deg'; config['--endRot'] = '15deg';
+                    config['--scaleX'] = -1; // Flip horizontally
+                } else if (direction === 2) { // Top to Bottom (Dive)
+                    config['--startX'] = `${Math.random() * 80 + 10}vw`; config['--startY'] = '-50vh';
+                    config['--midX'] = '50vw'; config['--midY'] = '40vh';
+                    config['--endX'] = `${Math.random() * 80 + 10}vw`; config['--endY'] = '150vh';
+                    config['--startRot'] = '70deg'; config['--endRot'] = '110deg';
+                } else { // Bottom to Top
+                    config['--startX'] = `${Math.random() * 80 + 10}vw`; config['--startY'] = '150vh';
+                    config['--midX'] = '50vw'; config['--midY'] = '40vh';
+                    config['--endX'] = `${Math.random() * 80 + 10}vw`; config['--endY'] = '-50vh';
+                    config['--startRot'] = '-70deg'; config['--endRot'] = '-110deg';
+                }
+                setDragonStyle(config);
+            };
+
+            const playSwordSound = () => {
+                if (audioRefs.current) {
+                    audioRefs.current.sword.currentTime = 0;
+                    audioRefs.current.sword.play().catch(e => console.log("Audio play prevented:", e));
+                }
+            };
+
+            useEffect(() => {
+                let interval = null;
+                if (gameState === 'answering') {
+                    interval = setInterval(() => {
+                        setTimeElapsed(prev => prev + 1);
+                    }, 1000);
+                } else {
+                    clearInterval(interval);
+                }
+                return () => clearInterval(interval);
+            }, [gameState]);
+
+            const startGame = () => {
+                if (!playerName.trim()) return;
+                playSwordSound();
+                setGameState('reading');
+                setTimeElapsed(0);
+                setTotalTime(0);
+                setAnswers({});
+                setStreak(0);
+                setTotalGold(0);
+            };
+
+            const startTrial = () => {
+                playSwordSound();
+                setGameState('answering');
+            };
+
+            const selectAnswer = (questionId, optionIndex) => {
+                setAnswers(prev => ({
+                    ...prev,
+                    [CASES[currentCaseIndex].id]: {
+                        ...prev[CASES[currentCaseIndex].id],
+                        [questionId]: optionIndex
+                    }
+                }));
+            };
+
+            const submitCase = () => {
+                const currentCase = CASES[currentCaseIndex];
+                const caseAnswers = answers[currentCase.id] || {};
+                
+                if (Object.keys(caseAnswers).length < currentCase.questions.length) {
+                    alert("The Master of Coin demands an answer for every inquiry.");
+                    return;
+                }
+
+                let allCorrect = true;
+                currentCase.questions.forEach(q => {
+                    if (caseAnswers[q.id] !== q.correct) allCorrect = false;
+                });
+
+                const isSuccess = allCorrect;
+                setJudgment(isSuccess ? 'success' : 'failure');
+
+                if (isSuccess) {
+                    const newStreak = streak + 1;
+                    const goldAwarded = 100 * newStreak;
+                    setStreak(newStreak);
+                    setTotalGold(prev => prev + goldAwarded);
+                    
+                    let msg = {...SUCCESS_MESSAGES[Math.floor(Math.random() * SUCCESS_MESSAGES.length)]};
+                    msg.text += ` You gained ${goldAwarded} Gold Dragons (Streak x${newStreak}).`;
+                    setActiveMessage(msg);
+                    
+                    if (audioRefs.current) {
+                        audioRefs.current.sword.currentTime = 0;
+                        audioRefs.current.sword.play().catch(e => console.log("Audio play prevented:", e));
+                        setTimeout(() => {
+                            audioRefs.current.success.currentTime = 0;
+                            audioRefs.current.success.play().catch(e => console.log("Audio play prevented:", e));
+                        }, 300);
+                    }
+                } else {
+                    setStreak(0); 
+                    generateDragonAttack(); 
+                    
+                    setActiveMessage(FAILURE_MESSAGES[Math.floor(Math.random() * FAILURE_MESSAGES.length)]);
+                    if (audioRefs.current) {
+                        audioRefs.current.boom.currentTime = 0;
+                        audioRefs.current.boom.play().catch(e => console.log("Audio play prevented:", e));
+                        
+                        setTimeout(() => {
+                            audioRefs.current.roar.currentTime = 0;
+                            audioRefs.current.roar.play().catch(e => console.log("Audio play prevented:", e));
+                        }, 200);
+                        
+                        setTimeout(() => {
+                            audioRefs.current.fire.currentTime = 0;
+                            audioRefs.current.fire.play().catch(e => console.log("Audio play prevented:", e));
+                        }, 600);
+                    }
+                }
+
+                setGameState('judging');
+                setTotalTime(prev => prev + timeElapsed);
+            };
+
+            const nextCase = () => {
+                if (currentCaseIndex < CASES.length - 1) {
+                    setCurrentCaseIndex(prev => prev + 1);
+                    setGameState('reading');
+                    setTimeElapsed(0);
+                    setJudgment(null);
+                } else {
+                    setGameState('results');
+                }
+            };
+
+            const handleFinalSubmission = async (score) => {
+                setIsSubmitting(true);
+                
+                // --- INSTRUCTOR SETUP ---
+                
+                const scriptURL = 'https://script.google.com/macros/s/AKfycbwAjhj0MykXDlNCIw9f-aTuTsKVOLi5ZHspVTGPozoYrZS-l5oGc553dkz-op9wBWE/exec';
+                
+                // We use URLSearchParams to send data as simple form data, bypassing CORS restrictions
+                const formData = new URLSearchParams();
+                formData.append('name', playerName);
+                formData.append('score', score);
+                formData.append('gold', totalGold);
+                formData.append('time', totalTime);
+
+                try {
+                    await fetch(scriptURL, {
+                        method: 'POST',
+                        body: formData,
+                        mode: 'no-cors' // Allows submission to Google Script without CORS preflight block
+                    });
+                    setSubmitSuccess(true);
+                } catch (error) {
+                    console.error('Submission failed!', error);
+                    alert('The raven was intercepted! Please try sending again.');
+                }
+                setIsSubmitting(false);
+            };
+
+            const formatTime = (seconds) => {
+                const m = Math.floor(seconds / 60);
+                const s = seconds % 60;
+                return `${m}:${s < 10 ? '0' : ''}${s}`;
+            };
+
+            const currentCase = CASES[currentCaseIndex];
+
+            // --- Render: Intro ---
+            if (gameState === 'intro') {
+                return (
+                    <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center z-10 relative bg-transition"
+                         style={{ backgroundImage: `linear-gradient(rgba(10, 12, 16, 0.8), rgba(10, 12, 16, 0.9)), url('https://images.unsplash.com/photo-1533073526757-2c8ca1df9f1c?q=80&w=1920&auto=format&fit=crop')`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
+                        <div className="max-w-3xl w-full bg-black/80 border border-got-border p-10 rounded shadow-[0_0_30px_rgba(0,0,0,0.8)] relative backdrop-blur-sm">
+                            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-got-gold to-transparent"></div>
+                            <div className="flex justify-center mb-6 text-got-gold"><Icons.Crown /></div>
+                            
+                            <h1 className="font-medieval text-6xl md:text-7xl text-got-gold mb-4 glowing-gold tracking-wider">The Iron Ledger</h1>
+                            <h2 className="font-cinzel text-2xl text-gray-400 mb-8 tracking-widest">Master of Coin</h2>
+                            
+                            <p className="font-lora text-lg text-gray-300 mb-6 leading-relaxed">
+                                Winter is coming, and the royal treasury bleeds. The Hand of the King has summoned you to audit the realm's primary assets. You will face ambiguous facts, multi-step adjustments, and the traps of corrupt merchants.
+                            </p>
+                            
+                            <div className="mb-8 mt-6 max-w-sm mx-auto">
+                                <label className="block text-got-gold font-cinzel text-sm mb-2 uppercase tracking-widest">Identify Your House or Group</label>
+                                <div className="relative">
+                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-500">
+                                        <Icons.Users />
+                                    </div>
+                                    <input 
+                                        type="text" 
+                                        className="house-input w-full pl-10 pr-4 py-3 rounded font-lora text-lg text-center"
+                                        placeholder="Enter Group Name..."
+                                        value={playerName}
+                                        onChange={(e) => setPlayerName(e.target.value)}
+                                        onKeyDown={(e) => e.key === 'Enter' && playerName.trim() && startGame()}
+                                    />
+                                </div>
+                            </div>
+
+                            <button 
+                                onClick={startGame} 
+                                disabled={!playerName.trim()}
+                                className={`font-medieval border-2 px-8 py-4 text-2xl transition-all duration-300 rounded uppercase tracking-widest ${playerName.trim() ? 'bg-transparent border-got-gold text-got-gold hover:bg-got-gold hover:text-black shadow-[0_0_15px_rgba(197,160,89,0.3)]' : 'bg-transparent border-gray-700 text-gray-600 cursor-not-allowed'}`}
+                            >
+                                Swear the Oath
+                            </button>
+                        </div>
+                    </div>
+                );
+            }
+
+            // --- Render: Judging Overlay (The Punishment/Reward) ---
+            if (gameState === 'judging') {
+                const isSuccess = judgment === 'success';
+                const RenderDragon = Icons[activeDragonIcon];
+                
+                return (
+                    <div className={`min-h-screen flex flex-col items-center justify-center p-6 text-center z-50 relative overflow-hidden ${!isSuccess ? 'shake-screen bg-black' : 'bg-got-dark'}`}>
+                        {/* Effects */}
+                        {!isSuccess && <RenderDragon style={dragonStyle} />}
+                        {!isSuccess && <div className="fire-flash"></div>}
+                        {isSuccess && <GoldShower />}
+                        
+                        <div className={`max-w-3xl w-full p-10 rounded shadow-2xl relative z-10 ${isSuccess ? 'bg-got-panel/90 border border-got-gold' : 'bg-black/90 border border-got-red'}`}>
+                            
+                            <h1 className={`font-medieval text-5xl md:text-6xl mb-6 ${isSuccess ? 'text-got-gold glowing-gold' : 'text-got-red glowing-red tracking-widest'}`}>
+                                {activeMessage.title}
+                            </h1>
+                            
+                            <p className="font-lora text-xl text-gray-300 mb-8">
+                                {activeMessage.text}
+                            </p>
+
+                            <div className="text-left space-y-4 mb-8">
+                                {currentCase.questions.map((q, idx) => (
+                                    <div key={idx} className={`p-4 rounded border ${answers[currentCase.id][q.id] === q.correct ? 'border-emerald-800 bg-emerald-900/20' : 'border-got-red bg-got-red/20'}`}>
+                                        <p className="font-lora text-sm text-gray-200 mb-2"><strong>Q{idx+1}:</strong> {q.text}</p>
+                                        <p className="font-cinzel text-xs text-got-gold mb-1">TRUTH:</p>
+                                        <p className="font-lora text-sm text-white">{q.options[q.correct]}</p>
+                                        {!isSuccess && answers[currentCase.id][q.id] !== q.correct && (
+                                            <p className="mt-2 text-xs font-lora text-gray-400 border-l-2 border-got-red pl-2">{q.explanation}</p>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+
+                            <button onClick={nextCase} className={`font-cinzel px-8 py-4 text-xl transition-all duration-300 rounded uppercase tracking-wider font-bold ${isSuccess ? 'bg-got-gold text-black hover:bg-white' : 'bg-transparent border border-got-red text-got-red hover:bg-got-red hover:text-white'}`}>
+                                {currentCaseIndex < CASES.length - 1 ? "Proceed to Next Trial" : "Face Final Judgment"}
+                            </button>
+                        </div>
+                    </div>
+                );
+            }
+
+            // --- Render: Results ---
+            if (gameState === 'results') {
+                let score = 0;
+                let totalQuestions = 0;
+                CASES.forEach(c => {
+                    c.questions.forEach(q => {
+                        totalQuestions++;
+                        if (answers[c.id]?.[q.id] === q.correct) score++;
+                    });
+                });
+                const percentage = (score / totalQuestions) * 100;
+                let title = percentage === 100 ? "Grand Maester of the Ledger" : percentage >= 80 ? "Master of Coin" : percentage >= 60 ? "Keeper of the Keys" : "Ashes in the Wind";
+
+                return (
+                    <div className="min-h-screen flex flex-col items-center py-12 px-4 z-10 relative custom-scrollbar overflow-y-auto bg-got-dark">
+                        {percentage >= 80 && <GoldShower />}
+                        <div className="max-w-4xl w-full z-10">
+                            <h1 className="font-medieval text-5xl text-got-gold text-center mb-2 glowing-gold">Judgment of the King</h1>
+                            <p className="font-cinzel text-xl text-center text-gray-400 mb-8 tracking-widest">The Ledgers are Sealed</p>
+
+                            <div className="bg-got-panel border border-got-border p-8 text-center rounded shadow-[0_0_20px_rgba(0,0,0,0.8)]">
+                                <p className="font-cinzel text-2xl text-got-gold-light mb-4 uppercase tracking-wider">{playerName}</p>
+                                
+                                <div className="text-7xl font-medieval text-white mb-4">
+                                    {score} <span className="text-4xl text-gray-600">/ {totalQuestions}</span>
+                                </div>
+                                <div className="text-3xl font-cinzel text-got-gold mb-8">{title}</div>
+                                
+                                <div className="flex flex-wrap justify-center gap-6 mb-10 border-t border-b border-got-border py-6">
+                                    <div className="text-gray-300 flex items-center justify-center gap-2 text-xl">
+                                        <Icons.Crown /> Total Gold: <span className="text-got-gold font-bold">{totalGold}</span>
+                                    </div>
+                                    <div className="text-gray-400 flex items-center justify-center gap-2 text-lg">
+                                        <Icons.Hourglass /> Time: {formatTime(totalTime)}
+                                    </div>
+                                </div>
+
+                                {/* Score Submission Area */}
+                                {!submitSuccess ? (
+                                    <div>
+                                        <p className="font-lora text-gray-400 mb-4">Send your results via raven to the Master of Laws.</p>
+                                        <button 
+                                            onClick={() => handleFinalSubmission(score)} 
+                                            disabled={isSubmitting}
+                                            className={`font-medieval flex items-center justify-center mx-auto gap-3 border-2 px-8 py-4 text-xl transition-all duration-300 rounded uppercase tracking-widest ${isSubmitting ? 'bg-gray-800 border-gray-600 text-gray-500 cursor-wait' : 'bg-transparent border-got-gold text-got-gold hover:bg-got-gold hover:text-black shadow-[0_0_15px_rgba(197,160,89,0.3)]'}`}
+                                        >
+                                            {isSubmitting ? 'Sending Raven...' : <><Icons.Send /> Dispatch Ledgers</>}
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="bg-emerald-900/30 border border-emerald-800 p-6 rounded text-emerald-400 font-cinzel text-lg flex flex-col items-center justify-center gap-2">
+                                        <Icons.Check /> 
+                                        <span>The raven has arrived. Your ledger has been recorded.</span>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            // --- Render: Main Game (Reading / Answering) ---
+            return (
+                <div className="min-h-screen flex flex-col md:flex-row z-10 relative bg-transition"
+                     style={{ backgroundImage: `linear-gradient(rgba(10, 12, 16, 0.85), rgba(10, 12, 16, 0.95)), url('${currentCase.bgImage}')`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed' }}>
+                    
+                    {currentCase.theme === 'snow' && <SnowEffect />}
+                    {currentCase.theme === 'fire' && <FireEffect />}
+
+                    <div className="w-full md:w-64 bg-black/80 border-r border-got-border flex-shrink-0 flex flex-col z-20 backdrop-blur-md">
+                        <div className="p-6 border-b border-got-border text-center">
+                            <h2 className="font-medieval text-2xl text-got-gold tracking-wider">Case Files</h2>
+                        </div>
+                        <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-2">
+                            {CASES.map((c, idx) => {
+                                const isActive = idx === currentCaseIndex;
+                                const isPassed = idx < currentCaseIndex;
+                                return (
+                                    <div key={c.id} className={`p-3 rounded border flex items-center transition-colors ${isActive ? 'bg-got-panel border-got-gold text-got-gold shadow-[0_0_10px_rgba(197,160,89,0.2)]' : isPassed ? 'bg-black/50 border-gray-800 text-gray-600' : 'bg-transparent border-transparent text-gray-500'}`}>
+                                        <div className="mr-3">{isPassed ? <Icons.Check /> : <Icons.Scroll />}</div>
+                                        <div>
+                                            <div className="font-cinzel text-xs font-bold uppercase tracking-wider mb-1">Case {idx + 1}</div>
+                                            <div className="font-lora text-sm truncate w-36">{c.title}</div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                        
+                        <div className="p-4 border-t border-got-border bg-black/90 space-y-3">
+                            <div className="text-center font-cinzel text-xs text-gray-400 mb-2 truncate px-2 border-b border-gray-800 pb-2">
+                                {playerName}
+                            </div>
+                            <div className="flex justify-between items-center text-got-gold font-cinzel text-sm bg-got-dark p-2 rounded border border-got-border shadow-[0_0_10px_rgba(226,88,34,0.3)]">
+                                <span className="flex items-center gap-2 text-got-fire"><Icons.Flame /> Streak</span>
+                                <span className="text-xl font-bold">{streak}</span>
+                            </div>
+                            <div className="flex justify-between items-center text-got-gold-light font-cinzel text-sm bg-got-dark p-2 rounded border border-got-border shadow-[0_0_10px_rgba(197,160,89,0.2)]">
+                                <span className="flex items-center gap-2"><Icons.Crown /> Gold</span>
+                                <span className="font-bold">{totalGold}</span>
+                            </div>
+                            <div className="flex justify-between items-center text-gray-500 font-cinzel text-xs p-1">
+                                <span className="flex items-center gap-2"><Icons.Hourglass /> Time</span>
+                                <span>{formatTime(totalTime + timeElapsed)}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex-1 flex flex-col relative overflow-hidden h-screen z-20">
+                        <header className="p-8 border-b border-got-border bg-black/60 backdrop-blur-sm flex-shrink-0 flex justify-between items-center">
+                            <div>
+                                <h1 className="font-medieval text-4xl text-got-gold mb-1 glowing-gold">Trial {currentCaseIndex + 1}: {currentCase.title}</h1>
+                                <h2 className="font-cinzel text-sm text-gray-400 tracking-widest uppercase">{currentCase.subtitle}</h2>
+                            </div>
+                            {gameState === 'answering' && (
+                                <div className="font-cinzel text-2xl text-got-red flex items-center bg-black/80 px-4 py-2 rounded border border-got-red/50 shadow-[0_0_10px_rgba(138,28,28,0.5)]">
+                                    <Icons.Hourglass />
+                                    <span className="ml-2">{formatTime(timeElapsed)}</span>
+                                </div>
+                            )}
+                        </header>
+
+                        <div className="flex-1 overflow-y-auto custom-scrollbar p-8">
+                            <div className="max-w-3xl mx-auto space-y-8 pb-12">
+                                
+                                {/* Pinned Data Container */}
+                                <div className="sticky top-0 z-30 bg-got-panel/95 border border-got-border p-6 rounded shadow-2xl backdrop-blur-xl mb-8">
+                                    <p className="font-lora text-lg text-gray-300 italic mb-4 leading-relaxed border-l-4 border-got-gold pl-4">
+                                        "{currentCase.lore}"
+                                    </p>
+                                    <div className="bg-black/80 border border-gray-700 p-4 rounded font-lora text-gray-200 whitespace-pre-line leading-relaxed text-base max-h-40 overflow-y-auto custom-scrollbar">
+                                        {currentCase.data}
+                                    </div>
+                                </div>
+
+                                {gameState === 'reading' && (
+                                    <div className="text-center py-8">
+                                        <button onClick={startTrial} className="font-medieval bg-got-red/20 border-2 border-got-red text-red-200 px-10 py-5 text-2xl hover:bg-got-red hover:text-white transition-all duration-300 rounded uppercase tracking-wider shadow-[0_0_20px_rgba(138,28,28,0.4)]">
+                                            Face the Trial
+                                        </button>
+                                        <p className="mt-4 font-lora text-gray-400 text-sm">Timer will start when the trial begins.</p>
+                                    </div>
+                                )}
+
+                                {gameState === 'answering' && (
+                                    <div className="space-y-8 animation-fadeIn">
+                                        {currentCase.questions.map((q, qIdx) => (
+                                            <div key={q.id} className="bg-got-panel/95 border border-gray-700 p-8 rounded shadow-xl backdrop-blur-sm relative z-10">
+                                                <p className="font-lora text-xl text-white mb-6 leading-relaxed">
+                                                    <span className="text-got-gold font-bold mr-3 font-cinzel text-2xl">Q{qIdx+1}.</span>{q.text}
+                                                </p>
+                                                
+                                                <div className="grid grid-cols-1 gap-4">
+                                                    {q.options.map((opt, optIdx) => {
+                                                        const isSelected = answers[currentCase.id]?.[q.id] === optIdx;
+                                                        return (
+                                                            <button key={optIdx} onClick={() => selectAnswer(q.id, optIdx)} className={`w-full text-left p-5 rounded font-lora text-lg border transition-all duration-200 ${isSelected ? 'bg-got-gold/20 border-got-gold text-white shadow-[0_0_15px_rgba(197,160,89,0.3)]' : 'bg-black/80 border-gray-700 text-gray-400 hover:border-gray-500 hover:text-gray-200 hover:bg-black'}`}>
+                                                                <div className="flex items-center">
+                                                                    <div className={`w-6 h-6 rounded-full border-2 flex-shrink-0 mr-4 flex items-center justify-center ${isSelected ? 'border-got-gold bg-got-gold' : 'border-gray-600'}`}>
+                                                                        {isSelected && <div className="w-2 h-2 rounded-full bg-black"></div>}
+                                                                    </div>
+                                                                    <span>{opt}</span>
+                                                                </div>
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        ))}
+
+                                        <div className="flex justify-end pt-6">
+                                            <button onClick={submitCase} className="flex items-center gap-2 font-medieval text-2xl bg-got-gold text-black px-8 py-4 hover:bg-white transition-all duration-300 rounded uppercase tracking-widest shadow-[0_0_20px_rgba(197,160,89,0.4)] relative z-10">
+                                                Seal & Proceed <Icons.ChevronRight />
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
