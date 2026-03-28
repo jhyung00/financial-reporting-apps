@@ -4,20 +4,48 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Liability Recognition & Long-Term Debt Masterclass</title>
-    <!-- Fonts: Gamified Theme -->
+    
+    <!-- Fonts: Gamified Theme & Geometry Theme -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=JetBrains+Mono:wght@500;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=JetBrains+Mono:wght@500;800&family=Lora:ital,wght@0,400;0,600;0,700;1,400&family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
     
+    <!-- Tailwind CSS (with preflight disabled to protect gamified CSS) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            corePlugins: {
+                preflight: false, 
+            },
+            theme: {
+                extend: {
+                    fontFamily: {
+                        serif: ['Lora', 'serif'],
+                        mono: ['JetBrains Mono', 'Roboto Mono', 'monospace'],
+                        sans: ['Nunito', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+                    },
+                    colors: {
+                        darkBg: '#ffffff',
+                        panelBg: '#f1f5f9',
+                        headerBg: '#ffffff'
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Lucide Icons (for Geometry Slide) -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
     <style>
         :root {
             /* Gamified Theme Colors */
             --color-background: #ffffff;
             --color-newday: #f1f5f9; 
-            --color-primary: #0f172a; /* Deep Slate - for borders and text */
-            --color-secondary: #3b82f6; /* Bright Blue */
-            --color-accent: #8b5cf6; /* Purple */
+            --color-primary: #0f172a; 
+            --color-secondary: #3b82f6; 
+            --color-accent: #8b5cf6; 
             --color-text: #1e293b; 
             --color-text-muted: #64748b; 
             
@@ -177,10 +205,10 @@
             transition: 0.2s;
         }
         .action-reveal:hover { background: #e2e8f0; }
-        .action-reveal.revealed { border-style: solid; background: white; cursor: default; color: inherit; box-shadow: 2px 2px 0px var(--color-primary); }
+        .action-reveal.revealed { border-style: solid; background: white; cursor: default; color: var(--color-primary); box-shadow: 2px 2px 0px var(--color-primary); }
         .action-reveal .content { display: none; }
-        .action-reveal.revealed .content { display: inline; }
-        .action-reveal:not(.revealed)::after { content: "Click to Reveal Action"; font-size: 0.9rem; }
+        .action-reveal.revealed .content { display: block; }
+        .action-reveal:not(.revealed)::after { content: "Click to Reveal"; font-size: 0.9rem; }
 
         /* --- Insight Reveal Box --- */
         .insight-reveal { 
@@ -223,7 +251,10 @@
             box-shadow: var(--shadow-game-sm);
             font-family: var(--mono-font);
             overflow-x: auto;
+            max-width: 100%;
+            width: 100%;
             margin-top: 1.5rem;
+            padding-bottom: 20px; /* Better scroll clearance */
         }
         .fset-grid {
             display: grid;
@@ -242,8 +273,8 @@
             font-size: 0.95rem;
         }
         .fset-input {
-            width: 100%; padding: 10px; border: 2px solid var(--color-primary); border-radius: 8px;
-            text-align: center; font-size: 1rem; color: var(--color-primary); font-weight: 800;
+            width: 100%; padding: 10px 4px; border: 2px solid var(--color-primary); border-radius: 8px;
+            text-align: center; font-size: 0.95rem; color: var(--color-primary); font-weight: 800;
             background: var(--color-newday); cursor: pointer; transition: all 0.2s;
             font-family: var(--mono-font);
         }
@@ -330,6 +361,24 @@
             height: 100%; background: var(--color-secondary); opacity: 0.2;
             position: absolute; top: 0; left: 0; z-index: 0; width: 0; transition: width 1s ease;
         }
+        
+        /* Instructor Lock Button */
+        .instructor-lock {
+            position: absolute; 
+            bottom: 10px; 
+            right: 10px; 
+            background: transparent; 
+            border: none; 
+            font-size: 0.8rem; 
+            color: var(--color-primary); 
+            opacity: 0.02; 
+            cursor: pointer; 
+            transition: opacity 0.3s;
+            z-index: 10;
+        }
+        .instructor-lock:hover {
+            opacity: 0.3;
+        }
 
         /* Funny Impact Animation */
         .funny-impact {
@@ -409,9 +458,20 @@
         .financial-table td { border-bottom: 2px solid var(--color-newday); padding: 12px; font-weight: 600; color: var(--color-primary); }
         .financial-table tr:hover td { background: var(--color-newday); }
 
-        .calc-box { background: white; padding: 25px; border-radius: var(--radius); border: var(--border-game); box-shadow: var(--shadow-game-sm); }
-        .calc-input { width: 100%; padding: 12px; margin: 8px 0 20px 0; border: 2px solid var(--color-primary); border-radius: 8px; font-family: var(--mono-font); font-size: 1rem; font-weight: 800; }
-        .calc-result { background: var(--color-newday); padding: 15px; text-align: center; font-weight: 900; font-family: var(--mono-font); border-radius: 8px; font-size: 1.2rem; margin-top: 15px; color: var(--color-primary); border: 2px dashed var(--color-primary); }
+        /* --- Geometry Slide Specific Fixes for Tailwind Preflight Absence --- */
+        .geometry-slide *, .geometry-slide ::before, .geometry-slide ::after { border-width: 0; border-style: solid; border-color: currentColor; }
+        .geometry-slide input[type=range] {
+            -webkit-appearance: none; width: 100%; height: 4px; background: #cbd5e1; border-radius: 5px; outline: none; transition: all 0.3s;
+        }
+        .geometry-slide input[type=range]:hover { height: 6px; }
+        .geometry-slide input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none; appearance: none; width: 16px; height: 16px; border-radius: 50%; background: var(--color-primary); cursor: pointer; box-shadow: 0 0 5px rgba(0,0,0,0.3); border: 2px solid white;
+        }
+        .geometry-slide input[type=range]::-moz-range-thumb {
+            width: 16px; height: 16px; border-radius: 50%; background: var(--color-primary); cursor: pointer; box-shadow: 0 0 5px rgba(0,0,0,0.3); border: 2px solid white;
+        }
+        @keyframes pulse-ring { 0% { transform: scale(0.8); opacity: 0.5; } 100% { transform: scale(2); opacity: 0; } }
+        .animate-ping-custom { animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite; }
 
         /* --- Responsive Design --- */
         @media (max-width: 768px) {
@@ -420,7 +480,7 @@
             h1 { font-size: 2.5rem; }
             h2 { font-size: 1.8rem; }
             .flip-card { height: auto; min-height: 300px; }
-            .fset-grid { min-width: 800px; } /* Allows horizontal scroll */
+            .fset-grid { min-width: 1250px; } 
             #app-container { height: 98vh; width: 100vw; max-width: 100vw; border-radius: 0; border: none; }
         }
     </style>
@@ -453,22 +513,22 @@
         </div>
     </div>
 
-    <!-- SLIDE 2: HOOK -->
+    <!-- SLIDE 2: HOOK (UPDATED ENRON) -->
     <div class="slide">
-        <h2>The "Phantom" Liability</h2>
+        <h2>The Hidden (Off-Balance Sheet) Liability</h2>
         <div class="grid-2 mt-4">
             <div>
-                <p>Imagine a company that reports record profits. The stock soars. But hidden in the footnotes is a liability that doesn't trigger a cash payment today, but eats away at future value.</p>
+                <p>Imagine a company that reports record profits while legally hiding billions in debt. The balance sheet looks pristine, but the reality is a ticking time bomb.</p>
                 <div class="card card-highlight mt-4">
-                    <h3 class="text-danger">The Estimation Game</h3>
-                    <p>Some companies underestimate liabilities to inflate current earnings, leaving future periods to bear the brunt of the cost.</p>
-                    <p class="mono mt-2 text-center"><i class="fas fa-balance-scale"></i> Accuracy is Key</p>
+                    <h3 class="text-danger">The Enron Illusion</h3>
+                    <p>Enron famously used off-balance sheet "Special Purpose Entities" (SPEs) to hide massive debts and toxic assets from investors, leading to one of the largest corporate bankruptcies in history.</p>
+                    <p class="mono mt-2 text-center"><i class="fas fa-search-dollar"></i> Transparency is Key</p>
                 </div>
             </div>
             <div class="card text-center flex-center" style="flex-direction:column; background: var(--color-secondary); color: white;">
                 <i class="fas fa-mask fa-5x mb-4" style="color: white;"></i>
                 <h3 style="color: white;">Liability Recognition is an Art</h3>
-                <p style="color: white;">It's not just about what you owe the bank. It's about what you owe your employees, your customers, and the environment.</p>
+                <p style="color: white;">It's not just about what you owe the bank. It's about what you owe your employees, your customers, and ensuring investors see the complete picture.</p>
                 <div class="mono mt-4 text-center font-bold" style="background: white; color: var(--color-primary); padding: 8px 16px; border-radius: 8px; border: 2px solid var(--color-primary);">Key: Match expenses to generated revenue</div>
             </div>
         </div>
@@ -977,20 +1037,20 @@
                         <div>Cash</div><div>Noncash</div><div>=</div><div>Liab</div><div>+</div><div>CC</div><div>+</div><div>EC</div><div>(</div><div class="is-section">Rev</div><div>-</div><div class="is-section">Exp</div><div>=</div><div class="is-section">NI</div><div>)</div>
                     </div>
                     <div class="fset-grid fset-row">
-                        <select class="fset-input px-1"><option value="0">0</option><option value="-30">-30</option><option value="+30">+30</option></select>
-                        <select class="fset-input px-1"><option value="0">0</option><option value="-30">-30</option><option value="+30">+30</option></select>
+                        <select class="fset-input"><option value="0">0</option><option value="-30">-30</option><option value="+30">+30</option></select>
+                        <select class="fset-input"><option value="0">0</option><option value="-30">-30</option><option value="+30">+30</option></select>
                         <div class="fset-sign">=</div>
-                        <select id="int-liab" class="fset-input px-1"><option value="0">0</option><option value="-30">-30</option><option value="+30">+30</option></select>
+                        <select id="int-liab" class="fset-input"><option value="0">0</option><option value="-30">-30</option><option value="+30">+30</option></select>
                         <div class="fset-sign">+</div>
-                        <select class="fset-input px-1"><option value="0">0</option><option value="-30">-30</option><option value="+30">+30</option></select>
+                        <select class="fset-input"><option value="0">0</option><option value="-30">-30</option><option value="+30">+30</option></select>
                         <div class="fset-sign">+</div>
-                        <select id="int-ec" class="fset-input px-1"><option value="0">0</option><option value="-30">-30</option><option value="+30">+30</option></select>
+                        <select id="int-ec" class="fset-input"><option value="0">0</option><option value="-30">-30</option><option value="+30">+30</option></select>
                         <div class="fset-bracket">(</div>
-                        <select class="fset-input is-section px-1"><option value="0">0</option><option value="-30">-30</option><option value="+30">+30</option></select>
+                        <select class="fset-input is-section"><option value="0">0</option><option value="-30">-30</option><option value="+30">+30</option></select>
                         <div class="fset-sign">-</div>
-                        <select id="int-exp" class="fset-input is-section px-1"><option value="0">0</option><option value="-30">-30</option><option value="+30">+30</option></select>
+                        <select id="int-exp" class="fset-input is-section"><option value="0">0</option><option value="-30">-30</option><option value="+30">+30</option></select>
                         <div class="fset-sign">=</div>
-                        <select id="int-ni" class="fset-input is-section px-1"><option value="0">0</option><option value="-30">-30</option><option value="+30">+30</option></select>
+                        <select id="int-ni" class="fset-input is-section"><option value="0">0</option><option value="-30">-30</option><option value="+30">+30</option></select>
                         <div class="fset-bracket">)</div>
                     </div>
                     <button class="btn-action mt-4" style="width:100%; padding: 8px;" onclick="checkIntFSET()">Check</button>
@@ -1005,7 +1065,7 @@
         <h2>Current Maturities of Long-Term Debt</h2>
         <p><strong>Definition:</strong> The portion of Long-Term Debt to be paid in the upcoming year.</p>
         
-        <div class="card card-data mt-4 overflow-hidden">
+        <div class="card card-data mt-4">
             <h3 class="mb-4">Amortization Schedule</h3>
             <table class="financial-table m-0">
                 <tr><th>Year</th><th>Interest</th><th>Payment</th><th>Principal</th><th>Balance</th></tr>
@@ -1025,10 +1085,68 @@
         </div>
     </div>
 
-    <!-- NEW SLIDE 23: TYPES OF BONDS (Definitions) -->
+    <!-- SLIDE 23: DISCUSSION PRICING GAME (INSTRUCTOR MODE) -->
+    <div class="slide" style="position: relative;">
+        <h2>The Pricing Dilemma: Willingness to Pay</h2>
+        <p>Before we formally define them, let's test your intuition. Assume a standard bond yields exactly what you want, so its fair price is <strong>$1,000 (Par)</strong>.</p>
+        <p class="mb-6 text-color-text-muted">How much would you be willing to pay for these variations?</p>
+
+        <div class="grid-2 mt-4">
+            <div class="card text-center relative instructor-reveal-container">
+                <h3>1. Market vs. Coupon</h3>
+                <p class="text-sm mt-2 text-slate-500 font-bold mb-6">If the bond pays a 4% coupon, but the market currently demands 6% for similar risk.</p>
+                <div class="action-reveal p-6 pointer-events-none">
+                    <span class="content">
+                        <span class="font-mono font-black text-xl text-danger block mb-2">Demand a Discount (< $1,000)</span>
+                        <span class="text-sm font-bold">You demand a lower price to compensate for the inferior interest payments.</span>
+                    </span>
+                </div>
+            </div>
+            
+            <div class="card text-center relative instructor-reveal-container">
+                <h3>2. Time to Maturity</h3>
+                <p class="text-sm mt-2 text-slate-500 font-bold mb-6">A 30-year bond vs. a 2-year bond when interest rates are highly volatile.</p>
+                <div class="action-reveal p-6 pointer-events-none">
+                    <span class="content">
+                        <span class="font-mono font-black text-xl text-warning block mb-2">Demand Higher Yield (Lower Price)</span>
+                        <span class="text-sm font-bold">Longer maturity = higher risk of rate changes. You require more compensation.</span>
+                    </span>
+                </div>
+            </div>
+
+            <div class="card text-center border-warning relative instructor-reveal-container">
+                <h3 class="text-warning">3. Callable Feature</h3>
+                <p class="text-sm mt-2 text-slate-500 font-bold mb-6">Issuer can cancel and repay the bond early if market rates drop.</p>
+                <div class="action-reveal p-6 pointer-events-none">
+                    <span class="content">
+                        <span class="font-mono font-black text-xl text-danger block mb-2">Demand a Discount (< $1,000)</span>
+                        <span class="text-sm font-bold">You take on <span class="text-danger">reinvestment risk</span>, so you pay LESS than Par.</span>
+                    </span>
+                </div>
+            </div>
+            
+            <div class="card text-center border-success relative instructor-reveal-container">
+                <h3 class="text-success">4. Convertible Feature</h3>
+                <p class="text-sm mt-2 text-slate-500 font-bold mb-6">You can trade the bond for shares of company stock if it moons.</p>
+                <div class="action-reveal p-6 pointer-events-none">
+                    <span class="content">
+                        <span class="font-mono font-black text-xl text-success block mb-2">Pay a Premium (> $1,000)</span>
+                        <span class="text-sm font-bold">You get an embedded <span class="text-success">call option</span> on the stock, so you pay MORE.</span>
+                    </span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Hidden Instructor Button -->
+        <button class="instructor-lock" onclick="toggleInstructorKey()" title="Instructor Key">
+            <i id="instructor-lock-icon" class="fas fa-lock"></i>
+        </button>
+    </div>
+
+    <!-- EXISTING SLIDE 24: TYPES OF BONDS (Definitions) -->
     <div class="slide">
         <h2>Bond Classifications</h2>
-        <p class="mb-4">Click each card to reveal the Pros and Cons of different bond structures.</p>
+        <p class="mb-4">Click each card to reveal the actual Pros and Cons of different bond structures.</p>
         <div class="grid-3 mt-4">
             <!-- Term Bond Card -->
             <div class="flip-card" onclick="this.classList.toggle('flipped')" style="height: 320px;">
@@ -1089,10 +1207,182 @@
         </div>
     </div>
 
+    <!-- SLIDE 25: THE GEOMETRY OF BONDS (Interactive Dashboard) -->
+    <div class="slide geometry-slide" style="padding: 0; background-color: var(--color-newday); overflow-y: auto;">
+        
+        <!-- HEADER -->
+        <header class="border-b-4 border-color-primary bg-white p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 sticky top-0 z-50 shadow-sm">
+            <div class="flex items-center gap-4">
+                <i data-lucide="activity" class="text-blue-500 w-9 h-9"></i>
+                <div>
+                    <h1 class="text-3xl font-[var(--header-font)] text-color-primary tracking-wide border-none mb-0 font-bold">The Geometry of Bonds</h1>
+                    <p class="text-sm text-color-text-muted italic font-[var(--body-font)] mt-1 font-bold">Interactive visualization of yield curves, call ceilings, and convertible convexity.</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2 bg-color-newday border-2 border-color-primary px-4 py-2 rounded-full text-xs font-mono text-color-primary font-bold shadow-[2px_2px_0px_#0f172a]">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                MARKET DATA: MARCH 2026
+            </div>
+        </header>
+
+        <div class="max-w-7xl mx-auto p-6 grid grid-cols-1 lg:grid-cols-12 gap-8 mt-4 text-color-text">
+            
+            <!-- LEFT PANEL: CONTROLS -->
+            <div class="lg:col-span-4 space-y-6">
+                
+                <div class="bg-white rounded-2xl border-2 border-color-primary p-6 shadow-[var(--shadow-game-sm)]">
+                    <h2 class="text-xs uppercase tracking-widest text-color-text-muted mb-5 flex items-center gap-2 font-bold border-none">
+                        <i data-lucide="settings-2" class="w-4 h-4"></i> Structure Architecture
+                    </h2>
+                    <div class="flex flex-col gap-3" id="bond-type-buttons">
+                        <!-- Buttons generated by JS -->
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl border-2 border-color-primary p-6 shadow-[var(--shadow-game-sm)]">
+                    <h2 class="text-xs uppercase tracking-widest text-color-text-muted mb-6 flex items-center gap-2 font-bold border-none">
+                        <i data-lucide="activity" class="w-4 h-4"></i> Manipulate Parameters
+                    </h2>
+                    
+                    <div class="mb-6 group">
+                        <div class="flex justify-between items-end mb-2">
+                            <label class="text-sm text-color-text-muted font-[var(--body-font)] italic font-bold">Fixed Coupon Rate (C)</label>
+                            <span id="val-coupon" class="text-lg font-mono accent-text">5.0%</span>
+                        </div>
+                        <input type="range" id="slider-coupon" min="0.01" max="0.15" step="0.005" value="0.05">
+                    </div>
+                    
+                    <div class="mb-6 group">
+                        <div class="flex justify-between items-end mb-2">
+                            <label class="text-sm text-color-text-muted font-[var(--body-font)] italic font-bold">Years to Maturity (t)</label>
+                            <span id="val-years" class="text-lg font-mono accent-text">10 Years</span>
+                        </div>
+                        <input type="range" id="slider-years" min="1" max="30" step="1" value="10">
+                    </div>
+
+                    <div id="container-yield" class="mb-6 group">
+                        <div class="flex justify-between items-end mb-2">
+                            <label class="text-sm text-color-text-muted font-[var(--body-font)] italic font-bold">Market Yield (YTM)</label>
+                            <span id="val-yield" class="text-lg font-mono accent-text">5.0%</span>
+                        </div>
+                        <input type="range" id="slider-yield" min="0.01" max="0.20" step="0.005" value="0.05">
+                    </div>
+
+                    <div id="container-stock" class="mb-6 group hidden">
+                        <div class="flex justify-between items-end mb-2">
+                            <label class="text-sm text-color-text-muted font-[var(--body-font)] italic font-bold">Underlying Stock Price (S)</label>
+                            <span id="val-stock" class="text-lg font-mono accent-text">$40.00</span>
+                        </div>
+                        <input type="range" id="slider-stock" min="10" max="100" step="1" value="40">
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT PANEL: VISUALIZATION & CONTEXT -->
+            <div class="lg:col-span-8 flex flex-col gap-6">
+                
+                <!-- Main SVG Visualization -->
+                <div class="bg-white rounded-2xl border-2 border-color-primary p-2 md:p-6 shadow-[var(--shadow-game-sm)] relative overflow-hidden">
+                    
+                    <div class="absolute top-8 left-10 flex flex-col pointer-events-none z-10">
+                        <span id="graph-title" class="text-color-text-muted text-[10px] font-mono uppercase tracking-widest mb-1.5 font-bold">
+                            Market Price vs Yield to Maturity
+                        </span>
+                        <div class="text-5xl font-[var(--header-font)] text-color-primary flex items-baseline gap-4" style="margin:0; font-weight:900;">
+                            <span id="display-price">$1,000.00</span>
+                            <span id="display-status" class="text-sm font-sans px-3 py-1 rounded-full border-2 bg-color-newday text-color-primary border-color-primary font-bold">
+                                Trading at Par
+                            </span>
+                        </div>
+                    </div>
+
+                    <svg id="main-svg" width="100%" height="100%" viewBox="0 0 800 450" class="mt-16 font-mono text-xs overflow-visible">
+                        <defs>
+                            <linearGradient id="callShade" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stop-color="#ef4444" stop-opacity="0.2" />
+                                <stop offset="100%" stop-color="#ef4444" stop-opacity="0.0" />
+                            </linearGradient>
+                        </defs>
+
+                        <!-- Dynamic Grid Lines -->
+                        <g id="svg-grid" stroke="#cbd5e1" stroke-width="1" opacity="0.6" stroke-dasharray="4 4"></g>
+
+                        <!-- Axes Labels -->
+                        <text x="15" y="225" fill="#64748b" transform="rotate(-90 15 225)" text-anchor="middle" class="uppercase tracking-widest font-sans text-[9px] font-bold">Bond Price ($)</text>
+                        <text id="svg-x-label" x="400" y="440" fill="#64748b" text-anchor="middle" class="uppercase tracking-widest font-sans text-[9px] font-bold">
+                            Market Interest Rate (Yield to Maturity)
+                        </text>
+
+                        <!-- Dynamic X-Axis Values -->
+                        <g id="svg-x-values" fill="#64748b" text-anchor="middle" transform="translate(0, 410)"></g>
+
+                        <!-- Par Value Line -->
+                        <line id="svg-par-line" x1="80" y1="0" x2="760" y2="0" stroke="#64748b" stroke-width="2" stroke-dasharray="4 4" opacity="0.6"/>
+                        <text id="svg-par-text" x="770" y="0" fill="#64748b" class="font-bold">Par</text>
+
+                        <!-- Callable Elements -->
+                        <g id="svg-callable-group" class="hidden">
+                            <path id="svg-callable-shade" fill="url(#callShade)"></path>
+                            <line id="svg-call-ceiling" x1="80" x2="760" stroke="#f59e0b" stroke-width="2" stroke-dasharray="6 4" opacity="0.8"/>
+                            <text id="svg-call-ceiling-text" x="95" fill="#f59e0b" opacity="0.9" class="font-sans font-bold text-[10px] tracking-wide">HARD CALL CEILING ($1,050)</text>
+                            <path id="svg-standard-curve" fill="none" stroke="#94a3b8" stroke-width="2" stroke-dasharray="4 4"></path>
+                            <text id="svg-std-curve-text" fill="#64748b" class="italic font-[var(--body-font)] font-bold">Theoretical Standard Price</text>
+                            <text id="svg-option-premium-text" fill="#ef4444" class="font-sans font-bold tracking-widest text-[9px]">LOST UPSIDE (OPTION PREMIUM)</text>
+                        </g>
+
+                        <!-- Convertible Elements -->
+                        <g id="svg-convertible-group" class="hidden">
+                            <line id="svg-bond-floor" x1="80" x2="760" stroke="#3b82f6" stroke-width="2" opacity="0.5" stroke-dasharray="6 4"/>
+                            <text id="svg-bond-floor-text" x="95" fill="#3b82f6" opacity="0.9" class="font-sans font-bold text-[10px] tracking-wide">BOND FLOOR (DOWNSIDE PROTECTION)</text>
+                            <path id="svg-conversion-value" fill="none" stroke="#10b981" stroke-width="2" stroke-dasharray="6 4"></path>
+                            <text id="svg-conversion-value-text" fill="#10b981" opacity="0.9" class="font-sans font-bold text-[10px] tracking-wide">CONVERSION VALUE</text>
+                        </g>
+
+                        <!-- Main Glowing Curve -->
+                        <path id="svg-main-curve" fill="none" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" class="transition-all duration-300 ease-out"></path>
+
+                        <!-- Current Position Dot -->
+                        <g id="svg-dot-group" class="transition-all duration-150 ease-out">
+                            <line id="svg-dot-line-y" x1="0" y1="0" x2="0" stroke="var(--color-primary)" stroke-width="2" stroke-dasharray="2 2" opacity="0.2" />
+                            <line id="svg-dot-line-x" x1="0" y1="0" y2="0" stroke="var(--color-primary)" stroke-width="2" stroke-dasharray="2 2" opacity="0.2" />
+                            <circle cx="0" cy="0" r="14" opacity="0.3" class="animate-ping-custom" id="svg-dot-glow" />
+                            <circle cx="0" cy="0" r="6" fill="#ffffff" stroke-width="3" id="svg-dot-core" />
+                        </g>
+                    </svg>
+                </div>
+
+                <!-- 2026 Real-World Context Panels -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Mathematical Mechanics -->
+                    <div class="bg-white rounded-2xl border-2 border-color-primary p-6 shadow-[var(--shadow-game-sm)]">
+                        <h3 class="text-xs uppercase tracking-widest text-color-text-muted mb-4 flex items-center gap-2 font-bold border-none">
+                            <i data-lucide="book-open" class="text-blue-500 w-4 h-4"></i> Mathematical Mechanics
+                        </h3>
+                        <div id="text-mechanics" class="text-color-text font-[var(--body-font)] leading-relaxed space-y-4 text-sm font-bold">
+                            <!-- Content updated by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Market Context -->
+                    <div class="bg-white rounded-2xl border-2 border-color-primary p-6 shadow-[var(--shadow-game-sm)] relative overflow-hidden">
+                        <div class="absolute top-0 right-0 w-32 h-32 bg-indigo-100 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+                        <h3 class="text-xs uppercase tracking-widest text-color-text-muted mb-4 flex items-center gap-2 font-bold relative z-10 border-none">
+                            <i data-lucide="newspaper" class="text-indigo-500 w-4 h-4"></i> March 2026 Market Context
+                        </h3>
+                        <div id="text-context" class="text-color-text font-sans leading-relaxed space-y-4 text-sm relative z-10 font-bold">
+                            <!-- Content updated by JS -->
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
     <!-- POLL 4 -->
     <div class="slide">
         <h2>Quick Poll</h2>
-        <p class="mb-6">A bond has a Coupon Rate of 5%. The current Market Rate for similar bonds is 6%. Will this bond sell at a:</p>
+        <p class="mb-6">A standard bond has a Coupon Rate of 5%. The current Market Rate for similar bonds is 6%. Will this bond sell at a:</p>
         <div class="poll-container">
             <div class="poll-option" onclick="votePoll(this, 10, false)">Premium (Above Par)</div>
             <div class="poll-option" onclick="votePoll(this, 80, true)">Discount (Below Par)</div>
@@ -1100,7 +1390,7 @@
         </div>
     </div>
 
-    <!-- SLIDE 25: BOND TIMELINE -->
+    <!-- SLIDE 27: BOND TIMELINE -->
     <div class="slide">
         <h2>Bond Pricing: Issuer Perspective</h2>
         <div class="flex justify-between items-center mb-6">
@@ -1145,7 +1435,7 @@
         </div>
     </div>
 
-    <!-- SLIDE 26: EXCEL PRICER -->
+    <!-- SLIDE 28: EXCEL PRICER -->
     <div class="slide">
         <h2>Interactive: Bond Pricer (Excel Style)</h2>
         <p class="mb-4">Type values as you would in Excel. Negative for Outflows.</p>
@@ -1164,7 +1454,7 @@
         </div>
     </div>
 
-    <!-- SLIDE 27: NEW VERIZON OFFERING CASE -->
+    <!-- SLIDE 29: NEW VERIZON OFFERING CASE -->
     <div class="slide">
         <h2>Interest Expense vs. Interest Payments</h2>
         
@@ -1253,7 +1543,7 @@
         </div>
     </div>
 
-    <!-- SLIDE 28: BLOOMBERG QUOTE (UPDATED) -->
+    <!-- SLIDE 30: BLOOMBERG QUOTE (UPDATED) -->
     <div class="slide">
         <h2>Reading a Bloomberg Quote</h2>
         <div class="grid-2 mt-4">
@@ -1301,7 +1591,7 @@
         </div>
     </div>
 
-    <!-- SLIDE 29: DEBT REPORTING -->
+    <!-- SLIDE 31: DEBT REPORTING -->
     <div class="slide">
         <h2>Reporting Debt: The "Net" Concept</h2>
         <p>Companies do not just report the Principal amount. They report debt <strong>NET</strong> of unamortized discounts and issuance costs.</p>
@@ -1337,7 +1627,7 @@
         </div>
     </div>
 
-    <!-- SLIDE 30: MATURITY WALL -->
+    <!-- SLIDE 32: MATURITY WALL -->
     <div class="slide">
         <h2>Risk Analysis: The "Maturity Wall"</h2>
         <p>Debt isn't due all at once. Analysts look at the <strong>Maturity Schedule</strong> to assess liquidity risk.</p>
@@ -1407,15 +1697,15 @@
             </div>
         </div>
 
-        <div class="flip-card mt-6" onclick="this.classList.toggle('flipped')" style="height:380px;">
+        <div class="flip-card mt-6" onclick="this.classList.toggle('flipped')" style="height:320px;">
             <div class="flip-inner">
                 <div class="flip-front" style="background-color: var(--color-accent);">
                     <h3 class="text-white">Why is Fair Value HIGHER?</h3>
                     <p class="click-label" style="margin-top: 20px;">(Click to Reveal)</p>
                 </div>
-                <div class="flip-back" style="padding-top: 4rem;">
-                    <h3 class="text-accent border-b-2 border-accent pb-2">Interest Rates Dropped</h3>
-                    <p class="font-bold text-sm mt-4 px-4 text-left">Since Verizon initially issued the debt, market interest rates likely fell. This makes Verizon's older, higher-coupon bonds significantly MORE valuable to investors today, because those older bonds pay out higher interest cash flows compared to newer bonds currently being issued in the market.</p>
+                <div class="flip-back p-6 flex flex-col justify-center">
+                    <h3 class="text-accent border-b-2 border-accent pb-2 mb-2">Interest Rates Dropped</h3>
+                    <p class="font-bold text-sm px-2 text-left">Since Verizon initially issued the debt, market interest rates likely fell. This makes Verizon's older, higher-coupon bonds significantly MORE valuable to investors today, because those older bonds pay out higher interest cash flows compared to newer bonds currently being issued in the market.</p>
                 </div>
             </div>
         </div>
@@ -1473,7 +1763,7 @@
         
         <div style="display:flex; align-items:center;">
             <button class="btn-action shadow-[2px_2px_0px_#0f172a]" onclick="prevSlide()" style="padding: 10px 20px; margin:0;"><i class="fas fa-chevron-left"></i></button>
-            <span id="slide-indicator" class="mono mx-4">1 / 34</span>
+            <span id="slide-indicator" class="mono mx-4">1 / 37</span>
             <button class="btn-action shadow-[2px_2px_0px_#0f172a]" onclick="nextSlide()" style="padding: 10px 20px; margin:0;"><i class="fas fa-chevron-right"></i></button>
         </div>
     </div>
@@ -1481,9 +1771,10 @@
 </div>
 
 <script>
-    // --- STATE ---
+    // --- MAIN PRESENTATION STATE ---
     let currentSlide = 0;
     let currentReveal = 0;
+    let instructorMode = false;
     
     // --- EXAM DATA ---
     const examQuestions = [
@@ -1512,7 +1803,12 @@
     ];
 
     // --- INITIALIZATION ---
-    function init() {
+    document.addEventListener('DOMContentLoaded', () => {
+        initPresentation();
+        initGeometry(); // Load Geometry of Bonds JS
+    });
+
+    function initPresentation() {
         try {
             if (document.getElementById('quiz-container')) generateExamSlides();
             if (document.getElementById('slide-indicator') && document.getElementById('progress-fill')) updateNav();
@@ -1522,10 +1818,6 @@
             console.error('Initialization Error:', err);
         }
     }
-
-    document.addEventListener('DOMContentLoaded', () => {
-        init();
-    });
 
     function showSlide(n) {
         const allSlides = document.querySelectorAll('.slide');
@@ -1748,28 +2040,6 @@
         document.getElementById('tvm-result').innerText = "$" + pv.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
     }
 
-    function calcGainLoss() {
-        const bv = parseFloat(document.getElementById('repo-bv').value);
-        const price = parseFloat(document.getElementById('repo-price').value);
-        
-        if (!bv || !price) {
-            document.getElementById('repo-result').innerText = "Enter values";
-            return;
-        }
-
-        const diff = bv - price; 
-        const resDiv = document.getElementById('repo-result');
-        
-        if (diff > 0) {
-            resDiv.innerHTML = `<span class='text-success'>GAIN of $${diff.toFixed(1)} B</span>`;
-            triggerFunnyImpact(resDiv);
-        } else if (diff < 0) {
-            resDiv.innerHTML = `<span class='text-danger'>LOSS of $${Math.abs(diff).toFixed(1)} B</span>`;
-        } else {
-            resDiv.innerHTML = "No Gain or Loss";
-        }
-    }
-
     function showVal(bar) {
         bar.style.transform = 'scaleY(1.02)';
         bar.style.backgroundColor = 'var(--color-accent)';
@@ -1832,6 +2102,24 @@
         }
     }
 
+    function toggleInstructorKey() {
+        instructorMode = !instructorMode;
+        
+        // Toggle the icon to show it's active
+        const lockIcon = document.getElementById('instructor-lock-icon');
+        if (lockIcon) {
+            lockIcon.className = instructorMode ? 'fas fa-lock-open' : 'fas fa-lock';
+        }
+
+        document.querySelectorAll('.instructor-reveal-container .action-reveal').forEach(el => {
+            if(instructorMode) {
+                el.classList.add('revealed');
+            } else {
+                el.classList.remove('revealed');
+            }
+        });
+    }
+
     function generateExamSlides() {
         const container = document.getElementById('quiz-container');
         if(!container) return;
@@ -1842,7 +2130,7 @@
             <div class="flex-center" style="flex-direction:column; text-align:center;">
                 <div class="card p-12 max-w-xl">
                     <h2 class="text-4xl border-none mb-4">Final Knowledge Check</h2>
-                    <p class="font-bold text-slate-500 mb-8">13 Questions to test your mastery.</p>
+                    <p class="font-bold text-slate-500 mb-8">12 Questions to test your mastery.</p>
                     <button class="btn-action w-full py-4 text-xl" onclick="nextSlide()">Start Quiz</button>
                 </div>
             </div>
@@ -1912,6 +2200,402 @@
         const scoreDisplay = document.getElementById('final-score-display');
         if(scoreDisplay) scoreDisplay.innerText = `Score: ${examScore} / ${examQuestions.length}`;
     }
+
+
+    /* ==========================================================
+       GEOMETRY OF BONDS SCRIPT INTEGRATION
+       ========================================================== */
+
+    // --- GEOMETRY CONSTANTS & CONFIG ---
+    const GEO_FACE_VALUE = 1000;
+    const GEO_CONVERSION_RATIO = 25;
+    const GEO_SVG_WIDTH = 800;
+    const GEO_SVG_HEIGHT = 450;
+    const GEO_PADDING = { top: 40, right: 40, bottom: 60, left: 80 };
+    const GEO_INNER_WIDTH = GEO_SVG_WIDTH - GEO_PADDING.left - GEO_PADDING.right;
+    const GEO_INNER_HEIGHT = GEO_SVG_HEIGHT - GEO_PADDING.top - GEO_PADDING.bottom;
+
+    const GEO_BOND_TYPES = [
+        { id: 'standard', name: 'Standard Bond', desc: 'The fundamental inverse price/yield relationship.', accent: 'blue', hex: '#3b82f6' },
+        { id: 'callable', name: 'Callable Bond', desc: 'Issuer-capped upside in falling rate environments.', accent: 'amber', hex: '#fbbf24' },
+        { id: 'convertible', name: 'Convertible Note', desc: 'Downside bond floor with exponential equity upside.', accent: 'rose', hex: '#f43f5e' }
+    ];
+
+    // --- GEOMETRY STATE ---
+    const geoState = {
+        bondType: 'standard',
+        couponRate: 0.05,
+        years: 10,
+        marketYield: 0.05,
+        stockPrice: 40
+    };
+
+    // --- GEOMETRY DOM ELEMENTS ---
+    let geoEls = {};
+
+    function initGeometry() {
+        if(typeof lucide !== 'undefined') lucide.createIcons();
+        
+        geoEls = {
+            bondTypeButtons: document.getElementById('bond-type-buttons'),
+            sliderCoupon: document.getElementById('slider-coupon'),
+            sliderYears: document.getElementById('slider-years'),
+            sliderYield: document.getElementById('slider-yield'),
+            sliderStock: document.getElementById('slider-stock'),
+            valCoupon: document.getElementById('val-coupon'),
+            valYears: document.getElementById('val-years'),
+            valYield: document.getElementById('val-yield'),
+            valStock: document.getElementById('val-stock'),
+            containerYield: document.getElementById('container-yield'),
+            containerStock: document.getElementById('container-stock'),
+            
+            displayPrice: document.getElementById('display-price'),
+            displayStatus: document.getElementById('display-status'),
+            graphTitle: document.getElementById('graph-title'),
+            textMechanics: document.getElementById('text-mechanics'),
+            textContext: document.getElementById('text-context'),
+            
+            svgGrid: document.getElementById('svg-grid'),
+            svgXLabel: document.getElementById('svg-x-label'),
+            svgXValues: document.getElementById('svg-x-values'),
+            svgParLine: document.getElementById('svg-par-line'),
+            svgParText: document.getElementById('svg-par-text'),
+            svgMainCurve: document.getElementById('svg-main-curve'),
+            svgDotGroup: document.getElementById('svg-dot-group'),
+            svgDotLineX: document.getElementById('svg-dot-line-x'),
+            svgDotLineY: document.getElementById('svg-dot-line-y'),
+            svgDotGlow: document.getElementById('svg-dot-glow'),
+            svgDotCore: document.getElementById('svg-dot-core'),
+            
+            callableGroup: document.getElementById('svg-callable-group'),
+            callableShade: document.getElementById('svg-callable-shade'),
+            callCeiling: document.getElementById('svg-call-ceiling'),
+            callCeilingText: document.getElementById('svg-call-ceiling-text'),
+            stdCurve: document.getElementById('svg-standard-curve'),
+            stdCurveText: document.getElementById('svg-std-curve-text'),
+            optPremText: document.getElementById('svg-option-premium-text'),
+            
+            convGroup: document.getElementById('svg-convertible-group'),
+            bondFloor: document.getElementById('svg-bond-floor'),
+            bondFloorText: document.getElementById('svg-bond-floor-text'),
+            convValue: document.getElementById('svg-conversion-value'),
+            convValueText: document.getElementById('svg-conversion-value-text'),
+        };
+
+        geoCreateBondTypeButtons();
+        geoAttachEventListeners();
+        geoUpdateUI();
+    }
+
+    // --- GEOMETRY MATH ---
+    function geoCalcBondPrice(couponRate, yieldToMaturity, years) {
+        const c = GEO_FACE_VALUE * couponRate;
+        const r = yieldToMaturity;
+        const n = years;
+        if (r === 0) return GEO_FACE_VALUE + (c * n);
+        const pvCoupons = c * ((1 - Math.pow(1 + r, -n)) / r);
+        const pvFace = GEO_FACE_VALUE / Math.pow(1 + r, n);
+        return pvCoupons + pvFace;
+    }
+
+    function geoCalcCallablePrice(couponRate, yieldToMaturity, years, callPremium = 0.05) {
+        const standardPrice = geoCalcBondPrice(couponRate, yieldToMaturity, years);
+        const callPrice = GEO_FACE_VALUE * (1 + callPremium);
+        return Math.min(standardPrice, callPrice);
+    }
+
+    function geoCalcConvertiblePrice(couponRate, yieldToMaturity, years, stockPrice, conversionRatio) {
+        const bondFloor = geoCalcBondPrice(couponRate, yieldToMaturity, years);
+        const conversionValue = stockPrice * conversionRatio;
+        const k = 0.02; 
+        const max = Math.max(bondFloor, conversionValue);
+        const min = Math.min(bondFloor, conversionValue);
+        const diff = k * (min - max);
+        const optionPremium = diff > -50 ? Math.log(1 + Math.exp(diff)) / k : 0;
+        return max + optionPremium;
+    }
+
+    function geoCreateBondTypeButtons() {
+        if(!geoEls.bondTypeButtons) return;
+        geoEls.bondTypeButtons.innerHTML = GEO_BOND_TYPES.map(type => `
+            <button
+                data-type="${type.id}"
+                class="bond-type-btn text-left p-4 rounded-xl border-2 transition-all duration-300 relative overflow-hidden bg-white border-slate-300 text-slate-500 hover:border-slate-400 hover:bg-slate-100"
+            >
+                <div class="active-indicator absolute left-0 top-0 w-1 h-full hidden"></div>
+                <div class="btn-title font-[var(--body-font)] font-bold text-lg text-slate-500">${type.name}</div>
+                <div class="text-xs mt-1.5 opacity-80 leading-relaxed font-sans text-slate-500">${type.desc}</div>
+            </button>
+        `).join('');
+
+        document.querySelectorAll('.bond-type-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                geoState.bondType = e.currentTarget.dataset.type;
+                geoUpdateUI();
+            });
+        });
+    }
+
+    function geoAttachEventListeners() {
+        const bindSlider = (el, key) => {
+            if(!el) return;
+            el.addEventListener('input', (e) => {
+                geoState[key] = parseFloat(e.target.value);
+                geoUpdateUI();
+            });
+        };
+        bindSlider(geoEls.sliderCoupon, 'couponRate');
+        bindSlider(geoEls.sliderYears, 'years');
+        bindSlider(geoEls.sliderYield, 'marketYield');
+        bindSlider(geoEls.sliderStock, 'stockPrice');
+    }
+
+    function geoUpdateUI() {
+        if(!geoEls.displayPrice) return;
+        const activeType = GEO_BOND_TYPES.find(t => t.id === geoState.bondType);
+        const accentHex = activeType.hex;
+
+        // 1. Update Buttons
+        document.querySelectorAll('.bond-type-btn').forEach(btn => {
+            const type = GEO_BOND_TYPES.find(t => t.id === btn.dataset.type);
+            const isActive = btn.dataset.type === geoState.bondType;
+            const indicator = btn.querySelector('.active-indicator');
+            const title = btn.querySelector('.btn-title');
+            
+            if (isActive) {
+                btn.className = `bond-type-btn text-left p-4 rounded-xl border-2 transition-all duration-300 relative overflow-hidden bg-slate-100 border-color-primary shadow-[var(--shadow-game-sm)]`;
+                indicator.classList.remove('hidden');
+                indicator.style.backgroundColor = type.hex;
+                title.style.color = 'var(--color-primary)';
+            } else {
+                btn.className = `bond-type-btn text-left p-4 rounded-xl border-2 transition-all duration-300 relative overflow-hidden bg-white border-slate-300 text-slate-500 hover:border-slate-400 hover:bg-slate-50`;
+                indicator.classList.add('hidden');
+                title.style.color = '#64748b'; 
+            }
+        });
+
+        // 2. Update Sliders Visuals & Values
+        geoEls.valCoupon.textContent = (geoState.couponRate * 100).toFixed(1) + '%';
+        geoEls.valYears.textContent = geoState.years + ' Years';
+        geoEls.valYield.textContent = (geoState.marketYield * 100).toFixed(1) + '%';
+        geoEls.valStock.textContent = '$' + geoState.stockPrice.toFixed(2);
+
+        document.querySelectorAll('.accent-text').forEach(el => el.style.color = accentHex);
+        
+        const updateSliderBg = (el) => {
+            if(!el) return;
+            const val = (el.value - el.min) / (el.max - el.min) * 100;
+            el.style.background = `linear-gradient(to right, ${accentHex} ${val}%, #e2e8f0 ${val}%)`;
+        };
+        [geoEls.sliderCoupon, geoEls.sliderYears, geoEls.sliderYield, geoEls.sliderStock].forEach(updateSliderBg);
+
+        if (geoState.bondType === 'convertible') {
+            geoEls.containerYield.classList.add('hidden');
+            geoEls.containerStock.classList.remove('hidden');
+        } else {
+            geoEls.containerYield.classList.remove('hidden');
+            geoEls.containerStock.classList.add('hidden');
+        }
+
+        // 3. Calculate Current Price
+        let currentPrice = 0;
+        if (geoState.bondType === 'callable') currentPrice = geoCalcCallablePrice(geoState.couponRate, geoState.marketYield, geoState.years);
+        else if (geoState.bondType === 'convertible') currentPrice = geoCalcConvertiblePrice(geoState.couponRate, geoState.marketYield, geoState.years, geoState.stockPrice, GEO_CONVERSION_RATIO);
+        else currentPrice = geoCalcBondPrice(geoState.couponRate, geoState.marketYield, geoState.years);
+
+        geoEls.displayPrice.textContent = '$' + currentPrice.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
+        // 4. Update Status Tag 
+        if (geoState.bondType === 'standard') {
+            geoEls.displayStatus.classList.remove('hidden');
+            const diff = currentPrice - GEO_FACE_VALUE;
+            if (Math.abs(diff) < 0.5) {
+                geoEls.displayStatus.textContent = 'Trading at Par';
+                geoEls.displayStatus.className = 'text-sm font-sans px-3 py-1 rounded-full border-2 bg-color-newday text-color-primary border-color-primary font-bold';
+            } else if (diff > 0.5) {
+                geoEls.displayStatus.textContent = 'Trading at Premium';
+                geoEls.displayStatus.className = 'text-sm font-sans px-3 py-1 rounded-full border-2 bg-emerald-50 text-emerald-600 border-emerald-600 font-bold';
+            } else {
+                geoEls.displayStatus.textContent = 'Trading at Discount';
+                geoEls.displayStatus.className = 'text-sm font-sans px-3 py-1 rounded-full border-2 bg-red-50 text-red-600 border-red-600 font-bold';
+            }
+        } else {
+            geoEls.displayStatus.classList.add('hidden');
+        }
+
+        // 5. Calculate Graph Points
+        const numPoints = 120;
+        const points = [];
+        const standardPoints = [];
+        let minX, maxX, minY, maxY;
+
+        if (geoState.bondType === 'convertible') {
+            minX = 0; maxX = 100;
+            for (let i = 0; i <= numPoints; i++) {
+                const xVal = minX + (i / numPoints) * (maxX - minX);
+                points.push({ x: xVal, y: geoCalcConvertiblePrice(geoState.couponRate, geoState.marketYield, geoState.years, xVal, GEO_CONVERSION_RATIO) });
+            }
+            const allY = points.map(p => p.y);
+            const maxVal = Math.max(...allY, 100 * GEO_CONVERSION_RATIO);
+            minY = 500;
+            maxY = Math.max(3000, Math.ceil(maxVal / 500) * 500);
+        } else {
+            minX = 0.001; maxX = 0.20;
+            for (let i = 0; i <= numPoints; i++) {
+                const xVal = minX + (i / numPoints) * (maxX - minX);
+                const stdPrice = geoCalcBondPrice(geoState.couponRate, xVal, geoState.years);
+                standardPoints.push({ x: xVal, y: stdPrice });
+                points.push({ x: xVal, y: geoState.bondType === 'callable' ? geoCalcCallablePrice(geoState.couponRate, xVal, geoState.years) : stdPrice });
+            }
+            const allY = standardPoints.map(p => p.y);
+            const maxVal = Math.max(...allY, currentPrice, GEO_FACE_VALUE);
+            const minVal = Math.min(...allY, currentPrice, GEO_FACE_VALUE);
+            
+            minY = Math.min(400, Math.max(0, Math.floor(minVal / 200) * 200));
+            maxY = Math.max(1600, Math.ceil(maxVal / 200) * 200);
+        }
+
+        const mapX = (x) => GEO_PADDING.left + ((x - minX) / (maxX - minX)) * GEO_INNER_WIDTH;
+        const mapY = (y) => Math.max(GEO_PADDING.top, Math.min(GEO_SVG_HEIGHT - GEO_PADDING.bottom, GEO_PADDING.top + GEO_INNER_HEIGHT - ((y - minY) / (maxY - minY)) * GEO_INNER_HEIGHT));
+
+        const pathD = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${mapX(p.x)} ${mapY(p.y)}`).join(' ');
+        
+        // 6. Update SVG Main Graph Elements
+        geoEls.svgMainCurve.setAttribute('d', pathD);
+        geoEls.svgMainCurve.setAttribute('stroke', accentHex);
+        geoEls.svgMainCurve.style.filter = `drop-shadow(0 0 12px ${accentHex}80)`;
+
+        const currentXVal = geoState.bondType === 'convertible' ? geoState.stockPrice : geoState.marketYield;
+        const dotX = mapX(currentXVal);
+        const dotY = mapY(currentPrice);
+        
+        geoEls.svgDotGroup.setAttribute('transform', `translate(${dotX}, ${dotY})`);
+        geoEls.svgDotLineY.setAttribute('y2', GEO_SVG_HEIGHT - GEO_PADDING.bottom - dotY);
+        geoEls.svgDotLineX.setAttribute('x2', -(dotX - GEO_PADDING.left));
+        geoEls.svgDotGlow.setAttribute('fill', accentHex);
+        geoEls.svgDotCore.setAttribute('stroke', accentHex);
+
+        geoEls.graphTitle.textContent = geoState.bondType === 'convertible' ? 'Market Price vs Underlying Stock' : 'Market Price vs Yield to Maturity';
+        geoEls.svgXLabel.textContent = geoState.bondType === 'convertible' ? 'Underlying Equity Price ($)' : 'Market Interest Rate (Yield to Maturity)';
+
+        let gridHTML = '';
+        for(let i=0; i<5; i++) {
+            const y = GEO_PADDING.top + (i * GEO_INNER_HEIGHT / 4);
+            const priceLabel = maxY - (i * (maxY - minY) / 4);
+            gridHTML += `
+                <line x1="${GEO_PADDING.left}" y1="${y}" x2="${GEO_SVG_WIDTH - GEO_PADDING.right}" y2="${y}" />
+                <text x="${GEO_PADDING.left - 15}" y="${y + 4}" fill="#64748b" text-anchor="end">$${priceLabel.toFixed(0)}</text>
+            `;
+        }
+        geoEls.svgGrid.innerHTML = gridHTML;
+
+        geoEls.svgXValues.innerHTML = `
+            <text x="${mapX(minX)}">${geoState.bondType === 'convertible' ? '$0' : '0%'}</text>
+            <text x="${mapX((maxX + minX) / 2)}">${geoState.bondType === 'convertible' ? '$50' : '10%'}</text>
+            <text x="${mapX(maxX)}">${geoState.bondType === 'convertible' ? '$100' : '20%'}</text>
+        `;
+
+        const parY = mapY(GEO_FACE_VALUE);
+        geoEls.svgParLine.setAttribute('y1', parY);
+        geoEls.svgParLine.setAttribute('y2', parY);
+        geoEls.svgParText.setAttribute('y', parY + 4);
+
+        // 7. Toggle Specific SVGs
+        if (geoState.bondType === 'callable') {
+            geoEls.callableGroup.classList.remove('hidden');
+            geoEls.convGroup.classList.add('hidden');
+            
+            const stdPathD = standardPoints.map((p, i) => `${i === 0 ? 'M' : 'L'} ${mapX(p.x)} ${mapY(p.y)}`).join(' ');
+            geoEls.stdCurve.setAttribute('d', stdPathD);
+            
+            const shadeD = `${pathD} ${[...standardPoints].reverse().map(p => `L ${mapX(p.x)} ${mapY(p.y)}`).join(' ')} Z`;
+            geoEls.callableShade.setAttribute('d', shadeD);
+            
+            const callCeilingY = mapY(GEO_FACE_VALUE * 1.05);
+            geoEls.callCeiling.setAttribute('y1', callCeilingY);
+            geoEls.callCeiling.setAttribute('y2', callCeilingY);
+            geoEls.callCeilingText.setAttribute('y', callCeilingY - 12);
+            
+            geoEls.stdCurveText.setAttribute('x', mapX(0.02));
+            geoEls.stdCurveText.setAttribute('y', mapY(geoCalcBondPrice(geoState.couponRate, 0.02, geoState.years)) - 15);
+            
+            geoEls.optPremText.setAttribute('x', mapX(0.04));
+            geoEls.optPremText.setAttribute('y', mapY(Math.max(GEO_FACE_VALUE * 1.05 + 50, geoCalcBondPrice(geoState.couponRate, 0.04, geoState.years) - 50)));
+
+        } else if (geoState.bondType === 'convertible') {
+            geoEls.callableGroup.classList.add('hidden');
+            geoEls.convGroup.classList.remove('hidden');
+
+            const currentBondFloor = geoCalcBondPrice(geoState.couponRate, geoState.marketYield, geoState.years);
+            const floorY = mapY(currentBondFloor);
+            geoEls.bondFloor.setAttribute('y1', floorY);
+            geoEls.bondFloor.setAttribute('y2', floorY);
+            geoEls.bondFloorText.setAttribute('y', floorY - 12);
+
+            const convD = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${mapX(p.x)} ${mapY(p.x * GEO_CONVERSION_RATIO)}`).join(' ');
+            geoEls.convValue.setAttribute('d', convD);
+            geoEls.convValueText.setAttribute('x', GEO_SVG_WIDTH - GEO_PADDING.right - 140);
+            geoEls.convValueText.setAttribute('y', mapY(95 * GEO_CONVERSION_RATIO) + 30);
+            
+        } else {
+            geoEls.callableGroup.classList.add('hidden');
+            geoEls.convGroup.classList.add('hidden');
+        }
+
+        geoUpdateTexts();
+    }
+
+    function geoUpdateTexts() {
+        const couponFmt = (geoState.couponRate * 100).toFixed(1);
+        
+        let mechHTML = '';
+        let ctxHTML = '';
+
+        if (geoState.bondType === 'standard') {
+            mechHTML = `<p>When the market yield exactly matches your coupon rate of <strong class="text-blue-500">${couponFmt}%</strong>, the bond trades at Par ($1,000). Adjust the YTM slider to the right. As yields rise, your fixed coupon becomes inferior to new market offerings, forcing the bond's price to drop to a <strong class="text-red-500">Discount</strong> to compensate new buyers.</p>`;
+            
+            ctxHTML = `
+                <div class="flex items-start gap-3 bg-red-50 p-3 rounded-lg border-2 border-red-200">
+                    <i data-lucide="alert-triangle" class="text-red-500 shrink-0 mt-0.5 w-5 h-5"></i>
+                    <p class="text-red-900"><strong>Treasury Market Stress:</strong> In late March 2026, 10-year U.S. Treasury yields spiked back above 4.4% driven by renewed Middle East conflict, oil shocks, and sticky inflation. Investors holding long-duration standard bonds from 2025 are seeing their portfolios deeply discounted.</p>
+                </div>`;
+        } else if (geoState.bondType === 'callable') {
+            mechHTML = `
+                <p>A callable bond structurally alters the geometry of the curve. Notice the sharp kink and the <strong class="text-red-500">red shaded region</strong>.</p>
+                <p>If interest rates plummet, standard bondholders enjoy massive price appreciation. However, a callable bond issuer will simply "call" (buy back) the bond at the ceiling to refinance cheaper, destroying your theoretical upside.</p>
+                <p class="mt-2 bg-amber-50 p-3 rounded-lg border-2 border-amber-200 text-amber-900">
+                    <strong>Why exactly $1,050?</strong><br/>
+                    This ceiling is known as the <strong>Call Premium</strong>. Issuers cannot simply cancel the loan at the $1,000 Par value right away. To convince investors to buy the bond, the issuer agrees to a penalty fee—typically exactly one year's worth of coupon interest (in this case, $50). This $1,050 total compensates the investor for <strong>"Reinvestment Risk"</strong>.
+                </p>
+            `;
+            
+            ctxHTML = `
+                <p>With the "higher for longer" rate narrative persisting in 2026, corporations that issued expensive high-yield debt in 2023/2024 are closely watching this exact math.</p>
+                <p class="pl-4 border-l-4 border-amber-500 text-slate-500 italic mt-2">"If the Fed cuts rates later this year, issuers will aggressively exercise these call options, forcing investors to reinvest their returned capital at lower market rates."</p>
+            `;
+        } else if (geoState.bondType === 'convertible') {
+            mechHTML = `<p>Notice how the red curve behaves like two different assets. To the left, when the stock is worthless, it rests on the <span class="text-blue-500 font-bold">Bond Floor</span> (acting like debt). As the stock price moves right, the note smoothly transitions into equity, riding the <span class="text-emerald-500 font-bold">Conversion Value</span> line. The gap between the lines is the implied volatility (option premium).</p>`;
+            
+            ctxHTML = `
+                <div class="flex items-start gap-3 bg-blue-50 p-3 rounded-lg border-2 border-blue-200">
+                    <i data-lucide="landmark" class="text-blue-500 shrink-0 mt-0.5 w-5 h-5"></i>
+                    <div>
+                        <p class="mb-2 text-blue-900"><strong>The Corporate Hedge:</strong> Because traditional debt is so expensive right now, 2026 has seen a surge in convertible issuance. Companies are "paying" investors in upside volatility rather than cash.</p>
+                        <p class="text-xs text-slate-500">Case Study: Deutsche Lufthansa AG recently issued a €600 million convertible bond with a <strong>0.00% fixed coupon</strong>, dodging high borrowing costs by offering an equity conversion premium.</p>
+                    </div>
+                </div>`;
+        }
+
+        geoEls.textMechanics.innerHTML = mechHTML;
+        geoEls.textContext.innerHTML = ctxHTML;
+        if(typeof lucide !== 'undefined') lucide.createIcons(); 
+    }
+
+    function geoHexToRgb(hex) {
+        const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+        return result ? `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}` : null;
+    }
+
 </script>
 </body>
 </html>
