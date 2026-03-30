@@ -1,0 +1,1295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Comcast Bond Accounting Simulation</title>
+
+<!-- React & ReactDOM -->
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+
+<!-- Babel -->
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com"></script>
+
+<!-- Lucide Icons -->
+<script src="https://unpkg.com/lucide@latest"></script>
+
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap');
+    
+    body {
+        font-family: 'Inter', sans-serif;
+        overscroll-behavior: none; 
+    }
+    
+    /* Custom scrollbar */
+    .custom-scrollbar::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+        background: #f1f5f9; 
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: #cbd5e1; 
+        border-radius: 4px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8; 
+    }
+    
+    .sticky-header {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+    }
+
+    .clickable-number {
+        cursor: pointer;
+        border-bottom: 1px dotted #2563eb;
+        transition: all 0.2s;
+        white-space: nowrap;
+    }
+    .clickable-number:hover {
+        background-color: #dbeafe;
+        color: #1e40af;
+        font-weight: bold;
+    }
+    .clickable-number:active {
+        background-color: #bfdbfe;
+    }
+
+    input[type="text"], input[type="password"], select {
+        font-size: 16px !important;
+    }
+    
+    @keyframes slideDown {
+        from { transform: translateY(-100%); }
+        to { transform: translateY(0); }
+    }
+    .instructor-toolbar {
+        animation: slideDown 0.3s ease-out;
+    }
+
+    .resizer-handle {
+        width: 6px;
+        cursor: col-resize;
+        transition: background-color 0.2s;
+        z-index: 30;
+        position: absolute;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        height: 100%;
+    }
+    .resizer-handle:hover, .resizer-handle:active {
+        background-color: #3b82f6;
+    }
+
+    @media (max-width: 768px) {
+        .resizer-handle { display: none; }
+    }
+    
+    /* Remove number input spinners */
+    input[type="number"]::-webkit-outer-spin-button,
+    input[type="number"]::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+    input[type="number"] {
+        -moz-appearance: textfield;
+    }
+</style>
+</head>
+<body class="bg-gray-50 text-slate-900 h-[100dvh] overflow-hidden" oncontextmenu="return false">
+<div id="root" class="h-full"></div>
+
+<script type="text/babel">
+
+// --- SECURITY UTILS ---
+const d = (s) => {
+    try {
+        const decoded = atob(s);
+        return isNaN(parseFloat(decoded)) ? decoded : parseFloat(decoded);
+    } catch (e) {
+        return 0;
+    }
+};
+
+// --- 1. CONFIGURATION & DATA ---
+
+const MODULES = [
+    { id: 'm1', title: 'Compute Issue Price', reviewId: 'Part 1' },
+    { id: 'm2', title: 'Financial Statement Effects', reviewId: 'Part 2' },
+    { id: 'm3', title: 'Amortization Table (15 Yrs)', reviewId: 'Part 3' },
+    { id: 'm4', title: 'Repurchase Transaction', reviewId: 'Part 4' },
+    { id: 'c1', title: 'Concept Check: Bonds', reviewId: 'Quiz 1', type: 'concept' }
+];
+
+const MODULE_DATA = {
+    'm1': [
+        {
+            title: "Comcast Bond Term Sheet",
+            type: "key-value",
+            data: [
+                ["Issuer", "Comcast Corporation"],
+                ["Issue Date", "January 1"],
+                ["Face Value", "$300,000"],
+                ["Term", "15 Years"],
+                ["Stated (Coupon) Rate", "10% Annually"],
+                ["Payment Frequency", "Semiannually (Jun 30, Dec 31)"],
+                ["Market (Effective) Rate", "8% Annually (4% Semiannual)"]
+            ]
+        }
+    ],
+    'm2': [
+        {
+            title: "Comcast Bond Term Sheet",
+            type: "key-value",
+            data: [
+                ["Issue Date", "January 1"],
+                ["Face Value", "$300,000"],
+                ["Issue Price", "$351,876"],
+                ["Stated Rate", "10% Annually"],
+                ["Market Rate", "8% Annually"],
+                ["Payment Frequency", "Semiannually"]
+            ]
+        }
+    ],
+    'm3': [
+        {
+            title: "Amortization Table Instructions",
+            type: "sections",
+            sections: [
+                {
+                    title: "Formulas",
+                    type: "key-value",
+                    data: [
+                        ["Interest Paid", "Face Value × Coupon Rate per Period"],
+                        ["Interest Expense", "Beg NBV × Effective Rate per Period"],
+                        ["Amortization", "Interest Paid - Interest Expense"],
+                        ["Ending NBV", "Beg NBV - Amortization (for Premium)"]
+                    ]
+                },
+                {
+                    title: "Base Variables",
+                    type: "key-value",
+                    data: [
+                        ["Face Value", "300,000"],
+                        ["Coupon per Period", "5% (0.05)"],
+                        ["Effective per Period", "4% (0.04)"]
+                    ]
+                }
+            ]
+        }
+    ],
+    'm4': [
+        {
+            title: "Repurchase Event Details",
+            type: "key-value",
+            data: [
+                ["Repurchase Date", "End of Year 5 (Period 10)"],
+                ["Remaining Term", "10 Years (20 Periods)"],
+                ["Original Face Value", "$300,000"],
+                ["Original PMT", "$15,000"],
+                ["New Effective Rate", "2% Semiannual (4% Annual)"]
+            ]
+        }
+    ]
+};
+
+const CONCEPT_QUESTIONS = {
+    'c1': [
+        {
+            id: 'q1_1',
+            text: "What happens to the carrying value (Net Book Value) of a bond issued at a premium as it is amortized over time?",
+            options: ["It increases toward the face value.", "It decreases toward the face value.", "It remains constant until maturity.", "It fluctuates with the market interest rate."],
+            answer: "It decreases toward the face value.",
+            explanation: "As the premium is amortized, the carrying value is reduced each period, eventually equalling the face value at maturity."
+        },
+        {
+            id: 'q1_2',
+            text: "Under the effective interest method, why does interest expense change each period for a premium bond?",
+            options: ["The company pays a different amount of cash each period.", "The coupon rate changes.", "The effective rate is applied to a decreasing carrying value.", "The market interest rate fluctuates."],
+            answer: "The effective rate is applied to a decreasing carrying value.",
+            explanation: "Interest expense equals the carrying value at the beginning of the period multiplied by the constant effective interest rate. Because the carrying value of a premium bond decreases, the interest expense decreases."
+        },
+        {
+            id: 'q1_3',
+            text: "Why did Comcast record a loss on the repurchase of the bonds at the end of Year 5?",
+            options: ["Because they paid more cash than the book value of the bonds.", "Because they paid less cash than the book value of the bonds.", "Because the effective interest rate increased.", "Because the bonds had not reached maturity."],
+            answer: "Because they paid more cash than the book value of the bonds.",
+            explanation: "When the market interest rate fell to 2% (semiannually), the market value (repurchase price) of the 5% bonds increased. Paying more to retire the bonds than their carrying amount on the balance sheet creates a loss."
+        },
+        {
+            id: 'q1_4',
+            text: "When Comcast pays the semiannual interest on this premium bond, how is the cash payment related to the interest expense?",
+            options: ["Cash payment equals Interest Expense", "Cash payment is less than Interest Expense", "Cash payment is greater than Interest Expense", "There is no relationship"],
+            answer: "Cash payment is greater than Interest Expense",
+            explanation: "Because the bond was issued at a premium (effective rate < coupon rate), the cash paid (based on coupon rate) is higher than the true interest expense (based on effective rate). The difference is the amortization."
+        }
+    ]
+};
+
+// --- OBFUSCATED DATA MATRIX (formerly ANSWER_KEY) ---
+const _DATA_MATRIX = {
+    // Module 1 (Compute Issue Price)
+    "m1_nper": { val: "MzA=", label: "NPER (Total Periods)", hint: "15 years * 2 periods per year" },
+    "m1_rate": { val: "MC4wNA==", label: "RATE (Effective Semiannual)", hint: "8% annual / 2" },
+    "m1_pmt": { val: "MTUwMDA=", label: "PMT (Interest Payment)", hint: "$300,000 * 10% / 2" },
+    "m1_fv": { val: "MzAwMDAw", label: "FV (Face Value)", hint: "Original Face Value of the Bond" },
+    "m1_pv": { val: "MzUxODc2", label: "PV (Issue Price)", hint: "Use PV formula: =PV(0.04, 30, -15000, -300000)" },
+
+    // Module 2 (FSE)
+    "m2_i_cash": { val: "MzUxODc2", label: "Issue: Cash Asset", hint: "Equals Issue Price" },
+    "m2_i_liab": { val: "MzUxODc2", label: "Issue: Liab", hint: "Equals Issue Price" },
+    "m2_j_cash": { val: "LTE1MDAw", label: "Jun 30: Cash", hint: "Negative value. PMT amount." },
+    "m2_j_liab": { val: "LTkyNQ==", label: "Jun 30: Liab Amort", hint: "Negative value. Int Exp - PMT" },
+    "m2_j_ec": { val: "LTE0MDc1", label: "Jun 30: Earned Capital", hint: "Negative value. Equals Interest Expense (Beg NBV * 4%)" },
+    "m2_j_exp": { val: "LTE0MDc1", label: "Jun 30: Expense", hint: "Negative value. Same as EC." },
+    "m2_d_cash": { val: "LTE1MDAw", label: "Dec 31: Cash", hint: "Negative value. PMT amount." },
+    "m2_d_liab": { val: "LTk2Mg==", label: "Dec 31: Liab Amort", hint: "Negative value. Int Exp - PMT" },
+    "m2_d_ec": { val: "LTE0MDM4", label: "Dec 31: Earned Capital", hint: "Negative value. Equals Interest Expense (New Beg NBV * 4%)" },
+    "m2_d_exp": { val: "LTE0MDM4", label: "Dec 31: Expense", hint: "Negative value. Same as EC." },
+
+    // Module 3 (Amort Table) - Rows 0, 1, and 2 Only
+    "m3_p0_end": { val: "MzUxODc2", label: "P0 End NBV", hint: "Equals Issue Price" },
+
+    "m3_p1_exp": { val: "MTQwNzU=", label: "P1 Int Exp", hint: "351,876 * 0.04" },
+    "m3_p1_amo": { val: "OTI1", label: "P1 Amort", hint: "15,000 - 14,075" },
+    "m3_p1_end": { val: "MzUwOTUx", label: "P1 End NBV", hint: "351,876 - 925" },
+
+    "m3_p2_exp": { val: "MTQwMzg=", label: "P2 Int Exp", hint: "350,951 * 0.04" },
+    "m3_p2_amo": { val: "OTYy", label: "P2 Amort", hint: "15,000 - 14,038" },
+    "m3_p2_end": { val: "MzQ5OTg5", label: "P2 End NBV", hint: "350,951 - 962" },
+
+    // Module 4 (Repurchase)
+    "m4_nper": { val: "MjA=", label: "Remaining NPER", hint: "10 years left * 2" },
+    "m4_rate": { val: "MC4wMg==", label: "New Mkt Rate", hint: "2% semiannual" },
+    "m4_market": { val: "NDQ3MTYz", label: "Market Value (Price)", hint: "=PV(0.02, 20, -15000, -300000)" },
+    "m4_book": { val: "MzQwNzcx", label: "Book Value", hint: "From end of Period 10 in Amortization Table" },
+    "m4_gain_loss": { val: "LTEwNjM5Mg==", label: "Gain / (Loss)", hint: "Negative value. Book Value - Market Value" }
+};
+
+// --- 2. COMPONENTS ---
+
+const Icon = ({ name, className }) => {
+    const ref = React.useRef(null);
+    React.useEffect(() => {
+        if (window.lucide && ref.current) {
+            const i = document.createElement('i');
+            i.setAttribute('data-lucide', name);
+            if (className) i.setAttribute('class', className);
+            ref.current.innerHTML = '';
+            ref.current.appendChild(i);
+            window.lucide.createIcons({ root: ref.current });
+        }
+    }, [name, className]);
+    return <span ref={ref} style={{ display: 'contents' }}></span>;
+};
+
+const Modal = ({ isOpen, title, children, onClose }) => {
+    if (!isOpen) return null;
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[100] p-4">
+            <div className="bg-white rounded-lg shadow-xl p-6 w-96 max-w-full m-auto relative">
+                <div className="flex justify-between items-center mb-4 border-b pb-2">
+                    <h3 className="font-bold text-lg">{title}</h3>
+                    <button onClick={onClose} className="text-gray-500 hover:text-gray-700 p-2">
+                        <Icon name="x" className="w-5 h-5" />
+                    </button>
+                </div>
+                {children}
+            </div>
+        </div>
+    );
+};
+
+// --- EXCEL PV SIMULATOR (Function Arguments Dialog) ---
+const ExcelPVSimulator = () => {
+    const [rate, setRate] = React.useState("");
+    const [nper, setNper] = React.useState("");
+    const [pmt, setPmt] = React.useState("");
+    const [fv, setFv] = React.useState("");
+
+    const calcPV = () => {
+        let r = parseFloat(rate.replace('%','')) / (rate.includes('%') ? 100 : 1);
+        let n = parseFloat(nper);
+        let p = parseFloat(pmt);
+        let f = parseFloat(fv);
+        
+        if(isNaN(r) || isNaN(n)) return null;
+        p = isNaN(p) ? 0 : p;
+        f = isNaN(f) ? 0 : f;
+
+        let pv;
+        if (r === 0) pv = -(p * n + f);
+        else pv = -(p / r * (1 - Math.pow(1 + r, -n)) + f * Math.pow(1 + r, -n));
+        return pv;
+    };
+
+    const pvVal = calcPV();
+    const displayVal = pvVal !== null 
+        ? pvVal.toLocaleString('en-US', {style:'currency', currency:'USD'}) 
+        : "---";
+
+    return (
+        <div className="bg-white border border-green-600 rounded-lg shadow-sm overflow-hidden mb-6 font-sans">
+            <div className="bg-green-600 text-white text-xs font-bold p-2 flex items-center gap-2">
+                <Icon name="table" className="w-4 h-4" /> Excel Function Arguments: PV
+            </div>
+            <div className="p-4 text-sm bg-green-50/20">
+                <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                    <div className="flex items-center justify-between col-span-2 md:col-span-1">
+                        <label className="font-semibold text-gray-700 w-12">Rate</label>
+                        <input type="text" value={rate} onChange={e=>setRate(e.target.value)} className="border border-gray-300 rounded p-1.5 w-full md:w-28 focus:border-green-500 outline-none text-right font-mono" placeholder="0.04" />
+                    </div>
+                    <div className="flex items-center justify-between col-span-2 md:col-span-1">
+                        <label className="font-semibold text-gray-700 w-12">Nper</label>
+                        <input type="number" value={nper} onChange={e=>setNper(e.target.value)} className="border border-gray-300 rounded p-1.5 w-full md:w-28 focus:border-green-500 outline-none text-right font-mono" placeholder="30" />
+                    </div>
+                    <div className="flex items-center justify-between col-span-2 md:col-span-1">
+                        <label className="font-semibold text-gray-700 w-12">Pmt</label>
+                        <input type="number" value={pmt} onChange={e=>setPmt(e.target.value)} className="border border-gray-300 rounded p-1.5 w-full md:w-28 focus:border-green-500 outline-none text-right font-mono" placeholder="-15000" />
+                    </div>
+                    <div className="flex items-center justify-between col-span-2 md:col-span-1">
+                        <label className="font-semibold text-gray-700 w-12">Fv</label>
+                        <input type="number" value={fv} onChange={e=>setFv(e.target.value)} className="border border-gray-300 rounded p-1.5 w-full md:w-28 focus:border-green-500 outline-none text-right font-mono" placeholder="-300000" />
+                    </div>
+                </div>
+                
+                <div className="border-t border-gray-200 mt-4 pt-3 flex justify-between items-center -mx-4 -mb-4 px-4 pb-4 bg-gray-50/80">
+                    <span className="text-gray-500 font-bold text-xs">= Formula result</span>
+                    <span className={`font-mono font-bold text-lg ${pvVal !== null ? 'text-green-800' : 'text-gray-400'}`}>
+                        {displayVal}
+                    </span>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const Calculator = ({ isOpen, onClose }) => {
+    const [input, setInput] = React.useState("");
+    const [result, setResult] = React.useState("");
+
+    React.useEffect(() => {
+        if (!isOpen) {
+            setInput("");
+            setResult("");
+        }
+    }, [isOpen]);
+
+    if (!isOpen) return null;
+
+    const safeEval = (exp) => {
+        if (!exp) return null;
+        const clean = exp.toString().replace(/,/g, "");
+        if (!/^[0-9+\-*/().\s]+$/.test(clean)) return null;
+        try {
+            const res = new Function("return " + clean)();
+            if (typeof res !== "number" || !isFinite(res)) return null;
+            return res;
+        } catch (e) {
+            return null;
+        }
+    };
+
+    const handleClick = (val) => {
+        if (val === "=") {
+            const res = safeEval(input);
+            if (res === null) {
+                setResult("Error");
+                return;
+            }
+            setResult(Number(res).toLocaleString(undefined, { maximumFractionDigits: 8 }));
+            setInput(String(res));
+            return;
+        }
+        if (val === "C") {
+            setInput("");
+            setResult("");
+            return;
+        }
+        if (val === "⌫") {
+            setInput((prev) => prev.slice(0, -1));
+            return;
+        }
+        setInput((prev) => prev + val);
+    };
+
+    const buttons = [
+        "C","⌫","(",")",
+        "7","8","9","/",
+        "4","5","6","*",
+        "1","2","3","-",
+        "0",".","=","+"
+    ];
+
+    return (
+        <>
+            <div className="fixed inset-0 bg-black/50 z-[240] md:hidden" onClick={onClose}></div>
+            <div className="fixed z-[250] bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden instructor-toolbar 
+                            top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-[320px] 
+                            md:top-20 md:left-auto md:right-4 md:translate-x-0 md:translate-y-0 md:w-64">
+                <div className="bg-slate-50 p-2 border-b flex justify-between items-center">
+                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-2">
+                        Calculator
+                    </span>
+                    <button
+                        onClick={onClose}
+                        className="p-2 hover:bg-slate-200 rounded text-slate-500"
+                        title="Close"
+                    >
+                        <Icon name="x" className="w-4 h-4" />
+                    </button>
+                </div>
+                <div className="p-4 bg-slate-900 text-right">
+                    <div className="text-slate-400 text-xs h-4 mb-1 truncate">
+                        {result !== "" ? input : ""}
+                    </div>
+                    <div className="text-white text-2xl font-mono font-bold truncate">
+                        {result !== "" ? result : (input || "0")}
+                    </div>
+                </div>
+                <div className="grid grid-cols-4 gap-px bg-slate-200 border-t border-slate-200">
+                    {buttons.map((btn) => (
+                        <button
+                            key={btn}
+                            onClick={() => handleClick(btn)}
+                            className={`p-4 md:p-3 text-lg md:text-sm font-bold transition-colors active:bg-opacity-80 touch-manipulation ${
+                                btn === "="
+                                    ? "bg-blue-600 text-white hover:bg-blue-700"
+                                    : ["C","⌫"].includes(btn)
+                                    ? "bg-red-50 text-red-600 hover:bg-red-100"
+                                    : ["/","*","-","+"].includes(btn)
+                                    ? "bg-slate-100 text-slate-800 hover:bg-slate-200"
+                                    : "bg-white text-slate-700 hover:bg-slate-50"
+                            }`}
+                        >
+                            {btn}
+                        </button>
+                    ))}
+                </div>
+            </div>
+        </>
+    );
+};
+
+const SmartInput = ({ id, value, onChange, isPct, correctValueEncoded, instructorMode, onFocus, isFocused, small = false }) => {
+    
+    // Evaluates math & basic Excel macros (like =PV)
+    const evaluateExpression = (expression) => {
+        if (!expression) return { val: "", valid: false };
+        let cleanExp = expression.toString().replace(/,/g, '');
+        
+        // Convert '50%' to 0.5
+        cleanExp = cleanExp.replace(/(\d+(\.\d+)?)%/g, (match, p1) => parseFloat(p1) / 100);
+        
+        // Intercept Excel =PV(rate, nper, pmt, fv)
+        cleanExp = cleanExp.replace(/(^|=)PV\(([^)]+)\)/gi, (match, prefix, args) => {
+             try {
+                const evaluatedArgs = new Function('return [' + args + ']')();
+                const [r, n, p, f] = evaluatedArgs.map(v => parseFloat(v)||0);
+                if (r===0) return -(p*n+f);
+                return -(p/r*(1-Math.pow(1+r,-n)) + f*Math.pow(1+r,-n));
+             } catch(e) { return match; }
+        });
+
+        if (!/^[\d\.\+\-\*\/\(\)\s]+$/.test(cleanExp)) return { val: expression, valid: false };
+        try {
+            const result = new Function('return ' + cleanExp)();
+            return { val: parseFloat(result.toFixed(4)), valid: true };
+        } catch (e) { return { val: expression, valid: false }; }
+    };
+
+    const handleChange = (e) => {
+        onChange(id, e.target.value);
+    };
+
+    const handleBlur = (e) => {
+        const val = e.target.value;
+        const { val: calculated, valid } = evaluateExpression(val);
+        if (valid && calculated != val) {
+            onChange(id, calculated);
+        }
+    };
+
+    let status = "neutral";
+    const correctValue = d(correctValueEncoded);
+
+    if (value !== "" && value !== undefined && correctValue !== undefined) {
+        const numVal = parseFloat(value);
+        if (!isNaN(numVal)) {
+            const margin = Math.abs(correctValue * 0.02); // 2% Error Margin
+            let isCorrect = Math.abs(numVal - correctValue) <= margin;
+
+            if (!isCorrect) {
+                const asPercentDecimal = numVal / 100;
+                if (Math.abs(asPercentDecimal - correctValue) <= margin) {
+                    isCorrect = true;
+                }
+            }
+
+            if (!isCorrect) {
+                const asWholeNumber = numVal * 100;
+                if (Math.abs(asWholeNumber - correctValue) <= (Math.abs(correctValue * 0.02))) {
+                    isCorrect = true;
+                }
+            }
+            
+            status = isCorrect ? "correct" : "incorrect";
+        }
+    }
+
+    const borderClass = isFocused 
+        ? "border-blue-500 ring-2 ring-blue-200" 
+        : (status === "correct" ? "border-green-500 bg-green-50 text-green-900 font-bold" : (status === "incorrect" ? "border-red-500 bg-red-50" : "border-gray-300"));
+
+    const paddingClass = small ? "p-1.5 text-sm" : "p-3";
+
+    return (
+        <div className="relative w-full">
+            <input
+                type="text"
+                id={id}
+                value={value || ""}
+                onFocus={() => onFocus(id)}
+                onBlur={handleBlur}
+                onChange={handleChange}
+                onKeyDown={(e) => e.key === 'Enter' && e.target.blur()}
+                className={`w-full ${paddingClass} border rounded shadow-sm transition-all outline-none font-mono ${borderClass}`}
+                placeholder={isPct ? "0.0%" : "0"}
+                inputMode="decimal" 
+            />
+            {status === "correct" && !small && (
+                <div className="absolute right-3 top-3.5 text-green-600 flex items-center gap-1 text-sm font-bold pointer-events-none">
+                    <Icon name="check" className="w-5 h-5" />
+                </div>
+            )}
+            {status === "correct" && small && (
+                <div className="absolute right-1 top-1.5 text-green-600 flex items-center gap-1 text-xs font-bold pointer-events-none">
+                    <Icon name="check" className="w-4 h-4" />
+                </div>
+            )}
+             {instructorMode && correctValue !== undefined && (
+                <div className="mt-1 p-1 bg-purple-100 border border-purple-300 text-purple-900 text-xs font-bold inline-block rounded shadow-sm absolute -bottom-6 left-0 z-10 whitespace-nowrap">
+                    Key: {isPct ? (correctValue * 100).toFixed(2) + "%" : correctValue}
+                </div>
+            )}
+        </div>
+    );
+};
+
+const FieldWithHint = ({ id, label, isPct, answers, updateAnswer, correctValueEncoded, instructorMode, onFocus, isFocused, linkedValue, className = "mb-4", small = false }) => {
+    const [showHint, setShowHint] = React.useState(false);
+    const hint = _DATA_MATRIX[id]?.hint;
+    const displayValue = answers[id] !== undefined ? answers[id] : (linkedValue || "");
+    const handleChange = (fieldId, val) => { updateAnswer(fieldId, val); };
+
+    return (
+        <div className={`flex flex-col ${className}`}>
+             {label && <div className="flex items-center gap-2 mb-1">
+                <label className={`${small ? 'text-xs' : 'text-sm'} font-semibold text-gray-700`}>{label}</label>
+                {hint && (
+                    <button 
+                        onClick={() => setShowHint(!showHint)}
+                        className={`text-gray-400 hover:text-blue-600 transition-colors p-1 ${showHint ? 'text-blue-600' : ''}`}
+                        title="Show Hint"
+                    >
+                        <Icon name="help-circle" className="w-3 h-3 md:w-4 md:h-4" />
+                    </button>
+                )}
+            </div>}
+            {showHint && (
+                <div className="text-xs text-blue-800 bg-blue-50 p-2 rounded mb-2 border border-blue-100 italic">
+                    💡 {hint}
+                </div>
+            )}
+            <SmartInput 
+                id={id}
+                value={displayValue}
+                onChange={handleChange}
+                correctValueEncoded={correctValueEncoded}
+                isPct={isPct}
+                instructorMode={instructorMode}
+                onFocus={onFocus}
+                isFocused={isFocused}
+                small={small}
+            />
+        </div>
+    );
+};
+
+const ReferenceItem = ({ data, onNumberClick }) => {
+    const renderCell = (content) => {
+        const numRegex = /^[\$]?[\(\-]?[0-9,]+(\.[0-9]+)?[\)]?%?$/;
+        if (numRegex.test(content) && content !== "-" && content !== "N/A") {
+            return (
+                <span 
+                    className="clickable-number px-1" 
+                    title="Tap to insert"
+                    onMouseDown={(e) => {
+                        e.preventDefault(); 
+                        let clean = content.replace(/[^0-9\.-]/g, '');
+                        if (content.includes('(')) clean = '-' + clean;
+                        if (content.includes('%')) clean = (parseFloat(clean)/100).toString();
+                        onNumberClick(clean);
+                    }}
+                >
+                    {content}
+                </span>
+            );
+        }
+        return content;
+    };
+
+    if (data.type === 'key-value') {
+         return (
+            <div className="mb-4 bg-white border border-gray-200 rounded shadow-sm">
+                {data.title && <div className="p-2 bg-gray-50 border-b text-xs font-bold text-gray-700">{data.title}</div>}
+                <div className="p-2 grid grid-cols-2 gap-2 text-xs">
+                    {data.data.map((pair, idx) => (
+                        <React.Fragment key={idx}>
+                            <div className="text-gray-500">{pair[0]}:</div>
+                            <div className="font-mono text-gray-800 text-right">{renderCell(pair[1])}</div>
+                        </React.Fragment>
+                    ))}
+                </div>
+            </div>
+         );
+    }
+    if (data.type === 'sections') {
+        return (
+            <div className="space-y-2">
+                {data.sections.map((sec, idx) => <ReferenceItem key={idx} data={sec} onNumberClick={onNumberClick} />)}
+            </div>
+        );
+    }
+    return null;
+};
+
+const ConceptCheck = ({ id, questions, instructorMode, answers, updateAnswer }) => {
+    const handleSelect = (qId, option) => {
+        if (answers[qId] || instructorMode) return;
+        updateAnswer(qId, option);
+    };
+
+    return (
+        <div className="space-y-6">
+            {questions.map((q, idx) => {
+                const userSelection = answers[q.id];
+                const isAnswered = !!userSelection;
+                
+                return (
+                    <div key={q.id} className="bg-white p-4 rounded-lg shadow border border-gray-200">
+                        <div className="font-bold text-gray-800 mb-3 flex gap-2">
+                            <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-sm shrink-0 h-fit">Q{idx+1}</span>
+                            <span>{q.text}</span>
+                        </div>
+                        <div className="space-y-2 mb-4">
+                            {q.options.map(opt => {
+                                let btnClass = "w-full text-left p-3 rounded text-sm transition-all border active:scale-[0.99] touch-manipulation ";
+                                
+                                if (instructorMode) {
+                                    if (opt === q.answer) {
+                                        btnClass += "bg-green-100 border-green-500 text-green-900 font-bold shadow-sm ring-2 ring-green-500/50";
+                                    } else {
+                                        btnClass += "border-gray-100 text-gray-400 opacity-60";
+                                    }
+                                } else {
+                                    if (isAnswered) {
+                                        if (opt === userSelection) {
+                                            if (opt === q.answer) {
+                                                btnClass += "bg-green-100 border-green-500 text-green-900 font-bold";
+                                            } else {
+                                                btnClass += "bg-red-100 border-red-500 text-red-900 font-bold";
+                                            }
+                                        } else {
+                                            btnClass += "border-gray-200 text-gray-400 opacity-50 cursor-not-allowed";
+                                        }
+                                    } else {
+                                        btnClass += "hover:bg-gray-50 border-gray-200 text-gray-600";
+                                    }
+                                }
+
+                                return (
+                                    <button
+                                        key={opt}
+                                        onClick={() => handleSelect(q.id, opt)}
+                                        disabled={isAnswered || instructorMode}
+                                        className={btnClass}
+                                    >
+                                        {opt}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                        {instructorMode && (
+                            <div className="mt-3 bg-purple-50 border border-purple-200 p-3 rounded text-sm text-purple-900">
+                                <div className="font-bold flex items-center gap-2 mb-1">
+                                    <Icon name="graduation-cap" className="w-4 h-4" /> 
+                                    Answer & Explanation
+                                </div>
+                                <p className="opacity-90">{q.explanation}</p>
+                            </div>
+                        )}
+                    </div>
+                );
+            })}
+        </div>
+    );
+};
+
+const App = () => {
+    const [activeModule, setActiveModule] = React.useState('m1');
+    const [answers, setAnswers] = React.useState({});
+    const [activeInputId, setActiveInputId] = React.useState(null);
+    const [instructorMode, setInstructorMode] = React.useState(false);
+    const [showAuthModal, setShowAuthModal] = React.useState(false);
+    const [showClearModal, setShowClearModal] = React.useState(false);
+    const [passwordInput, setPasswordInput] = React.useState("");
+    const [navWidth, setNavWidth] = React.useState(256);
+    const [showCalculator, setShowCalculator] = React.useState(false);
+
+    const isResizing = React.useRef(false);
+
+    // Dynamic generation of 30-period amortization table ending exactly at par ($300,000)
+    const generatedAmortRows = React.useMemo(() => {
+        const rows = [];
+        let currentNbv = 351876; // Start Issue Price
+        for (let p = 1; p <= 30; p++) {
+            let pmt = 15000;
+            let exp = Math.round(currentNbv * 0.04);
+            let amo = pmt - exp;
+            
+            // Adjust final period precisely to face value 
+            if (p === 30) {
+                amo = currentNbv - 300000;
+                exp = pmt - amo;
+            }
+            
+            currentNbv -= amo;
+            rows.push({ p, pmt, exp, amo, end: currentNbv });
+        }
+        return rows;
+    }, []);
+
+    const updateAnswer = (id, val) => { setAnswers(prev => ({ ...prev, [id]: val })); };
+    const handleInputFocus = (id) => { setActiveInputId(id); };
+
+    // --- SIDEBAR RESIZING (Desktop Only) ---
+    const startResizing = React.useCallback(() => {
+        isResizing.current = true;
+        document.body.style.cursor = 'col-resize';
+    }, []);
+
+    const stopResizing = React.useCallback(() => {
+        isResizing.current = false;
+        document.body.style.cursor = 'default';
+    }, []);
+
+    const resize = React.useCallback((e) => {
+        if (!isResizing.current) return;
+        const newWidth = e.clientX;
+        if (newWidth > 150 && newWidth < 500) {
+            setNavWidth(newWidth);
+        }
+    }, []);
+
+    React.useEffect(() => {
+        window.addEventListener('mousemove', resize);
+        window.addEventListener('mouseup', stopResizing);
+        return () => {
+            window.removeEventListener('mousemove', resize);
+            window.removeEventListener('mouseup', stopResizing);
+        };
+    }, [resize, stopResizing]);
+
+    const handleNumberClick = (val) => {
+        if (!activeInputId) return;
+        setAnswers(prev => {
+            const current = prev[activeInputId] ? prev[activeInputId].toString() : "";
+            const operatorRegex = /[\+\-\*\/\(]$/;
+            let newValue;
+            if (current === "" || operatorRegex.test(current.trim())) {
+                newValue = current + val;
+            } else {
+                newValue = val; 
+            }
+            return { ...prev, [activeInputId]: newValue };
+        });
+        setTimeout(() => {
+            const el = document.getElementById(activeInputId);
+            if (el) el.focus();
+        }, 50);
+    };
+
+    const handleAuth = () => {
+        if (btoa(passwordInput) === "cmV2aWV3") {
+            setInstructorMode(true);
+            setShowAuthModal(false);
+            setPasswordInput("");
+        } else alert("Invalid Password");
+    };
+
+    const autoFillAll = () => {
+        const filled = {};
+        Object.keys(_DATA_MATRIX).forEach(key => { filled[key] = d(_DATA_MATRIX[key].val); });
+        setAnswers(filled);
+    };
+
+    const performClear = () => {
+        setAnswers({});
+        setInstructorMode(false);
+        setShowClearModal(false);
+    };
+    
+    const renderModuleContent = () => {
+        const moduleType = MODULES.find(m => m.id === activeModule)?.type;
+
+        if (moduleType === 'concept') {
+            return (
+                <div className="h-full overflow-y-auto custom-scrollbar p-4 lg:pr-8">
+                    <div className="max-w-4xl mx-auto pb-20">
+                        <div className="flex items-center gap-2 mb-6 p-4 bg-indigo-50 border border-indigo-200 rounded-lg text-indigo-900">
+                            <Icon name="brain-circuit" className="w-6 h-6" />
+                            <div>
+                                <h2 className="font-bold text-lg">{MODULES.find(m => m.id === activeModule).title}</h2>
+                                <p className="text-sm opacity-80">Test your understanding of the core concepts.</p>
+                            </div>
+                        </div>
+                        <ConceptCheck 
+                            id={activeModule} 
+                            questions={CONCEPT_QUESTIONS[activeModule]} 
+                            instructorMode={instructorMode} 
+                            answers={answers}
+                            updateAnswer={updateAnswer}
+                        />
+                    </div>
+                </div>
+            );
+        }
+
+        const refs = MODULE_DATA[activeModule];
+        
+        return (
+            <div className="flex flex-col lg:flex-row gap-6 h-full relative">
+                <div className="flex-1 overflow-y-auto custom-scrollbar lg:pr-4">
+                    <h2 className="text-xl font-bold mb-4 text-blue-800 border-b pb-2 flex items-center gap-2 sticky top-0 bg-gray-50 pt-2 z-10">
+                        <Icon name="pen-tool" className="w-5 h-5" /> 
+                        {MODULES.find(m => m.id === activeModule)?.title}
+                    </h2>
+                    
+                    <div className="space-y-6 pb-32 lg:pb-20">
+                    
+                    {/* Module 1: Compute Issue Price */}
+                    {activeModule === 'm1' && (
+                        <div className="bg-white p-4 md:p-6 rounded-lg shadow border border-gray-200">
+                            <h3 className="text-lg font-bold text-gray-800 mb-4">Confirm Issue Price</h3>
+                            <p className="text-sm text-gray-600 mb-6">
+                                Assume that on January 1, Comcast issues $300,000 of 15-year, 10% bonds payable yielding an effective semiannual interest rate of 4%. Interest is payable semiannually on June 30 and December 31.
+                                Show computations to confirm the issue price of $351,876.
+                            </p>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                                <div>
+                                    <h4 className="font-bold text-gray-700 mb-4 border-b pb-1">Calculation Variables</h4>
+                                    {renderInput("m1_rate", "Discount Rate per period (RATE)", true)}
+                                    {renderInput("m1_nper", "Number of periods (NPER)")}
+                                    {renderInput("m1_pmt", "Interest payment per period (PMT)")}
+                                    {renderInput("m1_fv", "Face value at maturity (FV)")}
+                                </div>
+                                <div className="flex flex-col">
+                                    <ExcelPVSimulator />
+                                    
+                                    <div className="bg-blue-50 p-4 rounded border border-blue-100 flex flex-col justify-center">
+                                        <h4 className="font-bold text-blue-800 mb-2">Final Answer</h4>
+                                        {renderInput("m1_pv", "Calculated Issue Price (PV)")}
+                                        <p className="text-xs text-blue-600 mt-2">
+                                            * Hint: You can use the simulator above, or type <b>=PV(rate, nper, pmt, fv)</b> directly into the input!
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Module 2: Financial Statement Effects */}
+                    {activeModule === 'm2' && (
+                        <div className="bg-white p-4 md:p-6 rounded-lg shadow border border-gray-200">
+                            <h3 className="font-bold text-blue-800 border-b pb-2 mb-4">Financial Statement Effects Template</h3>
+                            <p className="text-sm text-gray-600 mb-4">
+                                Complete Comcast's financial statement effects template for the bond issuance and the first two semiannual interest payments.
+                            </p>
+                            
+                            <div className="overflow-x-auto">
+                                <div className="min-w-[800px]">
+                                    <table className="w-full text-sm border-collapse border border-gray-300">
+                                        <thead className="bg-gray-100">
+                                            <tr>
+                                                <th className="border border-gray-300 p-2" rowSpan="2">Transaction / Date</th>
+                                                <th className="border border-gray-300 p-2" colSpan="2">Assets</th>
+                                                <th className="border border-gray-300 p-2 text-purple-700 bg-purple-50" rowSpan="2">Liabilities</th>
+                                                <th className="border border-gray-300 p-2" colSpan="2">Equity</th>
+                                                <th className="border border-gray-300 p-2 text-green-700 bg-green-50" rowSpan="2">Revenues</th>
+                                                <th className="border border-gray-300 p-2 text-red-700 bg-red-50" rowSpan="2">Expenses</th>
+                                            </tr>
+                                            <tr>
+                                                <th className="border border-gray-300 p-2">Cash</th>
+                                                <th className="border border-gray-300 p-2">Noncash</th>
+                                                <th className="border border-gray-300 p-2">Contrib. Cap.</th>
+                                                <th className="border border-gray-300 p-2 text-blue-700 bg-blue-50">Earned Cap.</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {/* Issuance */}
+                                            <tr>
+                                                <td className="border border-gray-300 p-2 font-medium">Jan 1: Issue Bond</td>
+                                                <td className="border border-gray-300 p-2">{renderInput("m2_i_cash", null, false, null, "mb-0", true)}</td>
+                                                <td className="border border-gray-300 p-2 text-center text-gray-400">-</td>
+                                                <td className="border border-gray-300 p-2 bg-purple-50/30">{renderInput("m2_i_liab", null, false, null, "mb-0", true)}</td>
+                                                <td className="border border-gray-300 p-2 text-center text-gray-400">-</td>
+                                                <td className="border border-gray-300 p-2 bg-blue-50/30 text-center text-gray-400">-</td>
+                                                <td className="border border-gray-300 p-2 bg-green-50/30 text-center text-gray-400">-</td>
+                                                <td className="border border-gray-300 p-2 bg-red-50/30 text-center text-gray-400">-</td>
+                                            </tr>
+                                            {/* Jun 30 */}
+                                            <tr>
+                                                <td className="border border-gray-300 p-2 font-medium">Jun 30: Pay Interest #1</td>
+                                                <td className="border border-gray-300 p-2">{renderInput("m2_j_cash", null, false, null, "mb-0", true)}</td>
+                                                <td className="border border-gray-300 p-2 text-center text-gray-400">-</td>
+                                                <td className="border border-gray-300 p-2 bg-purple-50/30">{renderInput("m2_j_liab", null, false, null, "mb-0", true)}</td>
+                                                <td className="border border-gray-300 p-2 text-center text-gray-400">-</td>
+                                                <td className="border border-gray-300 p-2 bg-blue-50/30">{renderInput("m2_j_ec", null, false, null, "mb-0", true)}</td>
+                                                <td className="border border-gray-300 p-2 bg-green-50/30 text-center text-gray-400">-</td>
+                                                <td className="border border-gray-300 p-2 bg-red-50/30">{renderInput("m2_j_exp", null, false, null, "mb-0", true)}</td>
+                                            </tr>
+                                            {/* Dec 31 */}
+                                            <tr>
+                                                <td className="border border-gray-300 p-2 font-medium">Dec 31: Pay Interest #2</td>
+                                                <td className="border border-gray-300 p-2">{renderInput("m2_d_cash", null, false, null, "mb-0", true)}</td>
+                                                <td className="border border-gray-300 p-2 text-center text-gray-400">-</td>
+                                                <td className="border border-gray-300 p-2 bg-purple-50/30">{renderInput("m2_d_liab", null, false, null, "mb-0", true)}</td>
+                                                <td className="border border-gray-300 p-2 text-center text-gray-400">-</td>
+                                                <td className="border border-gray-300 p-2 bg-blue-50/30">{renderInput("m2_d_ec", null, false, null, "mb-0", true)}</td>
+                                                <td className="border border-gray-300 p-2 bg-green-50/30 text-center text-gray-400">-</td>
+                                                <td className="border border-gray-300 p-2 bg-red-50/30">{renderInput("m2_d_exp", null, false, null, "mb-0", true)}</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <p className="text-xs text-gray-500 mt-2 italic">* Use negative signs where applicable for decreases.</p>
+                        </div>
+                    )}
+
+                    {/* Module 3: Amortization Table */}
+                    {activeModule === 'm3' && (
+                        <div className="bg-white p-4 md:p-6 rounded-lg shadow border border-gray-200">
+                            <h3 className="font-bold text-blue-800 border-b pb-2 mb-4">Amortization Table (15 Years / 30 Periods)</h3>
+                            <p className="text-sm text-gray-600 mb-4">
+                                Fill out the inputs for the first 3 rows (Periods 0, 1, and 2). The rest of the 30-period table has been simulated for you, tapering off to exactly face value ($300,000) at maturity.
+                            </p>
+                            
+                            <div className="overflow-x-auto max-h-[600px] overflow-y-auto custom-scrollbar border border-gray-300">
+                                <div className="min-w-[800px]">
+                                    <table className="w-full text-sm border-collapse relative">
+                                        <thead className="bg-gray-100 sticky top-0 z-10 shadow-sm">
+                                            <tr>
+                                                <th className="border border-gray-300 p-2 w-12 text-center">Period</th>
+                                                <th className="border border-gray-300 p-2 w-32 text-center">Interest Paid</th>
+                                                <th className="border border-gray-300 p-2 w-32 text-center text-red-700 bg-red-50">Interest Expense</th>
+                                                <th className="border border-gray-300 p-2 w-32 text-center text-purple-700 bg-purple-50">Amortization</th>
+                                                <th className="border border-gray-300 p-2 w-32 text-center text-blue-700 bg-blue-50">Ending NBV</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {/* Period 0 (Input) */}
+                                            <tr>
+                                                <td className="border border-gray-300 p-2 text-center font-bold">0</td>
+                                                <td className="border border-gray-300 p-2 text-center text-gray-400">-</td>
+                                                <td className="border border-gray-300 p-2 text-center bg-red-50/30 text-gray-400">-</td>
+                                                <td className="border border-gray-300 p-2 text-center bg-purple-50/30 text-gray-400">-</td>
+                                                <td className="border border-gray-300 p-1 bg-blue-50/30">
+                                                    {renderInput("m3_p0_end", null, false, null, "mb-0", true)}
+                                                </td>
+                                            </tr>
+                                            
+                                            {/* Periods 1 & 2 (Inputs) */}
+                                            {[1,2].map(p => (
+                                                <tr key={`p${p}`} className="hover:bg-gray-50 bg-yellow-50/20">
+                                                    <td className="border border-gray-300 p-2 text-center font-bold">{p}</td>
+                                                    <td className="border border-gray-300 p-2 text-center font-mono">15,000</td>
+                                                    <td className="border border-gray-300 p-1 bg-red-50/30">{renderInput(`m3_p${p}_exp`, null, false, null, "mb-0", true)}</td>
+                                                    <td className="border border-gray-300 p-1 bg-purple-50/30">{renderInput(`m3_p${p}_amo`, null, false, null, "mb-0", true)}</td>
+                                                    <td className="border border-gray-300 p-1 bg-blue-50/30">{renderInput(`m3_p${p}_end`, null, false, null, "mb-0", true)}</td>
+                                                </tr>
+                                            ))}
+
+                                            {/* Periods 3-30 (Simulated / Read-only) */}
+                                            {generatedAmortRows.slice(2).map(row => (
+                                                <tr key={`p${row.p}`} className="hover:bg-gray-50 text-gray-600">
+                                                    <td className="border border-gray-300 p-2 text-center">{row.p}</td>
+                                                    <td className="border border-gray-300 p-2 text-center font-mono">{row.pmt.toLocaleString()}</td>
+                                                    <td className="border border-gray-300 p-2 text-center font-mono bg-red-50/10">{row.exp.toLocaleString()}</td>
+                                                    <td className="border border-gray-300 p-2 text-center font-mono bg-purple-50/10">{row.amo.toLocaleString()}</td>
+                                                    <td className={`border border-gray-300 p-2 text-center font-mono bg-blue-50/10 ${row.p===30 ? 'font-bold text-blue-800' : ''}`}>
+                                                        {row.end.toLocaleString()}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Module 4: Repurchase */}
+                    {activeModule === 'm4' && (
+                        <div className="bg-white p-4 md:p-6 rounded-lg shadow border border-gray-200">
+                            <h3 className="font-bold text-blue-800 border-b pb-2 mb-4">Repurchase at End of Year 5</h3>
+                            <p className="text-sm text-gray-600 mb-6">
+                                Assume that at the end of year 5, Comcast repurchases the bonds on the open market. The effective semiannual interest rate has fallen to 2%. What will Comcast pay to repurchase these bonds? Determine any gain or loss on the repurchase transaction.
+                            </p>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                <div>
+                                    <h4 className="font-bold text-gray-700 mb-4 border-b pb-1">1. Market Value (Repurchase Price)</h4>
+                                    {renderInput("m4_nper", "Remaining Periods")}
+                                    {renderInput("m4_rate", "New Market Rate (Semiannual)", true)}
+                                    
+                                    <div className="mt-6">
+                                        <ExcelPVSimulator />
+                                    </div>
+
+                                    <div className="bg-blue-50 p-3 rounded border border-blue-200 mt-2">
+                                        {renderInput("m4_market", "Market Value of Bond", false, null, "mb-0")}
+                                        <p className="text-xs text-blue-600 mt-2">
+                                            * Calculate using the PV tool or type <b>=PV(...)</b>
+                                        </p>
+                                    </div>
+                                </div>
+                                <div>
+                                    <h4 className="font-bold text-gray-700 mb-4 border-b pb-1">2. Gain or Loss</h4>
+                                    {renderInput("m4_book", "Book Value of Bond (End Year 5)")}
+                                    <div className="bg-gray-50 p-3 rounded border border-gray-200 mt-2">
+                                        {renderInput("m4_gain_loss", "Gain / (Loss) on Repurchase", false, null, "mb-0")}
+                                        <p className="text-xs text-gray-500 mt-1 italic">* Use a negative sign for a Loss.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    </div>
+
+                    {/* Instructor Answer Key Table */}
+                    {instructorMode && (
+                        <div className="mt-12 border-t-2 border-dashed border-purple-300 pt-8 mb-32">
+                            <h3 className="text-lg font-bold text-purple-900 mb-4 flex items-center gap-2">
+                                <Icon name="key" className="w-5 h-5" /> Master Answer Key
+                            </h3>
+                            <div className="bg-white rounded-lg shadow border border-purple-200 overflow-hidden">
+                                <div className="overflow-x-auto">
+                                <table className="w-full text-sm text-left">
+                                    <thead className="bg-purple-50 text-purple-900">
+                                        <tr>
+                                            <th className="p-3 border-b">Label</th>
+                                            <th className="p-3 border-b">Correct Value</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {Object.entries(_DATA_MATRIX).map(([key, data]) => (
+                                            <tr key={key} className="border-b hover:bg-purple-50">
+                                                <td className="p-3 font-medium">{data.label}</td>
+                                                <td className="p-3 font-mono font-bold text-purple-700">
+                                                    {data.isPct ? (d(data.val) * 100).toFixed(2) + "%" : d(data.val)}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                {/* Right Panel: Data Source */}
+                <div className="lg:w-80 flex-shrink-0 flex flex-col mb-20 lg:mb-0">
+                    <div className="bg-slate-100 p-4 rounded-lg border border-slate-200 h-full overflow-y-auto custom-scrollbar sticky top-4">
+                        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                            <Icon name="database" className="w-4 h-4" /> Data Source
+                        </h3>
+                        {refs ? refs.map((ref, i) => (
+                            <ReferenceItem key={i} data={ref} onNumberClick={handleNumberClick} />
+                        )) : <div className="text-sm text-gray-500 italic">No reference data needed for this section.</div>}
+                        
+                        <div className="mt-4 p-3 bg-blue-50 text-blue-800 text-xs rounded border border-blue-100 flex gap-2">
+                            <Icon name="mouse-pointer-click" className="w-4 h-4 shrink-0" />
+                            <span>Tap any number in the tables to insert it into your selected input field.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    const renderInput = (id, label, isPct = false, linkedValue = null, customClass = "mb-4", small = false) => (
+        <FieldWithHint 
+            key={id} id={id} label={label} isPct={isPct} 
+            answers={answers} updateAnswer={updateAnswer} 
+            correctValueEncoded={_DATA_MATRIX[id]?.val} instructorMode={instructorMode}
+            onFocus={handleInputFocus} isFocused={activeInputId === id}
+            linkedValue={linkedValue ? answers[linkedValue] : null}
+            className={customClass} small={small}
+        />
+    );
+
+    return (
+        <div className="flex flex-col h-full">
+            <header className="bg-slate-900 text-white p-3 md:p-4 flex justify-between items-center shadow-md sticky-header z-50 shrink-0">
+                <div className="flex items-center gap-3">
+                    <div className="p-2 bg-blue-600 rounded-lg"><Icon name="bar-chart-3" className="w-6 h-6 text-white" /></div>
+                    <div>
+                        <h1 className="text-lg md:text-xl font-bold tracking-tight">Comcast Bond Sim</h1>
+                    </div>
+                </div>
+                <div className="flex items-center gap-2 md:gap-3">
+                    <input type="text" placeholder="Your Name" className="bg-slate-800 border-slate-700 px-3 py-1 rounded text-sm text-white w-28 md:w-auto outline-none focus:ring-1 focus:ring-blue-500" />
+                    <button
+                        onClick={() => setShowCalculator(prev => !prev)}
+                        className="bg-white/10 hover:bg-white/20 text-white px-3 py-2 rounded text-sm font-medium flex items-center gap-2 transition"
+                        title="Open Calculator"
+                    >
+                        <Icon name="calculator" className="w-4 h-4" />
+                        <span className="hidden md:inline">Calc</span>
+                    </button>
+                    <button 
+                        onClick={() => instructorMode ? setInstructorMode(false) : setShowAuthModal(true)}
+                        className={`opacity-20 hover:opacity-100 flex items-center gap-2 px-3 py-2 rounded text-sm font-medium transition-all ${instructorMode ? 'bg-purple-600 text-white opacity-100' : 'text-white'}`}
+                    >
+                        <Icon name={instructorMode ? "unlock" : "lock"} className="w-4 h-4" />
+                    </button>
+                </div>
+            </header>
+
+            {/* Sticky Instructor Toolbar */}
+            {instructorMode && (
+                <div className="bg-purple-700 text-white p-2 shadow-md flex items-center justify-between z-40 instructor-toolbar shrink-0 overflow-x-auto">
+                    <div className="flex items-center gap-2 md:gap-3 px-2 md:px-4 shrink-0">
+                        <span className="bg-white/20 p-1.5 rounded"><Icon name="graduation-cap" className="w-4 h-4"/></span>
+                        <span className="font-bold tracking-wide text-xs md:text-sm">INSTRUCTOR</span>
+                    </div>
+                    <div className="flex gap-2 px-2 md:px-4 shrink-0">
+                        <button onClick={autoFillAll} className="flex items-center gap-1 md:gap-2 px-2 md:px-3 py-1 bg-green-500 hover:bg-green-600 rounded text-xs md:text-sm font-bold transition">
+                            <Icon name="wand-2" className="w-3 h-3 md:w-4 md:h-4" /> Fill
+                        </button>
+                        <button onClick={() => setShowClearModal(true)} className="flex items-center gap-1 md:gap-2 px-2 md:px-3 py-1 bg-red-500 hover:bg-red-600 rounded text-xs md:text-sm font-bold transition">
+                            <Icon name="log-out" className="w-3 h-3 md:w-4 md:h-4" /> Clear
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            <div className="flex flex-col md:flex-row flex-1 overflow-hidden relative">
+                
+                {/* Mobile Dropdown Nav */}
+                <div className="md:hidden bg-white border-b p-3 shrink-0">
+                     <select 
+                        value={activeModule} 
+                        onChange={(e) => setActiveModule(e.target.value)}
+                        className="w-full p-2 border border-gray-300 rounded bg-gray-50 font-medium text-slate-800"
+                    >
+                        {MODULES.map(mod => <option key={mod.id} value={mod.id}>{mod.reviewId}: {mod.title}</option>)}
+                    </select>
+                </div>
+
+                {/* Desktop Sidebar Nav */}
+                <nav 
+                    className="bg-white border-r border-gray-200 overflow-y-auto custom-scrollbar flex-shrink-0 hidden md:block relative"
+                    style={{ width: navWidth }}
+                >
+                    <div className="p-4 border-b bg-gray-50 text-xs font-bold text-gray-500 uppercase">Progression</div>
+                    <div className="p-2 space-y-1">
+                        {MODULES.map(mod => (
+                            <button
+                                key={mod.id}
+                                onClick={() => setActiveModule(mod.id)}
+                                className={`w-full text-left px-3 py-3 rounded-md text-sm font-medium flex items-center gap-3 transition-all ${
+                                    activeModule === mod.id 
+                                    ? "bg-blue-50 text-blue-700 border border-blue-200 shadow-sm" 
+                                    : "text-gray-600 hover:bg-gray-100"
+                                }`}
+                            >
+                                <span className={`w-6 h-6 flex items-center justify-center rounded text-xs font-bold ${mod.type === 'concept' ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-500'}`}>
+                                    {mod.type === 'concept' ? '?' : mod.reviewId.split(' ')[1]}
+                                </span>
+                                <span className="truncate">{mod.title}</span>
+                            </button>
+                        ))}
+                    </div>
+                    {/* Resizer Handle */}
+                    <div className="resizer-handle" onMouseDown={startResizing}></div>
+                </nav>
+
+                <main className="flex-1 overflow-hidden relative bg-gray-50 p-3 md:p-6">
+                    {renderModuleContent()}
+                </main>
+            </div>
+            
+            {/* Calculator Widget */}
+            <Calculator 
+                isOpen={showCalculator} 
+                onClose={() => setShowCalculator(false)} 
+            />
+
+            {/* Login Modal */}
+            <Modal isOpen={showAuthModal} title="System Access" onClose={() => setShowAuthModal(false)}>
+                <div className="space-y-4">
+                    <input 
+                        type="password" 
+                        className="w-full border p-2 rounded outline-none focus:border-purple-500"
+                        placeholder="Access Code (Hint: review)"
+                        value={passwordInput}
+                        onChange={(e) => setPasswordInput(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleAuth()}
+                    />
+                    <button 
+                        onClick={handleAuth}
+                        className="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 rounded font-medium"
+                    >
+                        Unlock
+                    </button>
+                </div>
+            </Modal>
+
+            {/* Clear Confirmation Modal */}
+            <Modal isOpen={showClearModal} title="Clear All & Exit?" onClose={() => setShowClearModal(false)}>
+                <div className="space-y-4">
+                    <div className="flex items-center gap-3 text-red-600 mb-2">
+                        <Icon name="alert-triangle" className="w-6 h-6" />
+                        <h4 className="font-bold">Warning</h4>
+                    </div>
+                    <p className="text-sm text-gray-600">This will remove all student answers and lock Instructor Mode. This action cannot be undone.</p>
+                    <div className="flex justify-end gap-3 mt-4">
+                        <button onClick={() => setShowClearModal(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">Cancel</button>
+                        <button onClick={performClear} className="px-4 py-2 bg-red-600 text-white hover:bg-red-700 rounded font-medium">Confirm Clear</button>
+                    </div>
+                </div>
+            </Modal>
+        </div>
+    );
+};
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
+</script>
+</body>
+</html>
