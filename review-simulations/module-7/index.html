@@ -19,27 +19,31 @@
 <script src="https://unpkg.com/lucide@latest"></script>
 
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap');
     
     body {
         font-family: 'Inter', sans-serif;
         overscroll-behavior: none; 
     }
     
-    /* Custom scrollbar */
+    /* Custom scrollbar with smoother colors */
     .custom-scrollbar::-webkit-scrollbar {
-        width: 6px;
-        height: 6px;
+        width: 8px;
+        height: 8px;
     }
     .custom-scrollbar::-webkit-scrollbar-track {
-        background: #f1f5f9; 
+        background: transparent; 
     }
     .custom-scrollbar::-webkit-scrollbar-thumb {
         background: #cbd5e1; 
-        border-radius: 4px;
+        border-radius: 8px;
+        border: 2px solid transparent;
+        background-clip: padding-box;
     }
     .custom-scrollbar::-webkit-scrollbar-thumb:hover {
         background: #94a3b8; 
+        border: 2px solid transparent;
+        background-clip: padding-box;
     }
     
     .sticky-header {
@@ -50,29 +54,34 @@
 
     .clickable-number {
         cursor: pointer;
-        border-bottom: 1px dotted #2563eb;
-        transition: all 0.2s;
+        border-bottom: 2px dotted #6366f1;
+        transition: all 0.2s ease-in-out;
         white-space: nowrap;
+        padding: 0 2px;
+        border-radius: 4px;
+        color: #4f46e5;
+        font-weight: 500;
     }
     .clickable-number:hover {
-        background-color: #dbeafe;
-        color: #1e40af;
-        font-weight: bold;
+        background-color: #e0e7ff;
+        color: #312e81;
     }
     .clickable-number:active {
-        background-color: #bfdbfe;
+        background-color: #c7d2fe;
+        transform: scale(0.95);
     }
 
     input[type="text"], input[type="password"], select {
         font-size: 16px !important;
+        transition: all 0.2s ease-out;
     }
     
     @keyframes slideDown {
-        from { transform: translateY(-100%); }
-        to { transform: translateY(0); }
+        from { transform: translateY(-100%); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
     }
     .instructor-toolbar {
-        animation: slideDown 0.3s ease-out;
+        animation: slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
 
     .resizer-handle {
@@ -87,7 +96,7 @@
         height: 100%;
     }
     .resizer-handle:hover, .resizer-handle:active {
-        background-color: #3b82f6;
+        background-color: #6366f1;
     }
 
     @media (max-width: 768px) {
@@ -103,10 +112,16 @@
     input[type="number"] {
         -moz-appearance: textfield;
     }
+
+    /* Subtle grid background pattern */
+    .bg-grid-pattern {
+        background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+        background-size: 24px 24px;
+    }
 </style>
 </head>
-<body class="bg-gray-50 text-slate-900 h-[100dvh] overflow-hidden" oncontextmenu="return false">
-<div id="root" class="h-full"></div>
+<body class="bg-slate-50 text-slate-900 h-[100dvh] overflow-hidden" oncontextmenu="return false">
+<div id="root" class="h-full bg-grid-pattern"></div>
 
 <script type="text/babel">
 
@@ -295,11 +310,11 @@ const Icon = ({ name, className }) => {
 const Modal = ({ isOpen, title, children, onClose }) => {
     if (!isOpen) return null;
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[100] p-4">
-            <div className="bg-white rounded-lg shadow-xl p-6 w-96 max-w-full m-auto relative">
-                <div className="flex justify-between items-center mb-4 border-b pb-2">
-                    <h3 className="font-bold text-lg">{title}</h3>
-                    <button onClick={onClose} className="text-gray-500 hover:text-gray-700 p-2">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4 transition-all duration-300">
+            <div className="bg-white rounded-2xl shadow-2xl p-6 w-96 max-w-full m-auto relative border border-slate-200" style={{animation: 'slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards'}}>
+                <div className="flex justify-between items-center mb-5 border-b border-slate-100 pb-3">
+                    <h3 className="font-bold text-xl text-slate-800 tracking-tight">{title}</h3>
+                    <button onClick={onClose} className="text-slate-400 hover:text-slate-700 bg-slate-50 hover:bg-slate-100 rounded-full p-2 transition-colors">
                         <Icon name="x" className="w-5 h-5" />
                     </button>
                 </div>
@@ -338,33 +353,33 @@ const ExcelPVSimulator = () => {
         : "---";
 
     return (
-        <div className="bg-white border border-green-600 rounded-lg shadow-sm overflow-hidden mb-6 font-sans">
-            <div className="bg-green-600 text-white text-xs font-bold p-2 flex items-center gap-2">
-                <Icon name="table" className="w-4 h-4" /> Excel Function Arguments: PV
+        <div className="bg-white border border-emerald-500/30 rounded-xl shadow-lg shadow-emerald-900/5 overflow-hidden mb-6 font-sans group transition-all duration-300 hover:shadow-emerald-900/10 hover:border-emerald-500/50">
+            <div className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-xs font-bold p-3 flex items-center gap-2 uppercase tracking-wide">
+                <Icon name="table" className="w-4 h-4 opacity-90" /> Excel Function Arguments: PV
             </div>
-            <div className="p-4 text-sm bg-green-50/20">
-                <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+            <div className="p-5 text-sm bg-emerald-50/20">
+                <div className="grid grid-cols-2 gap-x-5 gap-y-4">
                     <div className="flex items-center justify-between col-span-2 md:col-span-1">
-                        <label className="font-semibold text-gray-700 w-12">Rate</label>
-                        <input type="text" value={rate} onChange={e=>setRate(e.target.value)} className="border border-gray-300 rounded p-1.5 w-full md:w-28 focus:border-green-500 outline-none text-right font-mono" placeholder="0.04" />
+                        <label className="font-semibold text-slate-700 w-12">Rate</label>
+                        <input type="text" value={rate} onChange={e=>setRate(e.target.value)} className="border border-slate-300 rounded-lg p-2 w-full md:w-32 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none text-right font-mono transition-shadow shadow-inner bg-white" placeholder="0.04" />
                     </div>
                     <div className="flex items-center justify-between col-span-2 md:col-span-1">
-                        <label className="font-semibold text-gray-700 w-12">Nper</label>
-                        <input type="number" value={nper} onChange={e=>setNper(e.target.value)} className="border border-gray-300 rounded p-1.5 w-full md:w-28 focus:border-green-500 outline-none text-right font-mono" placeholder="30" />
+                        <label className="font-semibold text-slate-700 w-12">Nper</label>
+                        <input type="number" value={nper} onChange={e=>setNper(e.target.value)} className="border border-slate-300 rounded-lg p-2 w-full md:w-32 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none text-right font-mono transition-shadow shadow-inner bg-white" placeholder="30" />
                     </div>
                     <div className="flex items-center justify-between col-span-2 md:col-span-1">
-                        <label className="font-semibold text-gray-700 w-12">Pmt</label>
-                        <input type="number" value={pmt} onChange={e=>setPmt(e.target.value)} className="border border-gray-300 rounded p-1.5 w-full md:w-28 focus:border-green-500 outline-none text-right font-mono" placeholder="-15000" />
+                        <label className="font-semibold text-slate-700 w-12">Pmt</label>
+                        <input type="number" value={pmt} onChange={e=>setPmt(e.target.value)} className="border border-slate-300 rounded-lg p-2 w-full md:w-32 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none text-right font-mono transition-shadow shadow-inner bg-white" placeholder="-15000" />
                     </div>
                     <div className="flex items-center justify-between col-span-2 md:col-span-1">
-                        <label className="font-semibold text-gray-700 w-12">Fv</label>
-                        <input type="number" value={fv} onChange={e=>setFv(e.target.value)} className="border border-gray-300 rounded p-1.5 w-full md:w-28 focus:border-green-500 outline-none text-right font-mono" placeholder="-300000" />
+                        <label className="font-semibold text-slate-700 w-12">Fv</label>
+                        <input type="number" value={fv} onChange={e=>setFv(e.target.value)} className="border border-slate-300 rounded-lg p-2 w-full md:w-32 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none text-right font-mono transition-shadow shadow-inner bg-white" placeholder="-300000" />
                     </div>
                 </div>
                 
-                <div className="border-t border-gray-200 mt-4 pt-3 flex justify-between items-center -mx-4 -mb-4 px-4 pb-4 bg-gray-50/80">
-                    <span className="text-gray-500 font-bold text-xs">= Formula result</span>
-                    <span className={`font-mono font-bold text-lg ${pvVal !== null ? 'text-green-800' : 'text-gray-400'}`}>
+                <div className="border-t border-slate-200 mt-5 pt-4 flex justify-between items-center -mx-5 -mb-5 px-5 pb-5 bg-slate-50/80">
+                    <span className="text-slate-500 font-bold text-xs uppercase tracking-wider">= Formula result</span>
+                    <span className={`font-mono font-bold text-xl ${pvVal !== null ? 'text-emerald-700 drop-shadow-sm' : 'text-slate-400'}`}>
                         {displayVal}
                     </span>
                 </div>
@@ -432,27 +447,28 @@ const Calculator = ({ isOpen, onClose }) => {
 
     return (
         <>
-            <div className="fixed inset-0 bg-black/50 z-[240] md:hidden" onClick={onClose}></div>
+            <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[240] md:hidden transition-opacity" onClick={onClose}></div>
             <div className="fixed z-[250] bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden instructor-toolbar 
                             top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-[320px] 
-                            md:top-20 md:left-auto md:right-4 md:translate-x-0 md:translate-y-0 md:w-64">
-                <div className="bg-slate-50 p-2 border-b flex justify-between items-center">
-                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-2">
-                        Calculator
+                            md:top-24 md:left-auto md:right-6 md:translate-x-0 md:translate-y-0 md:w-64 transition-all duration-300">
+                <div className="bg-gradient-to-r from-slate-100 to-slate-50 p-2.5 border-b border-slate-200 flex justify-between items-center">
+                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-2 flex items-center gap-1.5">
+                        <Icon name="calculator" className="w-3.5 h-3.5" /> Calculator
                     </span>
                     <button
                         onClick={onClose}
-                        className="p-2 hover:bg-slate-200 rounded text-slate-500"
+                        className="p-1.5 hover:bg-slate-200/80 rounded-md text-slate-400 hover:text-slate-600 transition-colors"
                         title="Close"
                     >
                         <Icon name="x" className="w-4 h-4" />
                     </button>
                 </div>
-                <div className="p-4 bg-slate-900 text-right">
-                    <div className="text-slate-400 text-xs h-4 mb-1 truncate">
+                <div className="p-5 bg-slate-900 text-right shadow-inner relative">
+                    <div className="absolute inset-0 bg-gradient-to-b from-black/20 to-transparent pointer-events-none"></div>
+                    <div className="text-indigo-300 text-xs h-4 mb-1 truncate relative z-10 font-mono tracking-wider">
                         {result !== "" ? input : ""}
                     </div>
-                    <div className="text-white text-2xl font-mono font-bold truncate">
+                    <div className="text-white text-3xl font-mono font-bold truncate relative z-10 tracking-tight">
                         {result !== "" ? result : (input || "0")}
                     </div>
                 </div>
@@ -461,13 +477,13 @@ const Calculator = ({ isOpen, onClose }) => {
                         <button
                             key={btn}
                             onClick={() => handleClick(btn)}
-                            className={`p-4 md:p-3 text-lg md:text-sm font-bold transition-colors active:bg-opacity-80 touch-manipulation ${
+                            className={`p-4 md:p-3.5 text-lg md:text-sm font-bold transition-all active:scale-[0.97] touch-manipulation ${
                                 btn === "="
-                                    ? "bg-blue-600 text-white hover:bg-blue-700"
+                                    ? "bg-indigo-600 text-white hover:bg-indigo-700"
                                     : ["C","⌫"].includes(btn)
-                                    ? "bg-red-50 text-red-600 hover:bg-red-100"
+                                    ? "bg-rose-50 text-rose-600 hover:bg-rose-100"
                                     : ["/","*","-","+"].includes(btn)
-                                    ? "bg-slate-100 text-slate-800 hover:bg-slate-200"
+                                    ? "bg-slate-100 text-indigo-700 hover:bg-slate-200"
                                     : "bg-white text-slate-700 hover:bg-slate-50"
                             }`}
                         >
@@ -547,8 +563,12 @@ const SmartInput = ({ id, value, onChange, isPct, correctValueEncoded, instructo
     }
 
     const borderClass = isFocused 
-        ? "border-blue-500 ring-2 ring-blue-200" 
-        : (status === "correct" ? "border-green-500 bg-green-50 text-green-900 font-bold" : (status === "incorrect" ? "border-red-500 bg-red-50" : "border-gray-300"));
+        ? "border-indigo-500 ring-4 ring-indigo-500/10 z-10 relative" 
+        : (status === "correct" 
+            ? "border-emerald-400 bg-emerald-50 text-emerald-900 font-bold shadow-sm shadow-emerald-900/5 ring-1 ring-emerald-400" 
+            : (status === "incorrect" 
+                ? "border-rose-400 bg-rose-50 text-rose-900 shadow-sm ring-1 ring-rose-400" 
+                : "border-slate-300 hover:border-slate-400 shadow-inner bg-white"));
 
     const paddingClass = small ? "p-1.5 text-sm" : "p-3";
 
@@ -562,22 +582,22 @@ const SmartInput = ({ id, value, onChange, isPct, correctValueEncoded, instructo
                 onBlur={handleBlur}
                 onChange={handleChange}
                 onKeyDown={(e) => e.key === 'Enter' && e.target.blur()}
-                className={`w-full ${paddingClass} border rounded shadow-sm transition-all outline-none font-mono ${borderClass}`}
+                className={`w-full ${paddingClass} rounded-lg transition-all duration-200 outline-none font-mono ${borderClass}`}
                 placeholder={isPct ? "0.0%" : "0"}
                 inputMode="decimal" 
             />
             {status === "correct" && !small && (
-                <div className="absolute right-3 top-3.5 text-green-600 flex items-center gap-1 text-sm font-bold pointer-events-none">
-                    <Icon name="check" className="w-5 h-5" />
+                <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-emerald-500 flex items-center gap-1 text-sm font-bold pointer-events-none drop-shadow-sm">
+                    <Icon name="check-circle-2" className="w-5 h-5 fill-emerald-100" />
                 </div>
             )}
             {status === "correct" && small && (
-                <div className="absolute right-1 top-1.5 text-green-600 flex items-center gap-1 text-xs font-bold pointer-events-none">
+                <div className="absolute right-1.5 top-1/2 transform -translate-y-1/2 text-emerald-500 flex items-center gap-1 text-xs font-bold pointer-events-none">
                     <Icon name="check" className="w-4 h-4" />
                 </div>
             )}
              {instructorMode && correctValue !== undefined && (
-                <div className="mt-1 p-1 bg-purple-100 border border-purple-300 text-purple-900 text-xs font-bold inline-block rounded shadow-sm absolute -bottom-6 left-0 z-10 whitespace-nowrap">
+                <div className="mt-1 px-2 py-1 bg-violet-100 border border-violet-200 text-violet-800 text-xs font-bold inline-block rounded-md shadow-sm absolute -bottom-7 left-0 z-20 whitespace-nowrap tracking-wide">
                     Key: {isPct ? (correctValue * 100).toFixed(2) + "%" : correctValue}
                 </div>
             )}
@@ -585,7 +605,7 @@ const SmartInput = ({ id, value, onChange, isPct, correctValueEncoded, instructo
     );
 };
 
-const FieldWithHint = ({ id, label, isPct, answers, updateAnswer, correctValueEncoded, instructorMode, onFocus, isFocused, linkedValue, className = "mb-4", small = false }) => {
+const FieldWithHint = ({ id, label, isPct, answers, updateAnswer, correctValueEncoded, instructorMode, onFocus, isFocused, linkedValue, className = "mb-5", small = false }) => {
     const [showHint, setShowHint] = React.useState(false);
     const hint = _DATA_MATRIX[id]?.hint;
     const displayValue = answers[id] !== undefined ? answers[id] : (linkedValue || "");
@@ -593,21 +613,22 @@ const FieldWithHint = ({ id, label, isPct, answers, updateAnswer, correctValueEn
 
     return (
         <div className={`flex flex-col ${className}`}>
-             {label && <div className="flex items-center gap-2 mb-1">
-                <label className={`${small ? 'text-xs' : 'text-sm'} font-semibold text-gray-700`}>{label}</label>
+             {label && <div className="flex items-center gap-2 mb-1.5">
+                <label className={`${small ? 'text-xs' : 'text-sm'} font-semibold text-slate-700 tracking-tight`}>{label}</label>
                 {hint && (
                     <button 
                         onClick={() => setShowHint(!showHint)}
-                        className={`text-gray-400 hover:text-blue-600 transition-colors p-1 ${showHint ? 'text-blue-600' : ''}`}
+                        className={`text-slate-400 hover:text-indigo-600 transition-all duration-200 p-1 rounded-full hover:bg-indigo-50 ${showHint ? 'text-indigo-600 bg-indigo-50' : ''}`}
                         title="Show Hint"
                     >
-                        <Icon name="help-circle" className="w-3 h-3 md:w-4 md:h-4" />
+                        <Icon name="info" className="w-4 h-4" />
                     </button>
                 )}
             </div>}
             {showHint && (
-                <div className="text-xs text-blue-800 bg-blue-50 p-2 rounded mb-2 border border-blue-100 italic">
-                    💡 {hint}
+                <div className="text-xs text-indigo-900 bg-indigo-50/80 p-2.5 rounded-lg mb-2.5 border border-indigo-200/50 flex items-start gap-2 shadow-sm animate-in fade-in slide-in-from-top-1 duration-200">
+                    <Icon name="lightbulb" className="w-4 h-4 shrink-0 text-amber-500 drop-shadow-sm" />
+                    <span className="leading-relaxed font-medium">{hint}</span>
                 </div>
             )}
             <SmartInput 
@@ -631,7 +652,7 @@ const ReferenceItem = ({ data, onNumberClick }) => {
         if (numRegex.test(content) && content !== "-" && content !== "N/A") {
             return (
                 <span 
-                    className="clickable-number px-1" 
+                    className="clickable-number" 
                     title="Tap to insert"
                     onMouseDown={(e) => {
                         e.preventDefault(); 
@@ -650,13 +671,13 @@ const ReferenceItem = ({ data, onNumberClick }) => {
 
     if (data.type === 'key-value') {
          return (
-            <div className="mb-4 bg-white border border-gray-200 rounded shadow-sm">
-                {data.title && <div className="p-2 bg-gray-50 border-b text-xs font-bold text-gray-700">{data.title}</div>}
-                <div className="p-2 grid grid-cols-2 gap-2 text-xs">
+            <div className="mb-5 bg-white border border-slate-200/60 rounded-xl shadow-sm overflow-hidden transition-shadow hover:shadow-md">
+                {data.title && <div className="p-2.5 bg-slate-50 border-b border-slate-100 text-xs font-bold text-slate-700 tracking-wide uppercase">{data.title}</div>}
+                <div className="p-3 grid grid-cols-2 gap-y-3 gap-x-2 text-sm">
                     {data.data.map((pair, idx) => (
                         <React.Fragment key={idx}>
-                            <div className="text-gray-500">{pair[0]}:</div>
-                            <div className="font-mono text-gray-800 text-right">{renderCell(pair[1])}</div>
+                            <div className="text-slate-500 font-medium pr-2">{pair[0]}:</div>
+                            <div className="font-mono text-slate-800 text-right">{renderCell(pair[1])}</div>
                         </React.Fragment>
                     ))}
                 </div>
@@ -665,7 +686,7 @@ const ReferenceItem = ({ data, onNumberClick }) => {
     }
     if (data.type === 'sections') {
         return (
-            <div className="space-y-2">
+            <div className="space-y-3">
                 {data.sections.map((sec, idx) => <ReferenceItem key={idx} data={sec} onNumberClick={onNumberClick} />)}
             </div>
         );
@@ -680,40 +701,40 @@ const ConceptCheck = ({ id, questions, instructorMode, answers, updateAnswer }) 
     };
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-8">
             {questions.map((q, idx) => {
                 const userSelection = answers[q.id];
                 const isAnswered = !!userSelection;
                 
                 return (
-                    <div key={q.id} className="bg-white p-4 rounded-lg shadow border border-gray-200">
-                        <div className="font-bold text-gray-800 mb-3 flex gap-2">
-                            <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-sm shrink-0 h-fit">Q{idx+1}</span>
-                            <span>{q.text}</span>
+                    <div key={q.id} className="bg-white p-5 md:p-7 rounded-2xl shadow-sm border border-slate-200/60 ring-1 ring-slate-900/5 transition-all">
+                        <div className="font-bold text-slate-800 mb-5 flex items-start gap-3">
+                            <span className="bg-gradient-to-br from-indigo-100 to-violet-100 text-indigo-700 px-3 py-1 rounded-md text-sm shrink-0 h-fit shadow-sm border border-indigo-200/50">Q{idx+1}</span>
+                            <span className="text-lg leading-snug pt-0.5">{q.text}</span>
                         </div>
-                        <div className="space-y-2 mb-4">
+                        <div className="space-y-3 mb-5">
                             {q.options.map(opt => {
-                                let btnClass = "w-full text-left p-3 rounded text-sm transition-all border active:scale-[0.99] touch-manipulation ";
+                                let btnClass = "w-full text-left p-4 rounded-xl text-sm font-medium transition-all border-2 active:scale-[0.99] touch-manipulation ";
                                 
                                 if (instructorMode) {
                                     if (opt === q.answer) {
-                                        btnClass += "bg-green-100 border-green-500 text-green-900 font-bold shadow-sm ring-2 ring-green-500/50";
+                                        btnClass += "bg-emerald-50 border-emerald-500 text-emerald-900 shadow-sm ring-4 ring-emerald-500/10";
                                     } else {
-                                        btnClass += "border-gray-100 text-gray-400 opacity-60";
+                                        btnClass += "border-slate-100 text-slate-400 opacity-60 bg-slate-50";
                                     }
                                 } else {
                                     if (isAnswered) {
                                         if (opt === userSelection) {
                                             if (opt === q.answer) {
-                                                btnClass += "bg-green-100 border-green-500 text-green-900 font-bold";
+                                                btnClass += "bg-emerald-50 border-emerald-500 text-emerald-900 shadow-sm ring-4 ring-emerald-500/10";
                                             } else {
-                                                btnClass += "bg-red-100 border-red-500 text-red-900 font-bold";
+                                                btnClass += "bg-rose-50 border-rose-500 text-rose-900 shadow-sm ring-4 ring-rose-500/10";
                                             }
                                         } else {
-                                            btnClass += "border-gray-200 text-gray-400 opacity-50 cursor-not-allowed";
+                                            btnClass += "border-slate-100 text-slate-400 opacity-50 bg-slate-50 cursor-not-allowed";
                                         }
                                     } else {
-                                        btnClass += "hover:bg-gray-50 border-gray-200 text-gray-600";
+                                        btnClass += "hover:bg-slate-50 border-slate-200 text-slate-600 hover:border-indigo-300 hover:shadow-sm";
                                     }
                                 }
 
@@ -724,18 +745,26 @@ const ConceptCheck = ({ id, questions, instructorMode, answers, updateAnswer }) 
                                         disabled={isAnswered || instructorMode}
                                         className={btnClass}
                                     >
-                                        {opt}
+                                        <div className="flex items-center justify-between">
+                                            <span>{opt}</span>
+                                            {(instructorMode || (isAnswered && opt === userSelection)) && opt === q.answer && (
+                                                <Icon name="check-circle-2" className="w-5 h-5 text-emerald-500 shrink-0" />
+                                            )}
+                                            {isAnswered && !instructorMode && opt === userSelection && opt !== q.answer && (
+                                                <Icon name="x-circle" className="w-5 h-5 text-rose-500 shrink-0" />
+                                            )}
+                                        </div>
                                     </button>
                                 );
                             })}
                         </div>
                         {instructorMode && (
-                            <div className="mt-3 bg-purple-50 border border-purple-200 p-3 rounded text-sm text-purple-900">
-                                <div className="font-bold flex items-center gap-2 mb-1">
+                            <div className="mt-4 bg-gradient-to-br from-violet-50 to-fuchsia-50 border border-violet-200/60 p-4 rounded-xl text-sm text-violet-900 shadow-inner animate-in fade-in zoom-in-95 duration-300">
+                                <div className="font-bold flex items-center gap-2 mb-2 uppercase tracking-wide text-xs text-violet-700">
                                     <Icon name="graduation-cap" className="w-4 h-4" /> 
-                                    Answer & Explanation
+                                    Instructor Note
                                 </div>
-                                <p className="opacity-90">{q.explanation}</p>
+                                <p className="opacity-90 leading-relaxed text-base">{q.explanation}</p>
                             </div>
                         )}
                     </div>
@@ -753,7 +782,7 @@ const App = () => {
     const [showAuthModal, setShowAuthModal] = React.useState(false);
     const [showClearModal, setShowClearModal] = React.useState(false);
     const [passwordInput, setPasswordInput] = React.useState("");
-    const [navWidth, setNavWidth] = React.useState(256);
+    const [navWidth, setNavWidth] = React.useState(280);
     const [showCalculator, setShowCalculator] = React.useState(false);
 
     const isResizing = React.useRef(false);
@@ -796,7 +825,7 @@ const App = () => {
     const resize = React.useCallback((e) => {
         if (!isResizing.current) return;
         const newWidth = e.clientX;
-        if (newWidth > 150 && newWidth < 500) {
+        if (newWidth > 200 && newWidth < 500) {
             setNavWidth(newWidth);
         }
     }, []);
@@ -849,18 +878,31 @@ const App = () => {
         setShowClearModal(false);
     };
     
+    const renderInput = (id, label, isPct = false, linkedValue = null, customClass = "mb-4", small = false) => (
+        <FieldWithHint 
+            key={id} id={id} label={label} isPct={isPct} 
+            answers={answers} updateAnswer={updateAnswer} 
+            correctValueEncoded={_DATA_MATRIX[id]?.val} instructorMode={instructorMode}
+            onFocus={handleInputFocus} isFocused={activeInputId === id}
+            linkedValue={linkedValue ? answers[linkedValue] : null}
+            className={customClass} small={small}
+        />
+    );
+
     const renderModuleContent = () => {
         const moduleType = MODULES.find(m => m.id === activeModule)?.type;
 
         if (moduleType === 'concept') {
             return (
-                <div className="h-full overflow-y-auto custom-scrollbar p-4 lg:pr-8">
+                <div className="h-full overflow-y-auto custom-scrollbar p-4 lg:pr-8 animate-in fade-in duration-300">
                     <div className="max-w-4xl mx-auto pb-20">
-                        <div className="flex items-center gap-2 mb-6 p-4 bg-indigo-50 border border-indigo-200 rounded-lg text-indigo-900">
-                            <Icon name="brain-circuit" className="w-6 h-6" />
+                        <div className="flex items-center gap-4 mb-8 p-5 bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-100 rounded-2xl text-indigo-900 shadow-sm">
+                            <div className="bg-indigo-100 p-3 rounded-xl shadow-inner text-indigo-600">
+                                <Icon name="brain-circuit" className="w-8 h-8" />
+                            </div>
                             <div>
-                                <h2 className="font-bold text-lg">{MODULES.find(m => m.id === activeModule).title}</h2>
-                                <p className="text-sm opacity-80">Test your understanding of the core concepts.</p>
+                                <h2 className="font-bold text-xl tracking-tight">{MODULES.find(m => m.id === activeModule).title}</h2>
+                                <p className="text-sm font-medium opacity-80 mt-1">Test your understanding of the core concepts.</p>
                             </div>
                         </div>
                         <ConceptCheck 
@@ -878,40 +920,54 @@ const App = () => {
         const refs = MODULE_DATA[activeModule];
         
         return (
-            <div className="flex flex-col lg:flex-row gap-6 h-full relative">
+            <div className="flex flex-col lg:flex-row gap-6 h-full relative animate-in fade-in duration-300">
                 <div className="flex-1 overflow-y-auto custom-scrollbar lg:pr-4">
-                    <h2 className="text-xl font-bold mb-4 text-blue-800 border-b pb-2 flex items-center gap-2 sticky top-0 bg-gray-50 pt-2 z-10">
-                        <Icon name="pen-tool" className="w-5 h-5" /> 
-                        {MODULES.find(m => m.id === activeModule)?.title}
+                    <h2 className="text-2xl font-bold mb-6 text-slate-800 border-b border-slate-200 pb-3 flex items-center gap-2.5 sticky top-0 bg-slate-50/90 backdrop-blur pt-2 z-10">
+                        <span className="bg-indigo-100 text-indigo-600 p-1.5 rounded-lg shadow-sm">
+                            <Icon name="pen-tool" className="w-5 h-5" /> 
+                        </span>
+                        <span className="tracking-tight">{MODULES.find(m => m.id === activeModule)?.title}</span>
                     </h2>
                     
-                    <div className="space-y-6 pb-32 lg:pb-20">
+                    <div className="space-y-8 pb-32 lg:pb-20">
                     
                     {/* Module 1: Compute Issue Price */}
                     {activeModule === 'm1' && (
-                        <div className="bg-white p-4 md:p-6 rounded-lg shadow border border-gray-200">
-                            <h3 className="text-lg font-bold text-gray-800 mb-4">Confirm Issue Price</h3>
-                            <p className="text-sm text-gray-600 mb-6">
+                        <div className="bg-white p-5 md:p-8 rounded-2xl shadow-sm border border-slate-200/60 ring-1 ring-slate-900/5">
+                            <h3 className="text-xl font-bold text-indigo-900 mb-3 tracking-tight">Confirm Issue Price</h3>
+                            <p className="text-base text-slate-600 mb-8 leading-relaxed max-w-3xl">
                                 Assume that on January 1, Comcast issues $300,000 of 15-year, 10% bonds payable yielding an effective semiannual interest rate of 4%. Interest is payable semiannually on June 30 and December 31.
-                                Show computations to confirm the issue price of $351,876.
+                                Show computations to confirm the issue price of <b>$351,876</b>.
                             </p>
                             
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 mb-4">
                                 <div>
-                                    <h4 className="font-bold text-gray-700 mb-4 border-b pb-1">Calculation Variables</h4>
-                                    {renderInput("m1_rate", "Discount Rate per period (RATE)", true)}
-                                    {renderInput("m1_nper", "Number of periods (NPER)")}
-                                    {renderInput("m1_pmt", "Interest payment per period (PMT)")}
-                                    {renderInput("m1_fv", "Face value at maturity (FV)")}
+                                    <h4 className="font-bold text-slate-700 mb-5 border-b border-slate-100 pb-2 flex items-center gap-2 uppercase tracking-wide text-sm">
+                                        <Icon name="sliders-horizontal" className="w-4 h-4 text-indigo-500" /> Calculation Variables
+                                    </h4>
+                                    <div className="space-y-1">
+                                        {renderInput("m1_rate", "Discount Rate per period (RATE)", true)}
+                                        {renderInput("m1_nper", "Number of periods (NPER)")}
+                                        {renderInput("m1_pmt", "Interest payment per period (PMT)")}
+                                        {renderInput("m1_fv", "Face value at maturity (FV)")}
+                                    </div>
                                 </div>
                                 <div className="flex flex-col">
                                     <ExcelPVSimulator />
                                     
-                                    <div className="bg-blue-50 p-4 rounded border border-blue-100 flex flex-col justify-center">
-                                        <h4 className="font-bold text-blue-800 mb-2">Final Answer</h4>
-                                        {renderInput("m1_pv", "Calculated Issue Price (PV)")}
-                                        <p className="text-xs text-blue-600 mt-2">
-                                            * Hint: You can use the simulator above, or type <b>=PV(rate, nper, pmt, fv)</b> directly into the input!
+                                    <div className="bg-gradient-to-br from-indigo-50 to-blue-50 p-5 rounded-xl border border-indigo-100/60 flex flex-col justify-center shadow-inner relative overflow-hidden">
+                                        <div className="absolute -right-4 -top-4 opacity-5">
+                                            <Icon name="target" className="w-24 h-24" />
+                                        </div>
+                                        <h4 className="font-bold text-indigo-900 mb-3 flex items-center gap-2 relative z-10 text-lg">
+                                            <Icon name="check-square" className="w-5 h-5 text-indigo-600" /> Final Answer
+                                        </h4>
+                                        <div className="relative z-10">
+                                            {renderInput("m1_pv", "Calculated Issue Price (PV)", false, null, "mb-0")}
+                                        </div>
+                                        <p className="text-xs text-indigo-600/80 mt-3 font-medium flex items-start gap-1.5 relative z-10">
+                                            <Icon name="info" className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                                            <span>Hint: You can use the simulator above, or type <code className="bg-indigo-100/50 px-1 py-0.5 rounded font-bold">=PV(rate, nper, pmt, fv)</code> directly into the input!</span>
                                         </p>
                                     </div>
                                 </div>
@@ -921,124 +977,127 @@ const App = () => {
 
                     {/* Module 2: Financial Statement Effects */}
                     {activeModule === 'm2' && (
-                        <div className="bg-white p-4 md:p-6 rounded-lg shadow border border-gray-200">
-                            <h3 className="font-bold text-blue-800 border-b pb-2 mb-4">Financial Statement Effects Template</h3>
-                            <p className="text-sm text-gray-600 mb-4">
+                        <div className="bg-white p-5 md:p-8 rounded-2xl shadow-sm border border-slate-200/60 ring-1 ring-slate-900/5">
+                            <h3 className="font-bold text-xl text-indigo-900 mb-3 tracking-tight">Financial Statement Effects Template</h3>
+                            <p className="text-base text-slate-600 mb-6 leading-relaxed max-w-3xl">
                                 Complete Comcast's financial statement effects template for the bond issuance and the first two semiannual interest payments.
                             </p>
                             
-                            <div className="overflow-x-auto">
-                                <div className="min-w-[800px]">
-                                    <table className="w-full text-sm border-collapse border border-gray-300">
-                                        <thead className="bg-gray-100">
+                            <div className="overflow-x-auto pb-4 custom-scrollbar rounded-xl border border-slate-200/60 shadow-sm">
+                                <div className="min-w-[850px]">
+                                    <table className="w-full text-sm text-left">
+                                        <thead className="bg-slate-50 text-slate-600 uppercase tracking-wider text-xs border-b border-slate-200">
                                             <tr>
-                                                <th className="border border-gray-300 p-2" rowSpan="2">Transaction / Date</th>
-                                                <th className="border border-gray-300 p-2" colSpan="2">Assets</th>
-                                                <th className="border border-gray-300 p-2 text-purple-700 bg-purple-50" rowSpan="2">Liabilities</th>
-                                                <th className="border border-gray-300 p-2" colSpan="2">Equity</th>
-                                                <th className="border border-gray-300 p-2 text-green-700 bg-green-50" rowSpan="2">Revenues</th>
-                                                <th className="border border-gray-300 p-2 text-red-700 bg-red-50" rowSpan="2">Expenses</th>
+                                                <th className="p-3 font-semibold border-r border-slate-200" rowSpan="2">Transaction / Date</th>
+                                                <th className="p-3 font-semibold text-center border-r border-slate-200" colSpan="2">Assets</th>
+                                                <th className="p-3 font-semibold text-center text-violet-700 bg-violet-50/50 border-r border-slate-200" rowSpan="2">Liabilities</th>
+                                                <th className="p-3 font-semibold text-center border-r border-slate-200" colSpan="2">Equity</th>
+                                                <th className="p-3 font-semibold text-center text-emerald-700 bg-emerald-50/50 border-r border-slate-200" rowSpan="2">Revenues</th>
+                                                <th className="p-3 font-semibold text-center text-rose-700 bg-rose-50/50" rowSpan="2">Expenses</th>
                                             </tr>
-                                            <tr>
-                                                <th className="border border-gray-300 p-2">Cash</th>
-                                                <th className="border border-gray-300 p-2">Noncash</th>
-                                                <th className="border border-gray-300 p-2">Contrib. Cap.</th>
-                                                <th className="border border-gray-300 p-2 text-blue-700 bg-blue-50">Earned Cap.</th>
+                                            <tr className="border-t border-slate-200">
+                                                <th className="p-2 border-r border-slate-200 text-center font-medium bg-white">Cash</th>
+                                                <th className="p-2 border-r border-slate-200 text-center font-medium bg-white">Noncash</th>
+                                                <th className="p-2 border-r border-slate-200 text-center font-medium bg-white">Contrib. Cap.</th>
+                                                <th className="p-2 border-r border-slate-200 text-center font-medium text-indigo-700 bg-indigo-50/50">Earned Cap.</th>
                                             </tr>
                                         </thead>
-                                        <tbody>
+                                        <tbody className="divide-y divide-slate-100">
                                             {/* Issuance */}
-                                            <tr>
-                                                <td className="border border-gray-300 p-2 font-medium">Jan 1: Issue Bond</td>
-                                                <td className="border border-gray-300 p-2">{renderInput("m2_i_cash", null, false, null, "mb-0", true)}</td>
-                                                <td className="border border-gray-300 p-2 text-center text-gray-400">-</td>
-                                                <td className="border border-gray-300 p-2 bg-purple-50/30">{renderInput("m2_i_liab", null, false, null, "mb-0", true)}</td>
-                                                <td className="border border-gray-300 p-2 text-center text-gray-400">-</td>
-                                                <td className="border border-gray-300 p-2 bg-blue-50/30 text-center text-gray-400">-</td>
-                                                <td className="border border-gray-300 p-2 bg-green-50/30 text-center text-gray-400">-</td>
-                                                <td className="border border-gray-300 p-2 bg-red-50/30 text-center text-gray-400">-</td>
+                                            <tr className="hover:bg-slate-50/80 transition-colors group">
+                                                <td className="p-3 font-semibold text-slate-800 border-r border-slate-100">Jan 1: Issue Bond</td>
+                                                <td className="p-2 border-r border-slate-100">{renderInput("m2_i_cash", null, false, null, "mb-0", true)}</td>
+                                                <td className="p-3 text-center text-slate-300 border-r border-slate-100">—</td>
+                                                <td className="p-2 bg-violet-50/30 border-r border-slate-100">{renderInput("m2_i_liab", null, false, null, "mb-0", true)}</td>
+                                                <td className="p-3 text-center text-slate-300 border-r border-slate-100">—</td>
+                                                <td className="p-3 bg-indigo-50/30 text-center text-slate-300 border-r border-slate-100">—</td>
+                                                <td className="p-3 bg-emerald-50/30 text-center text-slate-300 border-r border-slate-100">—</td>
+                                                <td className="p-3 bg-rose-50/30 text-center text-slate-300">—</td>
                                             </tr>
                                             {/* Jun 30 */}
-                                            <tr>
-                                                <td className="border border-gray-300 p-2 font-medium">Jun 30: Pay Interest #1</td>
-                                                <td className="border border-gray-300 p-2">{renderInput("m2_j_cash", null, false, null, "mb-0", true)}</td>
-                                                <td className="border border-gray-300 p-2 text-center text-gray-400">-</td>
-                                                <td className="border border-gray-300 p-2 bg-purple-50/30">{renderInput("m2_j_liab", null, false, null, "mb-0", true)}</td>
-                                                <td className="border border-gray-300 p-2 text-center text-gray-400">-</td>
-                                                <td className="border border-gray-300 p-2 bg-blue-50/30">{renderInput("m2_j_ec", null, false, null, "mb-0", true)}</td>
-                                                <td className="border border-gray-300 p-2 bg-green-50/30 text-center text-gray-400">-</td>
-                                                <td className="border border-gray-300 p-2 bg-red-50/30">{renderInput("m2_j_exp", null, false, null, "mb-0", true)}</td>
+                                            <tr className="hover:bg-slate-50/80 transition-colors group">
+                                                <td className="p-3 font-semibold text-slate-800 border-r border-slate-100">Jun 30: Pay Interest #1</td>
+                                                <td className="p-2 border-r border-slate-100">{renderInput("m2_j_cash", null, false, null, "mb-0", true)}</td>
+                                                <td className="p-3 text-center text-slate-300 border-r border-slate-100">—</td>
+                                                <td className="p-2 bg-violet-50/30 border-r border-slate-100">{renderInput("m2_j_liab", null, false, null, "mb-0", true)}</td>
+                                                <td className="p-3 text-center text-slate-300 border-r border-slate-100">—</td>
+                                                <td className="p-2 bg-indigo-50/30 border-r border-slate-100">{renderInput("m2_j_ec", null, false, null, "mb-0", true)}</td>
+                                                <td className="p-3 bg-emerald-50/30 text-center text-slate-300 border-r border-slate-100">—</td>
+                                                <td className="p-2 bg-rose-50/30">{renderInput("m2_j_exp", null, false, null, "mb-0", true)}</td>
                                             </tr>
                                             {/* Dec 31 */}
-                                            <tr>
-                                                <td className="border border-gray-300 p-2 font-medium">Dec 31: Pay Interest #2</td>
-                                                <td className="border border-gray-300 p-2">{renderInput("m2_d_cash", null, false, null, "mb-0", true)}</td>
-                                                <td className="border border-gray-300 p-2 text-center text-gray-400">-</td>
-                                                <td className="border border-gray-300 p-2 bg-purple-50/30">{renderInput("m2_d_liab", null, false, null, "mb-0", true)}</td>
-                                                <td className="border border-gray-300 p-2 text-center text-gray-400">-</td>
-                                                <td className="border border-gray-300 p-2 bg-blue-50/30">{renderInput("m2_d_ec", null, false, null, "mb-0", true)}</td>
-                                                <td className="border border-gray-300 p-2 bg-green-50/30 text-center text-gray-400">-</td>
-                                                <td className="border border-gray-300 p-2 bg-red-50/30">{renderInput("m2_d_exp", null, false, null, "mb-0", true)}</td>
+                                            <tr className="hover:bg-slate-50/80 transition-colors group">
+                                                <td className="p-3 font-semibold text-slate-800 border-r border-slate-100">Dec 31: Pay Interest #2</td>
+                                                <td className="p-2 border-r border-slate-100">{renderInput("m2_d_cash", null, false, null, "mb-0", true)}</td>
+                                                <td className="p-3 text-center text-slate-300 border-r border-slate-100">—</td>
+                                                <td className="p-2 bg-violet-50/30 border-r border-slate-100">{renderInput("m2_d_liab", null, false, null, "mb-0", true)}</td>
+                                                <td className="p-3 text-center text-slate-300 border-r border-slate-100">—</td>
+                                                <td className="p-2 bg-indigo-50/30 border-r border-slate-100">{renderInput("m2_d_ec", null, false, null, "mb-0", true)}</td>
+                                                <td className="p-3 bg-emerald-50/30 text-center text-slate-300 border-r border-slate-100">—</td>
+                                                <td className="p-2 bg-rose-50/30">{renderInput("m2_d_exp", null, false, null, "mb-0", true)}</td>
                                             </tr>
                                         </tbody>
                                     </table>
                                 </div>
                             </div>
-                            <p className="text-xs text-gray-500 mt-2 italic">* Use negative signs where applicable for decreases.</p>
+                            <p className="text-sm font-medium text-slate-500 mt-4 flex items-center gap-2 bg-slate-100/50 p-2.5 rounded-lg border border-slate-200/50 w-fit">
+                                <Icon name="alert-circle" className="w-4 h-4 text-slate-400" />
+                                Use negative signs where applicable for decreases.
+                            </p>
                         </div>
                     )}
 
                     {/* Module 3: Amortization Table */}
                     {activeModule === 'm3' && (
-                        <div className="bg-white p-4 md:p-6 rounded-lg shadow border border-gray-200">
-                            <h3 className="font-bold text-blue-800 border-b pb-2 mb-4">Amortization Table (15 Years / 30 Periods)</h3>
-                            <p className="text-sm text-gray-600 mb-4">
+                        <div className="bg-white p-5 md:p-8 rounded-2xl shadow-sm border border-slate-200/60 ring-1 ring-slate-900/5">
+                            <h3 className="font-bold text-xl text-indigo-900 mb-3 tracking-tight">Amortization Table (15 Years / 30 Periods)</h3>
+                            <p className="text-base text-slate-600 mb-6 leading-relaxed max-w-3xl">
                                 Fill out the inputs for the first 3 rows (Periods 0, 1, and 2). The rest of the 30-period table has been simulated for you, tapering off to exactly face value ($300,000) at maturity.
                             </p>
                             
-                            <div className="overflow-x-auto max-h-[600px] overflow-y-auto custom-scrollbar border border-gray-300">
-                                <div className="min-w-[800px]">
-                                    <table className="w-full text-sm border-collapse relative">
-                                        <thead className="bg-gray-100 sticky top-0 z-10 shadow-sm">
+                            <div className="overflow-x-auto max-h-[600px] overflow-y-auto custom-scrollbar border border-slate-200 shadow-sm rounded-xl">
+                                <div className="min-w-[850px]">
+                                    <table className="w-full text-sm text-left relative">
+                                        <thead className="bg-slate-50 text-slate-600 uppercase tracking-wider text-xs sticky top-0 z-10 shadow-sm border-b border-slate-200">
                                             <tr>
-                                                <th className="border border-gray-300 p-2 w-12 text-center">Period</th>
-                                                <th className="border border-gray-300 p-2 w-32 text-center">Interest Paid</th>
-                                                <th className="border border-gray-300 p-2 w-32 text-center text-red-700 bg-red-50">Interest Expense</th>
-                                                <th className="border border-gray-300 p-2 w-32 text-center text-purple-700 bg-purple-50">Amortization</th>
-                                                <th className="border border-gray-300 p-2 w-32 text-center text-blue-700 bg-blue-50">Ending NBV</th>
+                                                <th className="p-3 text-center font-semibold w-16 border-r border-slate-200">Period</th>
+                                                <th className="p-3 text-center font-semibold w-32 border-r border-slate-200">Interest Paid</th>
+                                                <th className="p-3 text-center font-semibold w-32 text-rose-700 bg-rose-50/80 border-r border-slate-200 backdrop-blur-sm">Interest Expense</th>
+                                                <th className="p-3 text-center font-semibold w-32 text-violet-700 bg-violet-50/80 border-r border-slate-200 backdrop-blur-sm">Amortization</th>
+                                                <th className="p-3 text-center font-semibold w-36 text-indigo-700 bg-indigo-50/80 backdrop-blur-sm">Ending NBV</th>
                                             </tr>
                                         </thead>
-                                        <tbody>
+                                        <tbody className="divide-y divide-slate-100">
                                             {/* Period 0 (Input) */}
-                                            <tr>
-                                                <td className="border border-gray-300 p-2 text-center font-bold">0</td>
-                                                <td className="border border-gray-300 p-2 text-center text-gray-400">-</td>
-                                                <td className="border border-gray-300 p-2 text-center bg-red-50/30 text-gray-400">-</td>
-                                                <td className="border border-gray-300 p-2 text-center bg-purple-50/30 text-gray-400">-</td>
-                                                <td className="border border-gray-300 p-1 bg-blue-50/30">
+                                            <tr className="bg-white hover:bg-slate-50/50">
+                                                <td className="p-3 text-center font-bold text-slate-800 border-r border-slate-100">0</td>
+                                                <td className="p-3 text-center text-slate-300 border-r border-slate-100">—</td>
+                                                <td className="p-3 text-center bg-rose-50/20 text-slate-300 border-r border-slate-100">—</td>
+                                                <td className="p-3 text-center bg-violet-50/20 text-slate-300 border-r border-slate-100">—</td>
+                                                <td className="p-2 bg-indigo-50/30">
                                                     {renderInput("m3_p0_end", null, false, null, "mb-0", true)}
                                                 </td>
                                             </tr>
                                             
                                             {/* Periods 1 & 2 (Inputs) */}
                                             {[1,2].map(p => (
-                                                <tr key={`p${p}`} className="hover:bg-gray-50 bg-yellow-50/20">
-                                                    <td className="border border-gray-300 p-2 text-center font-bold">{p}</td>
-                                                    <td className="border border-gray-300 p-2 text-center font-mono">15,000</td>
-                                                    <td className="border border-gray-300 p-1 bg-red-50/30">{renderInput(`m3_p${p}_exp`, null, false, null, "mb-0", true)}</td>
-                                                    <td className="border border-gray-300 p-1 bg-purple-50/30">{renderInput(`m3_p${p}_amo`, null, false, null, "mb-0", true)}</td>
-                                                    <td className="border border-gray-300 p-1 bg-blue-50/30">{renderInput(`m3_p${p}_end`, null, false, null, "mb-0", true)}</td>
+                                                <tr key={`p${p}`} className="bg-amber-50/30 hover:bg-amber-50/60 transition-colors">
+                                                    <td className="p-3 text-center font-bold text-slate-800 border-r border-slate-100">{p}</td>
+                                                    <td className="p-3 text-center font-mono font-medium text-slate-700 border-r border-slate-100">15,000</td>
+                                                    <td className="p-2 bg-rose-50/30 border-r border-slate-100">{renderInput(`m3_p${p}_exp`, null, false, null, "mb-0", true)}</td>
+                                                    <td className="p-2 bg-violet-50/30 border-r border-slate-100">{renderInput(`m3_p${p}_amo`, null, false, null, "mb-0", true)}</td>
+                                                    <td className="p-2 bg-indigo-50/30">{renderInput(`m3_p${p}_end`, null, false, null, "mb-0", true)}</td>
                                                 </tr>
                                             ))}
 
                                             {/* Periods 3-30 (Simulated / Read-only) */}
                                             {generatedAmortRows.slice(2).map(row => (
-                                                <tr key={`p${row.p}`} className="hover:bg-gray-50 text-gray-600">
-                                                    <td className="border border-gray-300 p-2 text-center">{row.p}</td>
-                                                    <td className="border border-gray-300 p-2 text-center font-mono">{row.pmt.toLocaleString()}</td>
-                                                    <td className="border border-gray-300 p-2 text-center font-mono bg-red-50/10">{row.exp.toLocaleString()}</td>
-                                                    <td className="border border-gray-300 p-2 text-center font-mono bg-purple-50/10">{row.amo.toLocaleString()}</td>
-                                                    <td className={`border border-gray-300 p-2 text-center font-mono bg-blue-50/10 ${row.p===30 ? 'font-bold text-blue-800' : ''}`}>
+                                                <tr key={`p${row.p}`} className="bg-white hover:bg-slate-50/80 text-slate-600 transition-colors">
+                                                    <td className="p-3 text-center font-medium border-r border-slate-50">{row.p}</td>
+                                                    <td className="p-3 text-center font-mono border-r border-slate-50">{row.pmt.toLocaleString()}</td>
+                                                    <td className="p-3 text-center font-mono bg-rose-50/10 border-r border-slate-50 text-rose-900/70">{row.exp.toLocaleString()}</td>
+                                                    <td className="p-3 text-center font-mono bg-violet-50/10 border-r border-slate-50 text-violet-900/70">{row.amo.toLocaleString()}</td>
+                                                    <td className={`p-3 text-center font-mono bg-indigo-50/10 text-indigo-900/80 ${row.p===30 ? 'font-bold bg-indigo-100/50' : ''}`}>
                                                         {row.end.toLocaleString()}
                                                     </td>
                                                 </tr>
@@ -1052,35 +1111,48 @@ const App = () => {
 
                     {/* Module 4: Repurchase */}
                     {activeModule === 'm4' && (
-                        <div className="bg-white p-4 md:p-6 rounded-lg shadow border border-gray-200">
-                            <h3 className="font-bold text-blue-800 border-b pb-2 mb-4">Repurchase at End of Year 5</h3>
-                            <p className="text-sm text-gray-600 mb-6">
+                        <div className="bg-white p-5 md:p-8 rounded-2xl shadow-sm border border-slate-200/60 ring-1 ring-slate-900/5">
+                            <h3 className="font-bold text-xl text-indigo-900 mb-3 tracking-tight">Repurchase at End of Year 5</h3>
+                            <p className="text-base text-slate-600 mb-8 leading-relaxed max-w-3xl">
                                 Assume that at the end of year 5, Comcast repurchases the bonds on the open market. The effective semiannual interest rate has fallen to 2%. What will Comcast pay to repurchase these bonds? Determine any gain or loss on the repurchase transaction.
                             </p>
                             
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                <div>
-                                    <h4 className="font-bold text-gray-700 mb-4 border-b pb-1">1. Market Value (Repurchase Price)</h4>
-                                    {renderInput("m4_nper", "Remaining Periods")}
-                                    {renderInput("m4_rate", "New Market Rate (Semiannual)", true)}
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                                <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200/60 shadow-inner">
+                                    <h4 className="font-bold text-slate-800 mb-5 flex items-center gap-2 text-lg">
+                                        <span className="bg-indigo-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs">1</span>
+                                        Market Value (Repurchase Price)
+                                    </h4>
+                                    <div className="space-y-1">
+                                        {renderInput("m4_nper", "Remaining Periods")}
+                                        {renderInput("m4_rate", "New Market Rate (Semiannual)", true)}
+                                    </div>
                                     
-                                    <div className="mt-6">
+                                    <div className="mt-8">
                                         <ExcelPVSimulator />
                                     </div>
 
-                                    <div className="bg-blue-50 p-3 rounded border border-blue-200 mt-2">
-                                        {renderInput("m4_market", "Market Value of Bond", false, null, "mb-0")}
-                                        <p className="text-xs text-blue-600 mt-2">
-                                            * Calculate using the PV tool or type <b>=PV(...)</b>
-                                        </p>
+                                    <div className="bg-gradient-to-br from-indigo-50 to-blue-50 p-4 rounded-xl border border-indigo-200/50 mt-4 shadow-sm relative overflow-hidden">
+                                        <div className="absolute right-0 bottom-0 opacity-10 translate-x-4 translate-y-4">
+                                            <Icon name="dollar-sign" className="w-20 h-20" />
+                                        </div>
+                                        <div className="relative z-10">
+                                            {renderInput("m4_market", "Market Value of Bond", false, null, "mb-0")}
+                                        </div>
                                     </div>
                                 </div>
-                                <div>
-                                    <h4 className="font-bold text-gray-700 mb-4 border-b pb-1">2. Gain or Loss</h4>
+                                <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200/60 shadow-inner h-fit">
+                                    <h4 className="font-bold text-slate-800 mb-5 flex items-center gap-2 text-lg">
+                                        <span className="bg-indigo-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs">2</span>
+                                        Gain or Loss
+                                    </h4>
                                     {renderInput("m4_book", "Book Value of Bond (End Year 5)")}
-                                    <div className="bg-gray-50 p-3 rounded border border-gray-200 mt-2">
+                                    <div className="bg-gradient-to-br from-white to-slate-100 p-4 rounded-xl border border-slate-200 mt-6 shadow-sm">
                                         {renderInput("m4_gain_loss", "Gain / (Loss) on Repurchase", false, null, "mb-0")}
-                                        <p className="text-xs text-gray-500 mt-1 italic">* Use a negative sign for a Loss.</p>
+                                        <p className="text-xs text-slate-500 mt-2 font-medium flex items-center gap-1.5 bg-white p-2 rounded-md border border-slate-100">
+                                            <Icon name="info" className="w-3.5 h-3.5 text-slate-400" />
+                                            Use a negative sign for a Loss.
+                                        </p>
                                     </div>
                                 </div>
                             </div>
@@ -1091,25 +1163,30 @@ const App = () => {
 
                     {/* Instructor Answer Key Table */}
                     {instructorMode && (
-                        <div className="mt-12 border-t-2 border-dashed border-purple-300 pt-8 mb-32">
-                            <h3 className="text-lg font-bold text-purple-900 mb-4 flex items-center gap-2">
-                                <Icon name="key" className="w-5 h-5" /> Master Answer Key
+                        <div className="mt-12 border-t-2 border-dashed border-violet-200 pt-8 mb-32 animate-in slide-in-from-bottom-4 duration-500">
+                            <h3 className="text-xl font-bold text-violet-900 mb-5 flex items-center gap-2.5">
+                                <span className="bg-violet-100 p-1.5 rounded-lg text-violet-700">
+                                    <Icon name="key" className="w-5 h-5" />
+                                </span>
+                                Master Answer Key
                             </h3>
-                            <div className="bg-white rounded-lg shadow border border-purple-200 overflow-hidden">
-                                <div className="overflow-x-auto">
+                            <div className="bg-white rounded-2xl shadow-md border border-violet-200 overflow-hidden">
+                                <div className="overflow-x-auto custom-scrollbar">
                                 <table className="w-full text-sm text-left">
-                                    <thead className="bg-purple-50 text-purple-900">
+                                    <thead className="bg-violet-50 text-violet-900 uppercase tracking-wider text-xs border-b border-violet-100">
                                         <tr>
-                                            <th className="p-3 border-b">Label</th>
-                                            <th className="p-3 border-b">Correct Value</th>
+                                            <th className="p-4 font-bold">Input Field Label</th>
+                                            <th className="p-4 font-bold text-right">Correct Value</th>
                                         </tr>
                                     </thead>
-                                    <tbody>
+                                    <tbody className="divide-y divide-violet-50">
                                         {Object.entries(_DATA_MATRIX).map(([key, data]) => (
-                                            <tr key={key} className="border-b hover:bg-purple-50">
-                                                <td className="p-3 font-medium">{data.label}</td>
-                                                <td className="p-3 font-mono font-bold text-purple-700">
-                                                    {data.isPct ? (d(data.val) * 100).toFixed(2) + "%" : d(data.val)}
+                                            <tr key={key} className="hover:bg-violet-50/50 transition-colors">
+                                                <td className="p-4 font-medium text-slate-700">{data.label}</td>
+                                                <td className="p-4 font-mono font-bold text-violet-700 text-right">
+                                                    <span className="bg-white px-2 py-1 rounded border border-violet-100 shadow-sm">
+                                                        {data.isPct ? (d(data.val) * 100).toFixed(2) + "%" : d(data.val).toLocaleString()}
+                                                    </span>
                                                 </td>
                                             </tr>
                                         ))}
@@ -1123,17 +1200,20 @@ const App = () => {
 
                 {/* Right Panel: Data Source */}
                 <div className="lg:w-80 flex-shrink-0 flex flex-col mb-20 lg:mb-0">
-                    <div className="bg-slate-100 p-4 rounded-lg border border-slate-200 h-full overflow-y-auto custom-scrollbar sticky top-4">
-                        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
-                            <Icon name="database" className="w-4 h-4" /> Data Source
+                    <div className="bg-white/80 backdrop-blur-md p-5 rounded-2xl border border-slate-200/80 shadow-sm h-full overflow-y-auto custom-scrollbar sticky top-4">
+                        <h3 className="text-xs font-bold text-indigo-800 uppercase tracking-wider mb-4 flex items-center gap-2 pb-3 border-b border-indigo-100">
+                            <span className="bg-indigo-100 text-indigo-700 p-1 rounded">
+                                <Icon name="database" className="w-4 h-4" />
+                            </span>
+                            Data Source
                         </h3>
                         {refs ? refs.map((ref, i) => (
                             <ReferenceItem key={i} data={ref} onNumberClick={handleNumberClick} />
-                        )) : <div className="text-sm text-gray-500 italic">No reference data needed for this section.</div>}
+                        )) : <div className="text-sm text-slate-400 font-medium p-4 text-center border-2 border-dashed border-slate-200 rounded-xl">No reference data needed for this section.</div>}
                         
-                        <div className="mt-4 p-3 bg-blue-50 text-blue-800 text-xs rounded border border-blue-100 flex gap-2">
-                            <Icon name="mouse-pointer-click" className="w-4 h-4 shrink-0" />
-                            <span>Tap any number in the tables to insert it into your selected input field.</span>
+                        <div className="mt-6 p-4 bg-gradient-to-br from-indigo-50 to-blue-50 text-indigo-900 text-sm rounded-xl border border-indigo-100/60 shadow-inner flex gap-3">
+                            <Icon name="mouse-pointer-click" className="w-5 h-5 shrink-0 text-indigo-500" />
+                            <span className="leading-snug font-medium">Tap any dotted number in the tables above to insert it into your selected input field.</span>
                         </div>
                     </div>
                 </div>
@@ -1141,28 +1221,17 @@ const App = () => {
         );
     };
 
-    const renderInput = (id, label, isPct = false, linkedValue = null, customClass = "mb-4", small = false) => (
-        <FieldWithHint 
-            key={id} id={id} label={label} isPct={isPct} 
-            answers={answers} updateAnswer={updateAnswer} 
-            correctValueEncoded={_DATA_MATRIX[id]?.val} instructorMode={instructorMode}
-            onFocus={handleInputFocus} isFocused={activeInputId === id}
-            linkedValue={linkedValue ? answers[linkedValue] : null}
-            className={customClass} small={small}
-        />
-    );
-
     return (
         <div className="flex flex-col h-full">
             <header className="bg-slate-900 text-white p-3 md:p-4 flex justify-between items-center shadow-md sticky-header z-50 shrink-0">
                 <div className="flex items-center gap-3">
-                    <div className="p-2 bg-blue-600 rounded-lg"><Icon name="bar-chart-3" className="w-6 h-6 text-white" /></div>
+                    <div className="p-2 bg-indigo-600 rounded-lg"><Icon name="bar-chart-3" className="w-6 h-6 text-white" /></div>
                     <div>
                         <h1 className="text-lg md:text-xl font-bold tracking-tight">Comcast Bond Sim</h1>
                     </div>
                 </div>
                 <div className="flex items-center gap-2 md:gap-3">
-                    <input type="text" placeholder="Your Name" className="bg-slate-800 border-slate-700 px-3 py-1 rounded text-sm text-white w-28 md:w-auto outline-none focus:ring-1 focus:ring-blue-500" />
+                    <input type="text" placeholder="Your Name" className="bg-slate-800 border-slate-700 px-3 py-1 rounded text-sm text-white w-28 md:w-auto outline-none focus:ring-1 focus:ring-indigo-500" />
                     <button
                         onClick={() => setShowCalculator(prev => !prev)}
                         className="bg-white/10 hover:bg-white/20 text-white px-3 py-2 rounded text-sm font-medium flex items-center gap-2 transition"
@@ -1173,7 +1242,7 @@ const App = () => {
                     </button>
                     <button 
                         onClick={() => instructorMode ? setInstructorMode(false) : setShowAuthModal(true)}
-                        className={`opacity-20 hover:opacity-100 flex items-center gap-2 px-3 py-2 rounded text-sm font-medium transition-all ${instructorMode ? 'bg-purple-600 text-white opacity-100' : 'text-white'}`}
+                        className={`opacity-20 hover:opacity-100 flex items-center gap-2 px-3 py-2 rounded text-sm font-medium transition-all ${instructorMode ? 'bg-violet-600 text-white opacity-100' : 'text-white'}`}
                     >
                         <Icon name={instructorMode ? "unlock" : "lock"} className="w-4 h-4" />
                     </button>
@@ -1182,16 +1251,16 @@ const App = () => {
 
             {/* Sticky Instructor Toolbar */}
             {instructorMode && (
-                <div className="bg-purple-700 text-white p-2 shadow-md flex items-center justify-between z-40 instructor-toolbar shrink-0 overflow-x-auto">
+                <div className="bg-violet-700 text-white p-2 shadow-md flex items-center justify-between z-40 instructor-toolbar shrink-0 overflow-x-auto">
                     <div className="flex items-center gap-2 md:gap-3 px-2 md:px-4 shrink-0">
                         <span className="bg-white/20 p-1.5 rounded"><Icon name="graduation-cap" className="w-4 h-4"/></span>
                         <span className="font-bold tracking-wide text-xs md:text-sm">INSTRUCTOR</span>
                     </div>
                     <div className="flex gap-2 px-2 md:px-4 shrink-0">
-                        <button onClick={autoFillAll} className="flex items-center gap-1 md:gap-2 px-2 md:px-3 py-1 bg-green-500 hover:bg-green-600 rounded text-xs md:text-sm font-bold transition">
+                        <button onClick={autoFillAll} className="flex items-center gap-1 md:gap-2 px-2 md:px-3 py-1 bg-emerald-500 hover:bg-emerald-600 rounded text-xs md:text-sm font-bold transition">
                             <Icon name="wand-2" className="w-3 h-3 md:w-4 md:h-4" /> Fill
                         </button>
-                        <button onClick={() => setShowClearModal(true)} className="flex items-center gap-1 md:gap-2 px-2 md:px-3 py-1 bg-red-500 hover:bg-red-600 rounded text-xs md:text-sm font-bold transition">
+                        <button onClick={() => setShowClearModal(true)} className="flex items-center gap-1 md:gap-2 px-2 md:px-3 py-1 bg-rose-500 hover:bg-rose-600 rounded text-xs md:text-sm font-bold transition">
                             <Icon name="log-out" className="w-3 h-3 md:w-4 md:h-4" /> Clear
                         </button>
                     </div>
@@ -1205,7 +1274,7 @@ const App = () => {
                      <select 
                         value={activeModule} 
                         onChange={(e) => setActiveModule(e.target.value)}
-                        className="w-full p-2 border border-gray-300 rounded bg-gray-50 font-medium text-slate-800"
+                        className="w-full p-2 border border-slate-300 rounded bg-slate-50 font-medium text-slate-800"
                     >
                         {MODULES.map(mod => <option key={mod.id} value={mod.id}>{mod.reviewId}: {mod.title}</option>)}
                     </select>
@@ -1213,22 +1282,22 @@ const App = () => {
 
                 {/* Desktop Sidebar Nav */}
                 <nav 
-                    className="bg-white border-r border-gray-200 overflow-y-auto custom-scrollbar flex-shrink-0 hidden md:block relative"
+                    className="bg-white border-r border-slate-200 overflow-y-auto custom-scrollbar flex-shrink-0 hidden md:block relative z-20"
                     style={{ width: navWidth }}
                 >
-                    <div className="p-4 border-b bg-gray-50 text-xs font-bold text-gray-500 uppercase">Progression</div>
+                    <div className="p-4 border-b bg-slate-50 text-xs font-bold text-slate-500 uppercase">Progression</div>
                     <div className="p-2 space-y-1">
                         {MODULES.map(mod => (
                             <button
                                 key={mod.id}
                                 onClick={() => setActiveModule(mod.id)}
-                                className={`w-full text-left px-3 py-3 rounded-md text-sm font-medium flex items-center gap-3 transition-all ${
+                                className={`w-full text-left px-3 py-3 rounded-xl text-sm font-medium flex items-center gap-3 transition-all ${
                                     activeModule === mod.id 
-                                    ? "bg-blue-50 text-blue-700 border border-blue-200 shadow-sm" 
-                                    : "text-gray-600 hover:bg-gray-100"
+                                    ? "bg-indigo-50 text-indigo-700 border border-indigo-200 shadow-sm" 
+                                    : "text-slate-600 hover:bg-slate-100"
                                 }`}
                             >
-                                <span className={`w-6 h-6 flex items-center justify-center rounded text-xs font-bold ${mod.type === 'concept' ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-500'}`}>
+                                <span className={`w-7 h-7 flex items-center justify-center rounded-lg text-xs font-bold ${mod.type === 'concept' ? 'bg-violet-100 text-violet-700' : 'bg-slate-100 text-slate-500'}`}>
                                     {mod.type === 'concept' ? '?' : mod.reviewId.split(' ')[1]}
                                 </span>
                                 <span className="truncate">{mod.title}</span>
@@ -1239,7 +1308,7 @@ const App = () => {
                     <div className="resizer-handle" onMouseDown={startResizing}></div>
                 </nav>
 
-                <main className="flex-1 overflow-hidden relative bg-gray-50 p-3 md:p-6">
+                <main className="flex-1 overflow-hidden relative p-3 md:p-6">
                     {renderModuleContent()}
                 </main>
             </div>
@@ -1251,36 +1320,41 @@ const App = () => {
             />
 
             {/* Login Modal */}
-            <Modal isOpen={showAuthModal} title="System Access" onClose={() => setShowAuthModal(false)}>
-                <div className="space-y-4">
-                    <input 
-                        type="password" 
-                        className="w-full border p-2 rounded outline-none focus:border-purple-500"
-                        placeholder="Access Code (Hint: review)"
-                        value={passwordInput}
-                        onChange={(e) => setPasswordInput(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleAuth()}
-                    />
+            <Modal isOpen={showAuthModal} title="Instructor Access" onClose={() => setShowAuthModal(false)}>
+                <div className="space-y-5">
+                    <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <Icon name="lock" className="h-5 w-5 text-slate-400" />
+                        </div>
+                        <input 
+                            type="password" 
+                            className="w-full border-2 border-slate-200 pl-10 p-3 rounded-xl outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all font-medium"
+                            placeholder="Access Code (Hint: review)"
+                            value={passwordInput}
+                            onChange={(e) => setPasswordInput(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleAuth()}
+                        />
+                    </div>
                     <button 
                         onClick={handleAuth}
-                        className="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 rounded font-medium"
+                        className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white py-3 rounded-xl font-bold shadow-md shadow-indigo-500/20 transition-all active:scale-[0.98]"
                     >
-                        Unlock
+                        Unlock Features
                     </button>
                 </div>
             </Modal>
 
             {/* Clear Confirmation Modal */}
             <Modal isOpen={showClearModal} title="Clear All & Exit?" onClose={() => setShowClearModal(false)}>
-                <div className="space-y-4">
-                    <div className="flex items-center gap-3 text-red-600 mb-2">
-                        <Icon name="alert-triangle" className="w-6 h-6" />
-                        <h4 className="font-bold">Warning</h4>
+                <div className="space-y-5">
+                    <div className="flex items-center gap-3 text-rose-600 bg-rose-50 p-3 rounded-xl border border-rose-100">
+                        <Icon name="alert-triangle" className="w-6 h-6 shrink-0" />
+                        <h4 className="font-bold">Warning: Destructive Action</h4>
                     </div>
-                    <p className="text-sm text-gray-600">This will remove all student answers and lock Instructor Mode. This action cannot be undone.</p>
-                    <div className="flex justify-end gap-3 mt-4">
-                        <button onClick={() => setShowClearModal(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">Cancel</button>
-                        <button onClick={performClear} className="px-4 py-2 bg-red-600 text-white hover:bg-red-700 rounded font-medium">Confirm Clear</button>
+                    <p className="text-slate-600 leading-relaxed font-medium px-1">This will instantly remove all student answers and lock Instructor Mode. This action cannot be undone.</p>
+                    <div className="flex justify-end gap-3 mt-6 pt-2">
+                        <button onClick={() => setShowClearModal(false)} className="px-5 py-2.5 text-slate-600 font-bold hover:bg-slate-100 rounded-xl transition-colors">Cancel</button>
+                        <button onClick={performClear} className="px-5 py-2.5 bg-rose-600 text-white font-bold hover:bg-rose-700 rounded-xl shadow-md shadow-rose-500/20 transition-all active:scale-[0.98]">Confirm Clear</button>
                     </div>
                 </div>
             </Modal>
