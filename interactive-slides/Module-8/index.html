@@ -32,10 +32,6 @@
         }
 
         /* Flip Card Effect - REBUILT FOR MOBILE STABILITY */
-        .flip-card {
-            transform: translateZ(0); /* Create stable compositing layer */
-            -webkit-transform: translateZ(0);
-        }
         .perspective-1000 { perspective: 1000px; }
         
         .flip-card-inner {
@@ -94,9 +90,8 @@
 
         /* Glassmorphism */
         .glass-panel {
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
+            background: rgba(255, 255, 255, 0.95);
+            /* Removed backdrop-filter to prevent severe mobile GPU memory crashes */
             border: 1px solid rgba(0, 0, 0, 0.05);
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03);
         }
@@ -128,15 +123,27 @@
             box-shadow: 0 4px 15px rgba(59, 130, 246, 0.1);
         }
         .quiz-btn.correct {
-            background-color: #d1fae5;
-            border-color: #10b981;
-            color: #065f46;
+            background-color: #d1fae5 !important;
+            border-color: #10b981 !important;
+            color: #065f46 !important;
         }
         .quiz-btn.incorrect {
-            background-color: #fee2e2;
-            border-color: #ef4444;
-            color: #991b1b;
+            background-color: #fee2e2 !important;
+            border-color: #ef4444 !important;
+            color: #991b1b !important;
             opacity: 0.8;
+        }
+        
+        /* Quiz checkmark icon explicitly styled to prevent Tailwind CDN parsing hangs */
+        .quiz-check-icon {
+            opacity: 0;
+            transform: scale(0.5);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .quiz-btn.correct .quiz-check-icon {
+            opacity: 1;
+            transform: scale(1);
+            color: #059669;
         }
 
         /* Range Slider */
@@ -1603,13 +1610,13 @@
                                 ${slide.options.map((opt, optIndex) => `
                                     <button 
                                         onclick="handleQuizAnswer(${index}, ${optIndex}, ${opt.correct})"
-                                        class="quiz-btn w-full p-5 rounded-2xl text-left flex justify-between items-center group shadow-sm border-2 border-slate-100">
+                                        class="quiz-btn w-full p-5 rounded-2xl text-left flex justify-between items-center shadow-sm border-2 border-slate-100">
                                         <span class="text-lg font-medium">${opt.text}</span>
-                                        <i class="fa-solid fa-circle-check text-2xl opacity-0 group-[.correct]:opacity-100 transition-opacity"></i>
+                                        <i class="fa-solid fa-circle-check text-2xl quiz-check-icon"></i>
                                     </button>
                                 `).join('')}
                             </div>
-                            <div id="quiz-feedback-${index}" class="hidden mt-8 p-6 rounded-2xl bg-slate-50 border border-slate-200 shadow-inner animate-fade-in-up text-base">
+                            <div id="quiz-feedback-${index}" class="hidden mt-8 p-6 rounded-2xl bg-slate-50 border border-slate-200 shadow-inner fade-in text-base">
                                 <div class="feedback-text mb-3"></div>
                                 ${slide.explanation ? `<p class="text-slate-600 leading-relaxed">${slide.explanation}</p>` : ''}
                             </div>
@@ -1687,7 +1694,12 @@
                     }
                 });
             }
-            feedbackBox.classList.remove('hidden');
+            
+            // Decouple layout height calculation from the GPU animation to prevent iOS crash
+            setTimeout(() => {
+                feedbackBox.classList.remove('hidden');
+                feedbackBox.classList.add('fade-in');
+            }, 50);
         }
 
         function showResults() {
