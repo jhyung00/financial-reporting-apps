@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Debt & Note Disclosure Simulation</title>
+    <title>Debt Tycoon: Analyst Simulator</title>
     
     <!-- Dependencies -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -12,6 +12,9 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Google Fonts for Gamified Look -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
 
     <!-- Tailwind Config -->
     <script>
@@ -22,6 +25,10 @@
                         slate: { 850: '#1e293b', 900: '#0f172a' },
                         blue: { 950: '#172554' },
                         emerald: { 450: '#10b981' }
+                    },
+                    fontFamily: {
+                        sans: ['Nunito', 'sans-serif'],
+                        game: ['Fredoka', 'sans-serif'],
                     }
                 }
             }
@@ -29,49 +36,82 @@
     </script>
 
     <style>
-        ::-webkit-scrollbar { width: 8px; height: 8px; }
-        ::-webkit-scrollbar-track { background: #1e293b; }
-        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+        body {
+            background-color: #0f172a; /* Deep Slate Game Background */
+            color: #e2e8f0;
+            background-image: radial-gradient(circle at 50% 0%, #1e293b 0%, #0f172a 70%);
+            min-height: 100vh;
+        }
+
+        h1, h2, h3, h4, h5, h6, .game-font {
+            font-family: 'Fredoka', sans-serif;
+        }
+        
+        /* Custom Game Scrollbar */
+        ::-webkit-scrollbar { width: 10px; height: 10px; }
+        ::-webkit-scrollbar-track { background: #0f172a; border-radius: 8px; }
+        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 8px; border: 2px solid #0f172a; }
         ::-webkit-scrollbar-thumb:hover { background: #64748b; }
-        
-        .input-correct {
-            border-color: #10b981 !important;
-            color: #065f46 !important;
-            background-color: #ecfdf5 !important;
-            font-weight: bold;
+
+        /* Chunky Game Buttons */
+        .btn-game {
+            position: relative;
+            transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 0 0 rgba(0,0,0,0.3);
+            transform: translateY(0);
         }
-        .input-default { border-color: #cbd5e1; }
-        input[type=number]::-webkit-inner-spin-button, 
-        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-        
-        /* Calculator Button Styles */
-        .calc-btn {
-            background-color: #334155;
-            color: white;
-            font-weight: bold;
-            border-radius: 4px;
-            padding: 8px 0;
-            text-align: center;
-            font-size: 0.85rem;
-            transition: background-color 0.1s;
+        .btn-game:active {
+            transform: translateY(4px);
+            box-shadow: 0 0px 0 0 rgba(0,0,0,0.3);
         }
-        .calc-btn:hover { background-color: #475569; }
-        .calc-btn:active { transform: scale(0.98); }
-        .calc-btn.op { background-color: #0f172a; color: #60a5fa; }
-        .calc-btn.eq { background-color: #059669; }
-        .calc-btn.clear { background-color: #991b1b; }
+
+        /* Animations */
+        .fade-in { animation: fadeIn 0.4s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
         
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-fade-in { animation: fadeIn 0.3s ease-out; }
+        .pop-in { animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+        @keyframes popIn { 
+            0% { opacity: 0; transform: scale(0.5); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
+        .float-anim { animation: float 3s ease-in-out infinite; }
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-5px); }
+            100% { transform: translateY(0px); }
+        }
 
         /* Anti-Tamper Styles */
         .no-select {
             user-select: none;
             -webkit-user-select: none;
         }
+
+        /* Calculator Styles Gamified */
+        .calc-btn {
+            background-color: #1e293b;
+            color: white;
+            font-weight: 800;
+            border-radius: 8px;
+            padding: 10px 0;
+            text-align: center;
+            font-size: 0.9rem;
+            transition: all 0.1s;
+            border-bottom: 3px solid #0f172a;
+        }
+        .calc-btn:hover { background-color: #334155; transform: translateY(-1px); border-bottom: 4px solid #0f172a; }
+        .calc-btn:active { transform: translateY(2px); border-bottom: 1px solid #0f172a; }
+        .calc-btn.op { background-color: #0f172a; color: #38bdf8; border-bottom: 3px solid #020617; }
+        .calc-btn.eq { background-color: #059669; border-bottom: 3px solid #064e3b; color: #ecfdf5;}
+        .calc-btn.clear { background-color: #e11d48; border-bottom: 3px solid #881337; color: #fff1f2;}
+        
+        .pts-bar-container {
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+        }
     </style>
 </head>
-<body class="bg-slate-100 text-slate-800 antialiased h-screen flex flex-col overflow-hidden no-select" oncontextmenu="return false;">
+<body class="antialiased h-screen flex flex-col overflow-hidden no-select font-sans" oncontextmenu="return false;">
 
     <div id="root" class="h-full flex flex-col"></div>
 
@@ -79,35 +119,14 @@
         const { useState, useEffect, useMemo, useRef } = React;
 
         // --- DATA & ANSWER KEYS (OBFUSCATED) ---
-        
         const _K_ANS = {
-            P: {
-                "p_st": "4026", 
-                "p_lt": "28295", 
-                "p_total": "32321",
-                "p_change": "15",
-                "p_retired": "1328", 
-                "p_loss": "272"
-            },
-            B: {
-                "b_fy3Due": "2248", 
-                "b_totalLt": "7051", 
-                "b_avgRate": "3.805"
-            }
+            P: { "p_st": "4026", "p_lt": "28295", "p_total": "32321", "p_change": "15", "p_retired": "1328", "p_loss": "272" },
+            B: { "b_fy3Due": "2248", "b_totalLt": "7051", "b_avgRate": "3.805" }
         };
 
         const _K_MC = {
-            P: {
-                "mc_p1": "b",
-                "mc_p2": "b",
-                "mc_p3": "b",
-                "mc_p4": "c"
-            },
-            B: {
-                "mc_b1": "b",
-                "mc_b2": "c",
-                "mc_b3": "b"
-            }
+            P: { "mc_p1": "b", "mc_p2": "b", "mc_p3": "b", "mc_p4": "c" },
+            B: { "mc_b1": "b", "mc_b2": "c", "mc_b3": "b" }
         };
 
         const _M_META = {
@@ -257,16 +276,16 @@
         const ConfirmationModal = ({ isOpen, title, message, onConfirm, onCancel }) => {
             if (!isOpen) return null;
             return (
-                <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center backdrop-blur-sm animate-fade-in no-select">
-                    <div className="bg-white rounded-lg shadow-2xl max-w-sm w-full p-6 m-4 border-l-4 border-red-500">
-                        <div className="flex items-center gap-3 text-red-600 mb-4">
-                            <Icon name="alert-triangle" size={24} />
-                            <h3 className="text-lg font-bold">{title}</h3>
+                <div className="fixed inset-0 bg-slate-900/90 z-[100] flex items-center justify-center backdrop-blur-sm animate-fade-in no-select p-4">
+                    <div className="bg-slate-800 p-8 rounded-3xl shadow-2xl max-w-sm w-full border-4 border-rose-500 pop-in">
+                        <div className="w-20 h-20 bg-rose-900 border-4 border-rose-500 rounded-full flex items-center justify-center mx-auto mb-4 -mt-16 shadow-[0_0_30px_rgba(244,63,94,0.6)] text-rose-300">
+                            <Icon name="bomb" size={40} />
                         </div>
-                        <p className="text-slate-600 mb-6">{message}</p>
-                        <div className="flex justify-end gap-3">
-                            <button onClick={onCancel} className="px-4 py-2 text-slate-600 font-medium hover:bg-slate-100 rounded-lg">Cancel</button>
-                            <button onClick={onConfirm} className="px-4 py-2 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700">Confirm & Exit</button>
+                        <h3 className="font-black text-2xl mb-2 text-white text-center game-font uppercase">{title}</h3>
+                        <p className="text-slate-300 mb-8 text-center font-bold">{message}</p>
+                        <div className="flex justify-center gap-4">
+                            <button onClick={onCancel} className="btn-game px-6 py-3 bg-slate-700 text-slate-300 hover:text-white rounded-xl font-black border-2 border-slate-600">Cancel</button>
+                            <button onClick={onConfirm} className="btn-game px-6 py-3 bg-gradient-to-b from-rose-500 to-red-700 border-2 border-red-300 text-white rounded-xl font-black shadow-lg">Confirm</button>
                         </div>
                     </div>
                 </div>
@@ -309,26 +328,26 @@
             };
 
             return (
-                <div className="mx-4 mt-6 bg-slate-800 rounded-lg p-3 border border-slate-700 shadow-xl">
-                    <div className="bg-slate-900 border border-slate-600 rounded mb-3 px-2 py-2 text-right text-lg font-mono text-emerald-400 font-bold overflow-hidden h-10 flex items-center justify-end">
+                <div className="mx-4 mt-6 bg-slate-900/80 rounded-2xl p-4 border-4 border-slate-700 shadow-xl">
+                    <div className="bg-slate-800 border-2 border-slate-600 shadow-inner rounded-xl mb-4 px-3 py-3 text-right text-xl font-mono text-sky-400 font-black overflow-hidden h-14 flex items-center justify-end">
                         {display}
                     </div>
                     <div className="grid grid-cols-4 gap-2">
-                        <button onClick={handleClear} className="calc-btn clear col-span-1 text-xs">C</button>
-                        <button onClick={() => handleOp('÷')} className="calc-btn op">÷</button>
-                        <button onClick={() => handleOp('×')} className="calc-btn op">×</button>
-                        <button onClick={() => handleOp('-')} className="calc-btn op">-</button>
+                        <button onClick={handleClear} className="calc-btn clear col-span-1 text-sm flex items-center justify-center"><Icon name="trash-2" size={16} /></button>
+                        <button onClick={() => handleOp('÷')} className="calc-btn op"><Icon name="divide" size={16} className="mx-auto" /></button>
+                        <button onClick={() => handleOp('×')} className="calc-btn op"><Icon name="x" size={16} className="mx-auto" /></button>
+                        <button onClick={() => handleOp('-')} className="calc-btn op"><Icon name="minus" size={16} className="mx-auto" /></button>
                         <button onClick={() => handleNum(7)} className="calc-btn">7</button>
                         <button onClick={() => handleNum(8)} className="calc-btn">8</button>
                         <button onClick={() => handleNum(9)} className="calc-btn">9</button>
-                        <button onClick={() => handleOp('+')} className="calc-btn op row-span-2 flex items-center justify-center">+</button>
+                        <button onClick={() => handleOp('+')} className="calc-btn op row-span-2 flex flex-col items-center justify-center pt-5"><Icon name="plus" size={16} /></button>
                         <button onClick={() => handleNum(4)} className="calc-btn">4</button>
                         <button onClick={() => handleNum(5)} className="calc-btn">5</button>
                         <button onClick={() => handleNum(6)} className="calc-btn">6</button>
                         <button onClick={() => handleNum(1)} className="calc-btn">1</button>
                         <button onClick={() => handleNum(2)} className="calc-btn">2</button>
                         <button onClick={() => handleNum(3)} className="calc-btn">3</button>
-                        <button onClick={handleEq} className="calc-btn eq row-span-2 flex items-center justify-center">=</button>
+                        <button onClick={handleEq} className="calc-btn eq row-span-2 flex flex-col items-center justify-center pt-5"><Icon name="equal" size={16} /></button>
                         <button onClick={() => handleNum(0)} className="calc-btn col-span-2">0</button>
                         <button onClick={() => handleNum('.')} className="calc-btn">.</button>
                     </div>
@@ -338,6 +357,7 @@
 
         const SmartInput = ({ id, value, onChange, correctValue, label, hint, instructorMode, activeInput, setActiveInput, type = "number" }) => {
             const [localError, setLocalError] = useState(null);
+            const [justCorrect, setJustCorrect] = useState(false);
             
             const evaluateMath = (expr) => {
                 if (!expr) return { valid: true, val: "" };
@@ -360,17 +380,28 @@
                 
                 // Special handling for percentages
                 if (type === "percent") {
-                    // If user enters 0.04 (for 4%) or 4 (for 4%), handle both
-                    // We assume if value < 1.0 and target > 1.0, user likely entered decimal
                     if (numVal < 1.0 && target > 1.0 && numVal !== 0) {
                         numVal = numVal * 100;
                     }
                 }
 
                 // 2% Relative Tolerance
-                if (target === 0) return Math.abs(numVal) < 0.01;
-                return Math.abs((numVal - target) / target) <= 0.02;
+                let validCheck = false;
+                if (target === 0) validCheck = Math.abs(numVal) < 0.01;
+                else validCheck = Math.abs((numVal - target) / target) <= 0.02;
+
+                return validCheck;
             }, [value, correctValue, type]);
+
+            // Track state transitions for animation
+            const prevCorrect = useRef(isCorrect);
+            useEffect(() => {
+                if (isCorrect && !prevCorrect.current) {
+                    setJustCorrect(true);
+                    setTimeout(() => setJustCorrect(false), 600);
+                }
+                prevCorrect.current = isCorrect;
+            }, [isCorrect]);
 
             const handleBlur = (e) => {
                 const { valid, val } = evaluateMath(value);
@@ -378,21 +409,30 @@
                 setLocalError(null);
                 if (valid && value !== "") {
                      const numVal = Number(val);
-                     // Format display
                      let displayVal = Number.isInteger(numVal) ? numVal.toString() : numVal.toFixed(3);
-                     // Keep decimal precision if it was small
                      if (Math.abs(numVal) < 1 && numVal !== 0) displayVal = numVal.toString();
-                     
                      onChange(id, displayVal); 
                 }
             };
 
             const isActive = activeInput === id;
 
+            // Gamified styling based on state
+            let baseClass = "w-full p-3 text-right text-sm font-black rounded-xl border-4 outline-none transition-all focus:scale-[1.02] shadow-sm font-mono";
+            let stateClass = "border-slate-600 bg-slate-800 text-white focus:border-sky-400 focus:bg-slate-700 focus:shadow-[0_0_15px_rgba(56,189,248,0.3)]";
+            
+            if (isCorrect) {
+                stateClass = "border-emerald-500 bg-emerald-900/40 text-emerald-300 shadow-[0_0_10px_rgba(16,185,129,0.3)]";
+            } else if (localError) {
+                stateClass = "border-rose-500 bg-rose-900/40 text-rose-300";
+            } else if (!isActive && value && !isCorrect) {
+                stateClass = "border-slate-500 bg-slate-700/60 text-slate-300";
+            }
+
             return (
-                <div className="w-full">
-                    {label && <label className="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">{label}</label>}
-                    <div className="flex gap-2 items-start">
+                <div className="w-full relative group">
+                    {label && <label className="block text-[11px] font-black text-slate-400 mb-1 uppercase tracking-widest">{label}</label>}
+                    <div className="flex gap-3 items-stretch">
                         <div className="relative flex-grow">
                             <input 
                                 type="text" 
@@ -402,66 +442,101 @@
                                 onFocus={() => setActiveInput(id)}
                                 onBlur={handleBlur}
                                 onKeyDown={(e) => e.key === 'Enter' && e.target.blur()}
-                                className={`w-full p-2 text-right border rounded text-sm font-mono shadow-sm transition-all outline-none focus:ring-2 focus:ring-blue-500 ${
-                                    isCorrect ? "input-correct" : (value && !isActive && !isCorrect) ? "bg-white border-slate-300" : "bg-white border-slate-300"
-                                }`}
-                                placeholder={hint ? "Calc..." : "-"}
+                                className={`${baseClass} ${stateClass} ${justCorrect ? 'pop-in' : ''}`}
+                                placeholder={hint ? "Input / Calc..." : "-"}
                             />
-                            <div className="absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none">
-                                {isCorrect ? <span className="text-emerald-600"><Icon name="check" size={14} /></span> : 
-                                localError ? <span className="text-red-500 font-bold text-xs">!</span> : null}
+                            <div className={`absolute -left-3 -top-3 pointer-events-none transition-all ${isCorrect ? 'opacity-100 scale-100 pop-in' : 'opacity-0 scale-0'}`}>
+                                <div className="text-emerald-400 bg-emerald-900 rounded-full p-1 border-2 border-emerald-500 shadow-lg">
+                                    <Icon name="star" size={16} className="fill-emerald-400" />
+                                </div>
                             </div>
+                            {localError && <div className="absolute right-3 top-1/2 -translate-y-1/2 text-rose-500 font-black pop-in">!</div>}
                         </div>
                         {hint && (
-                            <div className="w-1/3 shrink-0 bg-blue-50 border border-blue-100 rounded p-2 flex flex-col justify-center min-h-[38px]">
-                                <span className="text-[10px] text-blue-500 font-bold uppercase tracking-wider block mb-0.5">Hint</span>
-                                <span className="text-xs text-blue-800 font-medium leading-tight">{hint}</span>
+                            <div className="w-1/3 shrink-0 bg-slate-900 border-2 border-slate-700 rounded-xl p-2 flex flex-col justify-center shadow-inner">
+                                <span className="text-[9px] text-sky-400 font-black uppercase tracking-widest block mb-0.5 flex items-center gap-1"><Icon name="help-circle" size={10}/> Hint</span>
+                                <span className="text-xs text-slate-300 font-bold leading-tight">{hint}</span>
                             </div>
                         )}
                     </div>
                     {/* Per-Input Key Display (Instructor Mode) */}
                     {instructorMode && (
-                        <div className="mt-1 text-[10px] text-purple-700 bg-purple-50 px-2 py-1 rounded inline-block font-bold border border-purple-200 shadow-sm animate-fade-in">
-                            Key: {correctValue}
+                        <div className="absolute z-10 -bottom-6 left-1/2 -translate-x-1/2 w-max text-[11px] font-black tracking-wider text-center bg-amber-600 text-white border-2 border-amber-300 rounded-md py-0.5 px-2 fade-in shadow-xl opacity-0 group-hover:opacity-100 transition-opacity">
+                            KEY: {correctValue}
                         </div>
                     )}
                 </div>
             );
         };
 
-        const MultipleChoiceQuestion = ({ id, question, options, selected, onSelect, correctId, feedback }) => {
+        const MultipleChoiceQuestion = ({ id, question, options, selected, onSelect, correctId, feedback, instructorMode }) => {
             const isAnswered = selected !== undefined;
             const isCorrect = selected === correctId;
 
             return (
-                <div className="bg-white border border-slate-200 rounded-lg p-5 shadow-sm mb-4">
-                    <h4 className="font-bold text-slate-800 mb-3 text-sm">{question}</h4>
-                    <div className="space-y-2 mb-3">
+                <div className="bg-slate-800/80 border-4 border-slate-700 rounded-2xl p-6 shadow-xl mb-6 relative">
+                    {/* Correct/Wrong Stamp */}
+                    {isAnswered && (
+                        <div className={`absolute -right-4 -top-4 w-14 h-14 rounded-full flex items-center justify-center font-black text-xl border-4 shadow-lg pop-in z-20 ${isCorrect ? 'bg-emerald-500 border-white text-white' : 'bg-rose-500 border-white text-white'}`}>
+                            <Icon name={isCorrect ? 'check' : 'x'} size={28} strokeWidth="4" />
+                        </div>
+                    )}
+
+                    <div className="flex items-start gap-4 mb-5 relative z-10">
+                        <div className="bg-gradient-to-br from-blue-500 to-sky-600 text-white w-8 h-8 rounded-xl flex items-center justify-center font-black border-2 border-sky-300 flex-shrink-0 shadow-md">
+                            <Icon name="help-circle" size={16} />
+                        </div>
+                        <h4 className="font-black text-slate-100 text-[15px] leading-snug pt-1">{question}</h4>
+                    </div>
+
+                    <div className="space-y-3 pl-0 md:pl-12 mb-4">
                         {options.map((opt) => {
-                            let btnClass = "border-slate-200 hover:bg-slate-50 text-slate-700";
+                            const isSelected = selected === opt.id;
+                            
+                            let btnClass = "btn-game w-full text-left p-3.5 rounded-xl border-4 font-bold text-sm transition-all flex items-center justify-between ";
+                            
                             if (isAnswered) {
-                                if (opt.id === correctId) btnClass = "bg-emerald-50 border-emerald-500 text-emerald-800 font-bold";
-                                else if (selected === opt.id) btnClass = "bg-red-50 border-red-500 text-red-800";
-                                else btnClass = "opacity-50 border-slate-200";
+                                if (opt.id === correctId) {
+                                    btnClass += "bg-emerald-900/60 border-emerald-500 text-emerald-100 shadow-[0_0_15px_rgba(16,185,129,0.3)] opacity-100 ";
+                                } else if (isSelected) {
+                                    btnClass += "bg-rose-900/60 border-rose-500 text-rose-100 opacity-100 ";
+                                } else {
+                                    btnClass += "bg-slate-900/40 border-slate-700/50 text-slate-500 opacity-50 ";
+                                }
+                            } else {
+                                btnClass += "bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border-slate-600 hover:border-slate-500 cursor-pointer ";
                             }
+
+                            if (instructorMode && opt.id === correctId && !isAnswered) {
+                                btnClass += " ring-4 ring-amber-500 ring-offset-4 ring-offset-slate-900";
+                            }
+
                             return (
                                 <button 
                                     key={opt.id}
                                     onClick={() => !isAnswered && onSelect(id, opt.id)}
                                     disabled={isAnswered}
-                                    className={`w-full text-left p-3 rounded border text-sm transition-all flex items-center justify-between ${btnClass}`}
+                                    className={btnClass}
                                 >
-                                    <span>{opt.text}</span>
-                                    {isAnswered && opt.id === correctId && <Icon name="check-circle" size={16} />}
-                                    {isAnswered && selected === opt.id && selected !== correctId && <Icon name="x-circle" size={16} />}
+                                    <span className="flex-1 pr-4">{opt.text}</span>
+                                    <div className={`w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${isSelected ? (isCorrect ? 'bg-emerald-500 border-emerald-300' : 'bg-rose-500 border-rose-300') : (isAnswered && opt.id === correctId) ? 'bg-emerald-500 border-emerald-300' : 'border-slate-600 bg-slate-900'}`}>
+                                        {(isSelected || (isAnswered && opt.id === correctId)) && <div className="w-2 h-2 rounded-full bg-white"></div>}
+                                    </div>
+                                    {instructorMode && opt.id === correctId && !isAnswered && (
+                                        <span className="absolute right-12 text-[10px] text-white font-black px-2 py-0.5 bg-amber-600 rounded shadow-md border border-amber-300 transform rotate-6">KEY</span>
+                                    )}
                                 </button>
                             );
                         })}
                     </div>
+
                     {isAnswered && (
-                        <div className={`text-xs p-3 rounded border ${isCorrect ? "bg-emerald-50 border-emerald-100 text-emerald-800" : "bg-blue-50 border-blue-100 text-blue-800"}`}>
-                            <span className="font-bold uppercase tracking-wider block mb-1">{isCorrect ? "Correct" : "Analysis"}</span>
-                            {feedback}
+                        <div className={`mt-4 p-4 rounded-xl border-4 animate-fade-in ${isCorrect ? "bg-emerald-950/40 border-emerald-800/50 text-emerald-200" : "bg-blue-950/40 border-blue-800/50 text-sky-200"} ml-0 md:ml-12`}>
+                            <span className={`font-black uppercase tracking-widest text-[10px] block mb-1.5 flex items-center gap-1 ${isCorrect ? "text-emerald-400" : "text-sky-400"}`}>
+                                <Icon name={isCorrect ? "check-circle-2" : "search"} size={12} />
+                                {isCorrect ? "Mission Success" : "Analysis Log"}
+                            </span>
+                            <p className="text-sm font-semibold">{feedback}</p>
                         </div>
                     )}
                 </div>
@@ -471,25 +546,32 @@
         const ReferenceTable = ({ title, headers, rows, onValueClick }) => {
             const [isOpen, setIsOpen] = useState(true);
             return (
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mb-4">
-                    <button onClick={() => setIsOpen(!isOpen)} className="w-full flex items-center justify-between p-3 bg-slate-50 border-b border-slate-100 hover:bg-slate-100 transition">
-                        <h4 className="font-bold text-slate-700 text-sm flex items-center gap-2">
-                            <Icon name="table" size={16} /> {title}
+                <div className="bg-slate-800/80 rounded-2xl shadow-lg border-4 border-slate-700 overflow-hidden mb-5 backdrop-blur">
+                    <button onClick={() => setIsOpen(!isOpen)} className="w-full flex items-center justify-between p-4 bg-slate-800 border-b-2 border-slate-700 hover:bg-slate-700 transition-colors group">
+                        <h4 className="font-black text-slate-200 text-sm flex items-center gap-2 uppercase tracking-wide">
+                            <Icon name="database" size={16} className="text-sky-400 group-hover:scale-110 transition-transform" /> {title}
                         </h4>
-                        <Icon name={isOpen ? "chevron-up" : "chevron-down"} size={16} />
+                        <div className="bg-slate-900 p-1 rounded-md border border-slate-600 text-sky-400">
+                            <Icon name={isOpen ? "chevron-up" : "chevron-down"} size={16} />
+                        </div>
                     </button>
                     {isOpen && (
-                        <div className="overflow-x-auto max-h-64">
-                            <table className="w-full text-xs text-left">
-                                <thead className="bg-slate-50 text-slate-500 uppercase tracking-wider sticky top-0">
-                                    <tr>{headers.map((h, i) => <th key={i} className={`p-2 border-b font-medium ${i > 0 ? "text-right" : ""}`}>{h}</th>)}</tr>
+                        <div className="overflow-x-auto max-h-[300px] custom-scrollbar bg-slate-900/50">
+                            <table className="w-full text-[13px] text-left border-collapse">
+                                <thead className="bg-slate-800/80 text-slate-300 uppercase tracking-widest font-black text-[10px] sticky top-0 z-10 backdrop-blur-md">
+                                    <tr>{headers.map((h, i) => <th key={i} className={`p-3 border-b-2 border-slate-700 ${i > 0 ? "text-right" : ""}`}>{h}</th>)}</tr>
                                 </thead>
-                                <tbody className="divide-y divide-slate-100">
+                                <tbody className="divide-y-2 divide-slate-700/30">
                                     {rows.map((row, rI) => (
-                                        <tr key={rI} className="hover:bg-blue-50 transition-colors group">
-                                            <td className="p-2 font-medium text-slate-700">{row[0]}</td>
+                                        <tr key={rI} className="hover:bg-slate-700/60 transition-colors group">
+                                            <td className="p-3 font-bold text-slate-100 border-r border-slate-700/30">{row[0]}</td>
                                             {row.slice(1).map((cell, cI) => (
-                                                <td key={cI} onClick={() => onValueClick(cell)} className="p-2 text-right font-mono text-slate-600 cursor-pointer hover:text-blue-700 hover:font-bold decoration-dotted" title="Insert">{cell}</td>
+                                                <td key={cI} onClick={() => onValueClick(cell)} className="p-3 text-right font-mono font-black text-sky-300 cursor-pointer hover:text-white hover:bg-sky-600/30 transition-colors relative" title="Insert to Active Field">
+                                                    {cell}
+                                                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 flex items-center justify-start pl-2 pointer-events-none">
+                                                        <Icon name="mouse-pointer-click" size={12} className="text-sky-500/50" />
+                                                    </div>
+                                                </td>
                                             ))}
                                         </tr>
                                     ))}
@@ -549,7 +631,6 @@
                 setMcAnswers(prev => ({ ...prev, ...activeMcKey }));
             };
 
-            // Clear All Functionality
             const performClear = () => {
                 setInputs({ P: {}, B: {} });
                 setMcAnswers({});
@@ -558,123 +639,237 @@
             };
 
             const handleDownload = () => {
-                const text = `Debt Analysis - ${activeTab}\nStudent: ${studentName}\nAnswers:\n${JSON.stringify({inputs: inputs[activeTab], mc: mcAnswers})}`;
+                const text = `Debt Analysis - ${activeTab}\nAnalyst: ${studentName}\nAnswers:\n${JSON.stringify({inputs: inputs[activeTab], mc: mcAnswers})}`;
                 const blob = new Blob([text], { type: 'text/plain' });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
-                a.href = url; a.download = `${studentName}_DebtSim.txt`; a.click();
+                a.href = url; a.download = `${studentName.replace(/\s+/g, '_')}_DebtSim.txt`; a.click();
                 setShowDownload(false);
             };
 
+            // Points Calculation Logic
+            const calculatePoints = () => {
+                let totalCorrectInputs = 0;
+                let totalCorrectMC = 0;
+                let maxInputs = Object.keys(_K_ANS.P).length + Object.keys(_K_ANS.B).length;
+                let maxMCs = Object.keys(_K_MC.P).length + Object.keys(_K_MC.B).length;
+
+                // Validate Inputs
+                ['P', 'B'].forEach(tab => {
+                    Object.keys(_K_ANS[tab]).forEach(key => {
+                        const val = inputs[tab][key];
+                        const target = parseFloat(_K_ANS[tab][key]);
+                        if (val) {
+                            try {
+                                const sanitized = val.toString().replace(/,/g, '').replace(/%/g, '').replace(/[^\d\.\+\-\*\/\(\)]/g, '');
+                                if (/^[\d\.\+\-\*\/\(\)\s]+$/.test(sanitized)) {
+                                    let numVal = parseFloat(eval(sanitized));
+                                    // Percent check
+                                    if (key === 'b_avgRate' && numVal < 1.0 && target > 1.0 && numVal !== 0) numVal *= 100;
+                                    
+                                    if (target === 0 && Math.abs(numVal) < 0.01) totalCorrectInputs++;
+                                    else if (Math.abs((numVal - target) / target) <= 0.02) totalCorrectInputs++;
+                                }
+                            } catch(e){}
+                        }
+                    });
+                    
+                    Object.keys(_K_MC[tab]).forEach(key => {
+                        if (mcAnswers[key] === _K_MC[tab][key]) totalCorrectMC++;
+                    });
+                });
+
+                const currentPts = (totalCorrectInputs * 50) + (totalCorrectMC * 100);
+                const maxPts = (maxInputs * 50) + (maxMCs * 100);
+                return { currentPts, maxPts };
+            };
+
+            const ptsData = calculatePoints();
+            const pctComplete = Math.min(100, Math.round((ptsData.currentPts / ptsData.maxPts) * 100)) || 0;
+            const level = Math.floor(ptsData.currentPts / 300) + 1;
+
             return (
-                <div className="flex h-screen bg-slate-100 overflow-hidden font-sans">
-                    {/* SIDEBAR */}
-                    <div className="w-72 bg-slate-900 text-slate-300 flex flex-col border-r border-slate-700 shadow-2xl z-10 shrink-0">
-                        <div className="p-6 border-b border-slate-700 bg-slate-950">
-                            <h1 className="font-bold text-lg text-white tracking-tight flex items-center gap-2">
-                                <Icon name="activity" className="text-emerald-400" /> Debt<span className="text-emerald-400">Analyst</span>
+                <div className="flex h-screen overflow-hidden font-sans">
+                    {/* SIDEBAR: Mission Dashboard */}
+                    <div className="w-80 bg-slate-900/95 backdrop-blur-md flex flex-col border-r-4 border-slate-700 shadow-[20px_0_50px_rgba(0,0,0,0.3)] z-30 shrink-0">
+                        <div className="p-6 border-b-4 border-slate-800 bg-slate-950/50">
+                            <div className="bg-gradient-to-br from-blue-500 to-sky-600 w-12 h-12 rounded-2xl shadow-lg border-2 border-blue-400 flex items-center justify-center mb-3 float-anim">
+                                <Icon name="activity" size={24} className="text-white" />
+                            </div>
+                            <h1 className="font-black text-2xl text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400 tracking-tight leading-none game-font uppercase">
+                                Debt Analyst<br/>Simulator
                             </h1>
-                            <p className="text-xs text-slate-500 uppercase tracking-wider font-semibold mt-1">10-K Interpretation</p>
                         </div>
-                        <div className="flex-1 p-4 space-y-2 overflow-y-auto">
-                            <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Modules</h3>
-                            <button onClick={() => setActiveTab('P')} className={`w-full text-left px-4 py-3 rounded-lg text-sm transition-all flex items-center gap-3 ${activeTab === 'P' ? 'bg-blue-600 text-white shadow-lg' : 'hover:bg-slate-800 text-slate-400'}`}>
-                                <div className="bg-white/10 p-1.5 rounded"><Icon name="droplet" size={16} /></div>
-                                <div><div className="font-bold">PepsiCo Inc.</div><div className="text-[10px] opacity-75">P7-44 | Debt & Tender</div></div>
+                        
+                        <div className="flex-1 p-5 space-y-3 overflow-y-auto custom-scrollbar">
+                            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2 border-b-2 border-slate-700/50 pb-2">
+                                <Icon name="folder-open" size={14} /> Mission Files
+                            </h3>
+                            
+                            <button 
+                                onClick={() => setActiveTab('P')} 
+                                className={`btn-game w-full text-left p-4 rounded-2xl text-sm transition-all flex items-center gap-4 border-4 ${
+                                    activeTab === 'P' 
+                                    ? 'bg-blue-600 border-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.4)] z-10' 
+                                    : 'bg-slate-800 border-slate-700 hover:border-slate-600'
+                                }`}
+                            >
+                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center border-2 flex-shrink-0 ${activeTab === 'P' ? 'bg-blue-400 border-blue-200 text-blue-900' : 'bg-slate-700 border-slate-600 text-slate-400'}`}>
+                                    <Icon name="droplet" size={20} />
+                                </div>
+                                <div>
+                                    <div className={`font-black text-lg game-font tracking-wide ${activeTab === 'P' ? 'text-white' : 'text-slate-300'}`}>PepsiCo</div>
+                                    <div className={`text-[11px] font-bold mt-0.5 ${activeTab === 'P' ? 'text-blue-100' : 'text-slate-500'}`}>10-K Interpretation</div>
+                                </div>
                             </button>
-                            <button onClick={() => setActiveTab('B')} className={`w-full text-left px-4 py-3 rounded-lg text-sm transition-all flex items-center gap-3 ${activeTab === 'B' ? 'bg-emerald-600 text-white shadow-lg' : 'hover:bg-slate-800 text-slate-400'}`}>
-                                <div className="bg-white/10 p-1.5 rounded"><Icon name="heart-pulse" size={16} /></div>
-                                <div><div className="font-bold">Boston Scientific</div><div className="text-[10px] opacity-75">P7-45 | Rates & Yields</div></div>
+
+                            <button 
+                                onClick={() => setActiveTab('B')} 
+                                className={`btn-game w-full text-left p-4 rounded-2xl text-sm transition-all flex items-center gap-4 border-4 ${
+                                    activeTab === 'B' 
+                                    ? 'bg-emerald-600 border-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.4)] z-10' 
+                                    : 'bg-slate-800 border-slate-700 hover:border-slate-600'
+                                }`}
+                            >
+                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center border-2 flex-shrink-0 ${activeTab === 'B' ? 'bg-emerald-400 border-emerald-200 text-emerald-900' : 'bg-slate-700 border-slate-600 text-slate-400'}`}>
+                                    <Icon name="heart-pulse" size={20} />
+                                </div>
+                                <div>
+                                    <div className={`font-black text-lg game-font tracking-wide ${activeTab === 'B' ? 'text-white' : 'text-slate-300'}`}>Boston Sci.</div>
+                                    <div className={`text-[11px] font-bold mt-0.5 ${activeTab === 'B' ? 'text-emerald-100' : 'text-slate-500'}`}>Yields & Rates</div>
+                                </div>
                             </button>
                             
-                            <StandardCalculator />
-                        </div>
-                        <div className="p-4 border-t border-slate-800">
-                             {/* STEALTH INSTRUCTOR ACCESS REMOVED FROM HERE */}
-                             {instructorMode && (
-                                <div className="text-center">
-                                    <p className="text-xs text-purple-400 font-bold mb-2 flex items-center justify-center gap-1"><Icon name="unlock" size={12}/> Mode Active</p>
-                                </div>
-                            )}
+                            <div className="mt-8">
+                                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2 border-b-2 border-slate-700/50 pb-2">
+                                    <Icon name="calculator" size={14} /> Analyst Tools
+                                </h3>
+                                <StandardCalculator />
+                            </div>
                         </div>
                     </div>
 
-                    {/* MAIN */}
-                    <div className="flex-1 flex flex-col bg-slate-100 overflow-hidden relative">
+                    {/* MAIN PLAY AREA */}
+                    <div className="flex-1 flex flex-col bg-slate-900/30 overflow-hidden relative z-10 backdrop-blur-sm">
+
                         {/* INSTRUCTOR STICKY TOOLBAR */}
                         {instructorMode && (
-                            <div className="bg-purple-700 text-white p-2 shadow-md flex items-center justify-between z-20 animate-fade-in shrink-0 border-b border-purple-800">
+                            <div className="bg-amber-600/95 backdrop-blur-md text-white p-3 shadow-[0_5px_20px_rgba(245,158,11,0.4)] flex items-center justify-between z-40 shrink-0 border-b-4 border-amber-400 fade-in">
                                 <div className="flex items-center gap-3 px-4">
-                                    <span className="bg-white/20 p-1.5 rounded"><Icon name="graduation-cap" size={18}/></span>
-                                    <span className="font-bold tracking-wide text-sm">INSTRUCTOR TOOLBAR</span>
+                                    <div className="bg-amber-700 p-2 rounded-xl border-2 border-amber-300 float-anim">
+                                        <Icon name="zap" className="text-yellow-100" size={20} />
+                                    </div>
+                                    <div>
+                                        <div className="font-black text-sm uppercase tracking-wider text-amber-50 drop-shadow-md">INSTRUCTOR MODE ACTIVE</div>
+                                        <div className="text-xs font-bold text-amber-200">Cheat codes unlocked</div>
+                                    </div>
                                 </div>
-                                <div className="flex gap-2 px-4">
-                                    <button onClick={() => setShowAnswerKey(true)} className="flex items-center gap-2 px-3 py-1 bg-purple-600 hover:bg-purple-500 rounded text-xs font-bold transition border border-purple-400">
-                                        <Icon name="list" size={14} /> View Answer Key
+                                <div className="flex gap-3 pr-4">
+                                    <button onClick={() => setShowAnswerKey(true)} className="btn-game flex items-center gap-2 px-4 py-2 bg-gradient-to-b from-blue-500 to-blue-700 border-2 border-blue-300 rounded-xl text-sm font-black text-white shadow-lg">
+                                        <Icon name="list" size={16} /> Solutions
                                     </button>
-                                    <button onClick={handleAutoFill} className="flex items-center gap-2 px-3 py-1 bg-emerald-500 hover:bg-emerald-400 rounded text-xs font-bold transition shadow-sm text-emerald-950">
-                                        <Icon name="zap" size={14} /> Auto-Fill Inputs
+                                    <button onClick={handleAutoFill} className="btn-game flex items-center gap-2 px-4 py-2 bg-gradient-to-b from-teal-400 to-emerald-600 border-2 border-emerald-300 rounded-xl text-sm font-black text-white shadow-lg">
+                                        <Icon name="wand-2" size={16} /> Auto-Complete
                                     </button>
-                                    <button onClick={() => setClearModalOpen(true)} className="flex items-center gap-2 px-3 py-1 bg-red-500 hover:bg-red-400 rounded text-xs font-bold transition shadow-sm">
-                                        <Icon name="log-out" size={14} /> Clear & Exit
+                                    <button onClick={() => setClearModalOpen(true)} className="btn-game flex items-center gap-2 px-4 py-2 bg-gradient-to-b from-rose-500 to-red-700 border-2 border-red-300 rounded-xl text-sm font-black text-white shadow-lg">
+                                        <Icon name="bomb" size={16} /> Nuke Progress
                                     </button>
                                 </div>
                             </div>
                         )}
 
-                        <header className="bg-white border-b border-slate-200 px-8 py-5 flex justify-between items-center shadow-sm z-10 relative">
+                        {/* TOP HUD HEADER */}
+                        <header className="bg-slate-900/80 backdrop-blur-md border-b-4 border-slate-800 px-8 py-4 flex justify-between items-center shadow-[0_10px_30px_rgba(0,0,0,0.3)] z-20">
                             <div>
-                                <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                                    {activeData.metadata.name} <span className="text-xs font-normal text-white bg-slate-400 px-2 py-0.5 rounded-full">{activeData.metadata.code}</span>
+                                <h2 className="text-2xl font-black text-white flex items-center gap-3 game-font tracking-wide">
+                                    {activeData.metadata.name} 
+                                    <span className="text-sm font-black text-slate-900 bg-sky-400 px-3 py-1 rounded-full border-2 border-sky-200 shadow-[0_0_10px_rgba(56,189,248,0.5)]">
+                                        {activeData.metadata.code}
+                                    </span>
                                 </h2>
-                                <p className="text-xs text-slate-500 font-medium ml-0.5">{activeData.metadata.year}</p>
+                                <p className="text-sm text-slate-400 font-bold ml-1 uppercase tracking-widest mt-1">{activeData.metadata.year}</p>
                             </div>
                             
-                            {/* STEALTH BUTTON CONTAINER - Fixed position to top right corner */}
-                            <div className="absolute top-0 right-0"> 
-                                 <button 
+                            {/* Player Stats HUD */}
+                            <div className="flex items-center gap-6 bg-slate-800/50 p-2 md:pr-6 rounded-2xl border-2 border-slate-700/50">
+                                <div className="relative">
+                                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-yellow-400 to-amber-500 flex items-center justify-center border-4 border-slate-900 shadow-[0_0_15px_rgba(245,158,11,0.5)] z-10 relative">
+                                        <span className="font-black text-yellow-950 text-xl game-font">{level}</span>
+                                    </div>
+                                    <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-slate-900 text-[10px] font-black text-yellow-400 px-2 rounded-full border border-yellow-500 whitespace-nowrap">
+                                        LVL
+                                    </div>
+                                </div>
+                                
+                                <div className="w-32 md:w-48">
+                                    <div className="flex justify-between text-[11px] font-black text-slate-300 mb-1">
+                                        <span>POINTS</span>
+                                        <span className="text-sky-400">{ptsData.currentPts} / {ptsData.maxPts}</span>
+                                    </div>
+                                    <div className="h-4 bg-slate-900 rounded-full pts-bar-container overflow-hidden border border-slate-700">
+                                        <div 
+                                            className="h-full bg-gradient-to-r from-sky-500 to-blue-500 transition-all duration-500 relative"
+                                            style={{ width: `${pctComplete}%` }}
+                                        >
+                                            <div className="absolute top-0 left-0 right-0 h-1/2 bg-white/20"></div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <button 
                                     onClick={() => setShowLogin(true)} 
-                                    className="p-2 opacity-5 hover:opacity-100 text-slate-400 hover:text-purple-600 transition-all"
+                                    className="w-10 h-10 rounded-xl bg-slate-800 border-2 border-slate-600 flex items-center justify-center text-slate-400 hover:text-white hover:bg-amber-600 hover:border-amber-400 transition-all active:scale-95 group shadow-md"
                                     title="Instructor Access"
                                 >
-                                    <Icon name="lock" size={14} />
+                                    <Icon name="lock" size={18} className="group-hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]" />
                                 </button>
                             </div>
-
-                            <button onClick={() => setShowDownload(true)} className="px-4 py-2 bg-blue-600 text-white rounded text-sm font-bold flex items-center gap-2 hover:bg-blue-700 transition"><Icon name="download" size={16}/> Save Work</button>
                         </header>
 
                         <main className="flex-1 overflow-y-auto p-8 custom-scrollbar">
-                            <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8">
-                                {/* LEFT: Reference */}
-                                <div className="space-y-4">
-                                    <div className="bg-blue-900 text-white px-4 py-3 rounded-t-lg font-bold text-sm flex items-center justify-between shadow-sm no-select">
-                                        <span>Financial Data</span>
-                                        <span className="text-xs opacity-75 flex items-center gap-1"><Icon name="mouse-pointer-click" size={12}/> Click to insert</span>
+                            <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8">
+                                {/* LEFT: Reference Intel */}
+                                <div className="lg:col-span-5 space-y-6">
+                                    <div className="bg-gradient-to-r from-blue-600 to-sky-500 text-white px-5 py-4 rounded-2xl font-black text-lg flex items-center justify-between shadow-lg border-4 border-blue-400 no-select game-font tracking-wide">
+                                        <span className="flex items-center gap-2"><Icon name="search" size={20} /> Intel Logs</span>
+                                        <span className="text-xs font-bold bg-blue-900/50 px-3 py-1 rounded-full border border-blue-300 flex items-center gap-1"><Icon name="mouse-pointer-click" size={14}/> Click to map</span>
                                     </div>
-                                    {activeData.tables.map((tbl, i) => (
-                                        <ReferenceTable key={i} title={tbl.title} headers={tbl.headers} rows={tbl.rows} onValueClick={handleValueClick} />
-                                    ))}
+                                    <div className="space-y-5">
+                                        {activeData.tables.map((tbl, i) => (
+                                            <ReferenceTable key={i} title={tbl.title} headers={tbl.headers} rows={tbl.rows} onValueClick={handleValueClick} />
+                                        ))}
+                                    </div>
                                 </div>
 
-                                {/* RIGHT: Work */}
-                                <div className="space-y-6">
+                                {/* RIGHT: Work / Terminal */}
+                                <div className="lg:col-span-7 space-y-6 relative">
+                                    
                                     {activeTab === 'P' && (
-                                        <div className="space-y-6 animate-fade-in">
+                                        <div className="space-y-6 animate-fade-in relative z-10">
                                             {/* a. Debt Obligations */}
-                                            <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                                                <h4 className="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2 no-select"><Icon name="file-text" className="text-blue-600"/> a. Debt Reporting on FY2 Balance Sheet ($M)</h4>
-                                                <div className="space-y-3">
+                                            <div className="bg-slate-800/80 border-4 border-slate-700 rounded-2xl p-6 shadow-xl relative overflow-hidden">
+                                                <div className="absolute -right-10 -top-10 text-slate-700/30 rotate-12 pointer-events-none"><Icon name="file-text" size={120} /></div>
+                                                <h4 className="text-lg font-black text-slate-100 mb-6 flex items-center gap-3 no-select game-font uppercase tracking-wide border-b-2 border-slate-700/50 pb-3">
+                                                    <div className="bg-blue-500 text-slate-900 p-2 rounded-xl"><Icon name="edit-3" size={20}/></div>
+                                                    a. Debt Reporting on FY2 Balance Sheet ($M)
+                                                </h4>
+                                                <div className="space-y-5 relative z-10">
                                                     <SmartInput id="p_st" label="Short-term Debt" value={inputs.P.p_st} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={_K_ANS.P.p_st} instructorMode={instructorMode} />
                                                     <SmartInput id="p_lt" label="Long-term Debt" value={inputs.P.p_lt} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={_K_ANS.P.p_lt} instructorMode={instructorMode} />
-                                                    <div className="pt-2 border-t"><SmartInput id="p_total" label="Total Debt Reported" value={inputs.P.p_total} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={_K_ANS.P.p_total} instructorMode={instructorMode} /></div>
+                                                    <div className="pt-5 mt-2 border-t-4 border-slate-700/50 relative">
+                                                        <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-slate-800 px-2 text-slate-500 font-black"><Icon name="plus" size={16} /></div>
+                                                        <SmartInput id="p_total" label="Total Debt Reported" value={inputs.P.p_total} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={_K_ANS.P.p_total} instructorMode={instructorMode} />
+                                                    </div>
                                                 </div>
                                             </div>
 
                                             {/* b. Notes Due Analysis */}
-                                            <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                                                <h4 className="text-sm font-bold text-slate-700 mb-4 no-select">b. Analysis of Notes Due in FY3</h4>
-                                                <div className="flex gap-4 items-end mb-4">
+                                            <div className="bg-slate-800/80 border-4 border-slate-700 rounded-2xl p-6 shadow-xl">
+                                                <h4 className="text-lg font-black text-slate-100 mb-6 flex items-center gap-3 no-select game-font uppercase tracking-wide border-b-2 border-slate-700/50 pb-3">
+                                                    <div className="bg-sky-500 text-slate-900 p-2 rounded-xl"><Icon name="trending-up" size={20}/></div>
+                                                    b. Analysis of Notes Due in FY3
+                                                </h4>
+                                                <div className="mb-6 bg-slate-900/40 p-4 rounded-xl border-2 border-slate-700/50">
                                                     <SmartInput id="p_change" label="Change in Balance ($M)" value={inputs.P.p_change} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={_K_ANS.P.p_change} instructorMode={instructorMode} hint="FY2 - FY1" />
                                                 </div>
                                                 <MultipleChoiceQuestion 
@@ -689,86 +884,89 @@
                                                         {id: 'c', text: 'No, it represents capitalized interest.'}
                                                     ]}
                                                     feedback="Correct. As notes move toward maturity, the carrying value moves toward the face value (amortizing the discount)."
+                                                    instructorMode={instructorMode}
                                                 />
                                             </div>
 
                                             {/* c. Current Maturities */}
-                                            <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                                                <h4 className="text-sm font-bold text-slate-700 mb-4 no-select">c. Debt Classification</h4>
-                                                <MultipleChoiceQuestion 
-                                                    id="mc_p2" 
-                                                    selected={mcAnswers['mc_p2']} 
-                                                    onSelect={handleMcSelect}
-                                                    correctId="b"
-                                                    question="Why are current maturities ($3,953M) reported as short-term debt?"
-                                                    options={[
-                                                        {id: 'a', text: 'To improve the current ratio.'},
-                                                        {id: 'b', text: 'They are obligations due within 1 year.'},
-                                                        {id: 'c', text: 'Because they are variable rate notes.'}
-                                                    ]}
-                                                    feedback="Correct. Debt payments due within the next fiscal year are classified as current liabilities, which is critical for assessing liquidity."
-                                                />
-                                            </div>
+                                            <MultipleChoiceQuestion 
+                                                id="mc_p2" 
+                                                selected={mcAnswers['mc_p2']} 
+                                                onSelect={handleMcSelect}
+                                                correctId="b"
+                                                question="c. Why are current maturities ($3,953M) reported as short-term debt?"
+                                                options={[
+                                                    {id: 'a', text: 'To improve the current ratio.'},
+                                                    {id: 'b', text: 'They are obligations due within 1 year.'},
+                                                    {id: 'c', text: 'Because they are variable rate notes.'}
+                                                ]}
+                                                feedback="Correct. Debt payments due within the next fiscal year are classified as current liabilities, which is critical for assessing liquidity."
+                                                instructorMode={instructorMode}
+                                            />
 
                                             {/* d. Bond Premium/Yield */}
-                                            <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                                                <h4 className="text-sm font-bold text-slate-700 mb-4 no-select">d. Bond Pricing & Yields</h4>
-                                                <MultipleChoiceQuestion 
-                                                    id="mc_p3" 
-                                                    selected={mcAnswers['mc_p3']} 
-                                                    onSelect={handleMcSelect}
-                                                    correctId="b"
-                                                    question="Notes due FY6 are priced at 102.27 (Yield 1.87%). What does this imply?"
-                                                    options={[
-                                                        {id: 'a', text: 'Interest rates have increased since issuance.'},
-                                                        {id: 'b', text: 'Interest rates have decreased since issuance.'},
-                                                        {id: 'c', text: 'PepsiCo credit rating has worsened.'}
-                                                    ]}
-                                                    feedback="Correct. The bond sells at a premium (Yield < Coupon), implying market rates have fallen since the coupon was set."
-                                                />
-                                            </div>
+                                            <MultipleChoiceQuestion 
+                                                id="mc_p3" 
+                                                selected={mcAnswers['mc_p3']} 
+                                                onSelect={handleMcSelect}
+                                                correctId="b"
+                                                question="d. Notes due FY6 are priced at 102.27 (Yield 1.87%). What does this imply?"
+                                                options={[
+                                                    {id: 'a', text: 'Interest rates have increased since issuance.'},
+                                                    {id: 'b', text: 'Interest rates have decreased since issuance.'},
+                                                    {id: 'c', text: 'PepsiCo credit rating has worsened.'}
+                                                ]}
+                                                feedback="Correct. The bond sells at a premium (Yield < Coupon), implying market rates have fallen since the coupon was set."
+                                                instructorMode={instructorMode}
+                                            />
 
                                             {/* e. Early Retirement */}
-                                            <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                                                <h4 className="text-sm font-bold text-slate-700 mb-4 no-select">e. Early Retirement Analysis</h4>
-                                                <div className="space-y-3">
+                                            <div className="bg-slate-800/80 border-4 border-slate-700 rounded-2xl p-6 shadow-xl">
+                                                <h4 className="text-lg font-black text-slate-100 mb-6 flex items-center gap-3 no-select game-font uppercase tracking-wide border-b-2 border-slate-700/50 pb-3">
+                                                    <div className="bg-rose-500 text-slate-900 p-2 rounded-xl"><Icon name="flame" size={20}/></div>
+                                                    e. Early Retirement Analysis
+                                                </h4>
+                                                <div className="space-y-5">
                                                     <SmartInput id="p_retired" label="Total Carrying Value Retired ($M)" value={inputs.P.p_retired} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={_K_ANS.P.p_retired} instructorMode={instructorMode} hint="Sum of notes" />
                                                     <SmartInput id="p_loss" label="Loss on Retirement ($M)" value={inputs.P.p_loss} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={_K_ANS.P.p_loss} instructorMode={instructorMode} hint="Cash Paid - CV" />
                                                 </div>
                                             </div>
 
                                             {/* f. Credit Ratings */}
-                                            <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                                                <h4 className="text-sm font-bold text-slate-700 mb-4 no-select">f. Credit Rating Factors</h4>
-                                                <MultipleChoiceQuestion 
-                                                    id="mc_p4" 
-                                                    selected={mcAnswers['mc_p4']} 
-                                                    onSelect={handleMcSelect}
-                                                    correctId="c"
-                                                    question="Which of these factors would likely IMPROVE credit ratings?"
-                                                    options={[
-                                                        {id: 'a', text: 'Weaker cash-generating capability'},
-                                                        {id: 'b', text: 'Increase in dividends to shareholders'},
-                                                        {id: 'c', text: 'Reduced level of long-term debt'}
-                                                    ]}
-                                                    feedback="Correct. Reducing debt improves the solvency ratio. Increasing dividends or weaker cash flow reduces the cushion available for debt service."
-                                                />
-                                            </div>
+                                            <MultipleChoiceQuestion 
+                                                id="mc_p4" 
+                                                selected={mcAnswers['mc_p4']} 
+                                                onSelect={handleMcSelect}
+                                                correctId="c"
+                                                question="f. Which of these factors would likely IMPROVE credit ratings?"
+                                                options={[
+                                                    {id: 'a', text: 'Weaker cash-generating capability'},
+                                                    {id: 'b', text: 'Increase in dividends to shareholders'},
+                                                    {id: 'c', text: 'Reduced level of long-term debt'}
+                                                ]}
+                                                feedback="Correct. Reducing debt improves the solvency ratio. Increasing dividends or weaker cash flow reduces the cushion available for debt service."
+                                                instructorMode={instructorMode}
+                                            />
                                         </div>
                                     )}
 
                                     {activeTab === 'B' && (
-                                        <div className="space-y-6 animate-fade-in">
-                                            <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                                                <h4 className="text-sm font-bold text-slate-700 mb-4 no-select">Debt Analysis</h4>
-                                                <div className="space-y-4">
+                                        <div className="space-y-6 animate-fade-in relative z-10">
+                                            <div className="bg-slate-800/80 border-4 border-slate-700 rounded-2xl p-6 shadow-xl">
+                                                <div className="absolute -right-10 -top-10 text-slate-700/30 rotate-12 pointer-events-none"><Icon name="pie-chart" size={120} /></div>
+                                                <h4 className="text-lg font-black text-slate-100 mb-6 flex items-center gap-3 no-select game-font uppercase tracking-wide border-b-2 border-slate-700/50 pb-3 relative z-10">
+                                                    <div className="bg-emerald-500 text-slate-900 p-2 rounded-xl"><Icon name="bar-chart-2" size={20}/></div>
+                                                    Debt Overview & Rates
+                                                </h4>
+                                                <div className="space-y-5 relative z-10">
                                                     <SmartInput id="b_fy3Due" label="a. LT Debt due in FY3 ($M)" value={inputs.B.b_fy3Due} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={_K_ANS.B.b_fy3Due} instructorMode={instructorMode} />
                                                     <SmartInput id="b_totalLt" label="b. Total LT Debt (incl. current) at FY2 ($M)" value={inputs.B.b_totalLt} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={_K_ANS.B.b_totalLt} instructorMode={instructorMode} hint="Reported LT + Current Mat." />
                                                     <SmartInput id="b_avgRate" label="c. Effective Interest Rate (%)" value={inputs.B.b_avgRate} onChange={handleInputChange} activeInput={activeInput} setActiveInput={setActiveInput} correctValue={_K_ANS.B.b_avgRate} instructorMode={instructorMode} hint="Int Exp / Avg Debt" type="percent" />
                                                 </div>
                                                 {instructorMode && (
-                                                    <div className="mt-3 p-3 bg-blue-50 text-xs text-blue-800 rounded border border-blue-100">
-                                                        <strong>Explanation (c):</strong> Interest expense ($241) divided by Average Debt ($6,334) = 3.805%. Interest paid ($262) differs due to amortization and accrual timing.
+                                                    <div className="mt-5 p-4 bg-amber-900/40 text-sm font-semibold text-amber-200 rounded-xl border-2 border-amber-500/50 relative z-10 shadow-inner flex items-start gap-3">
+                                                        <Icon name="zap" className="text-amber-400 shrink-0 mt-0.5" size={18} />
+                                                        <span><strong>Instructor Note (c):</strong> Interest expense ($241) divided by Average Debt ($6,334) = 3.805%. Interest paid ($262) differs due to amortization and accrual timing.</span>
                                                     </div>
                                                 )}
                                             </div>
@@ -785,6 +983,7 @@
                                                     {id: 'c', text: 'The company defaulted on some payments.'}
                                                 ]}
                                                 feedback="Correct. Interest expense reflects the effective yield (including amortization of premiums/discounts), while cash paid is strictly based on the coupon rate."
+                                                instructorMode={instructorMode}
                                             />
 
                                             <MultipleChoiceQuestion 
@@ -799,6 +998,7 @@
                                                     {id: 'c', text: 'Bond is premium; market rates decreased since issuance.'}
                                                 ]}
                                                 feedback="Correct. A price > 100 (Premium) means Coupon > Yield. This implies market interest rates have fallen since the bond was originally issued."
+                                                instructorMode={instructorMode}
                                             />
 
                                             <MultipleChoiceQuestion 
@@ -813,107 +1013,169 @@
                                                     {id: 'c', text: 'The FY7 bond is more risky.'}
                                                 ]}
                                                 feedback="Correct. Investors demand higher yields for longer maturities to compensate for increased credit, liquidity, and inflation risk over time (Normal Yield Curve)."
+                                                instructorMode={instructorMode}
                                             />
                                         </div>
                                     )}
+                                    
+                                    {/* Padding at bottom for floating button */}
+                                    <div className="h-16"></div>
                                 </div>
                             </div>
                         </main>
                     </div>
 
+                    {/* Floating Submit/Report Complete Button */}
+                    <div className="fixed bottom-6 right-6 z-50">
+                        <button 
+                            onClick={() => setShowDownloadModal(true)}
+                            className="btn-game flex items-center gap-3 bg-gradient-to-b from-emerald-400 to-emerald-600 hover:from-emerald-300 hover:to-emerald-500 text-white font-black py-4 px-8 rounded-full shadow-[0_10px_20px_rgba(16,185,129,0.4)] border-4 border-emerald-200 text-lg uppercase tracking-wider"
+                        >
+                            <Icon name="file-check" size={24} /> Submit Report
+                        </button>
+                    </div>
+
                     {/* MODALS */}
                     {showLogin && (
-                        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center backdrop-blur-sm animate-fade-in no-select">
-                            <div className="bg-white p-6 rounded-lg shadow-xl w-80">
-                                <h3 className="font-bold text-lg mb-4 flex items-center gap-2"><Icon name="shield" className="text-blue-600"/> Instructor Login</h3>
-                                <input type="password" className="w-full border p-2 rounded mb-4" value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && unlockInstructor()} autoFocus placeholder="Enter Password" />
-                                <div className="flex justify-end gap-2">
-                                    <button onClick={() => setShowLogin(false)} className="px-3 py-1 text-slate-500 hover:bg-slate-100 rounded">Cancel</button>
-                                    <button onClick={unlockInstructor} className="px-3 py-1 bg-blue-600 text-white rounded font-bold hover:bg-blue-700">Access</button>
+                        <div className="fixed inset-0 bg-slate-900/90 z-[100] flex items-center justify-center backdrop-blur-sm animate-fade-in no-select p-4">
+                            <div className="bg-slate-800 p-8 rounded-3xl shadow-2xl max-w-sm w-full border-4 border-amber-500 pop-in relative">
+                                <button onClick={() => setShowLogin(false)} className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center bg-slate-700 rounded-full text-slate-400 hover:text-white hover:bg-rose-500 transition-colors">&times;</button>
+                                
+                                <div className="w-20 h-20 bg-amber-900 border-4 border-amber-500 rounded-full flex items-center justify-center mx-auto mb-4 -mt-16 shadow-[0_0_30px_rgba(245,158,11,0.6)] text-amber-300">
+                                    <Icon name="key" size={40} />
                                 </div>
+                                <h3 className="font-black text-2xl mb-2 text-white text-center game-font uppercase">Instructor Access</h3>
+                                <p className="text-slate-300 text-center text-sm font-bold mb-6">Enter admin password to enable instructor mode.</p>
+                                
+                                <input 
+                                    type="password" 
+                                    className="w-full bg-slate-900 border-4 border-slate-700 p-4 rounded-xl text-white outline-none focus:border-amber-500 font-black text-center text-xl shadow-inner mb-4 tracking-widest placeholder-slate-700"
+                                    placeholder="••••••"
+                                    value={password}
+                                    onChange={e => setPassword(e.target.value)}
+                                    onKeyDown={e => e.key === 'Enter' && unlockInstructor()}
+                                    autoFocus
+                                />
+                                
+                                <button 
+                                    onClick={unlockInstructor}
+                                    className="btn-game w-full bg-gradient-to-b from-amber-500 to-orange-600 border-2 border-amber-300 text-white py-4 rounded-xl font-black shadow-lg uppercase tracking-wider text-lg mt-2"
+                                >
+                                    Unlock Options
+                                </button>
                             </div>
                         </div>
                     )}
                     
                     {showDownload && (
-                        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center backdrop-blur-sm animate-fade-in no-select">
-                            <div className="bg-white p-6 rounded-lg shadow-xl w-80">
-                                <h3 className="font-bold text-lg mb-4 text-center">Save Work</h3>
-                                <input type="text" className="w-full border p-2 rounded mb-4 text-center" placeholder="Your Name" value={studentName} onChange={(e) => setStudentName(e.target.value)} autoFocus />
-                                <button onClick={() => studentName ? handleDownload() : alert("Name required")} className="w-full py-2 bg-blue-600 text-white rounded font-bold hover:bg-blue-700">Download</button>
-                                <button onClick={() => setShowDownload(false)} className="w-full mt-2 py-2 text-slate-500 text-sm hover:text-slate-800">Cancel</button>
+                        <div className="fixed inset-0 bg-slate-900/90 z-[100] flex items-center justify-center backdrop-blur-sm animate-fade-in no-select p-4">
+                            <div className="bg-slate-800 p-8 rounded-3xl shadow-2xl max-w-sm w-full border-4 border-emerald-500 pop-in">
+                                <div className="w-20 h-20 bg-emerald-900 border-4 border-emerald-500 rounded-full flex items-center justify-center mx-auto mb-4 -mt-16 shadow-[0_0_30px_rgba(16,185,129,0.6)] text-emerald-300">
+                                    <Icon name="award" size={40} />
+                                </div>
+                                <h3 className="font-black text-2xl mb-2 text-white text-center game-font uppercase">Save Progress</h3>
+                                <p className="text-slate-300 text-center text-sm font-bold mb-6">Enter your Analyst Name to save your high score.</p>
+                                
+                                <div className="mb-6">
+                                    <input 
+                                        type="text" 
+                                        value={studentName}
+                                        onChange={(e) => setStudentName(e.target.value)}
+                                        className="w-full bg-slate-900 border-4 border-slate-700 p-4 rounded-xl text-white outline-none focus:border-cyan-500 font-black text-center text-xl shadow-inner placeholder-slate-700"
+                                        placeholder="Player One"
+                                        autoFocus
+                                    />
+                                </div>
+                                <div className="flex justify-center gap-4">
+                                    <button onClick={() => setShowDownload(false)} className="btn-game px-6 py-3 bg-slate-700 text-slate-300 hover:text-white rounded-xl font-black border-2 border-slate-600">Cancel</button>
+                                    <button onClick={() => {
+                                        if(!studentName) { alert("Name Required"); return;}
+                                        handleDownload();
+                                    }} className="btn-game px-6 py-3 bg-gradient-to-b from-emerald-400 to-emerald-600 border-2 border-emerald-300 text-white rounded-xl font-black shadow-lg">Save Data</button>
+                                </div>
                             </div>
                         </div>
                     )}
 
                     {/* Answer Key Table Modal */}
                     {showAnswerKey && (
-                        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center backdrop-blur-sm animate-fade-in no-select">
-                            <div className="bg-white p-6 rounded-xl shadow-2xl w-full max-w-2xl h-3/4 flex flex-col">
-                                <div className="flex justify-between items-center mb-4 border-b pb-2">
-                                    <h3 className="font-bold text-xl text-purple-800 flex items-center gap-2"><Icon name="key" /> Full Answer Key</h3>
-                                    <button onClick={() => setShowAnswerKey(false)} className="text-slate-400 hover:text-slate-600"><Icon name="x" /></button>
+                        <div className="fixed inset-0 bg-slate-900/90 z-[100] flex items-center justify-center backdrop-blur-sm animate-fade-in no-select p-4 lg:p-8">
+                            <div className="bg-slate-800 p-6 lg:p-8 rounded-3xl shadow-2xl w-full max-w-4xl max-h-full flex flex-col border-4 border-amber-500 pop-in relative">
+                                <button onClick={() => setShowAnswerKey(false)} className="absolute top-6 right-6 w-10 h-10 flex items-center justify-center bg-slate-700 rounded-full text-slate-300 hover:text-white hover:bg-rose-500 transition-colors border-2 border-slate-600 z-10"><Icon name="x" size={20}/></button>
+                                
+                                <div className="flex items-center gap-4 mb-6 border-b-4 border-slate-700/50 pb-4">
+                                    <div className="bg-amber-600 p-3 rounded-2xl border-2 border-amber-300 shadow-lg">
+                                        <Icon name="key" size={32} className="text-white" />
+                                    </div>
+                                    <h3 className="font-black text-3xl text-white uppercase game-font tracking-wider">Classified Solutions</h3>
                                 </div>
-                                <div className="flex-1 overflow-y-auto custom-scrollbar">
-                                    <div className="grid grid-cols-1 gap-6">
-                                        <div>
-                                            <h4 className="font-bold text-slate-700 mb-2 bg-slate-100 p-2 rounded">PepsiCo (P7-44)</h4>
-                                            <div className="grid grid-cols-2 gap-4 text-sm">
-                                                {/* Numerical Answers */}
-                                                <div className="col-span-2 md:col-span-1">
-                                                    <h5 className="font-bold text-slate-600 border-b mb-2 pb-1 text-xs uppercase tracking-wider">Calculations</h5>
+                                
+                                <div className="flex-1 overflow-y-auto custom-scrollbar pr-2">
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                        {/* PepsiCo Column */}
+                                        <div className="bg-slate-900/50 p-6 rounded-2xl border-2 border-slate-700">
+                                            <h4 className="font-black text-xl text-blue-300 mb-4 uppercase flex items-center gap-2 border-b-2 border-blue-900/50 pb-2"><Icon name="droplet"/> PepsiCo (P7-44)</h4>
+                                            
+                                            <div className="mb-6">
+                                                <h5 className="font-black text-slate-400 mb-3 text-xs uppercase tracking-widest bg-slate-800 inline-block px-3 py-1 rounded-full">Calculations</h5>
+                                                <div className="space-y-3">
                                                     {Object.entries(_K_ANS.P).map(([k, v]) => (
-                                                        <div key={k} className="flex flex-col border-b border-slate-100 py-2">
-                                                            <div className="flex justify-between">
-                                                                <span className="text-slate-500 font-medium">{k}:</span>
-                                                                <span className="font-mono font-bold text-purple-700">{v}</span>
+                                                        <div key={k} className="bg-slate-800/40 p-3 rounded-xl border border-slate-700/50">
+                                                            <div className="flex justify-between items-center mb-1">
+                                                                <span className="text-slate-200 font-bold text-sm">{k}:</span>
+                                                                <span className="font-mono font-black text-lg text-emerald-400 bg-emerald-900/30 px-2 py-0.5 rounded border border-emerald-800">{v}</span>
                                                             </div>
-                                                            <span className="text-xs text-slate-400 mt-1 italic">{_X_EXPL.P[k]}</span>
+                                                            <span className="text-[11px] text-slate-400 font-semibold">{_X_EXPL.P[k]}</span>
                                                         </div>
                                                     ))}
                                                 </div>
-                                                {/* MC Answers */}
-                                                <div className="col-span-2 md:col-span-1">
-                                                    <h5 className="font-bold text-slate-600 border-b mb-2 pb-1 text-xs uppercase tracking-wider">Multiple Choice</h5>
+                                            </div>
+
+                                            <div>
+                                                <h5 className="font-black text-slate-400 mb-3 text-xs uppercase tracking-widest bg-slate-800 inline-block px-3 py-1 rounded-full">Multiple Choice</h5>
+                                                <div className="space-y-3">
                                                     {Object.entries(_K_MC.P).map(([k, v]) => (
-                                                        <div key={k} className="flex flex-col border-b border-slate-100 py-2">
-                                                            <div className="flex justify-between items-center">
-                                                                <span className="text-slate-500 font-medium text-xs truncate mr-2" title={_M_META.P[k].label}>{_M_META.P[k].label}</span>
-                                                                <span className="font-bold text-purple-700 bg-purple-50 px-1.5 rounded">{v.toUpperCase()}</span>
+                                                        <div key={k} className="bg-slate-800/40 p-3 rounded-xl border border-slate-700/50">
+                                                            <div className="flex justify-between items-center mb-1">
+                                                                <span className="text-slate-200 font-bold text-sm truncate mr-2" title={_M_META.P[k].label}>{_M_META.P[k].label}</span>
+                                                                <span className="font-black text-blue-400 bg-blue-900/50 px-2 py-0.5 rounded border border-blue-800">{v.toUpperCase()}</span>
                                                             </div>
-                                                            <span className="text-xs text-slate-500 mt-1 leading-tight">{_M_META.P[k].text}</span>
+                                                            <span className="text-[11px] text-slate-400 font-semibold leading-tight block">{_M_META.P[k].text}</span>
                                                         </div>
                                                     ))}
                                                 </div>
                                             </div>
                                         </div>
                                         
-                                        <div>
-                                            <h4 className="font-bold text-slate-700 mb-2 bg-slate-100 p-2 rounded">Boston Scientific (P7-45)</h4>
-                                            <div className="grid grid-cols-2 gap-4 text-sm">
-                                                {/* Numerical Answers */}
-                                                <div className="col-span-2 md:col-span-1">
-                                                    <h5 className="font-bold text-slate-600 border-b mb-2 pb-1 text-xs uppercase tracking-wider">Calculations</h5>
+                                        {/* Boston Sci Column */}
+                                        <div className="bg-slate-900/50 p-6 rounded-2xl border-2 border-slate-700">
+                                            <h4 className="font-black text-xl text-emerald-300 mb-4 uppercase flex items-center gap-2 border-b-2 border-emerald-900/50 pb-2"><Icon name="heart-pulse"/> Boston Scientific (P7-45)</h4>
+                                            
+                                            <div className="mb-6">
+                                                <h5 className="font-black text-slate-400 mb-3 text-xs uppercase tracking-widest bg-slate-800 inline-block px-3 py-1 rounded-full">Calculations</h5>
+                                                <div className="space-y-3">
                                                     {Object.entries(_K_ANS.B).map(([k, v]) => (
-                                                        <div key={k} className="flex flex-col border-b border-slate-100 py-2">
-                                                            <div className="flex justify-between">
-                                                                <span className="text-slate-500 font-medium">{k}:</span>
-                                                                <span className="font-mono font-bold text-purple-700">{v}</span>
+                                                        <div key={k} className="bg-slate-800/40 p-3 rounded-xl border border-slate-700/50">
+                                                            <div className="flex justify-between items-center mb-1">
+                                                                <span className="text-slate-200 font-bold text-sm">{k}:</span>
+                                                                <span className="font-mono font-black text-lg text-emerald-400 bg-emerald-900/30 px-2 py-0.5 rounded border border-emerald-800">{v}</span>
                                                             </div>
-                                                            <span className="text-xs text-slate-400 mt-1 italic">{_X_EXPL.B[k]}</span>
+                                                            <span className="text-[11px] text-slate-400 font-semibold">{_X_EXPL.B[k]}</span>
                                                         </div>
                                                     ))}
                                                 </div>
-                                                {/* MC Answers */}
-                                                <div className="col-span-2 md:col-span-1">
-                                                    <h5 className="font-bold text-slate-600 border-b mb-2 pb-1 text-xs uppercase tracking-wider">Multiple Choice</h5>
+                                            </div>
+
+                                            <div>
+                                                <h5 className="font-black text-slate-400 mb-3 text-xs uppercase tracking-widest bg-slate-800 inline-block px-3 py-1 rounded-full">Multiple Choice</h5>
+                                                <div className="space-y-3">
                                                     {Object.entries(_K_MC.B).map(([k, v]) => (
-                                                        <div key={k} className="flex flex-col border-b border-slate-100 py-2">
-                                                            <div className="flex justify-between items-center">
-                                                                <span className="text-slate-500 font-medium text-xs truncate mr-2" title={_M_META.B[k].label}>{_M_META.B[k].label}</span>
-                                                                <span className="font-bold text-purple-700 bg-purple-50 px-1.5 rounded">{v.toUpperCase()}</span>
+                                                        <div key={k} className="bg-slate-800/40 p-3 rounded-xl border border-slate-700/50">
+                                                            <div className="flex justify-between items-center mb-1">
+                                                                <span className="text-slate-200 font-bold text-sm truncate mr-2" title={_M_META.B[k].label}>{_M_META.B[k].label}</span>
+                                                                <span className="font-black text-blue-400 bg-blue-900/50 px-2 py-0.5 rounded border border-blue-800">{v.toUpperCase()}</span>
                                                             </div>
-                                                            <span className="text-xs text-slate-500 mt-1 leading-tight">{_M_META.B[k].text}</span>
+                                                            <span className="text-[11px] text-slate-400 font-semibold leading-tight block">{_M_META.B[k].text}</span>
                                                         </div>
                                                     ))}
                                                 </div>
@@ -921,20 +1183,10 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div className="mt-4 pt-2 border-t text-right">
-                                    <button onClick={() => setShowAnswerKey(false)} className="px-4 py-2 bg-slate-200 text-slate-700 rounded font-bold hover:bg-slate-300">Close</button>
-                                </div>
                             </div>
                         </div>
                     )}
 
-                    <ConfirmationModal 
-                        isOpen={clearModalOpen}
-                        title="Clear All & Exit Instructor Mode?"
-                        message="This will remove all answers, reset the board, and lock instructor privileges. Are you sure?"
-                        onConfirm={performClear}
-                        onCancel={() => setClearModalOpen(false)}
-                    />
                 </div>
             );
         };
