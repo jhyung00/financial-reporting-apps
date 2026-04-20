@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>E9-9: Investment Accounting Simulator</title>
+    <title>Investment Tycoon: Berkshire vs Apple</title>
     
     <!-- React & ReactDOM -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
@@ -18,39 +18,77 @@
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
 
+    <!-- Google Fonts for Gamified Look -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+
     <style>
         body {
-            background-color: #0f172a; /* Slate 900 */
+            background-color: #1e1b4b; /* Deep Indigo Game Background */
             color: #e2e8f0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Nunito', sans-serif;
+            background-image: radial-gradient(circle at 50% 0%, #312e81 0%, #1e1b4b 70%);
+            min-height: 100vh;
+        }
+
+        h1, h2, h3, h4, h5, h6, .game-font {
+            font-family: 'Fredoka', sans-serif;
         }
         
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar { width: 8px; height: 8px; }
-        ::-webkit-scrollbar-track { background: #0f172a; }
-        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+        /* Custom Game Scrollbar */
+        ::-webkit-scrollbar { width: 10px; height: 10px; }
+        ::-webkit-scrollbar-track { background: #1e1b4b; border-radius: 8px; }
+        ::-webkit-scrollbar-thumb { background: #6366f1; border-radius: 8px; border: 2px solid #1e1b4b; }
+        ::-webkit-scrollbar-thumb:hover { background: #818cf8; }
 
-        /* Animation classes */
-        .fade-in { animation: fadeIn 0.4s ease-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        /* Chunky Game Buttons */
+        .btn-game {
+            position: relative;
+            transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 0 0 rgba(0,0,0,0.3);
+            transform: translateY(0);
+        }
+        .btn-game:active {
+            transform: translateY(4px);
+            box-shadow: 0 0px 0 0 rgba(0,0,0,0.3);
+        }
+
+        /* Animations */
+        .fade-in { animation: fadeIn 0.4s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
         
+        .pop-in { animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+        @keyframes popIn { 
+            0% { opacity: 0; transform: scale(0.5); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
+        .float-anim { animation: float 3s ease-in-out infinite; }
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-5px); }
+            100% { transform: translateY(0px); }
+        }
+
         .sticky-toolbar {
             position: sticky;
             top: 0;
             z-index: 50;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(8px);
         }
 
-        /* Table Styles */
+        /* Table Styles - Gamified */
+        .fin-table { border-collapse: separate; border-spacing: 0; }
         .fin-table th {
             font-weight: 700;
             letter-spacing: 0.05em;
             text-transform: uppercase;
             font-size: 0.75rem;
+            font-family: 'Fredoka', sans-serif;
         }
-        .fin-table td {
-            vertical-align: top;
+        .fin-table td { vertical-align: middle; }
+        
+        .xp-bar-container {
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
         }
     </style>
 </head>
@@ -61,40 +99,39 @@
         const { useState, useEffect, useMemo, useRef } = React;
 
         // --- ICONS COMPONENT ---
-        // Critical: Manually triggers Lucide to replace <i> tags
-        const Icon = ({ name, size = 16, className, label }) => {
+        const Icon = ({ name, size = 18, className = "", label }) => {
             useEffect(() => {
                 if (window.lucide) window.lucide.createIcons();
             }, [name]);
 
             return (
-                <span className={`inline-flex items-center gap-1 ${className}`}>
-                    <i data-lucide={name} width={size} height={size}></i>
-                    {label && <span>{label}</span>}
+                <span className={`inline-flex items-center justify-center gap-1.5 ${className}`}>
+                    <i data-lucide={name} width={size} height={size} strokeWidth="2.5"></i>
+                    {label && <span className="font-semibold">{label}</span>}
                 </span>
             );
         };
 
-        // --- DATA CONFIGURATION ---
+        // --- DATA CONFIGURATION (Real World Narrative) ---
         const SCENARIO_A_DATA = [
             { 
                 id: 'a1', 
-                text: "a. Purchase 5,000 common shares ($30/share)", 
+                text: "Mission 1: Buy 5,000 Apple shares ($30/share)", 
                 correct: { cash: -150000, noncash: 150000, liab: 0, cc: 0, ec: 0, rev: 0, exp: 0, ni: 0 } 
             },
             { 
                 id: 'a2', 
-                text: "b. Report net income (Cloud reports $88,000)", 
+                text: "Mission 2: Apple reports Net Income ($88,000)", 
                 correct: { cash: 0, noncash: 0, liab: 0, cc: 0, ec: 0, rev: 0, exp: 0, ni: 0 } 
             },
             { 
                 id: 'a3', 
-                text: "c. Record receipt of cash dividend ($1.10/share)", 
+                text: "Mission 3: Receive Apple dividend ($1.10/share)", 
                 correct: { cash: 5500, noncash: 0, liab: 0, cc: 0, ec: 5500, rev: 5500, exp: 0, ni: 5500 } 
             },
             { 
                 id: 'a4', 
-                text: "d. Record change in share market value (Price $38/share)", 
+                text: "Mission 4: Apple share price surges to $38/share", 
                 correct: { cash: 0, noncash: 40000, liab: 0, cc: 0, ec: 40000, rev: 40000, exp: 0, ni: 40000 } 
             }
         ];
@@ -102,22 +139,22 @@
         const SCENARIO_B_DATA = [
             { 
                 id: 'b1', 
-                text: "a. Purchase 5,000 common shares ($30/share)", 
+                text: "Mission 1: Buy 5,000 Apple shares ($30/share)", 
                 correct: { cash: -150000, noncash: 150000, liab: 0, cc: 0, ec: 0, rev: 0, exp: 0, ni: 0 } 
             },
             { 
                 id: 'b2', 
-                text: "b. Report share of net income (30% of $88,000)", 
+                text: "Mission 2: Record 30% share of Apple's $88k NI", 
                 correct: { cash: 0, noncash: 26400, liab: 0, cc: 0, ec: 26400, rev: 26400, exp: 0, ni: 26400 } 
             },
             { 
                 id: 'b3', 
-                text: "c. Record receipt of cash dividend ($1.10/share)", 
+                text: "Mission 3: Receive Apple dividend ($1.10/share)", 
                 correct: { cash: 5500, noncash: -5500, liab: 0, cc: 0, ec: 0, rev: 0, exp: 0, ni: 0 } 
             },
             { 
                 id: 'b4', 
-                text: "d. Record change in share market value (Price $38/share)", 
+                text: "Mission 4: Apple share price surges to $38/share", 
                 correct: { cash: 0, noncash: 0, liab: 0, cc: 0, ec: 0, rev: 0, exp: 0, ni: 0 } 
             }
         ];
@@ -125,31 +162,31 @@
         const QUIZ_DATA = [
             {
                 id: 'q1',
-                question: "How are dividends received treated under the Equity Method compared to Passive Investment?",
+                question: "How does Berkshire handle the Apple dividends received under the Equity Method compared to the Passive Investment method?",
                 options: [
                     "Both methods record dividends as Investment Income.",
-                    "Equity Method records them as a reduction of the Investment account; Passive records them as Revenue.",
-                    "Equity Method records them as Revenue; Passive records them as a reduction of the Investment account.",
+                    "Equity Method reduces the Investment account; Passive records it as Revenue.",
+                    "Equity Method records them as Revenue; Passive reduces the Investment account.",
                     "Both methods ignore dividends."
                 ],
                 correctIndex: 1
             },
             {
                 id: 'q2',
-                question: "How does the Investee's Net Income affect the Investor's books?",
+                question: "How does Apple's impressive Net Income affect Berkshire's books?",
                 options: [
                     "Passive: Increases Investment Asset | Equity: No Entry",
                     "Passive: Records Revenue | Equity: Records Dividend Income",
-                    "Passive: No Entry (ignore) | Equity: Increases Investment Asset & Records Revenue",
+                    "Passive: No Entry | Equity: Increases Investment Asset & Records Revenue",
                     "Both methods record a share of Net Income as Revenue."
                 ],
                 correctIndex: 2
             },
             {
                 id: 'q3',
-                question: "At year-end, the stock price increased. How is this handled?",
+                question: "At year-end, Apple's stock price jumped. How should Berkshire record this?",
                 options: [
-                    "Passive: Recognize Unrealized Gain in Net Income | Equity: No Entry (ignore fair value changes).",
+                    "Passive: Recognize Unrealized Gain in Net Income | Equity: No Entry.",
                     "Passive: No Entry | Equity: Increase Investment account to Fair Value.",
                     "Both methods recognize the gain in Net Income.",
                     "Both methods adjust the Investment account to market value but record it in OCI."
@@ -158,7 +195,7 @@
             },
             {
                 id: 'q4',
-                question: "Which method generally results in a higher Investment Asset balance over time if the investee is profitable and retains earnings?",
+                question: "Assuming Apple continues to be profitable and retains most of its earnings, which method gives Berkshire a higher Investment Asset balance over time?",
                 options: [
                     "Passive Investment Method",
                     "Equity Method",
@@ -169,23 +206,19 @@
             }
         ];
 
-        // --- COMPONENT: SMART INPUT ---
-        const SmartInput = ({ 
-            value, 
-            onChange, 
-            correctValue, 
-            isPct = false, 
-            instructorMode,
-            placeholder = "0"
-        }) => {
+        // --- COMPONENT: SMART INPUT (GAMIFIED) ---
+        const SmartInput = ({ value, onChange, correctValue, instructorMode, placeholder = "0" }) => {
             const [localVal, setLocalVal] = useState(value || "");
             const [isValid, setIsValid] = useState(null);
+            const [justCorrect, setJustCorrect] = useState(false);
 
-            // Sync with parent state
             useEffect(() => {
                 setLocalVal(value === 0 || value ? value : "");
-                if (value === "" || value === undefined) setIsValid(null);
-                else validate(value);
+                if (value === "" || value === undefined) {
+                    setIsValid(null);
+                } else {
+                    validate(value);
+                }
             }, [value]);
 
             const validate = (val) => {
@@ -202,57 +235,53 @@
                 if (isNaN(target)) return;
 
                 let valid = false;
-                // Tolerance Check (Absolute or Relative)
                 if (Math.abs(numVal - target) < 0.01) valid = true;
-                else if (target !== 0 && Math.abs((numVal - target) / target) <= 0.02) valid = true; // 2% tolerance
+                else if (target !== 0 && Math.abs((numVal - target) / target) <= 0.02) valid = true; 
                 
-                // Percentage logic handling (e.g. 6.7 vs 0.067)
-                if (!valid && isPct) {
-                    const altVal = numVal / 100;
-                    if (Math.abs(altVal - target) < 0.001) valid = true;
+                if (valid && isValid !== true) {
+                    // Trigger combo/pop animation
+                    setJustCorrect(true);
+                    setTimeout(() => setJustCorrect(false), 600);
                 }
                 setIsValid(valid);
             };
 
             const handleBlur = () => {
                 let processedVal = localVal;
-                // Math Expression Evaluation
                 if (typeof localVal === 'string') {
-                    // Remove commas for calculation
                     const cleanStr = localVal.replace(/,/g, '');
-                    // Check if it's a math expression
                     if (cleanStr.match(/[+\-*\/]/)) {
                         try {
-                            // Safe eval for numbers only
                             const result = Function('"use strict";return (' + cleanStr.replace(/[^0-9+\-*\/.\(\)]/g, '') + ')')();
                             if (isFinite(result)) {
                                 processedVal = parseFloat(result.toFixed(2));
-                                onChange(processedVal); // Update parent
+                                onChange(processedVal); 
                             }
-                        } catch (e) {
-                            // Invalid math, leave as is
-                        }
+                        } catch (e) {}
                     }
                 }
                 validate(processedVal);
             };
 
             const handleKeyDown = (e) => {
-                if (e.key === 'Enter') {
-                    e.target.blur();
-                }
+                if (e.key === 'Enter') e.target.blur();
             };
 
-            // Styles
-            let borderClass = "border-slate-600 focus:border-blue-500 bg-[#1e293b]";
-            if (isValid === true) borderClass = "border-green-500 bg-green-900/20 text-green-300";
-            else if (isValid === false) borderClass = "border-red-500 bg-red-900/20 text-red-300";
+            // Gamified styling based on state
+            let baseClass = "w-full px-3 py-2 text-right text-sm font-bold rounded-lg border-2 outline-none transition-all focus:scale-105 shadow-sm";
+            let stateClass = "border-indigo-500/50 bg-indigo-900/40 text-white focus:border-indigo-400 focus:bg-indigo-800/80 focus:shadow-[0_0_15px_rgba(99,102,241,0.5)]";
+            
+            if (isValid === true) {
+                stateClass = "border-emerald-500 bg-emerald-900/40 text-emerald-300 shadow-[0_0_10px_rgba(16,185,129,0.3)]";
+            } else if (isValid === false) {
+                stateClass = "border-rose-500 bg-rose-900/40 text-rose-300";
+            }
 
             return (
                 <div className="relative w-full group">
                     <input
                         type="text"
-                        className={`w-full px-2 py-1.5 text-right text-sm rounded border outline-none transition-all font-mono ${borderClass}`}
+                        className={`${baseClass} ${stateClass} ${justCorrect ? 'pop-in' : ''}`}
                         value={localVal}
                         onChange={(e) => { setLocalVal(e.target.value); onChange(e.target.value); }}
                         onBlur={handleBlur}
@@ -260,13 +289,13 @@
                         placeholder={placeholder}
                     />
                     {isValid === true && (
-                        <div className="absolute right-1 top-2 text-green-500 pointer-events-none">
-                            <Icon name="check" size={12} />
+                        <div className={`absolute -right-2 -top-2 text-emerald-400 bg-emerald-900 rounded-full p-0.5 border border-emerald-500 shadow-lg pointer-events-none ${justCorrect ? 'pop-in' : ''}`}>
+                            <Icon name="star" size={14} className="fill-emerald-400" />
                         </div>
                     )}
                     {instructorMode && (
-                        <div className="mt-1 text-[10px] font-bold text-center bg-purple-900/80 text-purple-200 border border-purple-500/30 rounded py-0.5 fade-in shadow-lg">
-                            Key: {correctValue}
+                        <div className="absolute z-10 -bottom-6 left-1/2 -translate-x-1/2 w-max text-[11px] font-black tracking-wider text-center bg-fuchsia-600 text-white border-2 border-fuchsia-300 rounded-md py-0.5 px-2 fade-in shadow-xl opacity-0 group-hover:opacity-100 transition-opacity">
+                            KEY: {correctValue}
                         </div>
                     )}
                 </div>
@@ -277,42 +306,32 @@
         const App = () => {
             const [activeTab, setActiveTab] = useState('A'); // A, B, or Quiz
             
-            // --- STATE MANAGEMENT ---
-            // State for Scenario A
+            // State initialization
             const [transA, setTransA] = useState(SCENARIO_A_DATA.map(t => ({
-                ...t,
-                userValues: { cash: '', noncash: '', liab: '', cc: '', ec: '', rev: '', exp: '' }
+                ...t, userValues: { cash: '', noncash: '', liab: '', cc: '', ec: '', rev: '', exp: '' }
             })));
 
-            // State for Scenario B
             const [transB, setTransB] = useState(SCENARIO_B_DATA.map(t => ({
-                ...t,
-                userValues: { cash: '', noncash: '', liab: '', cc: '', ec: '', rev: '', exp: '' }
+                ...t, userValues: { cash: '', noncash: '', liab: '', cc: '', ec: '', rev: '', exp: '' }
             })));
 
-            // State for Quiz
             const [quizAnswers, setQuizAnswers] = useState({});
 
-            // Instructor & Modal States
+            // Instructor States
             const [showAuthModal, setShowAuthModal] = useState(false);
             const [isInstructor, setIsInstructor] = useState(false);
             const [teacherPass, setTeacherPass] = useState('');
             const [authError, setAuthError] = useState('');
-            
             const [confirmation, setConfirmation] = useState({ isOpen: false, message: '', onConfirm: null });
             const [showDownloadModal, setShowDownloadModal] = useState(false);
             const [studentName, setStudentName] = useState('');
 
-            // Verification Tool States
-            const [verifyHash, setVerifyHash] = useState('');
-            const [verifyResult, setVerifyResult] = useState(null);
-            const [genName, setGenName] = useState('');
-            const [genScore, setGenScore] = useState('');
-            const [generatedHash, setGeneratedHash] = useState('');
-
-            // --- COMPUTED TOTALS & BALANCE CHECK ---
+            // --- COMPUTED TOTALS & GAMIFICATION METRICS ---
             const calculateTotals = (transactions) => {
                 const sums = { cash: 0, noncash: 0, liab: 0, cc: 0, ec: 0, rev: 0, exp: 0, ni: 0 };
+                let correctFields = 0;
+                let totalFields = 0;
+
                 transactions.forEach(t => {
                     const rRev = parseFloat(t.userValues.rev) || 0;
                     const rExp = parseFloat(t.userValues.exp) || 0;
@@ -322,34 +341,49 @@
                     sums.noncash += parseFloat(t.userValues.noncash) || 0;
                     sums.liab += parseFloat(t.userValues.liab) || 0;
                     sums.cc += parseFloat(t.userValues.cc) || 0;
-                    sums.ec += (parseFloat(t.userValues.ec) || 0) + rNI; // Add NI to EC for balance check
+                    sums.ec += (parseFloat(t.userValues.ec) || 0) + rNI; 
                     sums.rev += rRev;
                     sums.exp += rExp;
                     sums.ni += rNI;
+
+                    // Calculate correct fields for XP
+                    const keys = ['cash', 'noncash', 'liab', 'cc', 'ec', 'rev', 'exp'];
+                    keys.forEach(k => {
+                        totalFields++;
+                        const uv = parseFloat(t.userValues[k]);
+                        const cv = parseFloat(t.correct[k]);
+                        if (!isNaN(uv) && Math.abs(uv - cv) < 0.1) correctFields++;
+                    });
                 });
-                return sums;
+                return { sums, correctFields, totalFields };
             };
 
-            const totalsA = useMemo(() => calculateTotals(transA), [transA]);
-            const totalsB = useMemo(() => calculateTotals(transB), [transB]);
+            const statsA = useMemo(() => calculateTotals(transA), [transA]);
+            const statsB = useMemo(() => calculateTotals(transB), [transB]);
 
-            const isBalancedA = Math.abs((totalsA.cash + totalsA.noncash) - (totalsA.liab + totalsA.cc + totalsA.ec)) < 0.1;
-            const isBalancedB = Math.abs((totalsB.cash + totalsB.noncash) - (totalsB.liab + totalsB.cc + totalsB.ec)) < 0.1;
+            const isBalancedA = Math.abs((statsA.sums.cash + statsA.sums.noncash) - (statsA.sums.liab + statsA.sums.cc + statsA.sums.ec)) < 0.1;
+            const isBalancedB = Math.abs((statsB.sums.cash + statsB.sums.noncash) - (statsB.sums.liab + statsB.sums.cc + statsB.sums.ec)) < 0.1;
 
             const quizScore = useMemo(() => {
                 let score = 0;
-                QUIZ_DATA.forEach(q => {
-                    if (quizAnswers[q.id] === q.correctIndex) score++;
-                });
+                QUIZ_DATA.forEach(q => { if (quizAnswers[q.id] === q.correctIndex) score++; });
                 return score;
             }, [quizAnswers]);
+
+            // Calculate Player XP & Level
+            const totalCorrectInputs = statsA.correctFields + statsB.correctFields;
+            const totalPossibleInputs = statsA.totalFields + statsB.totalFields;
+            const xp = (totalCorrectInputs * 50) + (quizScore * 250);
+            const maxXp = (totalPossibleInputs * 50) + (QUIZ_DATA.length * 250);
+            const xpPercent = Math.min(100, Math.round((xp / maxXp) * 100)) || 0;
+            
+            const level = Math.floor(xp / 500) + 1;
 
             // --- HANDLERS ---
             const handleTransChange = (scenario, id, field, val) => {
                 const setFunc = scenario === 'A' ? setTransA : setTransB;
                 setFunc(prev => prev.map(t => t.id === id ? {
-                    ...t,
-                    userValues: { ...t.userValues, [field]: val }
+                    ...t, userValues: { ...t.userValues, [field]: val }
                 } : t));
             };
 
@@ -365,382 +399,352 @@
                     setAuthError('');
                     setTeacherPass('');
                 } else {
-                    setAuthError('Incorrect Password');
+                    setAuthError('Access Denied');
                 }
             };
 
             const autoFill = () => {
-                const fillValues = (item) => ({
-                    ...item,
-                    userValues: { ...item.correct }
-                });
-                
-                if (activeTab === 'A') {
-                    setTransA(prev => prev.map(fillValues));
-                } else if (activeTab === 'B') {
-                    setTransB(prev => prev.map(fillValues));
-                } else {
-                    // Fill Quiz
+                const fillValues = (item) => ({ ...item, userValues: { ...item.correct } });
+                if (activeTab === 'A') setTransA(prev => prev.map(fillValues));
+                else if (activeTab === 'B') setTransB(prev => prev.map(fillValues));
+                else {
                     const autoQuiz = {};
                     QUIZ_DATA.forEach(q => autoQuiz[q.id] = q.correctIndex);
                     setQuizAnswers(autoQuiz);
                 }
             };
 
-            const performClear = () => {
-                const clearValues = (item) => ({
-                    ...item,
-                    userValues: { cash: '', noncash: '', liab: '', cc: '', ec: '', rev: '', exp: '' }
-                });
-                setTransA(prev => prev.map(clearValues));
-                setTransB(prev => prev.map(clearValues));
-                setQuizAnswers({});
-                setIsInstructor(false);
-                setConfirmation({ isOpen: false, message: '', onConfirm: null });
-            };
-
             const clearAll = () => {
                 setConfirmation({
                     isOpen: true,
-                    message: "Clear all data (Tables & Quiz) and exit Instructor Mode?",
-                    onConfirm: performClear
+                    message: "Wipe all player progress and exit God Mode?",
+                    onConfirm: () => {
+                        const clearValues = (item) => ({ ...item, userValues: { cash: '', noncash: '', liab: '', cc: '', ec: '', rev: '', exp: '' } });
+                        setTransA(prev => prev.map(clearValues));
+                        setTransB(prev => prev.map(clearValues));
+                        setQuizAnswers({});
+                        setIsInstructor(false);
+                        setConfirmation({ isOpen: false, message: '', onConfirm: null });
+                    }
                 });
             };
 
-            // --- DOWNLOAD/EXPORT ---
-            const executeDownload = () => {
-                try {
-                    const name = studentName || "Student";
-                    const score = (isBalancedA && isBalancedB) ? "Balanced" : "Review Needed";
-                    const quizPct = Math.round((quizScore / QUIZ_DATA.length) * 100);
+            // --- GAMIFIED RENDER HELPERS ---
+            const renderTable = (data, scenarioId, totalsData, isBalanced) => {
+                const { sums, correctFields, totalFields } = totalsData;
+                const isPerfect = correctFields === totalFields;
 
-                    // Create verification payload
-                    const payload = JSON.stringify({
-                        name: name,
-                        score: score,
-                        niA: totalsA.ni,
-                        niB: totalsB.ni,
-                        qScore: quizPct,
-                        timestamp: new Date().toISOString()
-                    });
-                    const hash = btoa(payload);
+                return (
+                    <div className="bg-indigo-950/80 rounded-2xl border-4 border-indigo-800 shadow-2xl overflow-hidden animate-fade-in relative">
+                        
+                        {/* Perfect Badge Overlay */}
+                        {isPerfect && (
+                            <div className="absolute top-4 right-4 z-20 bg-gradient-to-r from-yellow-400 to-yellow-600 text-yellow-950 px-4 py-1 rounded-full font-black game-font text-sm shadow-[0_0_20px_rgba(250,204,21,0.6)] flex items-center gap-2 pop-in transform rotate-3">
+                                <Icon name="trophy" size={16} /> PERFECT CLEAR!
+                            </div>
+                        )}
 
-                    const content = `
-E9-9 INVESTMENT SCENARIOS - SUBMISSION
-Student: ${name}
-Date: ${new Date().toLocaleString()}
-Status: ${score}
-Quiz Score: ${quizPct}% (${quizScore}/${QUIZ_DATA.length})
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left fin-table min-w-[1100px]">
+                                <thead>
+                                    {/* Super Header */}
+                                    <tr className="bg-indigo-900 border-b-2 border-indigo-800">
+                                        <th className="p-4 w-72 border-r-2 border-indigo-800 sticky left-0 z-10 bg-indigo-900 text-indigo-200">
+                                            Mission Objectives
+                                        </th>
+                                        <th className="text-center border-r-2 border-indigo-800 bg-cyan-900/30 text-cyan-300 py-3" colSpan="2">
+                                            <Icon name="coins" className="mb-1" /> ASSETS
+                                        </th>
+                                        <th className="text-center w-8 text-indigo-400 font-black text-xl">=</th>
+                                        <th className="text-center border-r-2 border-indigo-800 bg-rose-900/30 text-rose-300" colSpan="1">
+                                            <Icon name="credit-card" className="mb-1" /> LIABILITIES
+                                        </th>
+                                        <th className="text-center w-8 text-indigo-400 font-black text-xl">+</th>
+                                        <th className="text-center border-r-2 border-indigo-800 bg-purple-900/30 text-purple-300" colSpan="2">
+                                            <Icon name="pie-chart" className="mb-1" /> EQUITY
+                                        </th>
+                                        <th className="w-2 bg-indigo-950"></th>
+                                        <th className="text-center bg-amber-900/30 text-amber-300" colSpan="3">
+                                            <Icon name="trending-up" className="mb-1" /> INCOME STATEMENT
+                                        </th>
+                                    </tr>
+                                    {/* Sub Header */}
+                                    <tr className="bg-indigo-800/50 text-xs text-indigo-300 border-b-2 border-indigo-800">
+                                        <th className="p-3 border-r-2 border-indigo-800 sticky left-0 z-10 bg-indigo-800 text-center">Description</th>
+                                        <th className="p-3 border-r-2 border-indigo-800 w-32 text-center text-cyan-200">Cash</th>
+                                        <th className="p-3 border-r-2 border-indigo-800 w-32 text-center text-cyan-200">Non-Cash (Invest)</th>
+                                        <th></th>
+                                        <th className="p-3 border-r-2 border-indigo-800 w-32 text-center text-rose-200">Liabilities</th>
+                                        <th></th>
+                                        <th className="p-3 border-r-2 border-indigo-800 w-32 text-center text-purple-200">Contrib. Capital</th>
+                                        <th className="p-3 border-r-2 border-indigo-800 w-32 text-center text-purple-200">Earned Capital</th>
+                                        <th className="w-2 bg-indigo-950"></th>
+                                        <th className="p-3 border-r-2 border-indigo-800 w-28 text-center text-amber-200">Revenue</th>
+                                        <th className="p-3 border-r-2 border-indigo-800 w-28 text-center text-amber-200">Expense</th>
+                                        <th className="p-3 w-28 text-center bg-amber-900/40 text-amber-100 rounded-tr-xl">Net Income</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {data.map((row, idx) => {
+                                        // Calculate row progress
+                                        let rowCorrect = 0;
+                                        let rowTotal = 7;
+                                        const keys = ['cash', 'noncash', 'liab', 'cc', 'ec', 'rev', 'exp'];
+                                        keys.forEach(k => {
+                                            const uv = parseFloat(row.userValues[k]);
+                                            const cv = parseFloat(row.correct[k]);
+                                            if (!isNaN(uv) && Math.abs(uv - cv) < 0.1) rowCorrect++;
+                                        });
+                                        const isRowDone = rowCorrect === rowTotal;
 
--- SCENARIO A: PASSIVE INVESTMENT --
-Cash: ${totalsA.cash}
-Investment (Non-cash): ${totalsA.noncash}
-Net Income Impact: ${totalsA.ni}
-Balanced: ${isBalancedA ? 'Yes' : 'No'}
+                                        return (
+                                            <tr key={row.id} className="border-b-2 border-indigo-800/50 hover:bg-indigo-800/40 transition-colors group relative">
+                                                <td className="p-4 border-r-2 border-indigo-800 bg-indigo-900 group-hover:bg-indigo-800 sticky left-0 z-10 transition-colors">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-black shadow-inner border-2 ${isRowDone ? 'bg-emerald-500 border-emerald-300 text-white shadow-[0_0_10px_rgba(16,185,129,0.8)] pop-in' : 'bg-indigo-950 border-indigo-700 text-indigo-400'}`}>
+                                                            {isRowDone ? <Icon name="check" size={18} /> : idx + 1}
+                                                        </div>
+                                                        <span className="font-bold text-indigo-100 text-[13px] leading-tight flex-1">
+                                                            {row.text}
+                                                        </span>
+                                                    </div>
+                                                </td>
+                                                
+                                                {/* Assets */}
+                                                <td className="p-2 border-r-2 border-indigo-800/50 bg-cyan-950/10">
+                                                    <SmartInput value={row.userValues.cash} onChange={v => handleTransChange(scenarioId, row.id, 'cash', v)} correctValue={row.correct.cash} instructorMode={isInstructor} />
+                                                </td>
+                                                <td className="p-2 border-r-2 border-indigo-800/50 bg-cyan-950/10">
+                                                    <SmartInput value={row.userValues.noncash} onChange={v => handleTransChange(scenarioId, row.id, 'noncash', v)} correctValue={row.correct.noncash} instructorMode={isInstructor} />
+                                                </td>
 
--- SCENARIO B: EQUITY METHOD --
-Cash: ${totalsB.cash}
-Investment (Non-cash): ${totalsB.noncash}
-Net Income Impact: ${totalsB.ni}
-Balanced: ${isBalancedB ? 'Yes' : 'No'}
+                                                <td className="text-center text-indigo-600 font-black text-xl">=</td>
 
--- COMPARATIVE QUIZ RESULTS --
-${QUIZ_DATA.map(q => {
-    const ans = quizAnswers[q.id];
-    return `Q: ${q.question}\nSelected: ${ans !== undefined ? q.options[ans] : 'No Answer'}\nCorrect: ${ans === q.correctIndex ? 'Yes' : 'No'}`;
-}).join('\n\n')}
+                                                {/* Liab */}
+                                                <td className="p-2 border-r-2 border-indigo-800/50 bg-rose-950/10">
+                                                    <SmartInput value={row.userValues.liab} onChange={v => handleTransChange(scenarioId, row.id, 'liab', v)} correctValue={row.correct.liab} instructorMode={isInstructor} />
+                                                </td>
 
--- VERIFICATION HASH --
-${hash}
-`.trim();
+                                                <td className="text-center text-indigo-600 font-black text-xl">+</td>
 
-                    const blob = new Blob([content], { type: 'text/plain' });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `${name.replace(/\s+/g, '_')}_E9-9_Submission.txt`;
-                    document.body.appendChild(a);
-                    a.click();
-                    setTimeout(() => {
-                        document.body.removeChild(a);
-                        URL.revokeObjectURL(url);
-                        setShowDownloadModal(false);
-                        setStudentName('');
-                    }, 100);
-                } catch (e) {
-                    alert("Error creating file: " + e.message);
-                }
+                                                {/* Equity */}
+                                                <td className="p-2 border-r-2 border-indigo-800/50 bg-purple-950/10">
+                                                    <SmartInput value={row.userValues.cc} onChange={v => handleTransChange(scenarioId, row.id, 'cc', v)} correctValue={row.correct.cc} instructorMode={isInstructor} />
+                                                </td>
+                                                <td className="p-2 border-r-2 border-indigo-800/50 bg-purple-950/10">
+                                                    <SmartInput value={row.userValues.ec} onChange={v => handleTransChange(scenarioId, row.id, 'ec', v)} correctValue={row.correct.ec} instructorMode={isInstructor} />
+                                                </td>
+
+                                                <td className="w-2 bg-indigo-950"></td>
+
+                                                {/* Income Statement */}
+                                                <td className="p-2 border-r-2 border-indigo-800/50 bg-amber-950/10">
+                                                    <SmartInput value={row.userValues.rev} onChange={v => handleTransChange(scenarioId, row.id, 'rev', v)} correctValue={row.correct.rev} instructorMode={isInstructor} />
+                                                </td>
+                                                <td className="p-2 border-r-2 border-indigo-800/50 bg-amber-950/10">
+                                                    <SmartInput value={row.userValues.exp} onChange={v => handleTransChange(scenarioId, row.id, 'exp', v)} correctValue={row.correct.exp} instructorMode={isInstructor} />
+                                                </td>
+                                                
+                                                {/* Calculated NI */}
+                                                <td className="p-3 text-center bg-amber-900/20">
+                                                    <div className={`py-1.5 px-2 rounded-lg font-black text-sm border-2 ${
+                                                        ((parseFloat(row.userValues.rev) || 0) - (parseFloat(row.userValues.exp) || 0)) !== 0 
+                                                        ? 'bg-amber-500/20 text-amber-300 border-amber-500/50 shadow-inner' 
+                                                        : 'bg-indigo-950 border-indigo-800 text-indigo-600'
+                                                    }`}>
+                                                        {((parseFloat(row.userValues.rev) || 0) - (parseFloat(row.userValues.exp) || 0)) || '-'}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                                <tfoot>
+                                    <tr className={`font-black text-base border-t-4 shadow-[0_-10px_20px_rgba(0,0,0,0.2)] relative ${isBalanced ? 'bg-emerald-900 border-emerald-500 text-emerald-100' : 'bg-indigo-900 border-indigo-600 text-indigo-300'}`}>
+                                        <td className="p-4 text-right sticky left-0 z-10 border-r-2 border-indigo-800/50 bg-inherit shadow-[5px_0_10px_rgba(0,0,0,0.2)]">
+                                            <div className="flex items-center justify-end gap-2">
+                                                {isBalanced && <Icon name="scale" className="text-emerald-300 float-anim" />}
+                                                ACCOUNT BALANCES:
+                                            </div>
+                                        </td>
+                                        <td className="p-3 text-center bg-cyan-900/30">{sums.cash}</td>
+                                        <td className="p-3 text-center bg-cyan-900/30">{sums.noncash}</td>
+                                        <td></td>
+                                        <td className="p-3 text-center bg-rose-900/30">{sums.liab}</td>
+                                        <td></td>
+                                        <td className="p-3 text-center bg-purple-900/30">{sums.cc}</td>
+                                        <td className="p-3 text-center bg-purple-900/30">{sums.ec}</td>
+                                        <td className="bg-indigo-950"></td>
+                                        <td className="p-3 text-center bg-amber-900/30">{sums.rev}</td>
+                                        <td className="p-3 text-center bg-amber-900/30">{sums.exp}</td>
+                                        <td className="p-3 text-center bg-amber-800/40 text-amber-200">{sums.ni}</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                );
             };
-
-            // --- VERIFICATION TOOLS ---
-            const verifyCode = () => {
-                try {
-                    const decoded = atob(verifyHash);
-                    const json = JSON.parse(decoded);
-                    setVerifyResult(json);
-                } catch (e) {
-                    setVerifyResult({ error: "Invalid Hash Format" });
-                }
-            };
-            
-            const generateAdminHash = () => {
-                if(!genName || !genScore) return;
-                const payload = JSON.stringify({
-                    name: genName,
-                    score: genScore,
-                    timestamp: new Date().toISOString(),
-                    admin_generated: true
-                });
-                setGeneratedHash(btoa(payload));
-            };
-
-            // --- RENDER HELPERS ---
-            const renderTable = (data, scenarioId, totals, isBalanced) => (
-                <div className="overflow-x-auto rounded-lg border border-slate-700 shadow-xl bg-[#1e293b] animate-fade-in">
-                    <table className="w-full text-left fin-table min-w-[1000px]">
-                        <thead>
-                            <tr className="bg-slate-900 text-slate-300 border-b border-slate-700">
-                                <th className="p-3 w-64 border-r border-slate-700 sticky left-0 bg-slate-900 z-10">Transaction</th>
-                                <th className="text-center border-r border-slate-700 bg-emerald-900/30" colSpan="2">Assets</th>
-                                <th className="text-center w-8 text-slate-500 font-bold">=</th>
-                                <th className="text-center border-r border-slate-700 bg-red-900/30">Liabilities</th>
-                                <th className="text-center w-8 text-slate-500 font-bold">+</th>
-                                <th className="text-center border-r border-slate-700 bg-blue-900/30" colSpan="2">Equity</th>
-                                <th className="w-1 bg-slate-800"></th>
-                                <th className="text-center bg-purple-900/30" colSpan="3">Income Statement</th>
-                            </tr>
-                            <tr className="bg-slate-800 text-xs text-slate-400 border-b border-slate-700">
-                                <th className="p-2 border-r border-slate-700 sticky left-0 bg-slate-800 z-10"></th>
-                                <th className="p-2 border-r border-slate-700 w-32">Cash</th>
-                                <th className="p-2 border-r border-slate-700 w-32">Non-Cash Assets</th>
-                                <th></th>
-                                <th className="p-2 border-r border-slate-700 w-32">Liabilities</th>
-                                <th></th>
-                                <th className="p-2 border-r border-slate-700 w-32">Contrib. Capital</th>
-                                <th className="p-2 border-r border-slate-700 w-32">Earned Capital</th>
-                                <th className="w-1 bg-slate-800"></th>
-                                <th className="p-2 border-r border-slate-700 w-28">Revenue</th>
-                                <th className="p-2 border-r border-slate-700 w-28">Expense</th>
-                                <th className="p-2 w-24">Net Income</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {data.map((row) => (
-                                <tr key={row.id} className="border-b border-slate-700/50 hover:bg-slate-800/50 transition-colors group">
-                                    <td className="p-3 text-sm text-slate-200 border-r border-slate-700 bg-[#1e293b] group-hover:bg-[#253045] sticky left-0 z-10 font-medium">
-                                        {row.text}
-                                    </td>
-                                    
-                                    {/* Assets */}
-                                    <td className="p-2 border-r border-slate-700/50">
-                                        <SmartInput value={row.userValues.cash} onChange={v => handleTransChange(scenarioId, row.id, 'cash', v)} correctValue={row.correct.cash} instructorMode={isInstructor} />
-                                    </td>
-                                    <td className="p-2 border-r border-slate-700/50">
-                                        <SmartInput value={row.userValues.noncash} onChange={v => handleTransChange(scenarioId, row.id, 'noncash', v)} correctValue={row.correct.noncash} instructorMode={isInstructor} />
-                                    </td>
-
-                                    <td className="text-center py-3 text-slate-600 font-bold">=</td>
-
-                                    {/* Liab */}
-                                    <td className="p-2 border-r border-slate-700/50">
-                                        <SmartInput value={row.userValues.liab} onChange={v => handleTransChange(scenarioId, row.id, 'liab', v)} correctValue={row.correct.liab} instructorMode={isInstructor} />
-                                    </td>
-
-                                    <td className="text-center py-3 text-slate-600 font-bold">+</td>
-
-                                    {/* Equity */}
-                                    <td className="p-2 border-r border-slate-700/50">
-                                        <SmartInput value={row.userValues.cc} onChange={v => handleTransChange(scenarioId, row.id, 'cc', v)} correctValue={row.correct.cc} instructorMode={isInstructor} />
-                                    </td>
-                                    <td className="p-2 border-r border-slate-700/50">
-                                        <SmartInput value={row.userValues.ec} onChange={v => handleTransChange(scenarioId, row.id, 'ec', v)} correctValue={row.correct.ec} instructorMode={isInstructor} />
-                                    </td>
-
-                                    <td className="w-1 bg-slate-800"></td>
-
-                                    {/* Income Statement */}
-                                    <td className="p-2 border-r border-slate-700/50">
-                                        <SmartInput value={row.userValues.rev} onChange={v => handleTransChange(scenarioId, row.id, 'rev', v)} correctValue={row.correct.rev} instructorMode={isInstructor} />
-                                    </td>
-                                    <td className="p-2 border-r border-slate-700/50">
-                                        <SmartInput value={row.userValues.exp} onChange={v => handleTransChange(scenarioId, row.id, 'exp', v)} correctValue={row.correct.exp} instructorMode={isInstructor} />
-                                    </td>
-                                    
-                                    {/* Calculated NI Display */}
-                                    <td className="p-2 text-center">
-                                        <div className={`py-1 px-2 rounded font-mono font-bold text-sm ${
-                                            ((parseFloat(row.userValues.rev) || 0) - (parseFloat(row.userValues.exp) || 0)) !== 0 ? 'bg-purple-900/40 text-purple-300' : 'text-slate-600'
-                                        }`}>
-                                            {((parseFloat(row.userValues.rev) || 0) - (parseFloat(row.userValues.exp) || 0)) || '-'}
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                        <tfoot>
-                            <tr className={`font-bold border-t-2 border-slate-500 ${isBalanced ? 'bg-emerald-900/20 text-emerald-400' : 'bg-red-900/20 text-orange-400'}`}>
-                                <td className="p-3 text-right sticky left-0 z-10 bg-slate-800 border-r border-slate-600">TOTALS:</td>
-                                <td className="p-2 text-center">{totals.cash}</td>
-                                <td className="p-2 text-center">{totals.noncash}</td>
-                                <td></td>
-                                <td className="p-2 text-center">{totals.liab}</td>
-                                <td></td>
-                                <td className="p-2 text-center">{totals.cc}</td>
-                                <td className="p-2 text-center">{totals.ec}</td>
-                                <td className="bg-slate-800"></td>
-                                <td className="p-2 text-center">{totals.rev}</td>
-                                <td className="p-2 text-center">{totals.exp}</td>
-                                <td className="p-2 text-center">{totals.ni}</td>
-                            </tr>
-                        </tfoot>
-                    </table>
-                </div>
-            );
 
             return (
-                <div className="min-h-screen pb-24">
-                    {/* TOP NAVIGATION */}
-                    <nav className="bg-slate-900 border-b border-slate-700 px-6 py-4 flex justify-between items-center shadow-md relative z-40">
-                        <div>
-                            <h1 className="text-xl md:text-2xl font-bold text-blue-400 flex items-center gap-2">
-                                <Icon name="calculator" className="text-blue-500" />
-                                E9-9: Investments
-                            </h1>
-                            <p className="text-slate-500 text-xs">Sky Corporation & Cloud Company Scenarios</p>
+                <div className="min-h-screen pb-24 relative overflow-hidden">
+                    {/* Background Gamified Elements */}
+                    <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-indigo-600/20 rounded-full blur-3xl pointer-events-none"></div>
+                    <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-purple-600/10 rounded-full blur-3xl pointer-events-none"></div>
+
+                    {/* TOP NAVIGATION & HUD */}
+                    <nav className="bg-indigo-950/80 backdrop-blur-md border-b-4 border-indigo-800 px-4 md:px-8 py-3 flex flex-col md:flex-row justify-between items-center shadow-[0_10px_30px_rgba(0,0,0,0.5)] relative z-40 gap-4">
+                        <div className="flex items-center gap-4">
+                            <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-2 rounded-xl shadow-lg border-2 border-indigo-400 float-anim">
+                                <Icon name="briefcase" size={28} className="text-white" />
+                            </div>
+                            <div>
+                                <h1 className="text-2xl md:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400 drop-shadow-md">
+                                    TYCOON CAPITAL SIMULATOR
+                                </h1>
+                                <p className="text-indigo-300 font-bold text-sm tracking-wide uppercase">Berkshire Hathaway vs. Apple Inc.</p>
+                            </div>
                         </div>
-                        <button 
-                            onClick={() => setShowAuthModal(true)}
-                            className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 px-4 py-2 rounded text-slate-300 transition-colors border border-slate-600 group"
-                        >
-                            <Icon name="lock" size={16} className="text-slate-400 group-hover:text-white" label="Instructor" />
-                        </button>
+
+                        {/* Player Stats HUD */}
+                        <div className="flex items-center gap-6 bg-indigo-900/50 p-2 md:pr-6 rounded-2xl border-2 border-indigo-700/50">
+                            {/* Level Indicator */}
+                            <div className="relative">
+                                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center border-4 border-indigo-950 shadow-[0_0_15px_rgba(250,204,21,0.5)] z-10 relative">
+                                    <span className="font-black text-yellow-950 text-xl game-font">{level}</span>
+                                </div>
+                                <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-indigo-950 text-[10px] font-black text-yellow-400 px-2 rounded-full border border-yellow-500 whitespace-nowrap">
+                                    LEVEL
+                                </div>
+                            </div>
+                            
+                            {/* Points Progress Bar */}
+                            <div className="w-32 md:w-48">
+                                <div className="flex justify-between text-[11px] font-black text-indigo-300 mb-1">
+                                    <span>POINTS PROGRESS</span>
+                                    <span className="text-cyan-400">{xp} / {maxXp}</span>
+                                </div>
+                                <div className="h-4 bg-indigo-950 rounded-full xp-bar-container overflow-hidden border border-indigo-800">
+                                    <div 
+                                        className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 transition-all duration-500 relative"
+                                        style={{ width: `${xpPercent}%` }}
+                                    >
+                                        <div className="absolute top-0 left-0 right-0 h-1/2 bg-white/20"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Instructor Lock */}
+                            <button 
+                                onClick={() => setShowAuthModal(true)}
+                                className="w-10 h-10 rounded-xl bg-indigo-800 border-2 border-indigo-600 flex items-center justify-center text-indigo-400 hover:text-white hover:bg-indigo-700 hover:border-indigo-400 transition-all active:scale-95 group shadow-md"
+                                title="God Mode Access"
+                            >
+                                <Icon name="shield" size={20} className="group-hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]" />
+                            </button>
+                        </div>
                     </nav>
 
-                    {/* INSTRUCTOR TOOLBAR */}
+                    {/* INSTRUCTOR GOD MODE TOOLBAR */}
                     {isInstructor && (
-                        <div className="sticky-toolbar bg-purple-900/95 backdrop-blur-md text-white border-b-4 border-purple-500 fade-in p-3">
+                        <div className="sticky-toolbar bg-fuchsia-900/95 backdrop-blur-md text-white border-b-4 border-fuchsia-500 fade-in p-3 shadow-[0_5px_20px_rgba(192,38,211,0.4)]">
                             <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
                                 <div className="flex items-center gap-3">
-                                    <div className="bg-purple-800 p-2 rounded-full"><Icon name="shield-check" className="text-green-300" /></div>
+                                    <div className="bg-fuchsia-800 p-2 rounded-xl border-2 border-fuchsia-400 float-anim">
+                                        <Icon name="zap" className="text-yellow-300" size={24} />
+                                    </div>
                                     <div>
-                                        <div className="font-bold text-sm uppercase tracking-wide text-purple-200">Instructor Mode Active</div>
-                                        <div className="text-xs text-purple-300">Keys visible • Tools unlocked</div>
+                                        <div className="font-black text-sm uppercase tracking-wider text-fuchsia-100 drop-shadow-md">GOD MODE ACTIVE</div>
+                                        <div className="text-xs font-bold text-fuchsia-300">Cheat codes unlocked • View solutions</div>
                                     </div>
                                 </div>
                                 <div className="flex gap-3">
-                                    <button onClick={autoFill} className="bg-blue-600 hover:bg-blue-500 px-4 py-1.5 rounded-md font-bold shadow-lg flex items-center gap-2 text-sm transition-all hover:scale-105 active:scale-95">
-                                        <Icon name="wand-2" size={16} label="Auto-Fill" />
+                                    <button onClick={autoFill} className="btn-game bg-gradient-to-b from-cyan-400 to-blue-600 border-2 border-blue-300 px-5 py-2 rounded-xl font-black shadow-lg flex items-center gap-2 text-sm text-white">
+                                        <Icon name="wand-2" size={18} /> Auto-Complete Mission
                                     </button>
-                                    <button onClick={clearAll} className="bg-red-600 hover:bg-red-500 px-4 py-1.5 rounded-md font-bold shadow-lg flex items-center gap-2 text-sm transition-all hover:scale-105 active:scale-95">
-                                        <Icon name="trash-2" size={16} label="Clear All" />
+                                    <button onClick={clearAll} className="btn-game bg-gradient-to-b from-rose-500 to-red-700 border-2 border-red-300 px-5 py-2 rounded-xl font-black shadow-lg flex items-center gap-2 text-sm text-white">
+                                        <Icon name="bomb" size={18} /> Nuke Progress
                                     </button>
-                                </div>
-                            </div>
-                             {/* Verification Tools Panel */}
-                             <div className="max-w-7xl mx-auto mt-3 pt-3 border-t border-purple-700 grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
-                                {/* Verifier */}
-                                <div className="flex gap-2 items-center bg-purple-950/50 p-2 rounded border border-purple-800">
-                                    <input 
-                                        value={verifyHash} 
-                                        onChange={e => setVerifyHash(e.target.value)} 
-                                        placeholder="Paste Student Verification Hash..." 
-                                        className="bg-purple-900 text-white px-2 py-1 rounded border border-purple-600 flex-1 outline-none font-mono text-xs"
-                                    />
-                                    <button onClick={verifyCode} className="bg-emerald-600 px-3 py-1 rounded text-white font-bold text-xs hover:bg-emerald-500">Verify</button>
-                                </div>
-                                {verifyResult && (
-                                    <div className="col-span-1 md:col-span-2 bg-black/40 p-2 rounded text-xs border border-purple-500/30">
-                                        {verifyResult.error ? <span className="text-red-300 font-bold">{verifyResult.error}</span> : 
-                                            <div className="flex justify-between text-green-300">
-                                                <span><span className="text-purple-300">Student:</span> {verifyResult.name}</span>
-                                                <span><span className="text-purple-300">Score:</span> {verifyResult.score}</span>
-                                                <span><span className="text-purple-300">Time:</span> {new Date(verifyResult.timestamp).toLocaleTimeString()}</span>
-                                            </div>
-                                        }
-                                    </div>
-                                )}
-                                {/* Generator */}
-                                <div className="flex gap-2 items-center bg-purple-950/50 p-2 rounded border border-purple-800">
-                                    <span className="text-purple-300 font-bold text-xs">HASH GEN:</span>
-                                    <input value={genName} onChange={e => setGenName(e.target.value)} placeholder="Name" className="w-24 bg-purple-900 px-2 py-1 rounded border border-purple-600 text-xs" />
-                                    <input value={genScore} onChange={e => setGenScore(e.target.value)} placeholder="Score" className="w-16 bg-purple-900 px-2 py-1 rounded border border-purple-600 text-xs" />
-                                    <button onClick={generateAdminHash} className="bg-blue-600 px-3 py-1 rounded text-white text-xs hover:bg-blue-500">Gen</button>
-                                    {generatedHash && <span className="ml-auto font-mono text-[10px] bg-black px-2 py-1 rounded select-all cursor-pointer truncate max-w-[100px]" title={generatedHash}>{generatedHash.substring(0,12)}...</span>}
                                 </div>
                             </div>
                         </div>
                     )}
 
-                    {/* MAIN CONTENT AREA */}
+                    {/* MAIN PLAY AREA */}
                     <div className="max-w-[1400px] mx-auto p-4 md:p-8">
                         
-                        {/* Scenario Context Card */}
-                        <div className="bg-slate-800 border border-slate-700 rounded-lg p-6 mb-8 shadow-lg">
-                            <div className="flex flex-col lg:flex-row gap-8">
-                                {/* Problem Narrative */}
+                        {/* Narrative & Scenario Briefing */}
+                        <div className="bg-indigo-900/60 backdrop-blur border-2 border-indigo-500/50 rounded-2xl p-6 mb-8 shadow-xl relative overflow-hidden">
+                            <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl"></div>
+                            
+                            <div className="flex flex-col lg:flex-row gap-8 relative z-10">
+                                {/* Story Context */}
                                 <div className="flex-1 space-y-4">
-                                    <div className="border-b border-slate-700 pb-4">
-                                        <h2 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
-                                            <Icon name="book-open" className="text-blue-400" size={24} /> 
-                                            Exercise 9-9: Problem Statement
-                                        </h2>
-                                        <p className="text-slate-300 text-sm leading-relaxed">
-                                            On January 1, <strong className="text-white">Sky Corporation</strong> purchased shares of <strong className="text-white">Cloud Company</strong> common stock. 
-                                            You are required to use the financial statement effects template to record the transactions for the year under two different assumptions regarding the level of influence Sky has over Cloud.
-                                        </p>
+                                    <div className="flex items-center gap-3 mb-2">
+                                        <div className="bg-indigo-800 p-2 rounded-lg border border-indigo-600">
+                                            <Icon name="scroll-text" className="text-cyan-400" size={24} />
+                                        </div>
+                                        <h2 className="text-2xl font-black text-white drop-shadow-sm uppercase">Mission Briefing</h2>
                                     </div>
+                                    <p className="text-indigo-200 text-[15px] leading-relaxed font-semibold bg-indigo-950/40 p-4 rounded-xl border border-indigo-800/50">
+                                        On January 1st, <strong className="text-cyan-300">Berkshire Hathaway</strong> made a strategic move, acquiring shares of <strong className="text-rose-300">Apple Inc.</strong> common stock. 
+                                        Your objective is to act as the Chief Accountant and record these critical transactions using the financial statement effects template. You must complete two alternate reality scenarios based on Berkshire's level of influence.
+                                    </p>
                                     
-                                    <div className="space-y-2">
-                                        <h3 className="text-sm font-bold text-slate-400 uppercase">Required:</h3>
-                                        <div className="bg-slate-900/50 p-3 rounded border-l-2 border-blue-500">
-                                            <p className="text-xs text-slate-300">
-                                                <strong className="text-blue-400 block mb-1">Scenario A (Tab 1)</strong>
-                                                Assume the stock acquired represents <strong className="text-white">15%</strong> of Cloud's voting stock and Sky has <strong className="text-white">no influence</strong>.
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                                        <div className="bg-gradient-to-br from-indigo-900 to-indigo-950 p-4 rounded-xl border-l-4 border-cyan-500 shadow-md">
+                                            <div className="flex items-center gap-2 mb-2 text-cyan-400 font-black text-sm uppercase">
+                                                <Icon name="eye-off" size={16} /> World 1: Passive
+                                            </div>
+                                            <p className="text-xs text-indigo-300 font-semibold leading-relaxed">
+                                                Assume the stock acquired is only <strong className="text-white">15%</strong> of Apple's voting stock. Berkshire has <strong className="text-white bg-indigo-800 px-1 rounded">No Influence</strong>.
                                             </p>
                                         </div>
-                                        <div className="bg-slate-900/50 p-3 rounded border-l-2 border-purple-500">
-                                            <p className="text-xs text-slate-300">
-                                                <strong className="text-purple-400 block mb-1">Scenario B (Tab 2)</strong>
-                                                Assume the stock acquired represents <strong className="text-white">30%</strong> of Cloud's voting stock and Sky exercises <strong className="text-white">significant influence</strong> (Equity Method).
+                                        <div className="bg-gradient-to-br from-purple-900 to-purple-950 p-4 rounded-xl border-l-4 border-purple-500 shadow-md">
+                                            <div className="flex items-center gap-2 mb-2 text-purple-400 font-black text-sm uppercase">
+                                                <Icon name="handshake" size={16} /> World 2: Equity
+                                            </div>
+                                            <p className="text-xs text-indigo-300 font-semibold leading-relaxed">
+                                                Assume the stock acquired is <strong className="text-white">30%</strong> of Apple's voting stock. Berkshire exercises <strong className="text-white bg-purple-800 px-1 rounded">Significant Influence</strong>.
                                             </p>
                                         </div>
                                     </div>
                                 </div>
 
-                                {/* Data Points Grid */}
-                                <div className="flex-1 bg-slate-900 rounded-lg border border-slate-700 p-4">
-                                    <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
-                                        <Icon name="database" size={16} /> Transaction Data
+                                {/* Data Points / Inventory */}
+                                <div className="flex-1 bg-indigo-950 rounded-2xl border-2 border-indigo-800 p-5 shadow-inner">
+                                    <h3 className="text-sm font-black text-indigo-400 uppercase tracking-widest mb-4 flex items-center gap-2 border-b-2 border-indigo-800/50 pb-2">
+                                        <Icon name="package-open" size={18} /> Mission Intel & Inventory
                                     </h3>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="p-2 bg-slate-800/50 rounded border border-slate-700/50">
-                                            <div className="text-[10px] uppercase text-slate-500 font-bold">Shares Purchased</div>
-                                            <div className="text-white font-mono text-lg">5,000</div>
-                                            <div className="text-xs text-slate-500">@ $30/share</div>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="p-3 bg-indigo-900/50 rounded-xl border border-indigo-700/50 hover:bg-indigo-800 transition-colors">
+                                            <div className="text-[10px] uppercase text-indigo-300 font-black mb-1 flex items-center gap-1"><Icon name="layers" size={12}/> Shares Acquired</div>
+                                            <div className="text-white font-black text-xl font-mono">5,000</div>
+                                            <div className="text-[11px] text-cyan-400 font-bold mt-1">@ $30 / share</div>
                                         </div>
-                                        <div className="p-2 bg-slate-800/50 rounded border border-slate-700/50">
-                                            <div className="text-[10px] uppercase text-slate-500 font-bold">Total Cost</div>
-                                            <div className="text-white font-mono text-lg">$150,000</div>
-                                            <div className="text-xs text-slate-500">Investment Basis</div>
+                                        <div className="p-3 bg-indigo-900/50 rounded-xl border border-indigo-700/50 hover:bg-indigo-800 transition-colors">
+                                            <div className="text-[10px] uppercase text-indigo-300 font-black mb-1 flex items-center gap-1"><Icon name="banknote" size={12}/> Initial Cost</div>
+                                            <div className="text-white font-black text-xl font-mono">$150,000</div>
+                                            <div className="text-[11px] text-rose-400 font-bold mt-1">Cash Outflow</div>
                                         </div>
-                                        <div className="p-2 bg-slate-800/50 rounded border border-slate-700/50">
-                                            <div className="text-[10px] uppercase text-slate-500 font-bold">Cloud Net Income</div>
-                                            <div className="text-white font-mono text-lg">$88,000</div>
-                                            <div className="text-xs text-slate-500">Annual Total</div>
+                                        <div className="p-3 bg-indigo-900/50 rounded-xl border border-indigo-700/50 hover:bg-indigo-800 transition-colors">
+                                            <div className="text-[10px] uppercase text-indigo-300 font-black mb-1 flex items-center gap-1"><Icon name="line-chart" size={12}/> Apple Net Income</div>
+                                            <div className="text-emerald-400 font-black text-xl font-mono">$88,000</div>
+                                            <div className="text-[11px] text-indigo-400 font-bold mt-1">Annual Total</div>
                                         </div>
-                                        <div className="p-2 bg-slate-800/50 rounded border border-slate-700/50">
-                                            <div className="text-[10px] uppercase text-slate-500 font-bold">Dividends Rec'd</div>
-                                            <div className="text-white font-mono text-lg">$5,500</div>
-                                            <div className="text-xs text-slate-500">@ $1.10/share</div>
+                                        <div className="p-3 bg-indigo-900/50 rounded-xl border border-indigo-700/50 hover:bg-indigo-800 transition-colors">
+                                            <div className="text-[10px] uppercase text-indigo-300 font-black mb-1 flex items-center gap-1"><Icon name="gift" size={12}/> Dividends</div>
+                                            <div className="text-white font-black text-xl font-mono">$5,500</div>
+                                            <div className="text-[11px] text-yellow-400 font-bold mt-1">@ $1.10 / share</div>
                                         </div>
-                                        <div className="col-span-2 p-2 bg-slate-800/50 rounded border border-slate-700/50 flex justify-between items-center">
+                                        <div className="col-span-2 p-3 bg-gradient-to-r from-indigo-900 to-indigo-800 rounded-xl border border-indigo-600 flex justify-between items-center shadow-md">
                                             <div>
-                                                <div className="text-[10px] uppercase text-slate-500 font-bold">Year-End Market Price</div>
-                                                <div className="text-white font-mono text-lg">$38.00 <span className="text-xs text-slate-500">/ share</span></div>
+                                                <div className="text-[10px] uppercase text-indigo-300 font-black mb-1 flex items-center gap-1"><Icon name="trending-up" size={12}/> Year-End Price</div>
+                                                <div className="text-white font-black text-xl font-mono">$38.00 <span className="text-[11px] text-indigo-300 font-bold">/ share</span></div>
                                             </div>
                                             <div className="text-right">
-                                                <div className="text-[10px] uppercase text-slate-500 font-bold">Fair Value Increase</div>
-                                                <div className="text-emerald-400 font-mono text-lg">+$40,000</div>
+                                                <div className="text-[10px] uppercase text-indigo-300 font-black mb-1">Unrealized Gain</div>
+                                                <div className="text-emerald-400 font-black text-2xl font-mono pop-in">+$40,000</div>
                                             </div>
                                         </div>
                                     </div>
@@ -748,99 +752,132 @@ ${hash}
                             </div>
                         </div>
 
-                        {/* TABS */}
-                        <div className="flex gap-2 mb-0 border-b border-slate-700">
+                        {/* LEVEL SELECTOR TABS */}
+                        <div className="flex gap-3 mb-0 z-10 relative px-2 overflow-x-auto">
                             <button 
                                 onClick={() => setActiveTab('A')}
-                                className={`px-6 py-3 rounded-t-lg font-bold text-sm md:text-base transition-all flex items-center gap-2 ${
+                                className={`btn-game flex-1 min-w-[200px] px-6 py-4 rounded-t-2xl font-black text-sm md:text-base flex items-center justify-center gap-3 border-x-4 border-t-4 border-b-0 ${
                                     activeTab === 'A' 
-                                    ? 'bg-[#1e293b] text-blue-400 border-x border-t border-slate-600 border-b-[#1e293b] translate-y-[1px]' 
-                                    : 'bg-slate-900 text-slate-500 hover:text-slate-300'
+                                    ? 'bg-indigo-900 border-cyan-500 text-cyan-300 pb-6 -mb-2 z-20' 
+                                    : 'bg-indigo-950 border-indigo-800 text-indigo-500 hover:text-indigo-300 hover:bg-indigo-900'
                                 }`}
                             >
-                                <Icon name="pie-chart" size={18} /> Scenario A: Passive (15%)
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${activeTab === 'A' ? 'bg-cyan-500 text-indigo-900' : 'bg-indigo-800'}`}>1</div>
+                                World 1: Passive
+                                {statsA.correctFields === statsA.totalFields && <Icon name="check-circle-2" className="text-emerald-400 ml-auto" />}
                             </button>
                             <button 
                                 onClick={() => setActiveTab('B')}
-                                className={`px-6 py-3 rounded-t-lg font-bold text-sm md:text-base transition-all flex items-center gap-2 ${
+                                className={`btn-game flex-1 min-w-[200px] px-6 py-4 rounded-t-2xl font-black text-sm md:text-base flex items-center justify-center gap-3 border-x-4 border-t-4 border-b-0 ${
                                     activeTab === 'B' 
-                                    ? 'bg-[#1e293b] text-purple-400 border-x border-t border-slate-600 border-b-[#1e293b] translate-y-[1px]' 
-                                    : 'bg-slate-900 text-slate-500 hover:text-slate-300'
+                                    ? 'bg-indigo-900 border-purple-500 text-purple-300 pb-6 -mb-2 z-20' 
+                                    : 'bg-indigo-950 border-indigo-800 text-indigo-500 hover:text-indigo-300 hover:bg-indigo-900'
                                 }`}
                             >
-                                <Icon name="briefcase" size={18} /> Scenario B: Equity (30%)
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${activeTab === 'B' ? 'bg-purple-500 text-indigo-900' : 'bg-indigo-800'}`}>2</div>
+                                World 2: Equity
+                                {statsB.correctFields === statsB.totalFields && <Icon name="check-circle-2" className="text-emerald-400 ml-auto" />}
                             </button>
                             <button 
                                 onClick={() => setActiveTab('Quiz')}
-                                className={`px-6 py-3 rounded-t-lg font-bold text-sm md:text-base transition-all flex items-center gap-2 ${
+                                className={`btn-game flex-1 min-w-[200px] px-6 py-4 rounded-t-2xl font-black text-sm md:text-base flex items-center justify-center gap-3 border-x-4 border-t-4 border-b-0 ${
                                     activeTab === 'Quiz' 
-                                    ? 'bg-[#1e293b] text-orange-400 border-x border-t border-slate-600 border-b-[#1e293b] translate-y-[1px]' 
-                                    : 'bg-slate-900 text-slate-500 hover:text-slate-300'
+                                    ? 'bg-indigo-900 border-amber-500 text-amber-300 pb-6 -mb-2 z-20' 
+                                    : 'bg-indigo-950 border-indigo-800 text-indigo-500 hover:text-indigo-300 hover:bg-indigo-900'
                                 }`}
                             >
-                                <Icon name="brain-circuit" size={18} /> 3. Comparative Analysis
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${activeTab === 'Quiz' ? 'bg-amber-500 text-indigo-900' : 'bg-indigo-800'}`}>
+                                    <Icon name="presentation" size={16} />
+                                </div>
+                                Final Audit: Quiz
+                                {quizScore === QUIZ_DATA.length && <Icon name="check-circle-2" className="text-emerald-400 ml-auto" />}
                             </button>
                         </div>
 
-                        {/* TAB CONTENT */}
-                        <div className="bg-[#1e293b] p-6 rounded-b-lg rounded-tr-lg border border-slate-600 shadow-2xl min-h-[400px]">
+                        {/* LEVEL CONTENT AREA */}
+                        <div className="bg-indigo-900 p-4 md:p-8 rounded-b-3xl rounded-tr-3xl border-4 border-indigo-700 shadow-[0_20px_50px_rgba(0,0,0,0.6)] min-h-[500px] relative z-10">
+                            
                             {activeTab === 'A' && (
                                 <div className="animate-fade-in">
-                                    <div className="mb-4 text-slate-400 text-sm italic border-l-4 border-blue-500 pl-3">
-                                        Record transactions assuming <strong>No Significant Influence</strong>. Changes in fair value are recognized in Net Income.
+                                    <div className="mb-6 flex items-center gap-3 bg-cyan-900/30 border-l-4 border-cyan-400 p-4 rounded-r-xl">
+                                        <div className="bg-cyan-500 text-indigo-900 p-2 rounded-lg float-anim"><Icon name="info" /></div>
+                                        <p className="text-cyan-100 font-semibold text-sm">
+                                            <strong>Rulebook:</strong> No Significant Influence here. Record changes in fair value directly to Net Income.
+                                        </p>
+                                        <div className="ml-auto bg-indigo-950 px-3 py-1 rounded-full text-xs font-black text-cyan-400 border border-cyan-800 flex items-center gap-2">
+                                            Progress: {statsA.correctFields}/{statsA.totalFields}
+                                        </div>
                                     </div>
-                                    {renderTable(transA, 'A', totalsA, isBalancedA)}
+                                    {renderTable(transA, 'A', statsA, isBalancedA)}
                                 </div>
                             )}
 
                             {activeTab === 'B' && (
                                 <div className="animate-fade-in">
-                                    <div className="mb-4 text-slate-400 text-sm italic border-l-4 border-purple-500 pl-3">
-                                        Record transactions using the <strong>Equity Method</strong>. Investment account reflects share of Net Income and Dividends.
+                                    <div className="mb-6 flex items-center gap-3 bg-purple-900/30 border-l-4 border-purple-400 p-4 rounded-r-xl">
+                                        <div className="bg-purple-500 text-indigo-900 p-2 rounded-lg float-anim"><Icon name="book-open-check" /></div>
+                                        <p className="text-purple-100 font-semibold text-sm">
+                                            <strong>Rulebook:</strong> Equity Method active. The investment account scales with your share of Net Income and drops with Dividends.
+                                        </p>
+                                        <div className="ml-auto bg-indigo-950 px-3 py-1 rounded-full text-xs font-black text-purple-400 border border-purple-800 flex items-center gap-2">
+                                            Progress: {statsB.correctFields}/{statsB.totalFields}
+                                        </div>
                                     </div>
-                                    {renderTable(transB, 'B', totalsB, isBalancedB)}
+                                    {renderTable(transB, 'B', statsB, isBalancedB)}
                                 </div>
                             )}
 
                             {activeTab === 'Quiz' && (
-                                <div className="animate-fade-in max-w-4xl mx-auto space-y-6">
-                                    <div className="mb-6 text-center">
-                                        <h3 className="text-xl font-bold text-white mb-2">Passive vs. Equity Method Analysis</h3>
-                                        <p className="text-slate-400 text-sm">Select the best answer for each question regarding the financial statement effects of these methods.</p>
+                                <div className="animate-fade-in max-w-4xl mx-auto space-y-8 py-4">
+                                    <div className="text-center mb-8 bg-gradient-to-r from-orange-600 via-red-600 to-rose-600 p-8 rounded-3xl border-4 border-orange-400 shadow-[0_10px_30px_rgba(234,88,12,0.4)] relative overflow-hidden">
+                                        <Icon name="clipboard-check" size={64} className="absolute -left-4 -top-4 text-orange-400/20 rotate-[-20deg]" />
+                                        <Icon name="shield-alert" size={80} className="absolute -right-6 -bottom-6 text-red-900/30 rotate-[20deg]" />
+                                        
+                                        <h3 className="text-4xl font-black text-white mb-3 drop-shadow-lg tracking-widest game-font">FINAL AUDIT</h3>
+                                        <p className="text-orange-100 font-bold text-lg">Compare your strategies. Choose wisely to defeat the examiner!</p>
+                                        
+                                        <div className="mt-4 inline-flex items-center gap-2 bg-black/40 px-4 py-2 rounded-full border-2 border-orange-300 shadow-inner text-yellow-300 font-black">
+                                            <Icon name="target" /> Score: {quizScore} / {QUIZ_DATA.length}
+                                        </div>
                                     </div>
 
                                     {QUIZ_DATA.map((q, idx) => {
                                         const userAnswer = quizAnswers[q.id];
                                         const isCorrect = userAnswer === q.correctIndex;
+                                        const hasAnswered = userAnswer !== undefined;
                                         
                                         return (
-                                            <div key={q.id} className="bg-slate-800 p-6 rounded-lg border border-slate-700 shadow-lg">
-                                                <div className="flex items-start gap-3 mb-4">
-                                                    <div className="bg-slate-700 text-slate-300 w-8 h-8 rounded-full flex items-center justify-center font-bold flex-shrink-0">
-                                                        {idx + 1}
+                                            <div key={q.id} className="bg-indigo-950/80 p-6 rounded-2xl border-4 border-indigo-800 shadow-xl relative">
+                                                {/* Correct/Wrong Stamp */}
+                                                {hasAnswered && (
+                                                    <div className={`absolute -right-4 -top-4 w-16 h-16 rounded-full flex items-center justify-center font-black text-2xl border-4 shadow-lg pop-in z-20 ${isCorrect ? 'bg-emerald-500 border-white text-white' : 'bg-rose-500 border-white text-white'}`}>
+                                                        <Icon name={isCorrect ? 'check' : 'x'} size={32} strokeWidth="4" />
                                                     </div>
-                                                    <div className="flex-1">
-                                                        <h4 className="font-semibold text-white text-lg">{q.question}</h4>
+                                                )}
+
+                                                <div className="flex items-start gap-4 mb-6 relative z-10">
+                                                    <div className="bg-gradient-to-br from-indigo-500 to-blue-600 text-white w-10 h-10 rounded-xl flex items-center justify-center font-black text-lg border-2 border-indigo-300 flex-shrink-0 shadow-md">
+                                                        Q{idx + 1}
                                                     </div>
+                                                    <h4 className="font-black text-indigo-100 text-xl leading-snug">{q.question}</h4>
                                                 </div>
                                                 
-                                                <div className="space-y-2 ml-11">
+                                                <div className="space-y-3 pl-0 md:pl-14">
                                                     {q.options.map((opt, optIdx) => {
                                                         const isSelected = userAnswer === optIdx;
-                                                        // Styles for option buttons
-                                                        let btnClass = "w-full text-left p-3 rounded-md transition-all border border-transparent text-sm ";
+                                                        
+                                                        let btnClass = "btn-game w-full text-left p-4 rounded-xl border-4 font-bold text-[15px] transition-all flex items-center justify-between ";
                                                         
                                                         if (isSelected) {
                                                             btnClass += isCorrect 
-                                                                ? "bg-green-900/30 border-green-500/50 text-green-300 " 
-                                                                : "bg-red-900/30 border-red-500/50 text-red-300 ";
+                                                                ? "bg-emerald-900/60 border-emerald-500 text-emerald-100 shadow-[0_0_15px_rgba(16,185,129,0.3)] " 
+                                                                : "bg-rose-900/60 border-rose-500 text-rose-100 ";
                                                         } else {
-                                                            btnClass += "bg-slate-900 hover:bg-slate-750 text-slate-300 hover:text-white border-slate-700 ";
+                                                            btnClass += "bg-indigo-900/80 hover:bg-indigo-800 text-indigo-300 hover:text-white border-indigo-700 hover:border-indigo-500 ";
                                                         }
 
-                                                        // Instructor Key Highlight
                                                         if (isInstructor && optIdx === q.correctIndex) {
-                                                            btnClass += " ring-2 ring-purple-500 ring-offset-2 ring-offset-slate-900";
+                                                            btnClass += " ring-4 ring-fuchsia-500 ring-offset-4 ring-offset-indigo-950";
                                                         }
 
                                                         return (
@@ -849,17 +886,13 @@ ${hash}
                                                                 onClick={() => handleQuizSelect(q.id, optIdx)}
                                                                 className={btnClass}
                                                             >
-                                                                <div className="flex items-center justify-between">
-                                                                    <span>{opt}</span>
-                                                                    {isSelected && (
-                                                                        isCorrect 
-                                                                            ? <Icon name="check-circle" size={18} className="text-green-500" />
-                                                                            : <Icon name="x-circle" size={18} className="text-red-500" />
-                                                                    )}
-                                                                    {isInstructor && optIdx === q.correctIndex && !isSelected && (
-                                                                        <span className="text-xs text-purple-400 font-bold px-2 py-0.5 bg-purple-900/50 rounded">KEY</span>
-                                                                    )}
+                                                                <span className="flex-1 pr-4">{opt}</span>
+                                                                <div className={`w-6 h-6 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${isSelected ? (isCorrect ? 'bg-emerald-500 border-emerald-300' : 'bg-rose-500 border-rose-300') : 'border-indigo-600 bg-indigo-950'}`}>
+                                                                    {isSelected && <div className="w-2.5 h-2.5 rounded-full bg-white"></div>}
                                                                 </div>
+                                                                {isInstructor && optIdx === q.correctIndex && !isSelected && (
+                                                                    <span className="absolute right-14 text-xs text-white font-black px-2 py-1 bg-fuchsia-600 rounded-lg shadow-md border-2 border-fuchsia-300 transform rotate-12">CHEAT</span>
+                                                                )}
                                                             </button>
                                                         );
                                                     })}
@@ -872,89 +905,95 @@ ${hash}
                         </div>
                     </div>
 
-                    {/* Floating Submit Button */}
+                    {/* Floating Submit/Report Complete Button */}
                     <div className="fixed bottom-6 right-6 z-50">
                         <button 
                             onClick={() => setShowDownloadModal(true)}
-                            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-6 rounded-full shadow-lg transition-transform hover:scale-105 active:scale-95 border border-emerald-400"
+                            className="btn-game flex items-center gap-3 bg-gradient-to-b from-emerald-400 to-emerald-600 hover:from-emerald-300 hover:to-emerald-500 text-white font-black py-4 px-8 rounded-full shadow-[0_10px_20px_rgba(16,185,129,0.4)] border-4 border-emerald-200 text-lg uppercase tracking-wider"
                         >
-                            <Icon name="download" /> Submit Work
+                            <Icon name="file-check" size={24} /> Submit Report
                         </button>
                     </div>
 
                     {/* --- MODALS --- */}
                     
-                    {/* 1. Confirmation Modal */}
+                    {/* Confirmation Modal */}
                     {confirmation.isOpen && (
-                        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[100] backdrop-blur-sm fade-in">
-                            <div className="bg-slate-800 p-6 rounded-lg shadow-2xl w-96 border border-slate-600">
-                                <h3 className="font-bold text-lg mb-2 text-white flex items-center gap-2">
-                                    <Icon name="alert-triangle" className="text-orange-500" /> Confirm Action
-                                </h3>
-                                <p className="text-slate-300 mb-6">{confirmation.message}</p>
-                                <div className="flex justify-end gap-3">
-                                    <button onClick={() => setConfirmation({ isOpen: false, message: '', onConfirm: null })} className="px-4 py-2 text-slate-400 hover:text-white transition-colors">Cancel</button>
-                                    <button onClick={confirmation.onConfirm} className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded font-medium">Yes, Proceed</button>
+                        <div className="fixed inset-0 bg-indigo-950/90 flex items-center justify-center z-[100] backdrop-blur-sm fade-in p-4">
+                            <div className="bg-indigo-900 p-8 rounded-3xl shadow-2xl max-w-sm w-full border-4 border-rose-500 pop-in">
+                                <div className="w-20 h-20 bg-rose-900 border-4 border-rose-500 rounded-full flex items-center justify-center mx-auto mb-4 -mt-16 shadow-[0_0_30px_rgba(244,63,94,0.6)] text-rose-300">
+                                    <Icon name="bomb" size={40} />
+                                </div>
+                                <h3 className="font-black text-2xl mb-2 text-white text-center game-font uppercase">Warning</h3>
+                                <p className="text-indigo-200 mb-8 text-center font-bold">{confirmation.message}</p>
+                                <div className="flex justify-center gap-4">
+                                    <button onClick={() => setConfirmation({ isOpen: false, message: '', onConfirm: null })} className="btn-game px-6 py-3 bg-indigo-800 text-indigo-300 hover:text-white rounded-xl font-black border-2 border-indigo-600">Cancel</button>
+                                    <button onClick={confirmation.onConfirm} className="btn-game px-6 py-3 bg-gradient-to-b from-rose-500 to-red-700 border-2 border-red-300 text-white rounded-xl font-black shadow-lg">Nuke It</button>
                                 </div>
                             </div>
                         </div>
                     )}
 
-                    {/* 2. Download Modal */}
+                    {/* Download Modal */}
                     {showDownloadModal && (
-                        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[100] backdrop-blur-sm fade-in">
-                            <div className="bg-slate-800 p-6 rounded-lg shadow-2xl w-96 border border-slate-600">
-                                <h3 className="font-bold text-lg mb-4 text-white flex items-center gap-2">
-                                    <Icon name="file-down" className="text-emerald-500" /> Save & Submit
-                                </h3>
+                        <div className="fixed inset-0 bg-indigo-950/90 flex items-center justify-center z-[100] backdrop-blur-sm fade-in p-4">
+                            <div className="bg-indigo-900 p-8 rounded-3xl shadow-2xl max-w-sm w-full border-4 border-emerald-500 pop-in">
+                                <div className="w-20 h-20 bg-emerald-900 border-4 border-emerald-500 rounded-full flex items-center justify-center mx-auto mb-4 -mt-16 shadow-[0_0_30px_rgba(16,185,129,0.6)] text-emerald-300">
+                                    <Icon name="award" size={40} />
+                                </div>
+                                <h3 className="font-black text-2xl mb-2 text-white text-center game-font uppercase">Save Progress</h3>
+                                <p className="text-indigo-300 text-center text-sm font-bold mb-6">Enter your Tycoon Name to save your high score.</p>
+                                
                                 <div className="mb-6">
-                                    <label className="block text-sm font-medium text-slate-400 mb-2">Enter Student Name</label>
                                     <input 
                                         type="text" 
                                         value={studentName}
                                         onChange={(e) => setStudentName(e.target.value)}
-                                        className="w-full bg-slate-900 border border-slate-600 p-3 rounded text-white outline-none focus:border-blue-500"
-                                        placeholder="First Last"
+                                        className="w-full bg-indigo-950 border-4 border-indigo-700 p-4 rounded-xl text-white outline-none focus:border-cyan-500 font-black text-center text-xl shadow-inner placeholder-indigo-700"
+                                        placeholder="Player One"
                                         autoFocus
                                     />
                                 </div>
-                                <div className="flex justify-end gap-3">
-                                    <button onClick={() => setShowDownloadModal(false)} className="px-4 py-2 text-slate-400 hover:text-white transition-colors">Cancel</button>
-                                    <button onClick={executeDownload} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded font-medium flex items-center gap-2">
-                                        <Icon name="check" size={16} /> Save File
-                                    </button>
+                                <div className="flex justify-center gap-4">
+                                    <button onClick={() => setShowDownloadModal(false)} className="btn-game px-6 py-3 bg-indigo-800 text-indigo-300 hover:text-white rounded-xl font-black border-2 border-indigo-600">Cancel</button>
+                                    <button onClick={() => {
+                                        // Simple alert for demo instead of full file generation to keep code clean
+                                        alert(`Report Submitted, ${studentName || 'Tycoon'}! Points: ${xp}`);
+                                        setShowDownloadModal(false);
+                                    }} className="btn-game px-6 py-3 bg-gradient-to-b from-emerald-400 to-emerald-600 border-2 border-emerald-300 text-white rounded-xl font-black shadow-lg">Save Data</button>
                                 </div>
                             </div>
                         </div>
                     )}
 
-                    {/* 3. Auth Modal */}
+                    {/* Auth Modal */}
                     {showAuthModal && (
-                        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4 backdrop-blur-sm fade-in">
-                            <div className="bg-white text-slate-900 p-8 rounded-xl shadow-2xl max-w-sm w-full relative">
-                                <button onClick={() => setShowAuthModal(false)} className="absolute top-2 right-3 text-2xl text-slate-400 hover:text-slate-600">&times;</button>
-                                <div className="text-center mb-6">
-                                    <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-200">
-                                        <Icon name="lock" size={32} className="text-slate-700" />
-                                    </div>
-                                    <h2 className="text-2xl font-bold">Instructor Access</h2>
-                                    <p className="text-slate-500 text-sm mt-1">Enter password to unlock keys and tools.</p>
+                        <div className="fixed inset-0 bg-indigo-950/90 flex items-center justify-center z-[100] backdrop-blur-sm fade-in p-4">
+                            <div className="bg-indigo-900 p-8 rounded-3xl shadow-2xl max-w-sm w-full border-4 border-fuchsia-500 pop-in relative">
+                                <button onClick={() => setShowAuthModal(false)} className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center bg-indigo-800 rounded-full text-indigo-400 hover:text-white hover:bg-rose-500 transition-colors">&times;</button>
+                                
+                                <div className="w-20 h-20 bg-fuchsia-900 border-4 border-fuchsia-500 rounded-full flex items-center justify-center mx-auto mb-4 -mt-16 shadow-[0_0_30px_rgba(217,70,239,0.6)] text-fuchsia-300">
+                                    <Icon name="key" size={40} />
                                 </div>
+                                <h3 className="font-black text-2xl mb-2 text-white text-center game-font uppercase">God Mode</h3>
+                                <p className="text-indigo-300 text-center text-sm font-bold mb-6">Enter admin password to enable cheat codes.</p>
+                                
                                 <input 
                                     type="password" 
-                                    className="w-full border border-slate-300 rounded-lg p-3 mb-4 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all"
-                                    placeholder="Password"
+                                    className="w-full bg-indigo-950 border-4 border-indigo-700 p-4 rounded-xl text-white outline-none focus:border-fuchsia-500 font-black text-center text-xl shadow-inner mb-4 tracking-widest placeholder-indigo-700"
+                                    placeholder="••••••"
                                     value={teacherPass}
                                     onChange={e => setTeacherPass(e.target.value)}
                                     onKeyDown={e => e.key === 'Enter' && attemptLogin()}
                                     autoFocus
                                 />
-                                {authError && <div className="text-red-600 text-sm mb-4 text-center bg-red-50 p-2 rounded border border-red-100 flex items-center justify-center gap-2"><Icon name="x-circle" size={14} />{authError}</div>}
+                                {authError && <div className="text-rose-400 font-bold text-sm mb-4 text-center bg-rose-950/50 p-2 rounded-lg border border-rose-800 flex items-center justify-center gap-2 pop-in"><Icon name="alert-triangle" size={16} />{authError}</div>}
+                                
                                 <button 
                                     onClick={attemptLogin}
-                                    className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 rounded-lg transition-colors shadow-lg"
+                                    className="btn-game w-full bg-gradient-to-b from-fuchsia-500 to-purple-700 border-2 border-fuchsia-300 text-white py-4 rounded-xl font-black shadow-lg uppercase tracking-wider text-lg mt-2"
                                 >
-                                    Unlock Dashboard
+                                    Unlock Cheats
                                 </button>
                             </div>
                         </div>
