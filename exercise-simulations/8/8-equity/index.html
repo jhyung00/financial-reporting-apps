@@ -14,37 +14,49 @@
     <script src="https://unpkg.com/lucide@latest"></script>
 
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap');
+        
         body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        h1, h2, h3, h4, h5, .font-display { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
+        
+        .custom-scrollbar::-webkit-scrollbar { width: 8px; height: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
         
         /* Input Styles */
-        .input-base { transition: all 0.2s; outline: none; }
-        .input-correct { background-color: #f0fdf4; border-color: #22c55e; color: #15803d; font-weight: 600; }
-        .input-incorrect { background-color: #fef2f2; border-color: #ef4444; }
-        .input-neutral { background-color: #fff; border-color: #cbd5e1; }
-        .input-neutral:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
+        .input-base { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); outline: none; }
+        .input-correct { background-color: #ecfdf5; border-color: #34d399; color: #065f46; font-weight: 600; box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.2); }
+        .input-incorrect { background-color: #fff1f2; border-color: #fb7185; color: #9f1239; box-shadow: 0 0 0 3px rgba(251, 113, 133, 0.2); }
+        .input-neutral { background-color: #f8fafc; border-color: #e2e8f0; }
+        .input-neutral:focus { background-color: #ffffff; border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2); }
 
         /* Resizer */
         .resizer {
-            width: 5px;
+            width: 6px;
             cursor: col-resize;
             background-color: transparent;
             transition: background-color 0.2s;
             z-index: 50;
         }
         .resizer:hover, .resizer.resizing {
-            background-color: #3b82f6;
+            background-color: #6366f1;
         }
 
         /* Animations */
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-fade-in { animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        
+        /* Glassmorphism */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
     </style>
 </head>
-<body class="bg-slate-100 text-slate-800 h-screen overflow-hidden">
+<body class="bg-slate-50 text-slate-800 h-screen overflow-hidden selection:bg-indigo-100 selection:text-indigo-900" oncontextmenu="return false;">
     <div id="root"></div>
 
     <script type="text/babel">
@@ -52,10 +64,11 @@
 
         // --- DATA: CAMPBELL SOUP ---
         const CAMPBELL_DATA = {
-            metadata: { name: "Campbell Soup Co. (E8-37)", year: "Current Year" },
+            metadata: { name: "Campbell Soup Co. (E8-37)", year: "Current Year", theme: "from-rose-500 to-orange-400" },
             tables: [
                 {
                     title: "Statement of Shareholders' Equity ($ millions, except per share)",
+                    placement: "main",
                     headers: [
                         "Account / Transaction", 
                         "Cap. Stock Issued (Shares)", "Cap. Stock Issued ($)", 
@@ -75,6 +88,7 @@
                 },
                 {
                     title: "Additional Information",
+                    placement: "sidebar",
                     headers: ["Item", "Value"],
                     rows: [
                         ["Authorized Shares", "560 million"],
@@ -108,7 +122,7 @@
 
         const CAMPBELL_QUESTIONS = [
             {
-                id: "cq1", title: "1. Capital Stock Computation", desc: "Show the computation, using par value and share numbers, to arrive at the $12 million in the capital (common) stock account.",
+                id: "cq1", icon: "calculator", title: "1. Capital Stock Computation", desc: "Show the computation, using par value and share numbers, to arrive at the $12 million in the capital (common) stock account.",
                 sections: [
                     { subtitle: "Calculation", fields: [
                         { id: "c_cap_bal", label: "Computed Capital Stock ($m)", type: "decimal", hint: "Issued Shares * Par Value" }
@@ -116,7 +130,7 @@
                 ]
             },
             {
-                id: "cq2", title: "2. Average Issue Price", desc: "At what average price were the Campbell Soup shares issued?",
+                id: "cq2", icon: "tag", title: "2. Average Issue Price", desc: "At what average price were the Campbell Soup shares issued?",
                 sections: [
                     { subtitle: "Calculation", fields: [
                         { id: "c_avg_issue", label: "Avg Issue Price ($/share)", type: "currency", hint: "(Capital Stock + APIC) / Issued Shares" }
@@ -124,7 +138,7 @@
                 ]
             },
             {
-                id: "cq3", title: "3. Retained Earnings Reconciliation", desc: "Reconcile the beginning and ending balances of retained earnings.",
+                id: "cq3", icon: "refresh-cw", title: "3. Retained Earnings Reconciliation", desc: "Reconcile the beginning and ending balances of retained earnings.",
                 sections: [
                     { subtitle: "Reconciliation", fields: [
                         { id: "c_re_beg", label: "Beginning Balance ($m)", type: "currency" },
@@ -135,7 +149,7 @@
                 ]
             },
             {
-                id: "cq4", title: "4. Stock Options Analysis", desc: "Campbell Soup reports an increase in shareowners' equity relating to the exercise of stock options (titled 'Treasury stock issued under management incentive and stock option plans'). This transaction involves the purchase of common stock by employees at a preset price. Quantify the components.",
+                id: "cq4", icon: "briefcase", title: "4. Stock Options Analysis", desc: "Campbell Soup reports an increase in shareowners' equity relating to the exercise of stock options. This transaction involves the purchase of common stock by employees at a preset price. Quantify the components.",
                 sections: [
                     { subtitle: "Impact Analysis", fields: [
                         { id: "c_opt_cash", label: "Cash Received / Total Issuance Value ($m)", type: "currency", hint: "Total increase in equity from options" },
@@ -145,7 +159,7 @@
                 ]
             },
             {
-                id: "cq5", title: "5. Treasury Stock Purchase", desc: "Describe the transaction relating to the 'Treasury stock purchased' line in the statement of shareowners' equity by determining the cost per share.",
+                id: "cq5", icon: "shopping-cart", title: "5. Treasury Stock Purchase", desc: "Describe the transaction relating to the 'Treasury stock purchased' line in the statement of shareowners' equity by determining the cost per share.",
                 sections: [
                     { subtitle: "Cost Analysis", fields: [
                         { id: "c_ts_total", label: "Total Cost of Repurchase ($m)", type: "currency" },
@@ -154,7 +168,7 @@
                 ]
             },
             {
-                id: "cq6", title: "6. Market Capitalization", desc: "Campbell Soup's stock price was $32.99 at the end of the current fiscal year. Determine the company's market capitalization that day.",
+                id: "cq6", icon: "pie-chart", title: "6. Market Capitalization", desc: "Campbell Soup's stock price was $32.99 at the end of the current fiscal year. Determine the company's market capitalization that day.",
                 sections: [
                     { subtitle: "Market Capitalization", fields: [
                         { id: "c_mkt_cap", label: "Market Cap ($m)", type: "currency", hint: "(Issued - Treasury Shares) * Share Price" }
@@ -162,7 +176,7 @@
                 ]
             },
             {
-                id: "cq7", title: "7. Market-to-Book Ratio", desc: "Calculate and interpret the company's market-to-book ratio at the end of the current fiscal year.",
+                id: "cq7", icon: "bar-chart-2", title: "7. Market-to-Book Ratio", desc: "Calculate and interpret the company's market-to-book ratio at the end of the current fiscal year.",
                 sections: [
                     { subtitle: "Ratio Analysis", fields: [
                         { id: "c_mb_ratio", label: "M/B Ratio", type: "decimal", hint: "Market Cap / Total Equity" }
@@ -173,10 +187,11 @@
 
         // --- DATA: SYSCO (CASE 8-44) ---
         const SYSCO_DATA = {
-            metadata: { name: "Sysco Corp.", year: "Case 8-44" },
+            metadata: { name: "Sysco Corp.", year: "Case 8-44", theme: "from-blue-500 to-cyan-400" },
             tables: [
                 {
                     title: "Consolidated Stmts of Comp. Income ($000s)",
+                    placement: "sidebar",
                     headers: ["Item", "Current", "Prior", "2 Yrs Prior"],
                     rows: [
                         ["Net earnings", "1,358,768", "524,209", "215,475"],
@@ -195,6 +210,7 @@
                 },
                 {
                     title: "Balance Sheet Averages ($000s)",
+                    placement: "sidebar",
                     headers: ["Measure", "Current", "Prior", "2 Yrs Prior"],
                     rows: [
                         ["Average assets", "21,749,614", "22,020,903", "20,297,394"],
@@ -207,7 +223,7 @@
 
         const SYSCO_ANSWER_KEY = {
             "s_formula_oci": "Other Comprehensive Income|OCI",
-            "s_oci_driver": "foreign",
+            "s_oci_driver": "Foreign currency translation adj.",
             "s_roa_ni_cur": "6.2", "s_roa_ni_pri": "2.4", "s_roa_ni_2p": "1.1",
             "s_roe_ni_cur": "92.6", "s_roe_ni_pri": "38.7", "s_roe_ni_2p": "11.8",
             "s_roa_ci_cur": "4.7", "s_roa_ci_pri": "4.9", "s_roa_ci_2p": "0.5",
@@ -218,37 +234,43 @@
         const SYSCO_EXPLANATIONS = {
             "s_formula_oci": "During the year, market values change the unrealized gains and losses in AOCI. These changes do not flow to the income statement as they are not part of net income. Instead, those changes are aggregated and labeled other comprehensive income (OCI). The total change in AOCI for the year (on the balance sheet) is labeled other comprehensive income. Another definition is: CI = Net income + OCI.",
             "s_oci_driver": "The chief difference is the large gains/losses from the foreign currency translation. This arises because the company has net assets (likely subsidiaries) in other countries. The exchange rates for those foreign currencies changed each year causing there to be an unrealized gain or loss.",
-            // ROA NET INCOME (Streamlined)
             "s_roa_ni_2p": "215,475 / 20,297,394 = 1.1%",
             "s_roa_ni_pri": "524,209 / 22,020,903 = 2.4%",
             "s_roa_ni_cur": "1,358,768 / 21,749,614 = 6.2%",
-            // ROE NET INCOME (Streamlined)
             "s_roe_ni_2p": "215,475 / 1,830,608 = 11.8%",
             "s_roe_ni_pri": "524,209 / 1,355,755 = 38.7%",
             "s_roe_ni_cur": "1,358,768 / 1,467,578 = 92.6%",
-            // ROA COMP INCOME (Streamlined)
             "s_roa_ci_2p": "104,323 / 20,297,394 = 0.5%",
             "s_roa_ci_pri": "1,086,326 / 22,020,903 = 4.9%",
             "s_roa_ci_cur": "1,025,478 / 21,749,614 = 4.7%",
-            // ROE COMP INCOME (Streamlined)
             "s_roe_ci_2p": "104,323 / 1,830,608 = 5.7%",
             "s_roe_ci_pri": "1,086,326 / 1,355,755 = 80.1%",
             "s_roe_ci_cur": "1,025,478 / 1,467,578 = 69.9%",
-            // Interpretation
             "s_interp_mag": "The ratios are significantly different. The company reports large other comprehensive losses in the current year and two years prior, and a gain in the prior year. This causes the comprehensive income to swing dramatically. The chief reason is the translation of foreign currency denominated net assets, which is hard to predict and fluctuates for reasons beyond the company's control."
         };
 
         const SYSCO_QUESTIONS = [
             {
-                id: "sqa", title: "Part (a): Net vs Comprehensive Income", desc: "Explain the relationship.",
-                sections: [{ subtitle: "Formula", fields: [{ id: "s_formula_oci", label: "Complete the formula: Net Income + ____________ = Comprehensive Income", type: "text", fullWidth: true }] }]
+                id: "sqa", icon: "message-circle", title: "Part (a): Net vs Comprehensive Income", desc: "Explain the relationship between Net Income and Comprehensive Income.",
+                sections: [{ subtitle: "Formula", fields: [{ id: "s_formula_oci", label: "Complete the formula: Net Income + ____________ = Comprehensive Income", type: "text", fullWidth: true, hint: "Type 'OCI' or 'Other Comprehensive Income'" }] }]
             },
             {
-                id: "sq1", title: "Part (b): OCI Drivers", desc: "Identify the line item that causes the largest difference between Net Income and Comprehensive Income.",
-                sections: [{ subtitle: "Analysis", fields: [{ id: "s_oci_driver", label: "Largest OCI Component (All Years)", type: "text", fullWidth: true }] }]
+                id: "sq1", icon: "search", title: "Part (b): OCI Drivers", desc: "Identify the line item that causes the largest difference between Net Income and Comprehensive Income across the periods.",
+                sections: [{ subtitle: "Analysis", fields: [{ 
+                    id: "s_oci_driver", 
+                    label: "Largest OCI Component (All Years)", 
+                    type: "select", 
+                    optionsList: [
+                        "Amortization of cash flow hedges",
+                        "Actuarial gain (loss)",
+                        "Foreign currency translation adj.",
+                        "Change in marketable securities"
+                    ],
+                    fullWidth: true 
+                }] }]
             },
             {
-                id: "sq2", title: "Part (c): Returns using Net Income", desc: "Calculate ROA and ROE using Net Income.",
+                id: "sq2", icon: "percent", title: "Part (c): Returns using Net Income", desc: "Calculate ROA and ROE using Net Income.",
                 type: "ratio_table",
                 tables: [
                     {
@@ -270,7 +292,7 @@
                 ]
             },
             {
-                id: "sq3", title: "Part (d): Returns using Comprehensive Income", desc: "Recalculate using Comprehensive Income.",
+                id: "sq3", icon: "trending-up", title: "Part (d): Returns using Comprehensive Income", desc: "Recalculate using Comprehensive Income.",
                 type: "ratio_table",
                 tables: [
                     {
@@ -286,13 +308,13 @@
                         rows: [
                             { label: "Two Years Prior", id: "s_roe_ci_2p" },
                             { label: "Prior Year", id: "s_roe_ci_pri" },
-                            { label: "Current Year", id: "s_roe_ci_cur" }
+                            { label: "Current Year", id: "s_roa_ci_cur" }
                         ]
                     }
                 ]
             },
             {
-                id: "sq4", title: "Interpretation", desc: "Select the correct conclusions based on the data.",
+                id: "sq4", icon: "lightbulb", title: "Interpretation", desc: "Select the correct conclusions based on the data.",
                 type: "interpretation_text"
             }
         ];
@@ -304,10 +326,11 @@
 
         // --- DATA: XPRESS (CASE 8-45) ---
         const XPRESS_DATA = {
-            metadata: { name: "XPress Media Co.", year: "Case 8-45" },
+            metadata: { name: "XPress Media Co.", year: "Case 8-45", theme: "from-emerald-500 to-teal-400" },
             tables: [
                 {
                     title: "1. Beginning Stockholders' Equity",
+                    placement: "sidebar",
                     headers: ["Account", "Amount"],
                     rows: [
                         ["8% Preferred stock ($25 par, 8,400 shares)", "$210,000"],
@@ -320,6 +343,7 @@
                 },
                 {
                     title: "2. Stock Transactions",
+                    placement: "sidebar",
                     headers: ["Date", "Transaction"],
                     rows: [
                         ["Jan. 10", "Issued 28,000 shares of common stock at $18/share"],
@@ -376,7 +400,6 @@
         };
 
         const XPRESS_EXPLANATIONS = {
-            // Balance Sheet Explanations (Part C)
             "x_bs_pref": "8% preferred stock, $25 par value, 50,000 shares authorized; 11,000 shares issued and outstanding — $275,000",
             "x_bs_common": "Common stock, $10 par value, 200,000 shares authorized; 78,000 shares issued, (3,000 shares in treasury) — $780,000",
             "x_bs_apic_pref": "Paid-in capital in excess of par value—preferred stock — $148,000",
@@ -389,11 +412,11 @@
 
         const XPRESS_QUESTIONS = [
             {
-                id: "xq1", title: "Part (a): Financial Statement Effects", desc: "Analyze each transaction. Select the affected accounts and enter the amounts. (Use negative for decreases)",
+                id: "xq1", icon: "list", title: "Part (a): Financial Statement Effects", desc: "Analyze each transaction. Select the affected accounts and enter the amounts. (Use negative for decreases)",
                 type: "fse_table"
             },
             {
-                id: "xq2", title: "Part (b): Ending Share Counts", desc: "Calculate the ending number of shares for each category.",
+                id: "xq2", icon: "hash", title: "Part (b): Ending Share Counts", desc: "Calculate the ending number of shares for each category.",
                 sections: [
                     { subtitle: "Share Statistics", fields: [
                         { id: "x_sc_pref", label: "Preferred shares outstanding", type: "decimal" },
@@ -404,7 +427,7 @@
                 ]
             },
             {
-                id: "xq3", title: "Part (c): Stockholders’ Equity Section", desc: "Prepare the Stockholders' Equity section of the Balance Sheet. (Net Income = $121,000)",
+                id: "xq3", icon: "layout", title: "Part (c): Stockholders’ Equity Section", desc: "Prepare the Stockholders' Equity section of the Balance Sheet. (Net Income = $121,000)",
                 sections: [
                     { subtitle: "Paid-in Capital", fields: [
                         { id: "x_bs_pref", label: "8% preferred stock, $25 par value; 50,000 shares authorized; 11,000 shares issued and outstanding", type: "currency", fullWidth: true },
@@ -432,7 +455,7 @@
 
         // --- COMPONENTS ---
 
-        const Icon = ({ name, size = 16, className = "" }) => {
+        const Icon = ({ name, size = 18, className = "" }) => {
             const ref = useRef(null);
             useEffect(() => {
                 if (window.lucide && ref.current) {
@@ -447,29 +470,29 @@
                     });
                 }
             }, [name, size]);
-            return <span ref={ref} className={`inline-flex items-center justify-center ${className}`} style={{ width: size, height: size }}></span>;
+            return <span ref={ref} className={`inline-flex items-center justify-center align-middle ${className}`} style={{ width: size, height: size }}></span>;
         };
 
         const ConfirmationModal = ({ isOpen, title, message, onConfirm, onCancel }) => {
             if (!isOpen) return null;
             return (
-                <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center backdrop-blur-sm animate-fade-in">
-                    <div className="bg-white rounded-lg shadow-2xl max-w-sm w-full p-6 m-4">
-                        <div className="flex items-center gap-3 text-red-600 mb-4">
-                            <Icon name="alert-triangle" size={24} />
-                            <h3 className="text-lg font-bold">{title}</h3>
+                <div className="fixed inset-0 bg-slate-900/40 z-[100] flex items-center justify-center backdrop-blur-md animate-fade-in">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-8 m-4 transform transition-all border border-slate-100">
+                        <div className="flex items-center gap-4 text-rose-500 mb-4 bg-rose-50 p-4 rounded-xl">
+                            <Icon name="alert-triangle" size={28} />
+                            <h3 className="text-xl font-bold font-display text-rose-700">{title}</h3>
                         </div>
-                        <p className="text-slate-600 mb-6">{message}</p>
+                        <p className="text-slate-600 mb-8 leading-relaxed">{message}</p>
                         <div className="flex justify-end gap-3">
-                            <button onClick={onCancel} className="px-4 py-2 text-slate-600 font-medium hover:bg-slate-100 rounded-lg">Cancel</button>
-                            <button onClick={onConfirm} className="px-4 py-2 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700">Confirm</button>
+                            <button onClick={onCancel} className="px-5 py-2.5 text-slate-600 font-semibold hover:bg-slate-100 rounded-xl transition-colors">Cancel</button>
+                            <button onClick={onConfirm} className="px-5 py-2.5 bg-rose-500 text-white font-bold rounded-xl hover:bg-rose-600 shadow-lg shadow-rose-500/30 transition-all transform hover:-translate-y-0.5">Confirm</button>
                         </div>
                     </div>
                 </div>
             );
         };
 
-        const Sparkline = ({ data, color = "#3b82f6" }) => {
+        const Sparkline = ({ data, color = "#6366f1" }) => {
             const height = 40;
             const width = 100;
             const padding = 5;
@@ -485,22 +508,23 @@
             return (
                 <div className="flex flex-col items-center">
                     <svg width={width} height={height} className="overflow-visible">
-                        <polyline points={points} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        <polyline points={points} fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
                         {data.map((d, i) => {
                             const x = (i / (data.length - 1)) * (width - 2 * padding) + padding;
                             const y = height - ((d - min) / range) * (height - 2 * padding) - padding;
-                            return <circle key={i} cx={x} cy={y} r="2" fill={color} />;
+                            return <circle key={i} cx={x} cy={y} r="3" fill={color} className="shadow-sm" />;
                         })}
                     </svg>
-                    <div className="flex justify-between w-full text-[9px] text-slate-400 mt-1 px-1">
-                        <span>2yr</span><span>Prior</span><span>Cur</span>
+                    <div className="flex justify-between w-full text-[10px] font-semibold text-slate-400 mt-2 px-1 uppercase tracking-wider">
+                        <span>2YR</span><span>PRI</span><span>CUR</span>
                     </div>
                 </div>
             );
         };
 
-        const SmartInput = ({ id, value, onChange, correctValue, label, type, hint, instructorMode, activeInput, setActiveInput, isTable, options, acctValue, onAcctChange, correctAcct, fullWidth, explanation }) => {
+        const SmartInput = ({ id, value, onChange, correctValue, label, type, hint, instructorMode, activeInput, setActiveInput, isTable, options, acctValue, onAcctChange, correctAcct, fullWidth, explanation, optionsList }) => {
             const [localError, setLocalError] = useState(null);
+            const isActive = activeInput === id;
             
             const evaluateMath = (expr) => {
                 if (!expr) return { valid: true, val: "" };
@@ -517,26 +541,26 @@
 
             const isAmountCorrect = useMemo(() => {
                 if (!value || !correctValue) return false;
-                if (type === 'text') {
+                
+                // Text matching logic (including exact select string matching)
+                if (type === 'text' || type === 'select') {
                     const cleanVal = value.toString().trim().toLowerCase().replace(/[.,]$/, ""); 
-                    // Support multiple correct answers separated by pipe
                     const keys = correctValue.toString().toLowerCase().split('|').map(k => k.trim().replace(/[.,]$/, ""));
                     
-                    // Check if any key matches (contains logic allowed)
-                    return keys.some(cleanKey => cleanVal.includes(cleanKey) || cleanKey.includes(cleanVal));
+                    // Exact match checking for robust OCI evaluation
+                    return keys.some(cleanKey => cleanVal === cleanKey);
                 }
+
                 const { valid, val } = evaluateMath(value);
                 if (!valid) return false;
                 
                 const target = parseFloat(correctValue.replace(/,/g, ''));
                 let inputNum = parseFloat(val);
                 
-                // Smart Percent Logic: Accept 3.8 as 3.8% if target is 3.8 or 0.038
                 if (type === 'percent' || type === 'decimal') {
                    const diffExact = Math.abs(inputNum - target);
                    const diffPercent = Math.abs((inputNum / 100) - target);
                    const diffPercentReverse = Math.abs((inputNum * 100) - target);
-
                    return (diffExact <= Math.max(Math.abs(target * 0.02), 0.01)) || 
                           (diffPercent <= Math.max(Math.abs(target * 0.02), 0.001)) ||
                           (diffPercentReverse <= Math.max(Math.abs(target * 0.02), 0.1));
@@ -555,7 +579,7 @@
             const isFullyCorrect = options ? (isAmountCorrect && isAcctCorrect) : isAmountCorrect;
 
             const handleBlurOrEnter = (e) => {
-                if (type === 'text') return;
+                if (type === 'text' || type === 'select') return;
                 if (!value) return;
 
                 const { valid, val } = evaluateMath(value);
@@ -576,18 +600,56 @@
                 }
             };
 
-            const isActive = activeInput === id;
+            // Custom Select Rendering
+            if (type === 'select' && optionsList) {
+                return (
+                    <div className={`${isTable ? "w-full min-w-[140px]" : "mb-4 w-full"}`}>
+                        {!isTable && <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase tracking-widest">{label}</label>}
+                        <div className="relative">
+                            <select
+                                id={id}
+                                value={value || ""}
+                                onChange={(e) => { setLocalError(null); onChange(id, e.target.value); }}
+                                className={`w-full p-3.5 text-sm rounded-xl font-medium shadow-sm transition-all appearance-none pr-10 focus:ring-4 focus:ring-indigo-500/20 outline-none ${
+                                    isFullyCorrect ? "bg-emerald-50 border border-emerald-300 text-emerald-800 font-semibold" : 
+                                    (value && !isActive && !isFullyCorrect) ? "bg-rose-50 border border-rose-300 text-rose-800" : 
+                                    "bg-white border border-slate-200 text-slate-700"
+                                }`}
+                            >
+                                <option value="">Select your answer...</option>
+                                {optionsList.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                            </select>
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                                {isFullyCorrect ? <span className="text-emerald-500"><Icon name="check-circle" size={18} /></span> : 
+                                 <Icon name="chevron-down" size={16} className="text-slate-400" />}
+                            </div>
+                        </div>
+                        {/* Instructor Feedback Block */}
+                        {(isFullyCorrect || instructorMode) && explanation && (
+                            <div className={`mt-2 p-2 text-[11px] leading-relaxed rounded-lg border-l-4 shadow-sm animate-fade-in ${isFullyCorrect ? "bg-emerald-50/50 border-emerald-400 text-emerald-900" : "bg-purple-50/50 border-purple-400 text-purple-900"}`}>
+                               {instructorMode && !isTable && <div className="font-bold mb-1 uppercase tracking-widest text-[9px] flex items-center gap-1"><Icon name="graduation-cap" size={12}/> Instructor Solution</div>}
+                               <div className="whitespace-pre-line font-mono">{explanation}</div>
+                            </div>
+                        )}
+                        {instructorMode && correctValue && !explanation && (
+                            <div className="mt-2 bg-purple-50 border border-purple-100 text-purple-800 text-[10px] p-2 rounded-lg font-mono font-semibold animate-fade-in flex items-center gap-2">
+                                <Icon name="key" size={12} /> Key: {correctValue}
+                            </div>
+                        )}
+                    </div>
+                );
+            }
 
             return (
                 <div className={`${isTable ? "w-full min-w-[140px]" : "mb-4 w-full"}`}>
-                    {!isTable && <label className="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">{label}</label>}
-                    <div className="flex flex-col gap-1 relative">
+                    {!isTable && <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase tracking-widest">{label}</label>}
+                    <div className="flex flex-col gap-1.5 relative group">
                         {options && (
                             <select
                                 value={acctValue || ""}
                                 onChange={(e) => onAcctChange(id + "_acct", e.target.value)}
-                                className={`w-full text-[10px] p-1 border rounded bg-slate-50 outline-none focus:border-blue-500 ${
-                                    acctValue && !isAcctCorrect ? "border-red-300 text-red-600" : "border-slate-200 text-slate-700"
+                                className={`w-full text-[11px] p-1.5 border rounded-lg bg-slate-50 outline-none focus:ring-2 focus:ring-indigo-500/20 font-medium ${
+                                    acctValue && !isAcctCorrect ? "border-rose-300 text-rose-600 bg-rose-50" : "border-slate-200 text-slate-700 hover:bg-slate-100"
                                 }`}
                             >
                                 <option value="">Select Account...</option>
@@ -609,41 +671,41 @@
                                         e.target.blur();
                                     }
                                 }}
-                                className={`w-full ${isTable ? "p-2 text-xs" : "p-3 pr-10 text-sm"} border rounded-lg font-mono shadow-sm transition-all ${
-                                    isFullyCorrect ? "input-correct" : (value && !isActive && !isFullyCorrect) ? "input-incorrect" : "input-neutral"
+                                className={`w-full ${isTable ? "p-2 text-xs" : "p-3.5 pr-10 text-sm"} border rounded-xl font-mono shadow-sm transition-all focus:ring-4 outline-none ${
+                                    isFullyCorrect ? "bg-emerald-50 border-emerald-400 text-emerald-800 font-semibold focus:ring-emerald-500/20" : 
+                                    (value && !isActive && !isFullyCorrect) ? "bg-rose-50 border-rose-300 text-rose-800 focus:ring-rose-500/20" : 
+                                    "bg-white border-slate-200 focus:border-indigo-400 focus:ring-indigo-500/20"
                                 }`}
                                 placeholder={isTable ? (type === 'percent' ? "%" : "0") : (type === 'text' ? "Type answer..." : "Calculate...")}
                             />
                             {!isTable && !options && type !== 'text' && (
-                                <div className="absolute right-3 top-3 text-slate-400 pointer-events-none">
-                                    {isFullyCorrect ? <span className="text-green-600"><Icon name="check-circle" size={18} /></span> : 
-                                    localError ? <span className="text-red-500 font-bold">!</span> :
-                                    <Icon name="calculator" size={16} />}
+                                <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none transition-colors">
+                                    {isFullyCorrect ? <span className="text-emerald-500"><Icon name="check-circle" size={18} /></span> : 
+                                    localError ? <span className="text-rose-500 font-bold font-sans text-lg">!</span> :
+                                    <Icon name="calculator" size={16} className="text-slate-300 group-hover:text-indigo-400" />}
                                 </div>
                             )}
                         </div>
                         {hint && !isTable && (
-                            <div className="w-1/3 shrink-0 bg-blue-50 border border-blue-100 rounded p-2 flex flex-col justify-center min-h-[46px]">
-                                <span className="text-[10px] text-blue-500 font-bold uppercase tracking-wider block mb-0.5">Formula / Logic</span>
-                                <span className="text-xs text-blue-800 font-medium leading-tight">{hint}</span>
+                            <div className="w-1/3 shrink-0 bg-indigo-50 border border-indigo-100/50 rounded-xl p-2.5 flex flex-col justify-center min-h-[48px]">
+                                <span className="text-[9px] text-indigo-500 font-bold uppercase tracking-widest block mb-0.5 flex items-center gap-1"><Icon name="info" size={10} /> Hint</span>
+                                <span className="text-xs text-indigo-900 font-medium leading-tight">{hint}</span>
                             </div>
                         )}
                     </div>
-                    {localError && !isTable && <p className="text-xs text-red-500 mt-1">{localError}</p>}
+                    {localError && !isTable && <p className="text-[11px] text-rose-500 mt-1.5 font-medium flex items-center gap-1"><Icon name="alert-circle" size={12}/> {localError}</p>}
                     
                     {/* FEEDBACK SECTION */}
                     {(isFullyCorrect || instructorMode) && explanation && (
-                        <div className={`mt-1 p-1.5 text-[10px] leading-tight rounded border border-l-2 shadow-sm animate-fade-in ${isFullyCorrect ? "bg-green-50 border-green-200 border-l-green-500 text-green-900" : "bg-purple-50 border-purple-200 border-l-purple-500 text-purple-900"}`}>
-                           {instructorMode && !isTable && <div className="font-bold mb-1 opacity-75 uppercase tracking-wide text-[10px]">Instructor Solution:</div>}
-                           <div className="whitespace-pre-line font-mono">
-                                {explanation}
-                           </div>
+                        <div className={`mt-2 p-2.5 text-[11px] leading-relaxed rounded-xl border-l-4 shadow-sm animate-fade-in ${isFullyCorrect ? "bg-emerald-50/50 border-emerald-400 text-emerald-900" : "bg-purple-50/50 border-purple-400 text-purple-900"}`}>
+                           {instructorMode && !isTable && <div className="font-bold mb-1 uppercase tracking-widest text-[9px] flex items-center gap-1"><Icon name="graduation-cap" size={12}/> Instructor Solution</div>}
+                           <div className="whitespace-pre-line font-mono">{explanation}</div>
                         </div>
                     )}
                     
                     {instructorMode && (correctValue || correctAcct) && !explanation && (
-                        <div className="mt-1 bg-purple-100 border border-purple-200 text-purple-800 text-[10px] p-1 rounded font-mono animate-fade-in truncate">
-                            {options && correctAcct ? `[${correctAcct}] ` : ""}Key: {correctValue}
+                        <div className="mt-2 bg-purple-50 border border-purple-100 text-purple-800 text-[10px] p-2 rounded-lg font-mono font-semibold animate-fade-in truncate flex items-center gap-2">
+                            <Icon name="key" size={12} /> {options && correctAcct ? `[${correctAcct}] ` : ""}Key: {correctValue}
                         </div>
                     )}
                 </div>
@@ -655,31 +717,32 @@
             return (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {tables.map((table, tIdx) => (
-                        <div key={tIdx} className="border border-slate-200 rounded-xl overflow-hidden shadow-sm bg-white flex flex-col">
-                            <div className="bg-slate-50 p-3 border-b border-slate-200 flex justify-between items-center">
-                                <h3 className="font-bold text-slate-700 text-sm flex items-center gap-2">
+                        <div key={tIdx} className="border border-slate-200 rounded-2xl overflow-hidden shadow-sm bg-white flex flex-col hover:border-indigo-200 transition-colors">
+                            <div className="bg-gradient-to-r from-slate-50 to-white p-4 border-b border-slate-100 flex justify-between items-center">
+                                <h3 className="font-bold font-display text-slate-800 text-sm flex items-center gap-2">
+                                    <Icon name="pie-chart" size={16} className="text-indigo-500" />
                                     {table.title}
-                                    <button onClick={() => setShowChart(!showChart)} className={`p-1 rounded hover:bg-slate-200 transition ${showChart ? 'text-blue-600 bg-blue-100' : 'text-slate-400'}`} title="Toggle Trend Chart">
+                                    <button onClick={() => setShowChart(!showChart)} className={`p-1.5 rounded-lg transition-all ${showChart ? 'text-indigo-600 bg-indigo-100 shadow-sm' : 'text-slate-400 hover:bg-slate-100'}`} title="Toggle Trend Chart">
                                         <Icon name="line-chart" size={14} />
                                     </button>
                                 </h3>
-                                <div className="text-[10px] text-blue-600 bg-blue-50 px-2 py-1 rounded border border-blue-100 font-mono font-bold uppercase tracking-wide">
+                                <div className="text-[10px] text-indigo-600 bg-indigo-50/80 px-2.5 py-1 rounded-md border border-indigo-100 font-mono font-bold uppercase tracking-widest">
                                     {table.hint}
                                 </div>
                             </div>
                             <div className="flex flex-1 overflow-x-auto custom-scrollbar">
-                                <div className="flex-1 p-4 min-w-[300px]">
+                                <div className="flex-1 p-5 min-w-[300px]">
                                     <table className="w-full text-sm">
-                                        <thead className="text-slate-400 text-[10px] uppercase tracking-wider border-b border-slate-100">
+                                        <thead className="text-slate-400 text-[10px] uppercase tracking-widest border-b-2 border-slate-100">
                                             <tr>
-                                                <th className="pb-2 text-left font-bold">{table.headers[0]}</th>
-                                                <th className="pb-2 text-right font-bold">{table.headers[1]}</th>
+                                                <th className="pb-3 text-left font-bold">{table.headers[0]}</th>
+                                                <th className="pb-3 text-right font-bold">{table.headers[1]}</th>
                                             </tr>
                                         </thead>
-                                        <tbody className="divide-y divide-slate-100">
+                                        <tbody className="divide-y divide-slate-50">
                                             {table.rows.map((row, rIdx) => (
-                                                <tr key={rIdx}>
-                                                    <td className="py-3 font-medium text-slate-600 text-xs align-top pt-3">{row.label}</td>
+                                                <tr key={rIdx} className="group">
+                                                    <td className="py-3 font-semibold text-slate-600 text-xs align-middle group-hover:text-indigo-600 transition-colors">{row.label}</td>
                                                     <td className="py-2 pl-4 align-top">
                                                         <SmartInput
                                                             id={row.id}
@@ -700,9 +763,9 @@
                                     </table>
                                 </div>
                                 {showChart && (
-                                    <div className="w-32 bg-slate-50 border-l border-slate-100 flex flex-col items-center justify-center p-4 animate-fade-in">
-                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Trend</span>
-                                        <Sparkline data={CHART_DATA[table.chartKey]} />
+                                    <div className="w-36 bg-slate-50/50 border-l border-slate-100 flex flex-col items-center justify-center p-5 animate-fade-in">
+                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">Trend</span>
+                                        <Sparkline data={CHART_DATA[table.chartKey]} color="#6366f1" />
                                     </div>
                                 )}
                             </div>
@@ -712,7 +775,7 @@
             );
         };
 
-        const ReferenceTable = ({ title, headers, rows, onValueClick }) => {
+        const ReferenceTable = ({ title, headers, rows, onValueClick, isMain }) => {
             const [isOpen, setIsOpen] = useState(true);
             const renderInteractiveCell = (text) => {
                 if (typeof text !== 'string') return text;
@@ -721,7 +784,7 @@
                     if (/[\d]/.test(part) && onValueClick) {
                         return (
                             <span key={i} onClick={(e) => { e.stopPropagation(); onValueClick(part); }} 
-                                className="cursor-pointer text-blue-600 font-bold hover:bg-blue-100 hover:text-blue-800 rounded px-0.5 transition-colors"
+                                className="cursor-pointer text-indigo-600 font-bold hover:bg-indigo-100 hover:text-indigo-800 rounded px-1 py-0.5 transition-all"
                                 title="Click to insert value">
                                 {part}
                             </span>
@@ -732,25 +795,30 @@
             };
 
             return (
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mb-4">
-                    <button onClick={() => setIsOpen(!isOpen)} className="w-full flex items-center justify-between p-3 bg-slate-50 border-b border-slate-100 hover:bg-slate-100 transition">
-                        <h4 className="font-bold text-slate-700 text-sm flex items-center gap-2">
-                            <Icon name="table" size={16} /> {title}
+                <div className={`bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-5 ${isMain ? 'w-full ring-1 ring-slate-900/5' : ''}`}>
+                    <button onClick={() => setIsOpen(!isOpen)} className="w-full flex items-center justify-between p-4 bg-gradient-to-r from-slate-50 to-white border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                        <h4 className="font-bold font-display text-slate-700 text-sm flex items-center gap-2.5">
+                            <div className="bg-white shadow-sm p-1.5 rounded-lg border border-slate-100 text-indigo-500">
+                                <Icon name="table" size={16} />
+                            </div>
+                            {title}
                         </h4>
-                        <Icon name={isOpen ? "chevron-up" : "chevron-down"} size={16} />
+                        <div className={`p-1 rounded-md transition-transform duration-200 ${isOpen ? 'rotate-180 bg-slate-100 text-slate-600' : 'bg-white text-slate-400 border border-slate-200'}`}>
+                            <Icon name="chevron-down" size={16} />
+                        </div>
                     </button>
                     {isOpen && (
-                        <div className="overflow-x-auto max-h-80 custom-scrollbar">
+                        <div className={`overflow-x-auto custom-scrollbar ${isMain ? '' : 'max-h-80'}`}>
                             <table className="w-full text-xs text-left">
-                                <thead className="bg-slate-50 text-slate-500 uppercase tracking-wider sticky top-0 shadow-sm z-10">
-                                    <tr>{headers.map((h, i) => <th key={i} className={`p-2 border-b font-medium bg-slate-50 ${i > 0 ? "text-right" : ""}`}>{h}</th>)}</tr>
+                                <thead className="bg-slate-50/80 text-slate-500 uppercase tracking-widest sticky top-0 shadow-sm z-10 backdrop-blur-md">
+                                    <tr>{headers.map((h, i) => <th key={i} className={`p-3 border-b border-slate-200 font-semibold ${i > 0 ? "text-right" : ""}`}>{h}</th>)}</tr>
                                 </thead>
-                                <tbody className="divide-y divide-slate-100">
+                                <tbody className="divide-y divide-slate-50">
                                     {rows.map((row, rI) => (
-                                        <tr key={rI} className="hover:bg-blue-50 transition-colors">
-                                            <td className="p-2 font-medium text-slate-700 border-r border-slate-50">{row[0]}</td>
+                                        <tr key={rI} className="hover:bg-indigo-50/40 transition-colors group">
+                                            <td className="p-3 font-semibold text-slate-700 border-r border-slate-50 min-w-[150px] group-hover:text-indigo-900">{row[0]}</td>
                                             {row.slice(1).map((cell, cI) => (
-                                                <td key={cI} className="p-2 text-right font-mono text-slate-600 whitespace-nowrap">
+                                                <td key={cI} className="p-3 text-right font-mono text-slate-600 whitespace-nowrap">
                                                     {renderInteractiveCell(cell)}
                                                 </td>
                                             ))}
@@ -766,29 +834,29 @@
 
         const FSETable = ({ config, inputs, handleInputChange, activeKey, instructorMode, activeInput, setActiveInput }) => {
             return (
-                <div className="overflow-x-auto border border-slate-200 rounded-lg shadow-sm custom-scrollbar">
+                <div className="overflow-x-auto border border-slate-200 rounded-2xl shadow-sm custom-scrollbar ring-1 ring-slate-900/5">
                     <table className="w-full text-sm">
-                        <thead className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200">
+                        <thead className="bg-gradient-to-b from-slate-50 to-slate-100 text-slate-700 font-bold border-b border-slate-200">
                             <tr>
-                                <th className="p-3 text-left sticky left-0 bg-slate-50 min-w-[200px] border-r border-slate-200 shadow-[4px_0_8px_-2px_rgba(0,0,0,0.05)] z-20">Transaction</th>
+                                <th className="p-4 text-left sticky left-0 bg-slate-50 min-w-[200px] border-r border-slate-200 shadow-[4px_0_8px_-2px_rgba(0,0,0,0.05)] z-20 font-display">Transaction</th>
                                 {config.columns.map(col => (
-                                    <th key={col.key} className="p-3 text-center min-w-[120px] whitespace-normal leading-tight">
+                                    <th key={col.key} className="p-4 text-center min-w-[130px] whitespace-normal leading-tight font-display">
                                         {col.label}
-                                        <div className="text-[10px] font-normal text-slate-400 uppercase mt-1">{col.type}</div>
+                                        <div className="text-[9px] font-bold text-indigo-500 uppercase mt-1.5 tracking-widest">{col.type}</div>
                                     </th>
                                 ))}
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
                             {config.transactions.map((txn, idx) => (
-                                <tr key={txn.id} className={idx % 2 === 0 ? "bg-white" : "bg-slate-50/50"}>
-                                    <td className="p-3 font-medium text-slate-700 border-r border-slate-100 sticky left-0 bg-inherit shadow-[4px_0_8px_-2px_rgba(0,0,0,0.05)] z-10">
+                                <tr key={txn.id} className={idx % 2 === 0 ? "bg-white hover:bg-slate-50/50" : "bg-slate-50/30 hover:bg-slate-50/80"}>
+                                    <td className="p-4 font-semibold text-slate-700 border-r border-slate-100 sticky left-0 bg-inherit shadow-[4px_0_8px_-2px_rgba(0,0,0,0.05)] z-10 transition-colors">
                                         {txn.label}
                                     </td>
                                     {config.columns.map(col => {
                                         const inputId = `${txn.id}_${col.key}`;
                                         return (
-                                            <td key={col.key} className="p-2 align-top">
+                                            <td key={col.key} className="p-2.5 align-top">
                                                 <SmartInput
                                                     id={inputId}
                                                     value={inputs[inputId]}
@@ -816,10 +884,10 @@
         };
 
         const App = () => {
-            const [activeTab, setActiveTab] = useState('campbell');
+            const [activeTab, setActiveTab] = useState('sysco'); // Start on sysco to show off the multiple choice
             const [inputs, setInputs] = useState({});
             const [activeInput, setActiveInput] = useState(null);
-            const [sidebarWidth, setSidebarWidth] = useState(400); 
+            const [sidebarWidth, setSidebarWidth] = useState(320); 
             const [isResizing, setIsResizing] = useState(false);
             
             // Instructor State
@@ -840,7 +908,7 @@
             const resize = useCallback((mouseMoveEvent) => {
                 if (isResizing) {
                     const newWidth = mouseMoveEvent.clientX;
-                    if (newWidth > 250 && newWidth < 800) {
+                    if (newWidth > 200 && newWidth < 800) {
                         setSidebarWidth(newWidth);
                     }
                 }
@@ -865,6 +933,9 @@
                 }
             };
             const activeData = getActiveData();
+            
+            const sidebarTables = activeData.tables.filter(tbl => tbl.placement !== 'main');
+            const mainTables = activeData.tables.filter(tbl => tbl.placement === 'main');
 
             const getActiveQuestions = () => {
                 switch(activeTab) {
@@ -974,7 +1045,11 @@
                          const k = parseFloat(keyVal);
                          if (Math.abs(u-k) < Math.max(k*0.02, 0.5)) isCorrect = true;
                     } else {
-                        if (userVal === keyVal || userVal.includes(keyVal)) isCorrect = true;
+                        // Support string matching specifically (e.g. OCI)
+                        const keys = keyVal.split('|').map(x => x.trim().replace(/[.,]$/,""));
+                        if (keys.some(cleanKey => userVal === cleanKey || userVal.includes(cleanKey))) {
+                            isCorrect = true;
+                        }
                     }
                     if (isCorrect) correctCount++;
                 });
@@ -1007,116 +1082,157 @@ ${Object.keys(activeKey).map(k => `${k}: ${inputs[k] || "[Empty]"}`).join('\n')}
                 <div className="flex h-screen bg-slate-100 overflow-hidden font-sans">
                     
                     {/* LEFT SIDEBAR: REFERENCE */}
-                    <div style={{ width: sidebarWidth }} className="bg-slate-50 border-r border-slate-200 overflow-y-auto custom-scrollbar flex flex-col relative z-0 shrink-0">
-                        <div className="sticky top-0 bg-white p-4 border-b border-slate-200 shadow-sm z-20">
-                            <div className="flex items-center gap-2 text-blue-800 font-bold text-lg mb-1">
-                                <Icon name="library" /> Reference Data
+                    <div style={{ width: sidebarWidth }} className="bg-white border-r border-slate-200 overflow-y-auto custom-scrollbar flex flex-col relative z-0 shrink-0 shadow-[4px_0_24px_rgba(0,0,0,0.02)]">
+                        <div className="sticky top-0 bg-white/90 backdrop-blur-md p-5 border-b border-slate-100 z-20">
+                            <div className="flex items-center gap-2.5 text-indigo-700 font-bold font-display text-lg mb-1.5">
+                                <div className="bg-indigo-100 p-1.5 rounded-lg"><Icon name="library" size={20} /></div>
+                                Reference Data
                             </div>
-                            <p className="text-xs text-slate-500 font-bold uppercase tracking-wider">{activeData.metadata.name}</p>
+                            <p className="text-[11px] text-slate-500 font-bold uppercase tracking-widest ml-1">{activeData.metadata.name}</p>
                             {activeTab !== 'sysco' && (
-                                <p className="text-xs text-blue-600 mt-1 flex items-center gap-1">
-                                    <Icon name="mouse-pointer-click" size={12} /> Click values to insert/replace
+                                <p className="text-xs text-indigo-500 mt-3 font-medium flex items-center gap-1.5 bg-indigo-50/50 p-2 rounded-lg border border-indigo-100/50">
+                                    <Icon name="mouse-pointer-click" size={14} /> Click numbers to insert
                                 </p>
                             )}
                         </div>
-                        <div className="p-4 space-y-2">
-                            {activeData.tables.map((tbl, i) => (
+                        <div className="p-5 space-y-4">
+                            {sidebarTables.length > 0 ? sidebarTables.map((tbl, i) => (
                                 <ReferenceTable 
                                     key={i}
                                     title={tbl.title} 
                                     headers={tbl.headers} 
                                     rows={tbl.rows} 
-                                    onValueClick={handleValueClick} 
+                                    onValueClick={handleValueClick}
+                                    isMain={false}
                                 />
-                            ))}
+                            )) : (
+                                <div className="flex flex-col items-center justify-center py-12 text-slate-400 text-center">
+                                    <Icon name="table-properties" size={32} className="mb-3 opacity-50" />
+                                    <p className="text-sm font-medium">Reference tables are displayed<br/>in the main workspace.</p>
+                                </div>
+                            )}
+                            
                              {activeTab === 'xpress' && (
-                                <div className="bg-emerald-50 p-4 rounded-lg border border-emerald-100 text-sm text-emerald-800">
-                                    <p className="font-bold flex items-center gap-2 mb-2"><Icon name="table-2" size={16}/> Instructions</p>
-                                    <p>Enter the financial statement effects for each transaction. Select the <strong>Account</strong> from the dropdown menu where applicable and enter the <strong>Amount</strong> (use negative numbers for decreases).</p>
+                                <div className="bg-gradient-to-br from-emerald-50 to-teal-50 p-5 rounded-2xl border border-emerald-100/50 text-sm text-emerald-800 shadow-sm relative overflow-hidden">
+                                    <div className="absolute top-0 right-0 -mr-4 -mt-4 opacity-10"><Icon name="lightbulb" size={64} /></div>
+                                    <p className="font-bold font-display flex items-center gap-2 mb-3 relative z-10 text-emerald-900">
+                                        <Icon name="info" size={18}/> Instructions
+                                    </p>
+                                    <p className="relative z-10 leading-relaxed font-medium">Enter the financial statement effects for each transaction. Select the <strong>Account</strong> from the dropdown menu and enter the <strong>Amount</strong> (use negative numbers for decreases).</p>
                                 </div>
                             )}
                         </div>
                     </div>
 
                     {/* DRAG HANDLE */}
-                    <div className="resizer" onMouseDown={startResizing}></div>
+                    <div className="resizer hover:bg-indigo-400 transition-colors" onMouseDown={startResizing}></div>
 
                     {/* MAIN CONTENT */}
-                    <div className="flex-1 flex flex-col h-screen overflow-hidden relative">
+                    <div className="flex-1 flex flex-col h-screen overflow-hidden relative bg-slate-50/50">
                         
                         {/* TOP NAV TABS */}
-                        <div className="bg-slate-800 text-white flex shrink-0">
+                        <div className="bg-slate-900 text-slate-300 flex shrink-0 p-2 gap-2">
                             <button 
                                 onClick={() => setActiveTab('campbell')}
-                                className={`flex-1 py-3 text-sm font-bold flex items-center justify-center gap-2 transition-colors ${activeTab === 'campbell' ? 'bg-blue-600 text-white' : 'hover:bg-slate-700 text-slate-400'}`}
+                                className={`flex-1 py-3 text-sm font-bold font-display rounded-xl flex items-center justify-center gap-2.5 transition-all duration-300 ${activeTab === 'campbell' ? 'bg-gradient-to-r from-rose-500 to-orange-500 text-white shadow-lg shadow-rose-500/20 transform scale-[1.02]' : 'hover:bg-slate-800 hover:text-white'}`}
                             >
-                                <Icon name="soup" size={16} /> Campbell Soup (E8-37)
+                                <Icon name="soup" size={18} /> Campbell Soup (E8-37)
                             </button>
                             <button 
                                 onClick={() => setActiveTab('sysco')}
-                                className={`flex-1 py-3 text-sm font-bold flex items-center justify-center gap-2 transition-colors ${activeTab === 'sysco' ? 'bg-blue-600 text-white' : 'hover:bg-slate-700 text-slate-400'}`}
+                                className={`flex-1 py-3 text-sm font-bold font-display rounded-xl flex items-center justify-center gap-2.5 transition-all duration-300 ${activeTab === 'sysco' ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg shadow-blue-500/20 transform scale-[1.02]' : 'hover:bg-slate-800 hover:text-white'}`}
                             >
-                                <Icon name="activity" size={16} /> Sysco (8-44)
+                                <Icon name="truck" size={18} /> Sysco (8-44)
                             </button>
                             <button 
                                 onClick={() => setActiveTab('xpress')}
-                                className={`flex-1 py-3 text-sm font-bold flex items-center justify-center gap-2 transition-colors ${activeTab === 'xpress' ? 'bg-blue-600 text-white' : 'hover:bg-slate-700 text-slate-400'}`}
+                                className={`flex-1 py-3 text-sm font-bold font-display rounded-xl flex items-center justify-center gap-2.5 transition-all duration-300 ${activeTab === 'xpress' ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg shadow-emerald-500/20 transform scale-[1.02]' : 'hover:bg-slate-800 hover:text-white'}`}
                             >
-                                <Icon name="newspaper" size={16} /> XPress Media (8-45)
+                                <Icon name="newspaper" size={18} /> XPress Media (8-45)
                             </button>
                         </div>
 
                         {/* INSTRUCTOR TOOLBAR (STICKY) */}
                         {instructorMode && (
-                            <div className="bg-purple-700 text-white p-2 shadow-md flex items-center justify-between z-20 animate-fade-in shrink-0">
+                            <div className="bg-gradient-to-r from-purple-700 to-indigo-700 text-white p-3 shadow-md flex items-center justify-between z-20 animate-fade-in shrink-0 border-b border-purple-800">
                                 <div className="flex items-center gap-3 px-4">
-                                    <span className="bg-white/20 p-1.5 rounded"><Icon name="graduation-cap" /></span>
-                                    <span className="font-bold tracking-wide">INSTRUCTOR MODE</span>
+                                    <span className="bg-white/20 p-2 rounded-lg shadow-sm backdrop-blur-sm"><Icon name="graduation-cap" /></span>
+                                    <span className="font-bold tracking-widest font-display text-sm">INSTRUCTOR MODE</span>
                                 </div>
-                                <div className="flex gap-2 px-4">
-                                    <button onClick={handleAutoFill} className="flex items-center gap-2 px-3 py-1 bg-green-500 hover:bg-green-600 rounded text-sm font-bold transition">
-                                        <Icon name="wand-2" size={14} /> Auto-Fill Tab
+                                <div className="flex gap-3 px-4">
+                                    <button onClick={handleAutoFill} className="flex items-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-white rounded-lg text-sm font-bold transition-all shadow-sm transform hover:-translate-y-0.5">
+                                        <Icon name="wand-2" size={16} /> Auto-Fill Tab
                                     </button>
-                                    <button onClick={() => setClearModalOpen(true)} className="flex items-center gap-2 px-3 py-1 bg-red-500 hover:bg-red-600 rounded text-sm font-bold transition">
-                                        <Icon name="log-out" size={14} /> Clear & Exit
+                                    <button onClick={() => setClearModalOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-rose-500 hover:bg-rose-400 text-white rounded-lg text-sm font-bold transition-all shadow-sm transform hover:-translate-y-0.5">
+                                        <Icon name="log-out" size={16} /> Clear & Exit
                                     </button>
                                 </div>
                             </div>
                         )}
 
                         {/* HEADER */}
-                        <header className="bg-white border-b border-slate-200 p-6 flex justify-between items-center shrink-0">
+                        <header className="glass-panel p-6 px-8 flex justify-between items-center shrink-0 z-10 border-b border-slate-200/60 sticky top-0">
                             <div>
-                                <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-                                    <Icon name="file-bar-chart-2" className="text-blue-600" /> {activeData.metadata.name}
+                                <h1 className="text-3xl font-bold font-display text-slate-800 flex items-center gap-3 tracking-tight">
+                                    <div className={`bg-gradient-to-br ${activeData.metadata.theme} text-transparent bg-clip-text`}>
+                                        {activeData.metadata.name}
+                                    </div>
                                 </h1>
-                                <p className="text-slate-500 text-sm mt-1">
+                                <p className="text-slate-500 text-sm mt-1.5 font-medium flex items-center gap-2">
+                                    <Icon name="file-text" size={14} className="text-slate-400" />
                                     {activeTab === 'campbell' ? 'Analysis of Shareowners\' Equity & Treasury Stock' : activeTab === 'sysco' ? 'Case 8-44: Adjusting Returns for Comprehensive Income' : 'Case 8-45: Stockholders’ Equity Transactions'}
                                 </p>
                             </div>
                             <div className="flex gap-3">
-                                <button onClick={() => setShowDownload(true)} className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold shadow-sm transition">
-                                    <Icon name="save" size={18} /> Save Work
-                                </button>
                                 {!instructorMode && (
-                                    <button onClick={() => setShowLogin(true)} className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-medium transition border border-slate-300">
-                                        <Icon name="lock" size={16} /> Instructor
+                                    <button onClick={() => setShowLogin(true)} className="flex items-center gap-2 px-5 py-2.5 bg-white hover:bg-slate-50 text-slate-700 rounded-xl font-semibold transition-all border border-slate-200 shadow-sm hover:shadow">
+                                        <Icon name="lock" size={16} className="text-slate-400" /> Instructor Access
                                     </button>
                                 )}
+                                <button onClick={() => setShowDownload(true)} className={`flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r ${activeData.metadata.theme} text-white rounded-xl font-bold shadow-lg shadow-indigo-500/20 transition-all transform hover:-translate-y-0.5 hover:shadow-xl`}>
+                                    <Icon name="download" size={18} /> Export Work
+                                </button>
                             </div>
                         </header>
 
                         {/* SCROLLABLE FORM AREA */}
-                        <main className="flex-1 overflow-y-auto custom-scrollbar bg-slate-50/50 p-8 pb-20">
-                            <div className="max-w-6xl mx-auto space-y-8">
+                        <main className="flex-1 overflow-y-auto custom-scrollbar p-8 pb-24 relative">
+                            {/* Decorative background blurs */}
+                            <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
+                                <div className="absolute -top-24 -left-24 w-96 h-96 bg-indigo-200/40 rounded-full blur-3xl"></div>
+                                <div className="absolute top-48 right-12 w-64 h-64 bg-cyan-200/30 rounded-full blur-3xl"></div>
+                            </div>
+
+                            <div className="max-w-5xl mx-auto space-y-8 relative z-10">
                                 
-                                {activeQuestions.map((q) => (
-                                    <div key={q.id} className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 animate-fade-in">
-                                        <h2 className="text-lg font-bold text-slate-800 mb-2 border-b pb-2 flex items-center gap-2">
-                                            <span className="bg-blue-100 text-blue-700 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold">{q.id.replace(/^(cq|sq|xq|_a)/,'')}</span>
+                                {/* WIDE TABLES RENDERED IN MAIN AREA */}
+                                {mainTables.length > 0 && (
+                                    <div className="space-y-6 animate-fade-in sticky top-0 z-50 bg-slate-50/95 backdrop-blur-md p-4 -mx-4 rounded-2xl shadow-md border border-slate-200 max-h-[40vh] md:max-h-[50vh] overflow-y-auto custom-scrollbar">
+                                        {mainTables.map((tbl, i) => (
+                                            <ReferenceTable 
+                                                key={`main-tbl-${i}`}
+                                                title={tbl.title} 
+                                                headers={tbl.headers} 
+                                                rows={tbl.rows} 
+                                                onValueClick={handleValueClick}
+                                                isMain={true}
+                                            />
+                                        ))}
+                                    </div>
+                                )}
+                                
+                                {activeQuestions.map((q, qIndex) => (
+                                    <div key={q.id} className="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-8 animate-fade-in hover:shadow-md transition-shadow relative overflow-hidden" style={{ animationDelay: `${qIndex * 0.05}s` }}>
+                                        {/* Colored top accent line */}
+                                        <div className={`absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r ${activeData.metadata.theme}`}></div>
+                                        
+                                        <h2 className="text-xl font-bold font-display text-slate-800 mb-2 border-b border-slate-100 pb-4 flex items-center gap-3">
+                                            <div className="bg-slate-50 text-indigo-600 w-10 h-10 rounded-xl flex items-center justify-center shadow-sm border border-slate-100">
+                                                <Icon name={q.icon || "help-circle"} size={20} />
+                                            </div>
                                             {q.title}
                                         </h2>
-                                        <p className="text-sm text-slate-500 mb-6 italic">{q.desc}</p>
+                                        <p className="text-sm text-slate-500 mb-8 font-medium leading-relaxed max-w-3xl">{q.desc}</p>
                                         
                                         {q.type === 'fse_table' ? (
                                             <FSETable 
@@ -1140,80 +1256,88 @@ ${Object.keys(activeKey).map(k => `${k}: ${inputs[k] || "[Empty]"}`).join('\n')}
                                                 explanationMap={activeExplanations}
                                             />
                                         ) : q.type === 'interpretation_text' ? (
-                                            <div className="text-sm leading-8 text-slate-700">
-                                                The company reports other comprehensive losses in the current year and two years prior and a gain in the prior year. These losses and gain are relatively
-                                                <span className="inline-block mx-2 align-middle">
+                                            <div className="text-sm leading-10 text-slate-700 bg-slate-50 p-6 rounded-xl border border-slate-100 font-medium">
+                                                <div className="flex items-center flex-wrap gap-2">
+                                                    The company reports other comprehensive losses in the current year and two years prior and a gain in the prior year. These losses and gain are relatively
                                                     <select 
                                                         value={inputs["s_interp_mag"] || ""} 
                                                         onChange={(e) => handleInputChange("s_interp_mag", e.target.value)}
-                                                        className={`border rounded p-1 text-sm font-bold ${inputs["s_interp_mag"] === activeKey["s_interp_mag"] ? "text-green-600 border-green-400 bg-green-50" : inputs["s_interp_mag"] ? "text-red-600 border-red-300" : "border-slate-300"}`}
+                                                        className={`border rounded-lg px-3 py-1.5 text-sm font-bold shadow-sm transition-colors outline-none focus:ring-2 focus:ring-indigo-500/20 ${inputs["s_interp_mag"] === activeKey["s_interp_mag"] ? "text-emerald-700 border-emerald-300 bg-emerald-50" : inputs["s_interp_mag"] ? "text-rose-700 border-rose-300 bg-rose-50" : "border-slate-300 bg-white"}`}
                                                     >
                                                         <option value="">Select...</option>
                                                         <option value="small">small</option>
                                                         <option value="large">large</option>
                                                     </select>
-                                                </span>
-                                                and 
-                                                <span className="inline-block mx-2 align-middle">
+                                                    and 
                                                     <select 
                                                         value={inputs["s_interp_impact"] || ""} 
                                                         onChange={(e) => handleInputChange("s_interp_impact", e.target.value)}
-                                                        className={`border rounded p-1 text-sm font-bold ${inputs["s_interp_impact"] === activeKey["s_interp_impact"] ? "text-green-600 border-green-400 bg-green-50" : inputs["s_interp_impact"] ? "text-red-600 border-red-300" : "border-slate-300"}`}
+                                                        className={`border rounded-lg px-3 py-1.5 text-sm font-bold shadow-sm transition-colors outline-none focus:ring-2 focus:ring-indigo-500/20 ${inputs["s_interp_impact"] === activeKey["s_interp_impact"] ? "text-emerald-700 border-emerald-300 bg-emerald-50" : inputs["s_interp_impact"] ? "text-rose-700 border-rose-300 bg-rose-50" : "border-slate-300 bg-white"}`}
                                                     >
                                                         <option value="">Select...</option>
                                                         <option value="are">are</option>
                                                         <option value="are not">are not</option>
                                                     </select>
-                                                </span>
-                                                impactful.
+                                                    impactful.
+                                                </div>
+                                                
                                                 {(instructorMode || (inputs["s_interp_mag"] === activeKey["s_interp_mag"] && inputs["s_interp_impact"] === activeKey["s_interp_impact"])) && (
-                                                    <div className="mt-2 p-3 text-xs bg-purple-50 border-l-4 border-purple-500 text-purple-900 animate-fade-in">
-                                                        <div className="font-bold mb-1 opacity-75 uppercase tracking-wide text-[10px]">Instructor Solution:</div>
+                                                    <div className="mt-4 p-4 text-xs bg-purple-50 border-l-4 border-purple-500 text-purple-900 rounded-r-xl shadow-sm animate-fade-in leading-relaxed">
+                                                        <div className="font-bold mb-2 opacity-75 uppercase tracking-widest text-[10px] flex items-center gap-1.5"><Icon name="graduation-cap" size={14}/> Instructor Solution</div>
                                                         {activeExplanations["s_interp_mag"]}
                                                     </div>
                                                 )}
                                             </div>
                                         ) : (
-                                            q.sections && q.sections.map((sec, idx) => (
-                                                <div key={idx} className="mb-6 last:mb-0 bg-slate-50 p-4 rounded-lg border border-slate-100">
-                                                    <h3 className="font-bold text-slate-700 mb-4 text-sm uppercase">{sec.subtitle}</h3>
-                                                    <div className={`grid gap-4 ${sec.fields.some(f => f.fullWidth) ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'}`}>
-                                                        {sec.fields.map(f => (
-                                                            <SmartInput 
-                                                                key={f.id}
-                                                                id={f.id}
-                                                                label={f.label}
-                                                                type={f.type}
-                                                                hint={f.hint}
-                                                                value={inputs[f.id]}
-                                                                onChange={handleInputChange}
-                                                                correctValue={activeKey[f.id]}
-                                                                instructorMode={instructorMode}
-                                                                activeInput={activeInput}
-                                                                setActiveInput={setActiveInput}
-                                                                isTable={false}
-                                                                fullWidth={f.fullWidth}
-                                                                explanation={activeExplanations[f.id]}
-                                                            />
-                                                        ))}
+                                            <div className="space-y-6">
+                                                {q.sections && q.sections.map((sec, idx) => (
+                                                    <div key={idx} className="bg-slate-50/50 p-6 rounded-2xl border border-slate-100">
+                                                        <h3 className="font-bold font-display text-slate-700 mb-5 text-xs uppercase tracking-widest">{sec.subtitle}</h3>
+                                                        <div className={`grid gap-6 ${sec.fields.some(f => f.fullWidth) ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'}`}>
+                                                            {sec.fields.map(f => (
+                                                                <SmartInput 
+                                                                    key={f.id}
+                                                                    id={f.id}
+                                                                    label={f.label}
+                                                                    type={f.type}
+                                                                    hint={f.hint}
+                                                                    value={inputs[f.id]}
+                                                                    onChange={handleInputChange}
+                                                                    correctValue={activeKey[f.id]}
+                                                                    instructorMode={instructorMode}
+                                                                    activeInput={activeInput}
+                                                                    setActiveInput={setActiveInput}
+                                                                    isTable={false}
+                                                                    fullWidth={f.fullWidth}
+                                                                    explanation={activeExplanations[f.id]}
+                                                                    optionsList={f.optionsList}
+                                                                />
+                                                            ))}
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            ))
+                                                ))}
+                                            </div>
                                         )}
                                     </div>
                                 ))}
 
                                 {/* Instructor Only: Hash Verification Tool */}
                                 {instructorMode && (
-                                    <div className="bg-slate-800 rounded-xl shadow-lg border border-slate-700 p-6 text-slate-200 mt-12">
-                                        <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                                            <Icon name="shield-check" className="text-green-400" /> Verification Tool
+                                    <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl shadow-xl border border-slate-700 p-8 text-slate-200 mt-12 relative overflow-hidden">
+                                        <div className="absolute right-0 bottom-0 opacity-5 pointer-events-none transform translate-x-1/4 translate-y-1/4">
+                                            <Icon name="shield-check" size={240} />
+                                        </div>
+                                        <h3 className="text-xl font-bold font-display text-white mb-6 flex items-center gap-3 relative z-10">
+                                            <div className="bg-emerald-500/20 text-emerald-400 p-2 rounded-xl">
+                                                <Icon name="shield-check" size={24} />
+                                            </div>
+                                            Student Verification Tool
                                         </h3>
-                                        <div className="flex gap-4 items-start">
+                                        <div className="flex gap-4 items-start relative z-10">
                                             <div className="flex-1">
-                                                <label className="text-xs font-bold text-slate-400 mb-1 block">PASTE STUDENT HASH</label>
+                                                <label className="text-[10px] font-bold text-slate-400 mb-2 block uppercase tracking-widest">Paste Submission Hash</label>
                                                 <textarea 
-                                                    className="w-full bg-slate-900 border-slate-700 rounded p-2 text-xs font-mono text-green-400 focus:ring-1 focus:ring-green-500 outline-none"
+                                                    className="w-full bg-slate-900/80 border border-slate-700 rounded-xl p-4 text-sm font-mono text-emerald-400 focus:ring-2 focus:ring-emerald-500/50 outline-none shadow-inner"
                                                     rows="3"
                                                     placeholder="Paste base64 hash string here..."
                                                     value={hashInput}
@@ -1222,21 +1346,21 @@ ${Object.keys(activeKey).map(k => `${k}: ${inputs[k] || "[Empty]"}`).join('\n')}
                                             </div>
                                             <button 
                                                 onClick={verifyHash}
-                                                className="mt-6 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded font-bold text-sm"
+                                                className="mt-7 px-6 py-3 bg-indigo-500 hover:bg-indigo-400 text-white rounded-xl font-bold shadow-lg shadow-indigo-500/20 transition-all transform hover:-translate-y-0.5 flex items-center gap-2"
                                             >
-                                                Verify
+                                                <Icon name="check-circle-2" size={18} /> Verify
                                             </button>
                                         </div>
                                         {verifiedResult && (
-                                            <div className="mt-4 p-4 bg-slate-900 rounded border border-slate-700">
+                                            <div className="mt-6 p-6 bg-slate-900/80 rounded-xl border border-slate-700 relative z-10 backdrop-blur-sm">
                                                 {verifiedResult.error ? (
-                                                    <p className="text-red-400 font-bold flex items-center gap-2"><Icon name="x-circle" /> {verifiedResult.error}</p>
+                                                    <p className="text-rose-400 font-bold flex items-center gap-2"><Icon name="x-circle" /> {verifiedResult.error}</p>
                                                 ) : (
-                                                    <div className="grid grid-cols-2 gap-4 text-sm">
-                                                        <div><span className="text-slate-500">Student:</span> <span className="text-white font-bold">{verifiedResult.name}</span></div>
-                                                        <div><span className="text-slate-500">Score:</span> <span className="text-green-400 font-bold">{verifiedResult.score}</span></div>
-                                                        <div><span className="text-slate-500">Date:</span> <span className="text-slate-300">{new Date(verifiedResult.date).toLocaleString()}</span></div>
-                                                        <div><span className="text-slate-500">Module:</span> <span className="text-blue-400 font-bold uppercase">{verifiedResult.module}</span></div>
+                                                    <div className="grid grid-cols-2 gap-y-4 gap-x-8 text-sm">
+                                                        <div className="flex flex-col gap-1"><span className="text-slate-500 text-[10px] uppercase tracking-widest font-bold">Student Name</span> <span className="text-white font-bold text-base">{verifiedResult.name}</span></div>
+                                                        <div className="flex flex-col gap-1"><span className="text-slate-500 text-[10px] uppercase tracking-widest font-bold">Total Score</span> <span className="text-emerald-400 font-bold text-lg">{verifiedResult.score}</span></div>
+                                                        <div className="flex flex-col gap-1"><span className="text-slate-500 text-[10px] uppercase tracking-widest font-bold">Date Submitted</span> <span className="text-slate-300 font-medium">{new Date(verifiedResult.date).toLocaleString()}</span></div>
+                                                        <div className="flex flex-col gap-1"><span className="text-slate-500 text-[10px] uppercase tracking-widest font-bold">Module</span> <span className="text-indigo-400 font-bold uppercase tracking-wider">{verifiedResult.module}</span></div>
                                                     </div>
                                                 )}
                                             </div>
@@ -1251,23 +1375,25 @@ ${Object.keys(activeKey).map(k => `${k}: ${inputs[k] || "[Empty]"}`).join('\n')}
                     
                     {/* Login Modal */}
                     {showLogin && (
-                        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center animate-fade-in">
-                            <div className="bg-white p-6 rounded-xl shadow-2xl w-80 transform transition-all">
-                                <h3 className="font-bold text-lg mb-4 text-slate-800 flex items-center gap-2">
-                                    <Icon name="lock" size={20} className="text-blue-600" /> Instructor Access
-                                </h3>
+                        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-50 flex items-center justify-center animate-fade-in">
+                            <div className="bg-white p-8 rounded-2xl shadow-2xl w-96 transform transition-all border border-slate-100">
+                                <div className="w-14 h-14 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mb-6">
+                                    <Icon name="lock" size={28} />
+                                </div>
+                                <h3 className="font-bold font-display text-2xl mb-2 text-slate-800 tracking-tight">Instructor Access</h3>
+                                <p className="text-sm text-slate-500 mb-6 font-medium">Enter password to unlock grading tools.</p>
                                 <input 
                                     type="password" 
-                                    className="w-full border p-3 rounded-lg mb-4 outline-none focus:border-blue-500" 
+                                    className="w-full border border-slate-200 p-4 rounded-xl mb-6 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 font-medium transition-all" 
                                     placeholder="Enter password"
                                     value={password} 
                                     onChange={(e) => setPassword(e.target.value)}
                                     onKeyDown={(e) => e.key === 'Enter' && unlockInstructor()}
                                     autoFocus
                                 />
-                                <div className="flex justify-end gap-2">
-                                    <button onClick={() => setShowLogin(false)} className="px-4 py-2 text-slate-500 hover:bg-slate-100 rounded-lg text-sm font-medium">Cancel</button>
-                                    <button onClick={unlockInstructor} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-bold">Unlock</button>
+                                <div className="flex justify-end gap-3">
+                                    <button onClick={() => setShowLogin(false)} className="px-5 py-2.5 text-slate-500 hover:bg-slate-50 rounded-xl font-semibold transition-colors">Cancel</button>
+                                    <button onClick={unlockInstructor} className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold shadow-lg shadow-indigo-600/30 transition-all transform hover:-translate-y-0.5">Unlock</button>
                                 </div>
                             </div>
                         </div>
@@ -1275,31 +1401,31 @@ ${Object.keys(activeKey).map(k => `${k}: ${inputs[k] || "[Empty]"}`).join('\n')}
 
                     {/* Download Modal */}
                     {showDownload && (
-                        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center animate-fade-in">
-                            <div className="bg-white p-8 rounded-xl shadow-2xl w-96">
-                                <div className="text-center mb-6">
-                                    <div className="bg-blue-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 text-blue-600">
-                                        <Icon name="download-cloud" size={24} />
+                        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-50 flex items-center justify-center animate-fade-in">
+                            <div className="bg-white p-10 rounded-3xl shadow-2xl w-[400px] border border-slate-100">
+                                <div className="text-center mb-8">
+                                    <div className="bg-gradient-to-br from-indigo-100 to-blue-50 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-5 text-indigo-600 shadow-inner">
+                                        <Icon name="download-cloud" size={32} />
                                     </div>
-                                    <h3 className="text-xl font-bold text-slate-800">Submit Assignment</h3>
-                                    <p className="text-slate-500 text-sm mt-1">Enter your name to generate your submission file.</p>
+                                    <h3 className="text-2xl font-bold font-display text-slate-800 tracking-tight">Export Assignment</h3>
+                                    <p className="text-slate-500 text-sm mt-2 font-medium">Enter your name to generate and sign your submission file.</p>
                                 </div>
                                 <input 
                                     type="text" 
                                     value={studentName} 
                                     onChange={(e) => setStudentName(e.target.value)} 
                                     placeholder="Your Full Name" 
-                                    className="w-full p-3 border border-slate-300 rounded-lg mb-4 text-center focus:border-blue-500 outline-none font-bold text-slate-700"
+                                    className="w-full p-4 border-2 border-slate-100 rounded-xl mb-6 text-center focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none font-bold text-slate-700 text-lg transition-all"
                                     autoFocus 
                                 />
-                                <div className="flex flex-col gap-2">
+                                <div className="flex flex-col gap-3">
                                     <button 
                                         onClick={() => studentName.trim() ? handleDownload() : alert("Name required")} 
-                                        className="w-full py-3 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition flex items-center justify-center gap-2"
+                                        className="w-full py-4 bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-xl font-bold hover:from-indigo-700 hover:to-blue-700 shadow-lg shadow-indigo-500/30 transition-all transform hover:-translate-y-0.5 flex items-center justify-center gap-2 text-lg"
                                     >
-                                        Download Submission
+                                        <Icon name="file-down" size={20} /> Save to Device
                                     </button>
-                                    <button onClick={() => setShowDownload(false)} className="w-full py-2 text-slate-500 hover:bg-slate-50 rounded-lg text-sm">Cancel</button>
+                                    <button onClick={() => setShowDownload(false)} className="w-full py-3 text-slate-500 hover:bg-slate-50 rounded-xl font-semibold transition-colors">Cancel</button>
                                 </div>
                             </div>
                         </div>
