@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SUCCESSION: Manhattan Edition (Module 8)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        roystar: {
+                            dark: '#0a0a0c',
+                            panel: 'rgba(15, 17, 21, 0.85)',
+                            gold: '#c5a059',
+                            goldhover: '#e8c27a',
+                            danger: '#8b0000',
+                            text: '#e2e8f0'
+                        }
+                    },
+                    fontFamily: {
+                        serif: ['"Playfair Display"', 'serif'],
+                        sans: ['"Inter"', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            overflow: hidden; background-color: #000; color: #e2e8f0;
+        }
+
+        #scene { width: 100vw; height: 100vh; perspective: 1000px; position: relative; }
+
+        /* Dynamic Manhattan Backgrounds */
+        #room {
+            width: 100%; height: 100%; position: absolute;
+            transform-style: preserve-3d;
+            transition: transform 1.5s cubic-bezier(0.68, -0.55, 0.265, 1.55), background-image 1s ease;
+            background-size: cover; background-position: center;
+        }
+
+        /* Using high-quality Unsplash source URLs for Manhattan themes. 
+           The linear-gradient acts as a dark cinematic overlay so text is readable.
+        */
+        .bg-reg { background-image: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.8)), url('https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?q=80&w=1920'); }
+        .bg-intro { background-image: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.8)), url('https://images.unsplash.com/photo-1522083111860-1c3905e94b2f?q=80&w=1920'); }
+        .bg-stage-0 { background-image: linear-gradient(rgba(0,0,0,0.8), rgba(0,0,0,0.9)), url('https://images.unsplash.com/photo-1568515387631-8b650bbcdb90?q=80&w=1920'); }
+        .bg-stage-1 { background-image: linear-gradient(rgba(0,0,0,0.8), rgba(0,0,0,0.9)), url('https://images.unsplash.com/photo-1499092346589-b9b6be3e94b2?q=80&w=1920'); }
+        .bg-stage-2 { background-image: linear-gradient(rgba(0,0,0,0.8), rgba(0,0,0,0.9)), url('https://images.unsplash.com/photo-1534430480872-3498386e7856?q=80&w=1920'); }
+        .bg-stage-3 { background-image: linear-gradient(rgba(0,0,0,0.8), rgba(0,0,0,0.9)), url('https://images.unsplash.com/photo-1500916434205-0c77489c6cf7?q=80&w=1920'); }
+        .bg-stage-4 { background-image: linear-gradient(rgba(0,0,0,0.8), rgba(0,0,0,0.9)), url('https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?q=80&w=1920'); } /* Updated Boardroom */
+        .bg-stage-5 { background-image: linear-gradient(rgba(0,0,0,0.8), rgba(0,0,0,0.9)), url('https://images.unsplash.com/photo-1541336032412-2048a678540d?q=80&w=1920'); }
+        .bg-stage-6 { background-image: linear-gradient(rgba(0,0,0,0.8), rgba(0,0,0,0.9)), url('https://images.unsplash.com/photo-1513682121497-80211f36a790?q=80&w=1920'); }
+        .bg-stage-7 { background-image: linear-gradient(rgba(0,0,0,0.8), rgba(0,0,0,0.9)), url('https://images.unsplash.com/photo-1485871981521-5b1fd3805eee?q=80&w=1920'); }
+        .bg-stage-8 { background-image: linear-gradient(rgba(0,0,0,0.8), rgba(0,0,0,0.9)), url('https://images.unsplash.com/photo-1480714378408-67cf0d13bc1b?q=80&w=1920'); }
+        .bg-stage-9 { background-image: linear-gradient(rgba(0,0,0,0.8), rgba(0,0,0,0.9)), url('https://images.unsplash.com/photo-1500315331616-db4f707c24d1?q=80&w=1920'); }
+        .bg-end { background-image: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.9)), url('https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?q=80&w=1920'); }
+
+        /* Doors */
+        .door-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 100; display: flex; transform: translateZ(50px); }
+        .door { width: 50%; height: 100%; background: linear-gradient(to bottom, #111, #000); border: 1px solid #333; box-shadow: 0 0 50px rgba(0,0,0,0.9); transition: transform 1s cubic-bezier(0.25, 1, 0.5, 1); }
+        .door-left { transform: translateX(0); border-right: 1px solid #c5a059; }
+        .door-right { transform: translateX(0); border-left: 1px solid #c5a059; }
+        .doors-open .door-left { transform: translateX(-100%); }
+        .doors-open .door-right { transform: translateX(100%); }
+
+        /* UI Overlays */
+        #stage-title-overlay { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.9); z-index: 150; opacity: 0; pointer-events: none; transition: all 0.5s ease; text-align: center; width: 90%; }
+        #stage-title-overlay.show { opacity: 1; transform: translate(-50%, -50%) scale(1); transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        
+        .glass-panel { background: rgba(15, 17, 21, 0.75); backdrop-filter: blur(12px); border: 1px solid rgba(197, 160, 89, 0.3); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8); }
+
+        /* Animations */
+        .fade-in { animation: fadeIn 0.6s ease-in forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
+        @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 40%, 60% { transform: translate3d(4px, 0, 0); } }
+        .money-drop { animation: moneyDrop 1s forwards ease-out; position: absolute; color: red; font-weight: bold; font-size: 2rem; pointer-events:none; z-index: 200;}
+        .money-rise { animation: moneyRise 1s forwards ease-out; position: absolute; color: #10b981; font-weight: bold; font-size: 2rem; pointer-events:none; z-index: 200;}
+        @keyframes moneyDrop { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(50px); } }
+        @keyframes moneyRise { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-50px); } }
+
+        /* Cinematic Bars & Utils */
+        .cine-bar { position: fixed; left: 0; width: 100%; height: 6vh; background: #000; z-index: 90; }
+        .cine-bar.top { top: 0; }
+        .cine-bar.bottom { bottom: 0; }
+        .scrollable-content { max-height: 80vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+        
+        input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 24px; width: 24px; border-radius: 50%; background: #c5a059; cursor: pointer; margin-top: -10px; box-shadow: 0 0 10px rgba(197, 160, 89, 0.8); }
+        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: #374151; border-radius: 2px; }
+
+        .profile-img-reveal { object-fit: cover; width: 100%; height: 100%; }
+        .speaker-btn {
+            background: none; border: none; color: #c5a059; cursor: pointer; opacity: 0.7; transition: opacity 0.2s;
+            position: absolute; right: 10px; bottom: 10px; z-index: 20; padding: 5px;
+        }
+        .speaker-btn:hover { opacity: 1; }
+        .speaker-btn svg { width: 24px; height: 24px; }
+    </style>
+</head>
+<body>
+
+    <!-- Cinematic Bars -->
+    <div class="cine-bar top flex justify-between items-center px-4 md:px-8">
+        <h1 class="text-lg md:text-xl font-serif font-bold text-roystar-gold tracking-widest uppercase truncate">RoyStar Corp. <span class="hidden md:inline text-gray-600 text-sm">| Manhattan HQ</span></h1>
+        <div id="score-display" class="hidden text-xs md:text-sm font-semibold tracking-widest text-gray-400 uppercase flex items-center gap-2">
+            Reputation Bank: <span id="bank-value" class="text-green-500 font-bold font-mono text-lg">$1,000</span>
+        </div>
+    </div>
+    <div class="cine-bar bottom"></div>
+
+    <div id="scene">
+        <div id="room" class="bg-reg">
+            
+            <div class="absolute inset-0 flex items-center justify-center p-2 md:p-4 z-10 pt-10 pb-10">
+                
+                <!-- Registration Screen -->
+                <div id="screen-registration" class="glass-panel p-6 md:p-12 rounded-sm max-w-xl w-full fade-in scrollable-content mx-2">
+                    <div class="text-center mb-8">
+                        <p class="text-roystar-gold font-serif italic mb-2 text-lg">Module 8: The Capstone</p>
+                        <h2 class="text-3xl md:text-4xl font-serif font-bold text-white uppercase tracking-tight">Boardroom Access</h2>
+                    </div>
+                    
+                    <div class="space-y-4 mb-8">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Group / Firm Name</label>
+                            <input type="text" id="reg-group-name" placeholder="e.g., Waystar Partners" class="w-full bg-black/50 border border-gray-600 p-3 text-white rounded-sm focus:border-roystar-gold focus:outline-none transition-colors">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">CFO 1 Name</label>
+                            <input type="text" id="reg-member-1" placeholder="Member 1" class="w-full bg-black/50 border border-gray-600 p-3 text-white rounded-sm focus:border-roystar-gold focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">CFO 2 Name (Optional)</label>
+                            <input type="text" id="reg-member-2" placeholder="Member 2" class="w-full bg-black/50 border border-gray-600 p-3 text-white rounded-sm focus:border-roystar-gold focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">CFO 3 Name (Optional)</label>
+                            <input type="text" id="reg-member-3" placeholder="Member 3" class="w-full bg-black/50 border border-gray-600 p-3 text-white rounded-sm focus:border-roystar-gold focus:outline-none">
+                        </div>
+                    </div>
+
+                    <button onclick="submitRegistration()" class="w-full bg-roystar-gold hover:bg-roystar-goldhover text-roystar-dark font-bold py-4 rounded-sm transition-all duration-300 tracking-widest uppercase shadow-[0_0_20px_rgba(197,160,89,0.4)]">
+                        Register Team
+                    </button>
+                    <p id="reg-error" class="text-red-500 text-sm mt-4 text-center hidden">Please enter a Group Name and at least one member.</p>
+                </div>
+
+                <!-- Intro Screen -->
+                <div id="screen-intro" class="hidden glass-panel p-6 md:p-14 rounded-sm text-center max-w-3xl fade-in scrollable-content w-full mx-2">
+                    <p class="text-roystar-gold font-serif italic mb-2 md:mb-4 text-lg md:text-xl">Welcome, <span id="display-group-name" class="font-bold"></span></p>
+                    <h2 class="text-3xl md:text-5xl font-serif font-bold mb-4 md:mb-6 text-white uppercase tracking-tight shadow-black drop-shadow-lg">The CFO's Wager</h2>
+                    <p class="mb-6 text-gray-300 leading-relaxed text-sm md:text-lg">
+                        You've made it to the Manhattan C-Suite, but the executives don't trust you yet. You are starting with <strong>$1,000</strong> in Reputation Capital. <br><br>
+                        For each of the 10 stages, you must make an accounting decision and <strong>bet</strong> on your confidence. Answer correctly, you double your bet. Answer wrong, you lose it. If you hit $0, you are fired immediately.
+                    </p>
+                    <button onclick="startExperience()" class="w-full md:w-auto bg-roystar-gold hover:bg-roystar-goldhover text-roystar-dark font-bold py-4 px-8 md:px-12 rounded-sm transition-all duration-300 tracking-widest uppercase shadow-[0_0_20px_rgba(197,160,89,0.4)]">
+                        Enter the Boardroom
+                    </button>
+                </div>
+
+                <!-- Game Screen -->
+                <div id="screen-game" class="hidden max-w-5xl w-full fade-in scrollable-content px-2">
+                    <div class="flex justify-between items-end mb-2 md:mb-4 px-1">
+                        <span id="stage-indicator" class="text-roystar-gold font-serif italic text-base md:text-lg shadow-black drop-shadow-md truncate">Stage 1</span>
+                        <span id="progress-indicator" class="text-xs text-gray-400 tracking-widest uppercase whitespace-nowrap ml-2">1 / 10</span>
+                    </div>
+
+                    <div class="flex flex-col lg:flex-row gap-4 lg:gap-6">
+                        <!-- Left Column: Character & Betting -->
+                        <div class="lg:w-1/3 flex flex-col gap-4">
+                            <div class="glass-panel p-4 md:p-6 rounded-sm border-t-4 border-t-blue-900">
+                                <h4 class="text-xs text-gray-400 uppercase tracking-widest mb-2 font-bold">Place Your Wager</h4>
+                                <div class="flex justify-between text-sm font-mono mb-2">
+                                    <span class="text-gray-500">$1</span>
+                                    <span class="text-green-400 font-bold" id="current-wager-display">$100</span>
+                                    <span class="text-gray-500" id="max-wager-display">Max</span>
+                                </div>
+                                <input type="range" id="wager-slider" min="1" max="1000" value="100" class="w-full mb-4" oninput="updateWagerDisplay()">
+                                <p class="text-xs text-gray-400 italic text-center">Bet heavily if you know GAAP. Bet low if guessing.</p>
+                            </div>
+                        </div>
+
+                        <!-- Right Column: Question & Options -->
+                        <div class="lg:w-2/3 glass-panel p-5 md:p-8 rounded-sm flex flex-col relative">
+                            <div class="mb-4 md:mb-6">
+                                <p id="dialogue-text" class="text-base md:text-xl font-serif italic leading-relaxed relative z-10 pl-6 md:pl-8 text-gray-100">
+                                    Descriptive text goes here...
+                                </p>
+                            </div>
+                            <div id="options-container" class="space-y-3 md:space-y-4 mt-auto z-10 flex-grow flex flex-col justify-end">
+                                <!-- Options injected here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Feedback Modal (REVEAL) -->
+                <div id="modal-feedback" class="hidden fixed inset-0 flex items-center justify-center z-50 p-2 md:p-4">
+                    <div class="absolute inset-0 bg-black/80 backdrop-blur-md"></div>
+                    <div id="feedback-box" class="glass-panel border-l-4 border-roystar-gold p-6 md:p-8 max-w-3xl w-full shadow-2xl relative z-10 scrollable-content flex flex-col md:flex-row gap-6">
+                        
+                        <!-- Reveal Character Face -->
+                        <div class="md:w-1/3 flex flex-col items-center justify-center text-center border-b md:border-b-0 md:border-r border-gray-700 pb-4 md:pb-0 pr-0 md:pr-4">
+                            <div class="w-32 h-32 md:w-40 md:h-40 rounded-sm bg-black border-2 border-roystar-gold mb-3 shadow-inner flex items-center justify-center overflow-hidden relative">
+                                <img id="reveal-image" src="" class="profile-img-reveal hidden" alt="Character">
+                                <span id="reveal-emoji" class="text-6xl md:text-7xl absolute">👨‍💼</span>
+                            </div>
+                            <h3 id="reveal-name" class="font-serif text-2xl font-bold text-white mb-1">Name</h3>
+                            <div id="wager-result" class="font-mono text-lg font-bold px-3 py-1 rounded bg-black mt-2"></div>
+                        </div>
+
+                        <!-- Reveal Logic -->
+                        <div class="md:w-2/3 flex flex-col justify-center relative">
+                             <button class="speaker-btn" onclick="speakFactCheck()" aria-label="Listen to ledger fact check" style="top: -10px; right: -10px; bottom: auto;">
+                                <svg viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+                                </svg>
+                            </button>
+                            <h3 id="feedback-title" class="text-2xl md:text-3xl font-serif font-bold mb-2"></h3>
+                            <p id="feedback-message" class="text-gray-200 mb-6 text-lg italic font-serif leading-relaxed"></p>
+                            
+                            <div class="bg-black/60 p-4 rounded-sm border border-gray-700 mb-6">
+                                <span class="text-[10px] md:text-xs text-roystar-gold uppercase tracking-widest font-bold block mb-1">Module 8 Ledger Fact Check:</span>
+                                <p id="feedback-fact" class="text-sm leading-relaxed text-gray-300 font-mono"></p>
+                            </div>
+                            
+                            <button onclick="proceedToNextStage()" class="w-full bg-roystar-gold text-black font-bold py-4 rounded-sm hover:bg-roystar-goldhover transition-colors uppercase tracking-widest text-base shadow-lg">
+                                Continue
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- End Screen with Google Sheet Submission -->
+                <div id="screen-end" class="hidden glass-panel p-8 md:p-12 text-center max-w-3xl fade-in w-full mx-2">
+                    <h2 class="text-3xl md:text-5xl font-serif font-bold mb-4 md:mb-6 text-white">The Market Has Closed</h2>
+                    <div class="text-sm text-gray-400 uppercase tracking-widest mb-1">Final Reputation Bank</div>
+                    <div class="text-5xl md:text-7xl font-mono font-bold mb-4" id="final-bank-value">$0</div>
+                    
+                    <div class="text-2xl md:text-3xl mb-4 font-serif italic" id="final-verdict"></div>
+                    <p id="end-message" class="text-base md:text-xl mb-8 text-gray-300 leading-relaxed"></p>
+                    
+                    <!-- Form Submission UI -->
+                    <div class="bg-black/50 border border-gray-700 p-6 rounded-sm mb-8 text-left">
+                        <h4 class="text-roystar-gold font-bold uppercase tracking-widest text-sm mb-4 border-b border-gray-700 pb-2">Submit Official Ledger</h4>
+                        <p class="text-xs text-gray-400 mb-2">Group: <span id="summary-group" class="text-white font-bold"></span></p>
+                        <p class="text-xs text-gray-400 mb-4">Members: <span id="summary-members" class="text-white"></span></p>
+                        
+                        <button id="btn-submit-sheet" onclick="submitToProfessor()" class="w-full bg-green-700 hover:bg-green-600 text-white font-bold py-3 rounded-sm transition-all duration-300 tracking-widest uppercase flex items-center justify-center gap-2">
+                            <span>Submit Official Ledger</span>
+                        </button>
+                        <p id="submit-status" class="text-xs mt-2 text-center hidden"></p>
+                    </div>
+
+                    <button onclick="location.reload()" class="w-full md:w-auto bg-transparent border-2 border-roystar-gold text-roystar-gold hover:bg-roystar-gold hover:text-roystar-dark font-bold py-3 px-8 rounded-sm transition-all duration-300 tracking-widest uppercase">
+                        Restart Fiscal Year
+                    </button>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="door-container doors-open" id="doors">
+            <div class="door door-left"></div>
+            <div class="door door-right"></div>
+        </div>
+        
+        <div id="stage-title-overlay">
+            <h2 id="overlay-title" class="text-4xl md:text-6xl font-serif font-bold text-white uppercase tracking-widest shadow-black drop-shadow-[0_5px_5px_rgba(0,0,0,1)]">STAGE 1</h2>
+            <p id="overlay-subtitle" class="text-xl md:text-2xl text-roystar-gold font-serif italic mt-2 shadow-black drop-shadow-md">The Pitch Room</p>
+        </div>
+    </div>
+
+    <script>
+        // --- SOUND SYSTEM ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playTone(freq, type, duration, vol) {
+            if(audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+            osc.type = type; osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            gain.gain.setValueAtTime(vol, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+            osc.connect(gain); gain.connect(audioCtx.destination); osc.start(); osc.stop(audioCtx.currentTime + duration);
+        }
+        function playSuccess() { playTone(523.25, 'sine', 0.1, 0.3); setTimeout(() => playTone(659.25, 'sine', 0.15, 0.3), 100); setTimeout(() => playTone(783.99, 'sine', 0.4, 0.3), 250); }
+        function playFail() { playTone(150, 'sawtooth', 0.3, 0.3); setTimeout(() => playTone(100, 'sawtooth', 0.5, 0.3), 200); }
+        function playDoorSlam() { playTone(80, 'square', 0.4, 0.5); setTimeout(() => playTone(50, 'sawtooth', 0.3, 0.4), 100); }
+        function playChaChing() { playTone(1200, 'sine', 0.1, 0.2); setTimeout(() => playTone(1600, 'triangle', 0.3, 0.3), 100); }
+        function playRoomTransition() { playTone(880, 'sine', 0.2, 0.2); setTimeout(() => playTone(1108.73, 'sine', 0.5, 0.2), 200); }
+
+        // --- SPEECH SYNTHESIS ---
+        const synth = window.speechSynthesis;
+        let currentUtterance = null;
+
+        function stopSpeech() {
+            if (synth.speaking) {
+                synth.cancel();
+            }
+        }
+
+        // We no longer act out the character, we just read the factual accounting rules
+        function speakText(text) {
+            stopSpeech();
+            if (text !== '') {
+                currentUtterance = new SpeechSynthesisUtterance(text);
+                
+                const voices = synth.getVoices();
+                let selectedVoice = voices.find(voice => voice.lang.includes('en-US')); 
+                
+                if (selectedVoice) {
+                    currentUtterance.voice = selectedVoice;
+                }
+
+                currentUtterance.pitch = 1;
+                currentUtterance.rate = 1;
+
+                synth.speak(currentUtterance);
+            }
+        }
+
+        function speakFactCheck() {
+             const text = document.getElementById('feedback-fact').innerText;
+             speakText(text);
+        }
+
+        // Handle voice loading issues on some browsers
+        if (speechSynthesis.onvoiceschanged !== undefined) {
+          speechSynthesis.onvoiceschanged = () => { /* Voices loaded */ };
+        }
+
+
+        // --- SUBMISSION DATA ---
+        let teamData = { groupName: "", members: [] };
+
+        function submitRegistration() {
+            const groupName = document.getElementById('reg-group-name').value.trim();
+            const m1 = document.getElementById('reg-member-1').value.trim();
+            const m2 = document.getElementById('reg-member-2').value.trim();
+            const m3 = document.getElementById('reg-member-3').value.trim();
+
+            if (!groupName || !m1) {
+                document.getElementById('reg-error').classList.remove('hidden');
+                return;
+            }
+
+            teamData.groupName = groupName;
+            teamData.members = [m1];
+            if (m2) teamData.members.push(m2);
+            if (m3) teamData.members.push(m3);
+
+            // Transition to Intro
+            document.getElementById('screen-registration').classList.add('hidden');
+            document.getElementById('display-group-name').innerText = groupName;
+            document.getElementById('room').className = 'bg-intro';
+            
+            playRoomTransition();
+            
+            const intro = document.getElementById('screen-intro');
+            intro.classList.remove('hidden');
+            intro.classList.add('fade-in');
+        }
+
+        // --- SUBMISSION INTEGRATION ---
+        const GOOGLE_SHEET_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxY8V7MbCC-67Whr9hytuppfR8nS0lOy5i9ATGKeTXOeDBsX9VyzHbGuE5iYuSfD6uT/exec"; 
+
+        function submitToProfessor() {
+            const btn = document.getElementById('btn-submit-sheet');
+            const status = document.getElementById('submit-status');
+            
+            btn.innerText = "Submitting...";
+            btn.disabled = true;
+            btn.classList.add('opacity-50');
+
+            // Send strictly formatted columns so it never shifts in the spreadsheet
+            const formData = new FormData();
+            formData.append('GroupName', teamData.groupName);
+            formData.append('Member1', teamData.members[0] || "");
+            formData.append('Member2', teamData.members[1] || "");
+            formData.append('Member3', teamData.members[2] || "");
+            formData.append('FinalScore', bank);
+
+            fetch(GOOGLE_SHEET_WEB_APP_URL, { method: 'POST', body: formData })
+                .then(response => {
+                    status.innerText = "Successfully Submitted to Official Ledger!";
+                    status.className = "text-xs mt-2 text-center text-green-500 font-bold";
+                    status.classList.remove('hidden');
+                    btn.innerText = "Submitted ✓";
+                })
+                .catch(error => {
+                    status.innerText = "Error submitting. Please screenshot this page and email it.";
+                    status.className = "text-xs mt-2 text-center text-red-500";
+                    status.classList.remove('hidden');
+                    btn.innerText = "Submission Failed";
+                    btn.classList.remove('opacity-50');
+                });
+        }
+
+        // --- GAME STATE ---
+        let currentStageIndex = 0;
+        let bank = 1000;
+        const doors = document.getElementById('doors');
+        const room = document.getElementById('room');
+        const stageOverlay = document.getElementById('stage-title-overlay');
+        const slider = document.getElementById('wager-slider');
+
+        // --- GAME DATA ---
+        // Image Mappings: Logan (img1), Kendall (img2), Roman (img3), Shiv (img4), Tom (img5)
+        const stages = [
+            {
+                overlayTitle: "THE IPO ROOM", bgClass: "bg-stage-0", character: "Kendall", title: "Co-COO", emoji: "🧢", imageSrc: "img2.png",
+                dialogue: "The firm is preparing to issue 10 million new shares at $50 a share. The par value is $1. Kendall requires confirmation on how this initial public offering impacts the Contributed Capital accounts.",
+                options: [
+                    "Common Stock increases by $500 million. No other accounts are affected.",
+                    "Common Stock increases by $10 million (at par), and Additional Paid-In Capital (APIC) increases by $490 million.",
+                    "Common Stock increases by $10 million, and Retained Earnings increases by $490 million."
+                ],
+                correctIndex: 1, fact: "When stock is issued, the Common Stock account increases by the Par Value × shares issued. The excess received over par value is recorded in Additional Paid-In Capital (APIC).",
+                successMsg: "Kendall verifies your allocation of the par value and the excess. The legal filings proceed smoothly.",
+                failMsg: "Your misunderstanding of equity issuance causes a significant error in the SEC filings."
+            },
+            {
+                overlayTitle: "THE WAR ROOM", bgClass: "bg-stage-1", character: "Roman", title: "Co-COO", emoji: "🍸", imageSrc: "img3.png",
+                dialogue: "Roman is pushing for a massive buyback. We intend to buy the shares above par and retire them immediately. He is asking if this transaction can be written off on the income statement as an operating loss.",
+                options: [
+                    "Yes, retiring treasury stock at a loss is recorded as an operating expense.",
+                    "No. The repurchase just sits in the Treasury Stock contra-equity account forever.",
+                    "No. Retiring shares reduces Cash, Common Stock (at par), and APIC. It does NOT hit the Income Statement."
+                ],
+                correctIndex: 2, fact: "When repurchased shares are retired, Cash decreases, Common Stock (at par) decreases, and APIC decreases. Transactions involving a company's own stock never affect net income.",
+                successMsg: "You correctly prevented a gross violation of tax law. Roman notes your competence.",
+                failMsg: "You incorrectly advised that an equity transaction flows through the income statement."
+            },
+            {
+                overlayTitle: "THE EXEC SUITE", bgClass: "bg-stage-2", character: "Shiv", title: "President", emoji: "👠", imageSrc: "img4.png",
+                dialogue: "Shiv is authorizing a stock option grant for key executives. She argues that because it is a non-cash expense, it remains 100% cash-free to the company indefinitely.",
+                options: [
+                    "Actually, there is a real cash cost: we typically have to buy new treasury shares on the open market to offset the dilution created by the awards.",
+                    "You are correct. It never impacts our operating cash flows.",
+                    "False. When options vest, we are legally required to mail cash to the employees."
+                ],
+                correctIndex: 0, fact: "While stock comp seems cash-free initially, a real cash cost occurs when the company buys new treasury shares in the open market to offset the dilution created by the share awards.",
+                successMsg: "Shiv agrees. You accurately forecasted the cash drain required to halt dilution.",
+                failMsg: "You failed to account for the massive cash outlay required to stop shareholder dilution."
+            },
+            {
+                overlayTitle: "THE TRADING FLOOR", bgClass: "bg-stage-3", character: "Tom", title: "Chairman", emoji: "👔", imageSrc: "img5.png",
+                dialogue: "Tom is planning a 'Stock Split' to lower the share price and improve marketability. If a 2-for-1 stock split is executed, he wants to know how much cash this will pull out of Retained Earnings.",
+                options: [
+                    "It pulls out exactly half of our Retained Earnings to pay for the new shares.",
+                    "A stock split is not a monetary transaction. It doesn't touch Cash or Retained Earnings at all.",
+                    "It reduces Retained Earnings by the Par Value of the newly issued shares."
+                ],
+                correctIndex: 1, fact: "A stock split issues additional shares to reduce the stock price. It is not a monetary transaction, so there are no financial statement effects—it does not affect Cash or Retained Earnings.",
+                successMsg: "Tom nods. You correctly differentiated between a stock split and a cash dividend.",
+                failMsg: "You demonstrated a fundamental misunderstanding of non-monetary stock transactions."
+            },
+            {
+                overlayTitle: "THE PATRIARCH'S DESK", bgClass: "bg-stage-4", character: "Logan", title: "CEO", emoji: "🦁", imageSrc: "img1.png",
+                dialogue: "Wall Street analysts are raising concerns regarding our Diluted EPS. Logan has proposed omitting the Diluted number and only reporting Basic EPS in the upcoming press release.",
+                options: [
+                    "Yes, we can hide Diluted EPS if the options aren't exercised yet.",
+                    "No. GAAP requires us to report both. Diluted EPS assumes the worst-case scenario using the treasury stock method.",
+                    "Diluted EPS only matters for preferred stock. We can omit it."
+                ],
+                correctIndex: 1, fact: "Companies MUST report Basic and Diluted EPS. The diluted denominator presumes the most extreme case (treasury stock method) to show maximum potential dilution.",
+                successMsg: "You enforced GAAP compliance, saving the company from SEC penalties.",
+                failMsg: "You authorized a reporting violation that will undoubtedly trigger an SEC investigation."
+            },
+            {
+                overlayTitle: "THE AUDITOR'S PEN", bgClass: "bg-stage-5", character: "Kendall", title: "Co-COO", emoji: "🧢", imageSrc: "img2.png",
+                dialogue: "Following the collapse of the Euro, the firm holds a massive unrealized foreign currency translation loss. There is pressure from Kendall to run this loss directly through Net Income.",
+                options: [
+                    "Yes, all unrealized losses must immediately reduce Net Income to be conservative.",
+                    "No. Large unrealized currency gains/losses bypass Net Income and go straight to Accumulated Other Comprehensive Income (AOCI).",
+                    "No, foreign currency changes are treated as a reduction to Contributed Capital."
+                ],
+                correctIndex: 1, fact: "Unrealized foreign currency translation adjustments bypass Net Income and are recorded in Accumulated Other Comprehensive Income (AOCI), an Earned Capital account.",
+                successMsg: "Kendall adjusts the ledgers accordingly. You kept the income statement clean and compliant.",
+                failMsg: "You misclassified comprehensive income, destroying the firm's reported Return on Assets."
+            },
+            {
+                overlayTitle: "THE SHAREHOLDER CALL", bgClass: "bg-stage-6", character: "Roman", title: "Co-COO", emoji: "🍸", imageSrc: "img3.png",
+                dialogue: "During the upcoming earnings call, analysts will inquire about our Dividend Payout ratio. Roman asks how this specific metric is calculated.",
+                options: [
+                    "It's the total Dividends paid divided by our total Cash balance.",
+                    "It's the Dividends per share divided by the current Market Price per share.",
+                    "It's the proportion of the company's Earnings (Net Income) paid out as dividends."
+                ],
+                correctIndex: 2, fact: "Dividend Payout measures the proportion of the company's earnings paid out as dividends. (Dividend Yield measures dividends relative to market price).",
+                successMsg: "Roman correctly briefs the analysts based on your precise definition.",
+                failMsg: "You confused Dividend Payout with Dividend Yield, embarrassing the firm publicly."
+            },
+            {
+                overlayTitle: "THE VAULT", bgClass: "bg-stage-7", character: "Shiv", title: "President", emoji: "👠", imageSrc: "img4.png",
+                dialogue: "The board declared a cash dividend yesterday, though the actual cash disbursement won't occur until next month. Shiv asks what the immediate effect on our balance sheet is today.",
+                options: [
+                    "Nothing happens until the cash actually leaves our bank account next month.",
+                    "We record a Dividend Expense on the income statement today.",
+                    "Retained Earnings decreases today, and a Current Liability (Dividends Payable) is created."
+                ],
+                correctIndex: 2, fact: "When a dividend is declared, it immediately reduces Retained Earnings and creates a liability (Dividends Payable). It does not affect the Income Statement.",
+                successMsg: "You correctly recorded the legally binding liability on the declaration date.",
+                failMsg: "You failed to recognize an accrued liability, materially misstating the balance sheet."
+            },
+            {
+                overlayTitle: "THE BOARDROOM", bgClass: "bg-stage-8", character: "Tom", title: "Chairman", emoji: "👔", imageSrc: "img5.png",
+                dialogue: "Reviewing the balance sheet, Tom notes the 'Treasury Stock' account displays a substantial positive dollar balance. He assumes that this is a liquid asset available for sale.",
+                options: [
+                    "Yes, Treasury Stock is reported as a Current Asset because it can be quickly converted to cash.",
+                    "No. Treasury Stock is a contra-equity account. It has a debit balance and reduces total Stockholders' Equity.",
+                    "No, it is reported as a Long-Term Investment on the asset side of the balance sheet."
+                ],
+                correctIndex: 1, fact: "Treasury stock represents shares repurchased by the company. It is NOT an asset; it is a contra-equity account that reduces total Stockholders' Equity.",
+                successMsg: "You effectively educated Tom on the nature of contra-equity accounts.",
+                failMsg: "You erroneously classified the company's own stock as an asset."
+            },
+            {
+                overlayTitle: "THE FINAL TEST", bgClass: "bg-stage-9", character: "Logan", title: "CEO", emoji: "🦁", imageSrc: "img1.png",
+                dialogue: "Logan is considering issuing Preferred Stock. There is a debate regarding whether the dividends paid to preferred shareholders are tax-deductible, similar to interest payments on debt.",
+                options: [
+                    "Yes, preferred dividends and debt interest are both tax-deductible expenses.",
+                    "No. Dividends paid on preferred stock are NOT tax-deductible. They are a distribution of earnings, not an expense.",
+                    "They are only tax-deductible if the preferred stock is convertible into common stock."
+                ],
+                correctIndex: 1, fact: "Unlike interest expense on debt, dividends paid on stock (both common and preferred) are NOT tax-deductible. They are distributions of after-tax earnings.",
+                successMsg: "You preserved the firm's long-term tax strategy with an accurate assessment of financing costs.",
+                failMsg: "Your incorrect tax advice compromises the entire financing strategy."
+            }
+        ];
+
+        function startExperience() {
+            document.getElementById('screen-intro').classList.add('hidden');
+            document.getElementById('score-display').classList.remove('hidden');
+            transitionToStage(0);
+        }
+
+        function updateWagerDisplay() {
+            const val = parseInt(slider.value);
+            document.getElementById('current-wager-display').innerText = `$${val}`;
+        }
+
+        function transitionToStage(index) {
+            stopSpeech(); // Stop speech if transitioning
+            currentStageIndex = index;
+            const q = stages[index];
+
+            doors.classList.remove('doors-open');
+            playDoorSlam();
+            document.getElementById('screen-game').classList.add('hidden');
+
+            setTimeout(() => {
+                room.className = q.bgClass;
+                
+                document.getElementById('stage-indicator').innerText = `Stage ${index + 1}: The Boardroom`;
+                document.getElementById('progress-indicator').innerText = `${index + 1} / 10`;
+                
+                document.getElementById('overlay-title').innerText = `STAGE ${index + 1}`;
+                document.getElementById('overlay-subtitle').innerText = q.overlayTitle;
+
+                slider.max = bank;
+                slider.value = Math.max(1, Math.floor(bank / 2));
+                document.getElementById('max-wager-display').innerText = `$${bank}`;
+                updateWagerDisplay();
+
+                loadStageContent(q);
+                stageOverlay.classList.add('show');
+                playRoomTransition();
+
+                setTimeout(() => {
+                    doors.classList.add('doors-open');
+                    stageOverlay.classList.remove('show');
+                    document.getElementById('screen-game').classList.remove('hidden');
+                    
+                    const gameScreen = document.getElementById('screen-game');
+                    gameScreen.classList.remove('fade-in');
+                    void gameScreen.offsetWidth;
+                    gameScreen.classList.add('fade-in');
+                }, 1500);
+            }, 1000);
+        }
+
+        function loadStageContent(q) {
+            document.getElementById('dialogue-text').innerText = q.dialogue;
+
+            const optionsContainer = document.getElementById('options-container');
+            optionsContainer.innerHTML = '';
+
+            q.options.forEach((opt, index) => {
+                const btn = document.createElement('button');
+                btn.className = "w-full text-left p-3 md:p-4 bg-black/60 border border-gray-600 hover:border-roystar-gold hover:bg-black/90 transition-all rounded-sm text-gray-200 group text-xs md:text-sm leading-relaxed backdrop-blur-md";
+                btn.innerHTML = `<span class="inline-block w-6 md:w-8 text-roystar-gold font-bold group-hover:translate-x-1 md:group-hover:translate-x-2 transition-transform">${String.fromCharCode(65 + index)}.</span> ${opt}`;
+                btn.onclick = () => handleAnswer(index, q);
+                optionsContainer.appendChild(btn);
+            });
+        }
+
+        function showFloatingText(text, isPositive) {
+            const el = document.createElement('div');
+            el.innerText = text;
+            el.className = isPositive ? 'money-rise' : 'money-drop';
+            el.style.left = '50%'; el.style.top = '40%'; el.style.transform = 'translate(-50%, -50%)';
+            document.body.appendChild(el);
+            setTimeout(() => el.remove(), 1000);
+        }
+
+        function handleAnswer(selectedIndex, q) {
+            stopSpeech(); // Stop dialogue speech when answering
+            const isCorrect = selectedIndex === q.correctIndex;
+            const wager = parseInt(slider.value);
+            
+            const modal = document.getElementById('modal-feedback');
+            const feedbackBox = document.getElementById('feedback-box');
+            const wagerResult = document.getElementById('wager-result');
+            
+            // Populate Character Reveal Face
+            const imgEl = document.getElementById('reveal-image');
+            const emojiEl = document.getElementById('reveal-emoji');
+            document.getElementById('reveal-name').innerText = q.character;
+
+            if (q.imageSrc && q.imageSrc.trim() !== "") {
+                imgEl.src = q.imageSrc;
+                imgEl.classList.remove('hidden');
+                emojiEl.classList.add('hidden');
+            } else {
+                imgEl.classList.add('hidden');
+                emojiEl.classList.remove('hidden');
+                emojiEl.innerText = q.emoji;
+            }
+
+            modal.classList.remove('hidden');
+            document.getElementById('feedback-fact').innerText = q.fact;
+
+            if (isCorrect) {
+                playSuccess(); playChaChing();
+                bank += wager; 
+                showFloatingText(`+$${wager}`, true);
+                
+                feedbackBox.className = "glass-panel border-l-8 border-green-600 p-6 md:p-8 max-w-3xl w-full shadow-[0_0_50px_rgba(22,163,74,0.2)] relative z-10 scrollable-content flex flex-col md:flex-row gap-6";
+                document.getElementById('feedback-title').innerHTML = `<span class="text-green-500">Correct.</span>`;
+                document.getElementById('feedback-message').innerText = q.successMsg;
+                
+                wagerResult.innerText = `+$${wager}`;
+                wagerResult.className = "font-mono text-lg font-bold px-3 py-1 rounded bg-green-900/50 text-green-400 border border-green-500 mt-2";
+            } else {
+                playFail();
+                bank -= wager; 
+                showFloatingText(`-$${wager}`, false);
+                
+                feedbackBox.className = "glass-panel border-l-8 border-roystar-danger p-6 md:p-8 max-w-3xl w-full shadow-[0_0_50px_rgba(139,0,0,0.4)] relative z-10 shake scrollable-content flex flex-col md:flex-row gap-6";
+                document.getElementById('feedback-title').innerHTML = `<span class="text-roystar-danger">Incorrect.</span>`;
+                document.getElementById('feedback-message').innerText = q.failMsg;
+                
+                wagerResult.innerText = `-$${wager}`;
+                wagerResult.className = "font-mono text-lg font-bold px-3 py-1 rounded bg-red-900/50 text-red-400 border border-red-500 mt-2";
+            }
+
+            document.getElementById('bank-value').innerText = `$${bank}`;
+            if(bank <= 0) { document.getElementById('bank-value').className = "text-roystar-danger font-bold font-mono text-lg"; } 
+            else { document.getElementById('bank-value').className = "text-green-500 font-bold font-mono text-lg"; }
+        }
+
+        function proceedToNextStage() {
+            stopSpeech(); // Stop feedback speech when continuing
+            document.getElementById('modal-feedback').classList.add('hidden');
+            if (bank <= 0) { showEndScreen(true); } 
+            else if (currentStageIndex + 1 < stages.length) { transitionToStage(currentStageIndex + 1); } 
+            else { showEndScreen(false); }
+        }
+
+        function showEndScreen(fired) {
+            doors.classList.remove('doors-open');
+            playDoorSlam();
+            document.getElementById('screen-game').classList.add('hidden');
+            document.getElementById('score-display').classList.add('hidden');
+
+            setTimeout(() => {
+                room.className = 'bg-end'; 
+                playRoomTransition();
+                doors.classList.add('doors-open');
+                
+                setTimeout(() => {
+                    const endScreen = document.getElementById('screen-end');
+                    endScreen.classList.remove('hidden');
+                    
+                    document.getElementById('final-bank-value').innerText = `$${bank}`;
+                    document.getElementById('summary-group').innerText = teamData.groupName;
+                    
+                    // Format members to only show non-empty entries
+                    const activeMembers = teamData.members.filter(m => m.trim() !== "");
+                    document.getElementById('summary-members').innerText = activeMembers.join(', ');
+
+                    const verdictEl = document.getElementById('final-verdict');
+                    const msgEl = document.getElementById('end-message');
+
+                    if (fired) {
+                        verdictEl.innerText = "Terminated.";
+                        verdictEl.className = "text-3xl md:text-4xl text-roystar-danger mb-4 font-serif italic";
+                        document.getElementById('final-bank-value').className = "text-5xl md:text-7xl font-mono font-bold mb-4 text-roystar-danger";
+                        msgEl.innerText = "You wagered your reputation and lost everything. Security is escorting you out of the Manhattan building.";
+                    } else if (bank > 10000) {
+                        verdictEl.innerText = "Master of the Universe.";
+                        verdictEl.className = "text-3xl md:text-4xl text-green-500 mb-4 font-serif italic";
+                        document.getElementById('final-bank-value').className = "text-5xl md:text-7xl font-mono font-bold mb-4 text-green-500";
+                        msgEl.innerText = "You aggressively bet on your pristine GAAP knowledge and crushed the board. The executives are handing you the keys to the empire.";
+                        playChaChing();
+                    } else {
+                        verdictEl.innerText = "You Survived.";
+                        verdictEl.className = "text-3xl md:text-4xl text-roystar-gold mb-4 font-serif italic";
+                        document.getElementById('final-bank-value').className = "text-5xl md:text-7xl font-mono font-bold mb-4 text-roystar-gold";
+                        msgEl.innerText = "You made it through the fiscal year without bankrupting your reputation. Submit your ledger below.";
+                    }
+                }, 1000);
+            }, 1000);
+        }
+    </script>
+</body>
+</html>
