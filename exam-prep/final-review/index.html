@@ -1,0 +1,1561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Final review (from Module 1-7)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html-docx-js@0.3.1/dist/html-docx.js"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
+        
+        body {
+            font-family: 'Nunito', sans-serif;
+            background-color: #fffbf7; 
+            color: #292524; 
+        }
+        
+        .sidebar-scroll::-webkit-scrollbar { width: 6px; }
+        .sidebar-scroll::-webkit-scrollbar-track { background: transparent; }
+        .sidebar-scroll::-webkit-scrollbar-thumb { background-color: #fca5a5; border-radius: 20px; }
+
+        .card { 
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+            border: 1px solid #ffedd5;
+            border-top: 4px solid #ffedd5;
+            background-color: #ffffff;
+        }
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 25px -5px rgba(244, 63, 94, 0.1), 0 10px 10px -5px rgba(244, 63, 94, 0.04);
+            border-top-color: #f43f5e; 
+        }
+        
+        .answer-section {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-out, opacity 0.5s ease-out;
+            opacity: 0;
+        }
+        
+        .answer-section.visible {
+            max-height: 3000px; 
+            overflow-y: auto;
+            opacity: 1;
+            padding-top: 1.5rem;
+            padding-bottom: 1.5rem;
+            margin-top: 1rem;
+        }
+
+        .option-btn { 
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); 
+            cursor: pointer; 
+            border: 2px solid #ffedd5; 
+            background-color: #fffaf5; 
+            color: #44403c;
+            min-height: 3.5rem;
+            display: flex;
+            align-items: center;
+        }
+        .option-btn:hover { 
+            background-color: #ffedd5; 
+            transform: scale(1.01); 
+            border-color: #fdba74;
+        }
+        .option-btn.selected {
+            background-color: #fff1f2; 
+            border-color: #f43f5e; 
+            color: #be123c; 
+            font-weight: 700; 
+            box-shadow: 0 4px 6px -1px rgba(244, 63, 94, 0.15);
+        }
+        .option-btn.correct-choice {
+            background-color: #f0fdf4 !important; 
+            border-color: #22c55e !important; 
+            color: #14532d !important; 
+            font-weight: 800;
+            box-shadow: 0 4px 6px -1px rgba(34, 197, 94, 0.2);
+        }
+        .option-btn.incorrect-choice {
+            background-color: #fef2f2 !important; 
+            border-color: #ef4444 !important; 
+            color: #7f1d1d !important; 
+        }
+
+        .nav-item.active {
+            background-color: #fff1f2; color: #be123c; border-right: 4px solid #f43f5e; font-weight: 800;
+        }
+        
+        .mod-pill, .skill-pill { cursor: pointer; transition: all 0.2s; }
+
+        .q-table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 0.9rem; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .q-table th, .q-table td { border: 1px solid #ffedd5; padding: 12px 16px; text-align: left; color: #44403c; }
+        .q-table th { background-color: #fffaf5; font-weight: 800; color: #78716c; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 0.05em;}
+        
+        .smart-input {
+            width: 100%;
+            min-width: 80px;
+            padding: 8px 12px;
+            border: 2px solid #fdba74;
+            border-radius: 8px;
+            background-color: #ffffff;
+            color: #1c1917;
+            outline: none;
+            transition: all 0.3s ease;
+            font-family: monospace;
+            font-size: 1rem;
+            font-weight: 600;
+        }
+        .smart-input:focus { border-color: #f43f5e; box-shadow: 0 0 0 4px rgba(244, 63, 94, 0.2); transform: scale(1.02); z-index: 10; position: relative; }
+        .smart-input.correct { border-color: #10b981; background-color: #f0fdf4; color: #047857; font-weight: 800; box-shadow: 0 0 12px rgba(16, 185, 129, 0.25); }
+        .smart-input.incorrect { border-color: #ef4444; background-color: #fef2f2; color: #991b1b; }
+        select.smart-input { cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23f97316' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M6 8l4 4 4-4'/%3e%3c/svg%3e"); background-position: right 0.75rem center; background-repeat: no-repeat; background-size: 1.5em 1.5em; padding-right: 2.5rem; }
+        
+        .fset-header { font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 0.85rem; color: #7c2d12; background-color: #ffedd5; padding: 1rem; border-radius: 0.5rem; text-align: center; overflow-x: auto; white-space: nowrap; margin-bottom: 0.75rem; line-height: 1.5; border: 1px solid #fdba74;}
+        .fset-select { width: 100%; padding: 0.4rem; border: 2px solid #fdba74; border-radius: 0.35rem; font-size: 0.8rem; margin-bottom: 0.35rem; font-weight: 700;}
+        .fset-col { display: flex; flex-direction: column; align-items: center; min-width: 120px; }
+        .fset-label { font-size: 0.7rem; text-transform: uppercase; font-weight: 900; color: #9a3412; margin-bottom: 4px; text-align: center; }
+
+        @keyframes slideDownFade { 
+            0% { transform: translateY(-20px); opacity: 0; } 
+            15% { transform: translateY(0); opacity: 1; } 
+            85% { transform: translateY(0); opacity: 1; } 
+            100% { transform: translateY(-20px); opacity: 0; } 
+        }
+
+        .summary-block h4 { color: #be123c; font-weight: 900; margin-top: 1.5rem; margin-bottom: 0.5rem; font-size: 1.25rem; border-bottom: 3px solid #fda4af; padding-bottom: 0.25rem; }
+        .summary-block h5 { font-weight: 800; color: #44403c; margin-top: 1rem; margin-bottom: 0.25rem; font-size: 1.05rem; }
+        .summary-block ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 1rem; color: #57534e; font-weight: 500;}
+        .summary-block p { margin-bottom: 0.75rem; color: #57534e; line-height: 1.6; font-weight: 500;}
+        .summary-block .highlight-box { background: #fff1f2; border-left: 5px solid #f43f5e; padding: 1rem; margin: 0.75rem 0; border-radius: 0 0.5rem 0.5rem 0; color: #4c0519; font-weight: 700;}
+    </style>
+</head>
+<body class="h-screen flex flex-col md:flex-row overflow-hidden">
+
+    <!-- Mobile Header -->
+    <header class="bg-gradient-to-r from-orange-500 via-rose-500 to-pink-600 text-white shadow-lg p-4 flex justify-between items-center z-20 md:hidden">
+        <div class="flex items-center gap-3 font-extrabold text-xl tracking-tight">
+            <div class="bg-white/30 p-2 rounded-xl backdrop-blur-md shadow-sm"><i data-lucide="sparkles" class="w-6 h-6 text-white"></i></div>
+            <span>Final Review</span>
+        </div>
+        <button onclick="toggleMobileMenu()" class="text-rose-100 hover:text-white transition-colors bg-white/10 p-2 rounded-lg">
+            <i data-lucide="menu" class="w-7 h-7"></i>
+        </button>
+    </header>
+
+    <!-- Sidebar Navigation -->
+    <aside id="sidebar" class="bg-white w-full md:w-72 border-r border-orange-100 flex-col absolute md:relative z-10 h-full hidden md:flex transition-transform duration-300 shadow-[4px_0_20px_-3px_rgba(244,63,94,0.05)]">
+        <div class="p-6 border-b border-orange-50 hidden md:flex items-center gap-3 font-black text-2xl text-rose-900 bg-[#fffaf5]">
+            <div class="bg-gradient-to-br from-orange-400 to-rose-500 p-2.5 rounded-2xl shadow-md text-white transform -rotate-3 hover:rotate-0 transition-transform">
+                <i data-lucide="sparkles" class="w-7 h-7"></i>
+            </div>
+            <span>You Got This!</span>
+        </div>
+        
+        <div class="p-5 overflow-y-auto flex-1 sidebar-scroll space-y-3">
+            <div class="text-[11px] font-black text-rose-400 uppercase tracking-widest mb-4 px-2">Question Bank</div>
+            
+            <button onclick="setFormat('all')" id="btn-all" class="nav-item w-full text-left px-5 py-4 rounded-2xl text-base font-bold transition-all active text-stone-700 shadow-sm">
+                All Questions <span class="float-right text-xs bg-rose-100 text-rose-800 px-2.5 py-1 rounded-full font-black" id="count-all">0</span>
+            </button>
+            <button onclick="setFormat('Multiple Choice')" id="btn-mcq" class="nav-item w-full text-left px-5 py-4 rounded-2xl text-base font-bold transition-all text-stone-600 hover:bg-[#fffaf5] hover:text-stone-900">
+                Multiple Choice <span class="float-right text-xs bg-stone-100 text-stone-600 px-2.5 py-1 rounded-full font-black" id="count-mcq">0</span>
+            </button>
+            <button onclick="setFormat('Exercises')" id="btn-exercises" class="nav-item w-full text-left px-5 py-4 rounded-2xl text-base font-bold transition-all text-stone-600 hover:bg-[#fffaf5] hover:text-stone-900">
+                Interactive Exercises <span class="float-right text-xs bg-stone-100 text-stone-600 px-2.5 py-1 rounded-full font-black" id="count-exercises">0</span>
+            </button>
+            <button onclick="setFormat('FSET')" id="btn-fset" class="nav-item w-full text-left px-5 py-4 rounded-2xl text-base font-bold transition-all text-stone-600 hover:bg-[#fffaf5] hover:text-stone-900">
+                FSET Analysis <span class="float-right text-xs bg-stone-100 text-stone-600 px-2.5 py-1 rounded-full font-black" id="count-fset">0</span>
+            </button>
+
+            <div class="mt-10 border-t border-orange-100 pt-8">
+                <div class="text-[11px] font-black text-rose-400 uppercase tracking-widest mb-4 px-2">Helper Tools</div>
+                
+                <button onclick="toggleSummary()" class="w-full text-left px-5 py-3.5 rounded-2xl text-sm font-bold text-stone-600 hover:bg-rose-50 hover:text-rose-700 transition-all flex items-center gap-3">
+                    <div class="bg-rose-100 p-1.5 rounded-lg"><i data-lucide="book-open" class="w-5 h-5 text-rose-600"></i></div> Master Study Guide
+                </button>
+
+                <button onclick="toggleFormulas()" class="w-full text-left px-5 py-3.5 rounded-2xl text-sm font-bold text-stone-600 hover:bg-rose-50 hover:text-rose-700 transition-all flex items-center gap-3 mt-1">
+                    <div class="bg-orange-100 p-1.5 rounded-lg"><i data-lucide="sigma" class="w-5 h-5 text-orange-600"></i></div> Formulas & Metrics
+                </button>
+                <button onclick="toggleCalculator()" class="w-full text-left px-5 py-3.5 rounded-2xl text-sm font-bold text-stone-600 hover:bg-rose-50 hover:text-rose-700 transition-all flex items-center gap-3 mt-1">
+                    <div class="bg-pink-100 p-1.5 rounded-lg"><i data-lucide="calculator" class="w-5 h-5 text-pink-600"></i></div> Scratch Calculator
+                </button>
+                <button onclick="toggleAllAnswers()" id="toggleAllSideBtn" class="w-full text-left px-5 py-4 rounded-2xl text-sm font-bold text-stone-700 hover:bg-rose-50 hover:text-rose-700 transition-all flex items-center gap-3 mt-4 border-2 border-rose-100 shadow-sm bg-white">
+                    <i data-lucide="eye" class="w-5 h-5 text-rose-500"></i> Show All Answers
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 overflow-y-auto h-full p-4 md:p-8 bg-[#fffbf7] scroll-smooth relative">
+        <div class="max-w-5xl mx-auto mb-8 bg-gradient-to-r from-orange-500 via-rose-500 to-pink-600 rounded-[2rem] p-8 shadow-[0_20px_40px_-10px_rgba(244,63,94,0.3)] text-white relative overflow-hidden">
+            <div class="absolute top-0 right-0 opacity-10 transform translate-x-10 -translate-y-10">
+                <i data-lucide="target" class="w-64 h-64"></i>
+            </div>
+            <h1 class="text-4xl font-black mb-3 tracking-tight text-white relative z-10">Final review (from Module 1-7)</h1>
+            <p class="text-rose-50 text-lg max-w-3xl leading-relaxed mb-6 font-semibold relative z-10">Test your knowledge across Modules 1 through 7. Use the filters below to isolate specific topics. You are going to ace this exam!</p>
+            <div class="bg-black/20 p-5 rounded-2xl border border-white/20 flex items-start gap-4 shadow-inner relative z-10 backdrop-blur-sm">
+                <div class="bg-amber-400/30 p-2 rounded-xl mt-0.5"><i data-lucide="flag" class="w-6 h-6 text-amber-200"></i></div>
+                <p class="text-sm text-rose-50 font-semibold leading-relaxed"><strong>Study Tip:</strong> Use the flag icon on any question to log ones you want to revisit. Save your progress by dragging the <strong class="text-white">Download Report</strong> button anywhere on your screen and clicking it before you leave!</p>
+            </div>
+        </div>
+
+        <div class="max-w-5xl mx-auto mb-8 bg-white p-6 rounded-[2rem] border-2 border-orange-50 shadow-sm">
+            
+            <!-- Search Bar -->
+            <div class="mb-6 relative">
+                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <i data-lucide="search" class="w-6 h-6 text-stone-400"></i>
+                </div>
+                <input type="text" id="search-bar" onkeyup="handleSearch(this.value)" placeholder="Search for a concept, ratio, or keyword..." class="w-full pl-12 pr-4 py-4 border-2 border-orange-100 rounded-2xl bg-[#fffaf5] focus:bg-white focus:border-rose-400 focus:ring-4 focus:ring-rose-400/20 transition-all outline-none text-stone-800 font-bold text-lg placeholder-stone-400">
+            </div>
+
+            <!-- Module Toolbar -->
+            <div class="flex flex-wrap gap-2.5 mb-5" id="mod-toolbar">
+                <button onclick="setMod('all')" id="mod-all" class="mod-pill active-mod px-5 py-2.5 rounded-xl text-sm font-black border text-white bg-rose-500 border-transparent shadow-md hover:scale-105">All Mods</button>
+                <button onclick="setMod('M1')" id="mod-m1" class="mod-pill px-5 py-2.5 rounded-xl text-sm font-bold border-2 border-orange-100 text-stone-600 hover:border-orange-300 hover:text-orange-700 bg-white">Mod 1</button>
+                <button onclick="setMod('M2')" id="mod-m2" class="mod-pill px-5 py-2.5 rounded-xl text-sm font-bold border-2 border-orange-100 text-stone-600 hover:border-orange-300 hover:text-orange-700 bg-white">Mod 2</button>
+                <button onclick="setMod('M3')" id="mod-m3" class="mod-pill px-5 py-2.5 rounded-xl text-sm font-bold border-2 border-orange-100 text-stone-600 hover:border-orange-300 hover:text-orange-700 bg-white">Mod 3</button>
+                <button onclick="setMod('M4')" id="mod-m4" class="mod-pill px-5 py-2.5 rounded-xl text-sm font-bold border-2 border-orange-100 text-stone-600 hover:border-orange-300 hover:text-orange-700 bg-white">Mod 4</button>
+                <button onclick="setMod('M5')" id="mod-m5" class="mod-pill px-5 py-2.5 rounded-xl text-sm font-bold border-2 border-orange-100 text-stone-600 hover:border-orange-300 hover:text-orange-700 bg-white">Mod 5</button>
+                <button onclick="setMod('M6')" id="mod-m6" class="mod-pill px-5 py-2.5 rounded-xl text-sm font-bold border-2 border-orange-100 text-stone-600 hover:border-orange-300 hover:text-orange-700 bg-white">Mod 6</button>
+                <button onclick="setMod('M7')" id="mod-m7" class="mod-pill px-5 py-2.5 rounded-xl text-sm font-bold border-2 border-orange-100 text-stone-600 hover:border-orange-300 hover:text-orange-700 bg-white">Mod 7</button>
+            </div>
+            
+            <!-- Skill Toolbar -->
+            <div class="flex flex-wrap gap-3 border-t-2 border-orange-50 pt-5 mb-2" id="skill-toolbar">
+                <button onclick="setSkill('Conceptual')" id="skill-concept" class="skill-pill px-6 py-2.5 rounded-xl text-sm font-bold border-2 border-orange-100 text-stone-600 hover:bg-orange-50 hover:text-orange-700 hover:border-orange-300 flex items-center gap-2 bg-white"><i data-lucide="book-open" class="w-4 h-4"></i> Conceptual</button>
+                <button onclick="setSkill('Quantitative')" id="skill-quant" class="skill-pill px-6 py-2.5 rounded-xl text-sm font-bold border-2 border-orange-100 text-stone-600 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-300 flex items-center gap-2 bg-white"><i data-lucide="calculator" class="w-4 h-4"></i> Quantitative</button>
+                <button onclick="setSkill('Deep Thinking')" id="skill-deep" class="skill-pill px-6 py-2.5 rounded-xl text-sm font-bold border-2 border-orange-100 text-stone-600 hover:bg-violet-50 hover:text-violet-700 hover:border-violet-300 flex items-center gap-2 bg-white"><i data-lucide="brain" class="w-4 h-4"></i> Deep Thinking</button>
+                <div class="h-8 w-px bg-stone-200 mx-2 self-center rounded-full"></div>
+                <button onclick="toggleFlaggedFilter()" id="filter-flagged" class="skill-pill px-6 py-2.5 rounded-xl text-sm font-bold border-2 border-orange-100 text-stone-600 hover:bg-amber-50 hover:text-amber-700 hover:border-amber-300 flex items-center gap-2 bg-white shadow-sm"><i data-lucide="flag" class="w-4 h-4 text-amber-500"></i> Flagged Questions</button>
+            </div>
+            
+            <div class="bg-gradient-to-r from-rose-50 to-orange-50 p-5 rounded-2xl border border-rose-100 mt-6 flex justify-between items-center shadow-inner">
+                <div class="text-sm font-bold text-rose-900 flex items-center gap-3" id="filter-description">
+                    <div class="bg-white p-1.5 rounded-lg shadow-sm"><i data-lucide="info" class="w-5 h-5 text-rose-500"></i></div> Showing all topics and question types.
+                </div>
+                <div class="text-sm font-black text-rose-700 bg-white px-4 py-2 rounded-xl border-2 border-rose-200 shadow-sm" id="filter-count">
+                    Showing 0 questions
+                </div>
+            </div>
+        </div>
+        
+        <div id="questions-container" class="max-w-5xl mx-auto space-y-8 pb-32"></div>
+            
+        <div id="toast-container" class="fixed top-8 left-1/2 -translate-x-1/2 z-[100] flex flex-col gap-3 pointer-events-none items-center w-full max-w-sm px-4"></div>
+
+        <!-- Draggable Download Button -->
+        <div id="download-container" class="fixed bottom-8 right-8 z-[60] flex flex-col gap-3 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.3)] rounded-full">
+            <div class="flex items-center bg-gradient-to-r from-emerald-500 to-teal-600 rounded-full ring-4 ring-emerald-100/50 hover:shadow-[0_20px_35px_-5px_rgba(16,185,129,0.4)] transition-shadow">
+                <div id="download-drag-handle" class="px-3 py-4 cursor-move text-white/50 hover:text-white transition-colors border-r border-white/20 active:cursor-grabbing">
+                    <i data-lucide="grip-vertical" class="w-5 h-5"></i>
+                </div>
+                <button onclick="downloadReport()" class="flex justify-center items-center gap-3 text-white font-black py-4 px-6 md:px-8 rounded-r-full hover:scale-105 active:scale-95 transition-transform">
+                    <div class="bg-white/20 p-2 rounded-full"><i data-lucide="download" class="w-5 h-5 text-white"></i></div>
+                    <span class="text-lg">Download Report</span>
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- SUMMARY MODAL -->
+    <div id="summary-modal" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onclick="toggleSummary()"></div>
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-11/12 max-w-5xl bg-white rounded-3xl shadow-2xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-200 border border-slate-200">
+            <div class="p-6 border-b border-slate-200 flex justify-between items-center bg-[#fffaf5]">
+                <h3 class="font-black text-rose-900 flex items-center gap-3 text-2xl"><div class="bg-rose-100 text-rose-600 p-2.5 rounded-xl shadow-sm"><i data-lucide="book-open" class="w-7 h-7"></i></div> Master Study Guide</h3>
+                <button onclick="toggleSummary()" class="text-stone-400 hover:text-rose-600 transition-colors p-2 hover:bg-rose-50 rounded-xl"><i data-lucide="x" class="w-8 h-8"></i></button>
+            </div>
+            <div class="p-8 overflow-y-auto bg-white summary-block">
+                
+                <h3 class="text-2xl font-black text-stone-800 mb-5 border-b-4 border-rose-500 inline-block">Modules 1-3: Analysis Framework</h3>
+                <h5>1. The Financial Environment & Profitability</h5>
+                <div class="highlight-box"><strong>Key idea:</strong> Financial reporting connects operations with capital markets via SEC filings.</div>
+                <ul>
+                    <li><strong>ROA (Return on Assets):</strong> Net Income / Avg Assets. Analyzes asset efficiency.</li>
+                    <li><strong>ROE (Return on Equity):</strong> Net Income / Avg Equity. Measures shareholder returns.</li>
+                    <li><strong>DuPont Analysis:</strong> ROE = Profit Margin &times; Asset Turnover &times; Financial Leverage.</li>
+                </ul>
+                <h5>2. Advanced DuPont (Operating vs Nonoperating)</h5>
+                <ul>
+                    <li><strong>NOPAT:</strong> Net Operating Profit After Tax. Measures core operating profit stripped of financing choices. Can be computed as (Net Income + Net Nonoperating Expense after tax) or (NOPBT - Tax on Operating Profit).</li>
+                    <li><strong>NNE:</strong> Net Nonoperating Expense. Primarily interest expense minus interest income, adjusted for the tax shield.</li>
+                    <li><strong>RNOA:</strong> Return on Net Operating Assets = NOPAT / Average NOA. Isolates core business return from financing leverage.</li>
+                </ul>
+
+                <h3 class="text-2xl font-black text-stone-800 mt-10 mb-5 border-b-4 border-violet-500 inline-block">Modules 4-5: Credit & Revenue</h3>
+                <h5>1. Credit Risk and Covenants</h5>
+                <div class="highlight-box !border-violet-400 !bg-violet-50 !text-violet-950"><strong>Key idea:</strong> Creditors assess liquidity (short-term) and solvency (long-term) to prevent default.</div>
+                <ul>
+                    <li><strong>Coverage Ratios:</strong> Times Interest Earned (EBIT / Int Exp) ensures operations cover debt costs.</li>
+                    <li><strong>Z-Score:</strong> A predictive model weighing profitability, working capital, and leverage to flag bankruptcy risk. Used by agencies as a quantitative baseline for credit ratings.</li>
+                </ul>
+                <h5>2. Revenue Recognition (ASC 606)</h5>
+                <p>The 5 Steps: Identify contract, identify obligations, determine price, allocate price, recognize when satisfied. <strong>Deferred Revenue</strong> is created when cash is received before the obligation is fulfilled.</p>
+
+                <h3 class="text-2xl font-black text-stone-800 mt-10 mb-5 border-b-4 border-sky-500 inline-block">Modules 6-7: Assets & Debt</h3>
+                <h5>1. Inventory Costing</h5>
+                <div class="highlight-box !border-sky-400 !bg-sky-50 !text-sky-950"><strong>Key idea:</strong> FIFO vs LIFO affects reported value during inflation.</div>
+                <ul>
+                    <li>During inflation, LIFO = lower net income (tax savings), lower ending inventory.</li>
+                    <li><strong>LIFO Reserve:</strong> The difference between FIFO and LIFO ending inventory balances. FIFO Inventory = LIFO Inventory + LIFO Reserve.</li>
+                </ul>
+                
+                <h5>2. Long-Lived Assets & Intangibles</h5>
+                <div class="highlight-box !border-sky-400 !bg-sky-50 !text-sky-950"><strong>Key idea:</strong> Tangible assets are depreciated, while finite-lived intangibles are amortized to match costs with revenues.</div>
+                <ul>
+                    <li><strong>Depreciation:</strong> Allocates the cost of property, plant, and equipment over its useful life. It is a non-cash expense.</li>
+                    <li><strong>Goodwill:</strong> Created only during acquisitions (Purchase Price > Fair Value of Net Assets). It is never amortized, but is tested annually for impairment.</li>
+                </ul>
+
+                <h5>3. Bond Pricing and Amortization</h5>
+                <p>Bonds are priced at the Present Value of future cash flows. If the stated coupon rate is lower than the market rate, it sells at a <strong>Discount</strong>. The Effective Interest Method is used to calculate interest expense, which amortizes the carrying value to par at maturity.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- FORMULA MODAL -->
+    <div id="formula-modal" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onclick="toggleFormulas()"></div>
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-11/12 max-w-6xl bg-white rounded-3xl shadow-2xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-200 border border-slate-200">
+            <div class="p-6 border-b border-slate-200 flex justify-between items-center bg-[#fffaf5]">
+                <h3 class="font-black text-orange-900 flex items-center gap-3 text-2xl"><div class="bg-orange-100 text-orange-600 p-2.5 rounded-xl shadow-sm"><i data-lucide="sigma" class="w-7 h-7"></i></div> Master Formula Sheet</h3>
+                <button onclick="toggleFormulas()" class="text-stone-400 hover:text-orange-600 transition-colors p-2 hover:bg-orange-50 rounded-xl"><i data-lucide="x" class="w-8 h-8"></i></button>
+            </div>
+            <div class="p-8 overflow-y-auto bg-white">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-y-10 gap-x-12 text-sm text-stone-700">
+                    
+                    <div class="space-y-5">
+                        <h4 class="text-xl font-black text-rose-800 border-b-4 border-rose-200 pb-2">Module 1-3: Profitability</h4>
+                        <div class="bg-[#fffaf5] p-5 rounded-2xl border-2 border-orange-100 shadow-sm"><span class="font-black text-rose-900 block text-xs uppercase tracking-wider mb-2">Return on Equity (ROE)</span>Net Income &divide; Average Equity</div>
+                        <div class="bg-[#fffaf5] p-5 rounded-2xl border-2 border-orange-100 shadow-sm"><span class="font-black text-rose-900 block text-xs uppercase tracking-wider mb-2">Return on Assets (ROA)</span>Net Income &divide; Average Assets</div>
+                        <div class="bg-[#fffaf5] p-5 rounded-2xl border-2 border-orange-100 shadow-sm"><span class="font-black text-rose-900 block text-xs uppercase tracking-wider mb-2">Financial Leverage</span>Average Assets &divide; Average Equity</div>
+                        <div class="bg-[#fffaf5] p-5 rounded-2xl border-2 border-orange-100 shadow-sm"><span class="font-black text-rose-900 block text-xs uppercase tracking-wider mb-2">Profit Margin</span>Net Income &divide; Sales</div>
+                        <div class="bg-[#fffaf5] p-5 rounded-2xl border-2 border-orange-100 shadow-sm"><span class="font-black text-rose-900 block text-xs uppercase tracking-wider mb-2">Asset Turnover</span>Sales &divide; Average Assets</div>
+                        <div class="bg-[#fffaf5] p-5 rounded-2xl border-2 border-orange-100 shadow-sm"><span class="font-black text-rose-900 block text-xs uppercase tracking-wider mb-2">NOA: Net Operating Assets</span>Operating assets - Operating liabilities</div>
+                        <div class="bg-[#fffaf5] p-5 rounded-2xl border-2 border-orange-100 shadow-sm"><span class="font-black text-rose-900 block text-xs uppercase tracking-wider mb-2">NOPBT: Net Operating Profit Before Tax</span>Revenue - Operating expenses including Cost of Goods Sold</div>
+                        <div class="bg-[#fffaf5] p-5 rounded-2xl border-2 border-orange-100 shadow-sm"><span class="font-black text-rose-900 block text-xs uppercase tracking-wider mb-2">NNE: Net Nonoperating Expense After Tax</span>Pretax net nonoperating expense &times; (1 - Tax%)</div>
+                        <div class="bg-[#fffaf5] p-5 rounded-2xl border-2 border-orange-100 shadow-sm"><span class="font-black text-rose-900 block text-xs uppercase tracking-wider mb-2">NOPAT: Net Operating Profit After Tax</span>1. NOPBT - Tax on operating profit <br> 2. Net income + NNE</div>
+                        <div class="bg-[#fffaf5] p-5 rounded-2xl border-2 border-orange-100 shadow-sm"><span class="font-black text-rose-900 block text-xs uppercase tracking-wider mb-2">RNOA: Return on Net Operating Assets</span>NOPAT &divide; Average Net Operating Assets</div>
+                    </div>
+
+                    <div class="space-y-5">
+                        <h4 class="text-xl font-black text-violet-800 border-b-4 border-violet-200 pb-2">Module 4-5: Credit & Revenue</h4>
+                        <div class="bg-violet-50/50 p-5 rounded-2xl border-2 border-violet-100 shadow-sm"><span class="font-black text-violet-900 block text-xs uppercase tracking-wider mb-2">Times Interest Earned (TIE)</span>EBIT &divide; Interest Expense</div>
+                        <div class="bg-violet-50/50 p-5 rounded-2xl border-2 border-violet-100 shadow-sm"><span class="font-black text-violet-900 block text-xs uppercase tracking-wider mb-2">EBITDA</span>EBIT + Depreciation + Amortization</div>
+                        <div class="bg-violet-50/50 p-5 rounded-2xl border-2 border-violet-100 shadow-sm"><span class="font-black text-violet-900 block text-xs uppercase tracking-wider mb-2">Free Operating Cash Flow to Total Debt</span>(Operating Cash Flow - CAPEX) &divide; Total Debt</div>
+                        <div class="bg-violet-50/50 p-5 rounded-2xl border-2 border-violet-100 shadow-sm"><span class="font-black text-violet-900 block text-xs uppercase tracking-wider mb-2">Debt-to-EBITDA</span>Total Debt &divide; EBITDA</div>
+                        <div class="bg-violet-50/50 p-5 rounded-2xl border-2 border-violet-100 shadow-sm"><span class="font-black text-violet-900 block text-xs uppercase tracking-wider mb-2">Accounts Receivable Turnover</span>Sales &divide; Average Accounts Receivable</div>
+                        <div class="bg-violet-50/50 p-5 rounded-2xl border-2 border-violet-100 shadow-sm"><span class="font-black text-violet-900 block text-xs uppercase tracking-wider mb-2">Days Sales Outstanding (DSO)</span>365 &divide; Accounts Receivable Turnover</div>
+                        <div class="bg-violet-50/50 p-5 rounded-2xl border-2 border-violet-100 shadow-sm"><span class="font-black text-violet-900 block text-xs uppercase tracking-wider mb-2">Net Accounts Receivable</span>Gross Accounts Receivable - Allowance for Doubtful Accounts</div>
+                        <div class="bg-violet-50/50 p-5 rounded-2xl border-2 border-violet-100 shadow-sm"><span class="font-black text-violet-900 block text-xs uppercase tracking-wider mb-2">Percentage of Completion (Cost-to-Cost)</span>Cumulative Costs Incurred &divide; Total Estimated Costs</div>
+                    </div>
+
+                    <div class="space-y-5">
+                        <h4 class="text-xl font-black text-sky-700 border-b-4 border-sky-200 pb-2 col-span-2">Module 6-7: Assets & Liabilities</h4>
+                        <div class="bg-sky-50/50 p-5 rounded-2xl border-2 border-sky-100 shadow-sm"><span class="font-black text-sky-900 block text-xs uppercase tracking-wider mb-2">Inventory Turnover</span>COGS &divide; Average Inventory</div>
+                        <div class="bg-sky-50/50 p-5 rounded-2xl border-2 border-sky-100 shadow-sm"><span class="font-black text-sky-900 block text-xs uppercase tracking-wider mb-2">DIO (Days Inventory Outstanding)</span>365 &divide; Inventory Turnover</div>
+                        <div class="bg-sky-50/50 p-5 rounded-2xl border-2 border-sky-100 shadow-sm"><span class="font-black text-sky-900 block text-xs uppercase tracking-wider mb-2">PPE Turnover</span>Revenue &divide; Average Net PPE</div>
+                        <div class="bg-sky-50/50 p-5 rounded-2xl border-2 border-sky-100 shadow-sm"><span class="font-black text-sky-900 block text-xs uppercase tracking-wider mb-2">Average Net PPE</span>(Net PPE ending + Net PPE beginning) &divide; 2</div>
+                        <div class="bg-sky-50/50 p-5 rounded-2xl border-2 border-sky-100 shadow-sm"><span class="font-black text-sky-900 block text-xs uppercase tracking-wider mb-2">Average Useful Life</span>Average Gross PPE (Excl. Land/CIP) &divide; Depreciation Expense</div>
+                        <div class="bg-sky-50/50 p-5 rounded-2xl border-2 border-sky-100 shadow-sm"><span class="font-black text-sky-900 block text-xs uppercase tracking-wider mb-2">Percent Used Up</span>Accumulated Depreciation &divide; Total Gross PPE (Excl. Land/CIP)</div>
+                        <div class="bg-sky-50/50 p-5 rounded-2xl border-2 border-sky-100 shadow-sm"><span class="font-black text-sky-900 block text-xs uppercase tracking-wider mb-2">Depreciation Expense (Straight-Line)</span>(Cost - Salvage Value) &divide; Useful Life</div>
+                        <div class="bg-sky-50/50 p-5 rounded-2xl border-2 border-sky-100 shadow-sm"><span class="font-black text-sky-900 block text-xs uppercase tracking-wider mb-2">Depreciation Expense (DDB)</span>Beginning Book Value &times; (2 &divide; Useful Life)</div>
+                        <div class="bg-sky-50/50 p-5 rounded-2xl border-2 border-sky-100 shadow-sm"><span class="font-black text-sky-900 block text-xs uppercase tracking-wider mb-2">Warranty Expense</span>Expected failed units &times; Average repair cost</div>
+                        <div class="bg-sky-50/50 p-5 rounded-2xl border-2 border-sky-100 shadow-sm"><span class="font-black text-sky-900 block text-xs uppercase tracking-wider mb-2">Warranty Liability</span>Beginning Liability + Warranty Expense - Actual Claims/Repairs</div>
+                        <div class="bg-sky-50/50 p-5 rounded-2xl border-2 border-sky-100 shadow-sm"><span class="font-black text-sky-900 block text-xs uppercase tracking-wider mb-2">Interest Expense (note)</span>Principal &times; Rate &times; Time</div>
+                        <div class="bg-sky-50/50 p-5 rounded-2xl border-2 border-sky-100 shadow-sm"><span class="font-black text-sky-900 block text-xs uppercase tracking-wider mb-2">Bond Issue Price</span>PV of principal + PV of interest payments</div>
+                        <div class="bg-sky-50/50 p-5 rounded-2xl border-2 border-sky-100 shadow-sm"><span class="font-black text-sky-900 block text-xs uppercase tracking-wider mb-2">Interest Expense (bond)</span>Carrying value &times; market rate</div>
+                        <div class="bg-sky-50/50 p-5 rounded-2xl border-2 border-sky-100 shadow-sm"><span class="font-black text-sky-900 block text-xs uppercase tracking-wider mb-2">Cash Interest</span>Face value &times; stated rate</div>
+                        <div class="bg-sky-50/50 p-5 rounded-2xl border-2 border-sky-100 shadow-sm"><span class="font-black text-sky-900 block text-xs uppercase tracking-wider mb-2">Discount/Premium Amortization</span>Interest expense - Cash interest</div>
+                        <div class="bg-sky-50/50 p-5 rounded-2xl border-2 border-sky-100 shadow-sm"><span class="font-black text-sky-900 block text-xs uppercase tracking-wider mb-2">Average Interest Rate on Debt</span>Interest expense &divide; Average debt</div>
+                        <div class="bg-sky-50/50 p-5 rounded-2xl border-2 border-sky-100 shadow-sm"><span class="font-black text-sky-900 block text-xs uppercase tracking-wider mb-2">Times Interest Earned (TIE)</span>Earnings Before Interest & Taxes (EBIT) &divide; Interest Expense</div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- The floating calculator -->
+    <div id="calculator-container" class="fixed bottom-8 right-8 z-50 hidden shadow-[0_30px_60px_-12px_rgba(244,63,94,0.4)] rounded-3xl">
+        <div class="bg-[#1c1917] p-6 rounded-3xl border-4 border-stone-800 w-80">
+            <div id="calc-drag-handle" class="flex justify-between items-center mb-5 cursor-move active:cursor-grabbing pb-3 border-b-2 border-stone-800">
+                <span class="text-rose-400 text-xs font-black uppercase tracking-widest flex items-center gap-2 select-none pointer-events-none"><i data-lucide="grip-horizontal" class="w-4 h-4"></i> Scratch Calc</span>
+                <button onclick="toggleCalculator()" class="text-stone-500 hover:text-white bg-stone-800 p-1.5 rounded-xl transition-colors relative z-10"><i data-lucide="x" class="w-4 h-4"></i></button>
+            </div>
+            <div class="bg-stone-900 rounded-2xl mb-5 p-4 text-right text-4xl font-mono h-20 flex items-center justify-end overflow-hidden text-rose-300 border-2 border-stone-800 shadow-inner" id="calc-display">0</div>
+            <div class="grid grid-cols-4 gap-3">
+                <button onclick="clearCalc()" class="calc-btn bg-stone-700 hover:bg-stone-600 text-white p-4 rounded-2xl font-black col-span-2 shadow-sm transition-transform active:scale-95 text-lg">C</button>
+                <button onclick="backspace()" class="calc-btn bg-stone-800 hover:bg-stone-700 text-white p-4 rounded-2xl font-black shadow-sm transition-transform active:scale-95 text-lg">⌫</button>
+                <button onclick="appendOp('/')" class="calc-btn bg-orange-600 hover:bg-orange-500 text-white p-4 rounded-2xl font-black shadow-sm transition-transform active:scale-95 text-xl">&divide;</button>
+                <button onclick="appendNum('7')" class="calc-btn bg-stone-800 hover:bg-stone-700 text-white p-4 rounded-2xl font-bold shadow-sm transition-transform active:scale-95 text-xl">7</button>
+                <button onclick="appendNum('8')" class="calc-btn bg-stone-800 hover:bg-stone-700 text-white p-4 rounded-2xl font-bold shadow-sm transition-transform active:scale-95 text-xl">8</button>
+                <button onclick="appendNum('9')" class="calc-btn bg-stone-800 hover:bg-stone-700 text-white p-4 rounded-2xl font-bold shadow-sm transition-transform active:scale-95 text-xl">9</button>
+                <button onclick="appendOp('*')" class="calc-btn bg-orange-600 hover:bg-orange-500 text-white p-4 rounded-2xl font-black shadow-sm transition-transform active:scale-95 text-xl">&times;</button>
+                <button onclick="appendNum('4')" class="calc-btn bg-stone-800 hover:bg-stone-700 text-white p-4 rounded-2xl font-bold shadow-sm transition-transform active:scale-95 text-xl">4</button>
+                <button onclick="appendNum('5')" class="calc-btn bg-stone-800 hover:bg-stone-700 text-white p-4 rounded-2xl font-bold shadow-sm transition-transform active:scale-95 text-xl">5</button>
+                <button onclick="appendNum('6')" class="calc-btn bg-stone-800 hover:bg-stone-700 text-white p-4 rounded-2xl font-bold shadow-sm transition-transform active:scale-95 text-xl">6</button>
+                <button onclick="appendOp('-')" class="calc-btn bg-orange-600 hover:bg-orange-500 text-white p-4 rounded-2xl font-black shadow-sm transition-transform active:scale-95 text-xl">-</button>
+                <button onclick="appendNum('1')" class="calc-btn bg-stone-800 hover:bg-stone-700 text-white p-4 rounded-2xl font-bold shadow-sm transition-transform active:scale-95 text-xl">1</button>
+                <button onclick="appendNum('2')" class="calc-btn bg-stone-800 hover:bg-stone-700 text-white p-4 rounded-2xl font-bold shadow-sm transition-transform active:scale-95 text-xl">2</button>
+                <button onclick="appendNum('3')" class="calc-btn bg-stone-800 hover:bg-stone-700 text-white p-4 rounded-2xl font-bold shadow-sm transition-transform active:scale-95 text-xl">3</button>
+                <button onclick="appendOp('+')" class="calc-btn bg-orange-600 hover:bg-orange-500 text-white p-4 rounded-2xl font-black shadow-sm transition-transform active:scale-95 text-xl">+</button>
+                <button onclick="appendNum('0')" class="calc-btn bg-stone-800 hover:bg-stone-700 text-white p-4 rounded-2xl font-bold col-span-2 shadow-sm transition-transform active:scale-95 text-xl">0</button>
+                <button onclick="appendNum('.')" class="calc-btn bg-stone-800 hover:bg-stone-700 text-white p-4 rounded-2xl font-bold shadow-sm transition-transform active:scale-95 text-xl">.</button>
+                <button onclick="calculate()" class="calc-btn bg-rose-600 hover:bg-rose-500 text-white p-4 rounded-2xl font-black shadow-sm transition-transform active:scale-95 text-xl">=</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const ACCOUNT_OPTIONS = [
+            "Not Affected",
+            "Accounts Payable", "Accounts Receivable", "Accumulated Depreciation", 
+            "Allowance for Doubtful Accounts", "Bad Debt Expense", "Bonds Payable", 
+            "Cash", "Common Stock", "Cost of Goods Sold", "Depreciation Expense", 
+            "Equipment", "Gain on Bond Retirement", "Insurance Expense", 
+            "Interest Expense", "Interest Payable", "Inventory", "Maintenance Expense", 
+            "Notes Payable", "Prepaid Insurance", "Refund Liability", "Retained Earnings", 
+            "Sales Revenue", "Service Revenue", "Supplies", "Supplies Expense", 
+            "Unearned Revenue", "Utilities Expense", "Utilities Payable", 
+            "Wages Expense", "Wages Payable"
+        ].sort();
+
+        const questions = [
+            // ================== MODULE 1 (15) ==================
+            { id: 101, module: "M1", format: "Multiple Choice", lo: "M1-LO2", skill: "Conceptual", topic: "SEC Filings", question: `How do publicly traded companies commonly provide their official quarterly financial reports to the general public?`, options: ["A) Delivered directly via secure and encrypted electronic email messages.", "B) Submitted officially through the SEC EDGAR public database system.", "C) Published exclusively in printed daily financial newspaper publications.", "D) Voluntarily posted directly on the company's own corporate website."], answer: "B) Submitted officially through the SEC EDGAR public database system.", rationale: "Companies file electronically with the Securities and Exchange Commission (SEC) via the EDGAR database." },
+            { id: 102, module: "M1", format: "Multiple Choice", lo: "M1-LO2", skill: "Conceptual", topic: "Users of Information", question: `Which specific external stakeholder group is primarily interested in evaluating the company's ability to accurately pay its statutory tax liabilities?`, options: ["A) Common shareholders and external market analysts.", "B) Direct industry competitors and market peers.", "C) The IRS and other related local taxing agencies.", "D) Internal employees and union representatives."], answer: "C) The IRS and other related local taxing agencies.", rationale: "Taxing agencies focus strictly on evaluating tax liability and legislative compliance." },
+            { id: 103, module: "M1", format: "Multiple Choice", lo: "M1-LO7", skill: "Conceptual", topic: "Audit Opinion", question: `When an independent accounting firm issues a 'clean' audit opinion, what specific formal assertion are they making about the company?`, options: ["A) The auditor personally prepared the published financial statements.", "B) The company is absolutely guaranteed to remain profitable long-term.", "C) The statements present the financial condition fairly and accurately.", "D) There are absolutely zero mathematical errors in the entire ledger."], answer: "C) The statements present the financial condition fairly and accurately.", rationale: "It confirms fair presentation according to GAAP, not an error-free status or guaranteed profitability." },
+            { id: 104, module: "M1", format: "Multiple Choice", lo: "M1-LO7", skill: "Conceptual", topic: "GAAP", question: `Which official regulatory body is primarily responsible for establishing Generally Accepted Accounting Principles (GAAP) in the United States?`, options: ["A) The Internal Revenue Service (IRS).", "B) The Financial Accounting Standards Board (FASB).", "C) The Public Company Accounting Oversight Board (PCAOB).", "D) The United States Congress and Federal Reserve."], answer: "B) The Financial Accounting Standards Board (FASB).", rationale: "The Financial Accounting Standards Board (FASB) establishes the technical accounting rules." },
+            { id: 105, module: "M1", format: "Multiple Choice", lo: "M1-LO7", skill: "Conceptual", topic: "Market Efficiency", question: `The economic theory of 'market efficiency' relies on which of the following fundamental assumptions regarding financial asset prices?`, options: ["A) Current asset prices correctly reflect all available public information.", "B) Asset prices are guaranteed to continuously rise over the long term.", "C) Insider trading is a legally permitted and encouraged market strategy.", "D) Public financial statements are useless for predicting future values."], answer: "A) Current asset prices correctly reflect all available public information.", rationale: "Efficient markets quickly incorporate all new, relevant information directly into stock prices." },
+            { id: 106, module: "M1", format: "Multiple Choice", lo: "M1-LO2", skill: "Conceptual", topic: "Matching Principle", question: `How does the 'Revenue Recognition Principle' directly conceptually affect the application of the 'Matching Principle'?`, options: ["A) It inherently does not; they are completely unrelated structural concepts.", "B) Expenses must be recorded before revenue is recognized to ensure conservatism.", "C) Once revenue is recognized, all costs to generate it must be expensed in that same period.", "D) Revenue and expenses are simply recorded exactly when cash changes physical hands."], answer: "C) Once revenue is recognized, all costs to generate it must be expensed in that same period.", rationale: "The Matching Principle is dependent on the timing of revenue recognition. You first determine when revenue is earned, and then you match the associated costs (like COGS) to that same period." },
+            { id: 107, module: "M1", format: "Multiple Choice", lo: "M1-LO4", skill: "Deep Thinking", topic: "Profit Margin vs Turnover", question: `Two companies in the same industry have identical Return on Assets (ROA). Company A has a much higher Net Profit Margin than Company B. What does this likely imply about their specific business strategies?`, options: ["A) Company A is highly efficient at using physical assets to drive volume.", "B) Company B uses a high-volume strategy while Company A uses premium pricing.", "C) Company A utilizes significantly more financial leverage to boost returns.", "D) Company B generates substantially more profit per single dollar of sales."], answer: "B) Company B uses a high-volume strategy while Company A uses premium pricing.", rationale: "ROA is Profit Margin x Asset Turnover. If ROA is equal but A has a higher margin, A must have lower turnover (premium strategy). B must have higher turnover to compensate (low-cost/high-volume)." },
+            { id: 108, module: "M1", format: "Multiple Choice", lo: "M1-LO4", skill: "Deep Thinking", topic: "Earnings Quality", question: `Which of the following scenarios best illustrates a situation where a company's reported 'Net Income' might be technically high, but its underlying 'Earnings Quality' is considered to be exceptionally low?`, options: ["A) Cash Flow from Operations is significantly higher than reported Net Income.", "B) Net Income is driven primarily by a one-time gain from selling a factory.", "C) Revenue growth perfectly aligns with strong and consistent cash collections.", "D) The company utilizes highly conservative accounting estimates for warranties."], answer: "B) Net Income is driven primarily by a one-time gain from selling a factory.", rationale: "High earnings quality implies income is derived from sustainable core operations. A one-time gain boosts Net Income temporarily but does not reflect long-term health." },
+            { id: 109, module: "M1", format: "Multiple Choice", lo: "M1-LO4", skill: "Deep Thinking", topic: "Creditor Analysis", question: `Why might a long-term creditor (like a bondholder) be fundamentally more focused on the 'Times Interest Earned' ratio than a short-term creditor (like a supplier)?`, options: ["A) Suppliers are exclusively interested in long-term operational profitability.", "B) Bondholders rely on operating income to cover long-term interest payments.", "C) Times Interest Earned directly measures the total liquidation value of assets.", "D) Short-term creditors are completely unaffected if a firm declares bankruptcy."], answer: "B) Bondholders rely on operating income to cover long-term interest payments.", rationale: "Long-term creditors need assurance that operations can service debt (interest). Short-term creditors (suppliers) are more concerned with immediate liquidity to get paid in 30 days." },
+            { id: 110, module: "M1", format: "Multiple Choice", lo: "M1-LO4", skill: "Deep Thinking", topic: "Solvency Stakeholders", question: `Which of the following external stakeholders would typically be the most intensely interested in analyzing a company's Solvency ratios (such as the Debt-to-Equity ratio)?`, options: ["A) A local supplier deciding whether to sell basic goods on 30-day credit.", "B) A commercial bank considering lending the company $10M for a 10-year term.", "C) A retail customer purchasing a minor, inexpensive item using physical cash.", "D) An hourly employee currently attempting to negotiate a minor wage increase."], answer: "B) A commercial bank considering lending the company $10M for a 10-year term.", rationale: "Solvency refers to long-term debt-paying ability. Banks issuing long-term loans directly assess this risk. Suppliers focus on short-term liquidity." },
+            { id: 111, module: "M1", format: "Multiple Choice", lo: "M1-LO4", skill: "Deep Thinking", topic: "Market vs Book Value", question: `If a company's Book Value of Equity is significantly lower than its Market Value of Equity, what is the most economically plausible interpretation of this divergence?`, options: ["A) The company is currently on the verge of filing for formal bankruptcy.", "B) Investors expect strong future growth not captured by historical costs.", "C) The company has intentionally overstated its physical assets on the ledger.", "D) The company has mistakenly issued far too much common stock recently."], answer: "B) Investors expect strong future growth not captured by historical costs.", rationale: "Market value reflects future expectations. A high Market-to-Book ratio suggests investors believe the company's intangible value (brand, growth prospects) exceeds historical GAAP costs." },
+            { id: 112, module: "M1", format: "Multiple Choice", lo: "M1-LO3", skill: "Conceptual", topic: "Retained Earnings Impact", question: `Which of the following corporate events would specifically cause a direct decrease in the Retained Earnings account on the balance sheet?`, options: ["A) Collecting cash from an outstanding accounts receivable balance.", "B) Formally declaring and paying a cash dividend to shareholders.", "C) Successfully issuing new shares of common stock to the public.", "D) Repaying the principal amount on a long-term corporate loan."], answer: "B) Formally declaring and paying a cash dividend to shareholders.", rationale: "Retained Earnings is increased by Net Income and decreased by Net Losses and Dividends. Issuing stock affects Contributed Capital. Repaying a loan affects Cash and Liabilities." },
+            { id: 113, module: "M1", format: "Exercises", lo: "M1-LO3", skill: "Quantitative", topic: "Retained Earnings Calc", question: `A company reported the following: January 1 Retained Earnings of $11,425, Net Income of $3,160, and Dividends of $205. Calculate December 31 Retained Earnings.<br><br> Ending RE: $<input type="text" class="smart-input w-32" data-correct="14380">`, answer: "14,380", rationale: "Ending RE = Beg RE ($11,425) + Net Income ($3,160) - Dividends ($205) = $14,380." },
+            { id: 114, module: "M1", format: "Multiple Choice", lo: "M1-LO3", skill: "Quantitative", topic: "Accounting Equation", question: `A corporation reported the following selected balance sheet information at year-end:
+                <div class="overflow-x-auto text-sm mt-3 mb-4 border border-orange-100 rounded-xl shadow-sm">
+                    <table class="q-table whitespace-nowrap m-0 border-0">
+                        <tr><th colspan="2" class="bg-rose-50 text-rose-900 border-0">Selected Balance Sheet Items ($ millions)</th></tr>
+                        <tr><td class="border-orange-50 font-bold">Cash</td><td class="text-right border-orange-50 text-stone-600">$1,245.6</td></tr>
+                        <tr><td class="border-orange-50 font-bold">Accounts Receivable</td><td class="text-right border-orange-50 text-stone-600">3,180.4</td></tr>
+                        <tr><td class="border-orange-50 font-bold">Inventory</td><td class="text-right border-orange-50 text-stone-600">4,925.7</td></tr>
+                        <tr><td class="border-orange-50 font-bold">Property, Plant, and Equipment</td><td class="text-right border-orange-50 text-stone-600">12,142.6</td></tr>
+                        <tr><td class="border-orange-50 font-bold">Common Stock</td><td class="text-right border-orange-50 text-stone-600">2,500.0</td></tr>
+                        <tr><td class="border-orange-50 font-bold">Additional Paid-in Capital</td><td class="text-right border-orange-50 text-stone-600">3,100.0</td></tr>
+                        <tr><td class="border-orange-50 font-bold">Retained Earnings</td><td class="text-right border-orange-50 text-stone-600">4,236.1</td></tr>
+                        <tr><td class="border-orange-50 font-bold">Treasury Stock</td><td class="text-right border-orange-50 text-stone-600">(1,000.0)</td></tr>
+                    </table>
+                </div>
+                Calculate the corporation’s Total Liabilities.`, options: ["A. $11,658.2", "B. $12,658.2", "C. $13,658.2", "D. $21,494.3"], answer: "B. $12,658.2", rationale: "Total Assets = Cash + AR + Inv + PP&E = $21,494.3. Total Equity = CS + APIC + RE - Treasury Stock = $8,836.1. Total Liabilities = Assets - Equity = $21,494.3 - $8,836.1 = $12,658.2." },
+            { id: 115, module: "M1", format: "Multiple Choice", lo: "M1-LO4", skill: "Quantitative", topic: "ROE Practice", question: `A company reported the following information for the year:
+                <div class="overflow-x-auto text-sm mt-3 mb-4 border border-orange-100 rounded-xl shadow-sm">
+                    <table class="q-table whitespace-nowrap m-0 border-0">
+                        <tr><th colspan="2" class="bg-emerald-50 text-emerald-900 border-0">Selected Financial Data</th></tr>
+                        <tr><td class="border-orange-50 font-bold">Sales</td><td class="text-right border-orange-50 text-stone-600">$341,126</td></tr>
+                        <tr><td class="border-orange-50 font-bold">Cost of Goods Sold</td><td class="text-right border-orange-50 text-stone-600">220,850</td></tr>
+                        <tr><td class="border-orange-50 font-bold">Selling, General, and Admin</td><td class="text-right border-orange-50 text-stone-600">70,240</td></tr>
+                        <tr><td class="border-orange-50 font-bold">Interest Expense</td><td class="text-right border-orange-50 text-stone-600">3,750</td></tr>
+                        <tr><td class="border-orange-50 font-bold">Income Tax Expense</td><td class="text-right border-orange-50 text-stone-600">7,845</td></tr>
+                        <tr><td class="border-orange-50 font-bold">Beginning Equity</td><td class="text-right border-orange-50 text-stone-600">117,200</td></tr>
+                        <tr><td class="border-orange-50 font-bold">Ending Equity</td><td class="text-right border-orange-50 text-stone-600">130,100</td></tr>
+                        <tr><td class="border-orange-50 font-bold">Dividends Paid</td><td class="text-right border-orange-50 text-stone-600">8,000</td></tr>
+                    </table>
+                </div>
+                Calculate the company’s Return on Equity (ROE) for the year. Round your answer to one decimal place.`, options: ["A. 29.4%", "B. 31.1%", "C. 33.5%", "D. 37.2%"], answer: "B. 31.1%", rationale: "Net Income = Sales - COGS - SG&A - Int Exp - Tax Exp = $38,441. Average Equity = (117,200 + 130,100) / 2 = $123,650. ROE = 38,441 / 123,650 = 31.1%. (Dividends are ignored for Net Income)." },
+
+            // ================== MODULE 2 (15) ==================
+            { id: 201, module: "M2", format: "Multiple Choice", lo: "M2-LO1", skill: "Conceptual", topic: "Asset Criteria", question: `To be officially classified as an asset on a balance sheet, an item must be owned or controlled by the firm and must provide measurable future economic benefits. Is this statement true or false?`, options: ["True", "False"], answer: "True", rationale: "These are the two standard, foundational criteria required under GAAP to recognize an asset." },
+            { id: 202, module: "M2", format: "Multiple Choice", lo: "M2-LO1", skill: "Conceptual", topic: "Current Liability Classifications", question: `When analyzing a standard classified balance sheet, which of the following specific accounts is NOT categorized as a current liability?`, options: ["A) Accrued Expenses", "B) Unearned Revenue", "C) Wage Expense", "D) Accounts Payable"], answer: "C) Wage Expense", rationale: "Wage Expense is an income statement account. The others are actual balance sheet obligations representing economic value to be delivered or paid soon." },
+            { id: 203, module: "M2", format: "Multiple Choice", lo: "M2-LO2", skill: "Conceptual", topic: "Accrual Concept", question: `According to fundamental accrual accounting principles, a business must formally record an expense directly onto the income statement when:`, options: ["A) The cash is officially disbursed.", "B) The expense is actually incurred.", "C) The upcoming budget is finalized.", "D) The accountant finds it convenient."], answer: "B) The expense is actually incurred.", rationale: "Accrual accounting requires recording expenses when incurred (the matching principle), regardless of cash flow timing." },
+            { id: 204, module: "M2", format: "Multiple Choice", lo: "M2-LO3", skill: "Conceptual", topic: "Unearned Revenue", question: `When a customer pays cash in advance for a service not yet performed, the resulting 'Unearned Revenue' is strictly classified on the balance sheet as an:`, options: ["A) Operating Asset", "B) Operating Liability", "C) Equity Component", "D) Earned Revenue"], answer: "B) Operating Liability", rationale: "It represents an obligation to perform a service in the future, making it a liability." },
+            { id: 205, module: "M2", format: "Multiple Choice", lo: "M2-LO1", skill: "Deep Thinking", topic: "Net Working Capital", question: `ABC Auto reported Current Assets of $10,838 and Current Liabilities of $8,296. Calculate the Net Working Capital and determine what this metric indicates about the firm's short-term financial position.`, options: [
+                "A) $19,134; It indicates the total amount of long-term capital required to fund all future warehouse expansions.",
+                "B) $2,542; It signifies the firm lacks sufficient liquid resources to cover its immediate upcoming debt obligations.",
+                "C) $19,134; It represents the total combined value of all assets and liabilities actively managed by the firm.",
+                "D) $2,542; It indicates the short-term liquid buffer available to safely fund daily operations and cover debts."
+            ], answer: "D) $2,542; It indicates the short-term liquid buffer available to safely fund daily operations and cover debts.", rationale: "NWC = Current Assets ($10,838) - Current Liabilities ($8,296) = $2,542. A positive NWC means the company has a liquid buffer to meet short-term obligations." },
+            { id: 206, module: "M2", format: "Multiple Choice", lo: "M2-LO1", skill: "Deep Thinking", topic: "Cash Conversion Cycle", question: `Prestige Company reported Days Inventory Outstanding of 85.4, Days Payable Outstanding of 113.6, and Days Sales Outstanding of 182.6. Calculate the exact Cash Conversion Cycle and identify what this specific ratio fundamentally means for the business.`, options: [
+                "A) 154.4 days; it represents the average time required to convert inventory investments back into cash.",
+                "B) 381.6 days; it represents the total cumulative lifespan of all physical inventory stored in warehouses.",
+                "C) 154.4 days; it measures the exact number of days a company has to pay its long-term bond obligations.",
+                "D) 381.6 days; it indicates the precise amount of time it takes to fully depreciate capital equipment."
+            ], answer: "A) 154.4 days; it represents the average time required to convert inventory investments back into cash.", rationale: "CCC = DSO (182.6) + DIO (85.4) - DPO (113.6) = 154.4 days. It measures the time cash is tied up in the operational cycle." },
+            { id: 207, module: "M2", format: "Multiple Choice", lo: "M2-LO2", skill: "Deep Thinking", topic: "Unearned Revenue Analysis", question: `You observe that a company's 'Unearned Revenue' balance has increased by 50% year-over-year. Assuming the company is not failing to deliver products, how would an analyst interpret this?`, options: ["A) The company is rapidly losing future business commitments.", "B) The company is collecting less cash upfront from its buyers.", "C) The company has a growing backlog of secured future sales.", "D) The company is recognizing revenue too early to boost profit."], answer: "C) The company has a growing backlog of secured future sales.", rationale: "Unearned Revenue represents cash collected for future obligations. A rising balance means customers are committing to more future business, which is a positive leading indicator." },
+            { id: 208, module: "M2", format: "Multiple Choice", lo: "M2-LO4", skill: "Deep Thinking", topic: "Cash Flow Lifecycle", question: `While analyzing a Statement of Cash Flows, you clearly see: Positive Operating Cash Flow, Negative Investing Cash Flow, and Negative Financing Cash Flow. What 'lifecycle stage' does this pattern typically suggest?`, options: ["A) Start-up/Growth stage (aggressively burning cash to grow).", "B) Mature/Cash Cow stage (generating cash, paying down debt).", "C) Decline stage (selling off operational assets to pay bills).", "D) Financial Distress stage (borrowing to cover operating losses)."], answer: "B) Mature/Cash Cow stage (generating cash, paying down debt).", rationale: "The company is profitable (Positive OCF), investing in maintenance (Negative ICF), and returning value to shareholders or repaying debt (Negative Financing CF). This is characteristic of a mature, stable company." },
+            { id: 209, module: "M2", format: "Multiple Choice", lo: "M2-LO4", skill: "Deep Thinking", topic: "Earnings Quality Red Flag", question: `A company continually reports rising Net Income but consistently falling Cash Flow from Operations over several consecutive quarters. What is a highly plausible 'red flag' interpretation?`, options: ["A) The company is growing too fast and investing heavily in equipment.", "B) The company is operating extremely efficiently to collect receivables.", "C) The company may be recording aggressive 'paper profits' without cash.", "D) The company is proactively paying off its outstanding debt rapidly."], answer: "C) The company may be recording aggressive 'paper profits' without cash.", rationale: "Sustainable earnings generate cash. If NI is up but OCF is down, the difference is often trapped in uncollected Accounts Receivable or unsellable Inventory. This divergence signals earnings quality issues." },
+            { id: 210, module: "M2", format: "Multiple Choice", lo: "M2-LO4", skill: "Deep Thinking", topic: "Depreciation Cash Flow", question: `Why does Depreciation Expense strictly appear as a positive mathematical adjustment (add-back) in the Operating section of the Indirect Cash Flow Statement?`, options: ["A) Depreciation is inherently an active source of new operational cash inflow.", "B) Depreciation is a non-cash expense that lowered Net Income; adding it back fixes this.", "C) The company actively sold old physical assets for substantial cash payments.", "D) Depreciation represents physical cash set aside in a bank for future replacements."], answer: "B) Depreciation is a non-cash expense that lowered Net Income; adding it back fixes this.", rationale: "Net Income includes the deduction of depreciation. However, no cash actually left the company. To get to Cash Flow, we must 'undo' that deduction by adding it back." },
+            { id: 211, module: "M2", format: "Exercises", lo: "M2-LO5", skill: "Quantitative", topic: "Dividends", question: `ABC Corporation reported Net Income of $445, Ending Retained Earnings of $10,018, and Beginning Retained Earnings of $9,863. Calculate Dividends.<br><br> Dividends: $<input type="text" class="smart-input w-24" data-correct="290">`, answer: "290", rationale: "Beginning RE ($9,863) + Net Income ($445) - Dividends = Ending RE ($10,018). Dividends = 290." },
+            { id: 212, module: "M2", format: "Exercises", lo: "M2-LO2", skill: "Quantitative", topic: "Net Income Accrual", question: `A company reported the following financial events during the period:
+                <div class="overflow-x-auto text-sm mt-3 mb-4 border border-orange-100 rounded-xl shadow-sm">
+                    <table class="q-table whitespace-nowrap m-0 border-0">
+                        <tr><th colspan="2" class="bg-violet-50 text-violet-900 border-0">Activity Log</th></tr>
+                        <tr><td class="border-orange-50 font-bold">Billed customers for revenue</td><td class="text-right border-orange-50 text-stone-600">$396,800</td></tr>
+                        <tr><td class="border-orange-50 font-bold">Incurred operating expenses</td><td class="text-right border-orange-50 text-stone-600">155,200</td></tr>
+                        <tr><td class="border-orange-50 font-bold">Collected cash from prior-year receivables</td><td class="text-right border-orange-50 text-stone-600">50,000</td></tr>
+                        <tr><td class="border-orange-50 font-bold">Purchased inventory on credit</td><td class="text-right border-orange-50 text-stone-600">25,000</td></tr>
+                        <tr><td class="border-orange-50 font-bold">Paid cash dividend</td><td class="text-right border-orange-50 text-stone-600">10,000</td></tr>
+                        <tr><td class="border-orange-50 font-bold">Secured long-term bank loan</td><td class="text-right border-orange-50 text-stone-600">100,000</td></tr>
+                    </table>
+                </div>
+                Calculate the Net Income under proper accrual accounting.<br><br> Net Income: $<input type="text" class="smart-input w-32" data-correct="241600">`, answer: "241,600", rationale: "Under accrual accounting, Net Income focuses strictly on revenues earned and expenses incurred in the period. Cash collections, inventory purchases, dividends, and bank loans do not affect current net income. Revenues ($396,800) - Expenses ($155,200) = $241,600." },
+            { id: 213, module: "M2", format: "FSET", lo: "M2-LO2", skill: "Deep Thinking", topic: "FSET - Cash Expense", 
+                question: "Werner Realty Company paid $2,000 cash for routine maintenance expenses.",
+                amountOptions: ["-2000", "+2000", "-1000", "+1000", "No Effect"],
+                correct: { cash: -2000, noncash: 0, liab: 0, cc: 0, ec: -2000, rev: 0, exp: 2000 },
+                accounts: { exp: "Maintenance Expense", noncash: "Not Affected", liab: "Not Affected", rev: "Not Affected" },
+                rationale: "Paying an expense immediately reduces Cash (-2000) and increases Expenses (2000). Higher expenses reduce Net Income, which in turn reduces Earned Capital (-2000)."
+            },
+            { id: 214, module: "M2", format: "FSET", lo: "M2-LO2", skill: "Deep Thinking", topic: "FSET - Accrued Expense", 
+                question: "Werner Realty received a $500 utility bill for the current month, which will be paid next month.",
+                amountOptions: ["+500", "-500", "+1000", "-1000", "No Effect"],
+                correct: { cash: 0, noncash: 0, liab: 500, cc: 0, ec: -500, rev: 0, exp: 500 },
+                accounts: { liab: "Utilities Payable", exp: "Utilities Expense", noncash: "Not Affected", rev: "Not Affected" },
+                rationale: "Because the expense is incurred, Liability increases (500) and Expense increases (500). This reduces Net Income and Earned Capital (-500) prior to cash changing hands."
+            },
+            { id: 215, module: "M2", format: "FSET", lo: "M2-LO2", skill: "Deep Thinking", topic: "FSET - Accrued Revenue", 
+                question: "Werner Realty successfully performed services for customers on account for $5,000.",
+                amountOptions: ["+5000", "-5000", "+2500", "-2500", "No Effect"],
+                correct: { cash: 0, noncash: 5000, liab: 0, cc: 0, ec: 5000, rev: 5000, exp: 0 },
+                accounts: { noncash: "Accounts Receivable", rev: "Service Revenue", liab: "Not Affected", exp: "Not Affected" },
+                rationale: "Revenue earned on account increases Non-Cash Assets (Accounts Receivable +5000) and Revenue (+5000), which directly increases Net Income and Earned Capital."
+            },
+
+            // ================== MODULE 3 (15) ==================
+            { id: 301, module: "M3", format: "Multiple Choice", lo: "M3-LO2", skill: "Conceptual", topic: "DuPont Analysis", question: `The traditional DuPont Analysis framework systematically breaks down the Return on Equity (ROE) ratio into which of the following three specific components?`, options: ["A) Profitability (Margin), Productivity (Turnover), Financial Leverage", "B) Sales Revenue, Cost of Goods Sold, and Effective Tax Rate", "C) Total Assets, Total Liabilities, and Total Stockholders' Equity", "D) Operating Cash Flow, Investing Cash Flow, Financing Cash Flow"], answer: "A) Profitability (Margin), Productivity (Turnover), Financial Leverage", rationale: "DuPont = Profit Margin x Asset Turnover x Financial Leverage multiplier." },
+            { id: 302, module: "M3", format: "Multiple Choice", lo: "M3-LO6", skill: "Conceptual", topic: "RNOA vs ROE", question: `Return on Net Operating Assets (RNOA) isolates and focuses strictly on evaluating the performance of which specific category of corporate activities?`, options: ["A) Core operating activities only.", "B) Strategic financing activities only.", "C) Federal and state tax activities.", "D) Long-term investing activities only."], answer: "A) Core operating activities only.", rationale: "RNOA strips away financing decisions (like debt and excess cash) to purely measure how well the company uses its operating assets to generate operating profit." },
+            { id: 303, module: "M3", format: "Multiple Choice", lo: "M3-LO7", skill: "Conceptual", topic: "Net Operating Asset Turnover", question: `The Net Operating Asset Turnover metric is specifically designed by financial analysts to evaluate a company's overall operational:`, options: ["A) Efficiency and Productivity", "B) Direct Profitability", "C) Short-Term Liquidity", "D) Long-Term Solvency"], answer: "A) Efficiency and Productivity", rationale: "It measures the volume of sales generated per dollar of operating assets invested, acting as a clear efficiency metric." },
+            { id: 304, module: "M3", format: "Multiple Choice", lo: "M3-LO4", skill: "Conceptual", topic: "Operating Item", question: `When separating the balance sheet for advanced analysis, which of the following is strictly classified as an Operating Asset?`, options: ["A) Standard Accounts Receivable", "B) Excess Uninvested Cash", "C) Investment in Corporate Bonds", "D) Empty Land held for future sale"], answer: "A) Standard Accounts Receivable", rationale: "Accounts Receivable arises directly from the core, day-to-day operations of selling goods or services." },
+            { id: 305, module: "M3", format: "Multiple Choice", lo: "M3-LO4", skill: "Conceptual", topic: "Operating vs Nonoperating", question: `Why is it conceptually critical for analysts to separate operating from nonoperating activities when forecasting future corporate performance?`, options: ["A) Because nonoperating activities like interest and investments are completely immune to corporate taxes.", "B) Core operations are persistent and predictable, while nonoperating financing activities are often discretionary or transitory.", "C) Because the SEC strictly forbids combining these numbers anywhere on the publicly published income statement.", "D) Nonoperating assets fundamentally do not belong to the corporation and cannot be legally liquidated."], answer: "B) Core operations are persistent and predictable, while nonoperating financing activities are often discretionary or transitory.", rationale: "Analysts separate them because operating activities form the sustainable, recurring core of the business, making them much more reliable for future forecasting." },
+            { id: 306, module: "M3", format: "Multiple Choice", lo: "M3-LO6", skill: "Deep Thinking", topic: "ROE Decomposition", question: `Company A and Company B have the exact same Return on Assets (ROA). However, Company A has a much higher Return on Equity (ROE). What must be true mathematically?`, options: ["A) Company A is strictly more profitable on a core operational basis.", "B) Company A is utilizing significantly more Financial Leverage (debt).", "C) Company A consistently pays much higher federal corporate taxes.", "D) Company B has a substantially higher overall Asset Turnover ratio."], answer: "B) Company A is utilizing significantly more Financial Leverage (debt).", rationale: "Since ROE ≈ ROA × Leverage (Equity Multiplier), if ROA is the same, the only way for A to have a higher ROE is to have a higher Leverage multiplier (more debt)." },
+            { id: 307, module: "M3", format: "Multiple Choice", lo: "M3-LO5", skill: "Deep Thinking", topic: "Tax Shield Concept", question: `Interpret the 'Tax Shield' concept in operating profit analysis. Why exactly must we mathematically add back the 'Tax Shield' when calculating Tax on Operating Profit?`, options: ["A) To clearly show that the company paid more taxes than it legally owed.", "B) To reveal the higher theoretical tax burden of operations assuming zero debt.", "C) To properly account for government tax credits resulting from R&D.", "D) To systematically and artificially increase the Net Nonoperating Expense."], answer: "B) To reveal the higher theoretical tax burden of operations assuming zero debt.", rationale: "Interest expense lowers taxable income. To evaluate operating performance (NOPAT), we need to know what taxes would be if the company had no debt. Adding the shield gives us 'Tax on Operating Profit.'" },
+            { id: 308, module: "M3", format: "Multiple Choice", lo: "M3-LO6", skill: "Deep Thinking", topic: "RNOA vs ROA Utility", question: `What is the absolute primary analytical advantage of using the complex RNOA metric instead of the standard, simple Return on Assets (ROA) calculation?`, options: ["A) The RNOA framework is significantly easier and faster to calculate.", "B) RNOA cleanly separates the performance of core operations from financing choices.", "C) RNOA always mathematically yields a significantly higher percentage return.", "D) RNOA explicitly includes the impact of one-time corporate restructuring."], answer: "B) RNOA cleanly separates the performance of core operations from financing choices.", rationale: "ROA muddles operating performance with financing (cash holdings, interest expense). RNOA isolates the return generated purely by the assets used to run the business." },
+            { id: 309, module: "M3", format: "Multiple Choice", lo: "M3-LO6", skill: "Deep Thinking", topic: "Leverage Effect", question: `If a company's RNOA is 12% and its After-Tax Cost of Debt is 4%, what happens if it intentionally borrows more money to organically expand operations?`, options: ["A) ROE will steadily decrease because of the large new interest expense.", "B) ROE will increase because of highly positive financial leverage.", "C) RNOA will increase significantly across all subsequent fiscal quarters.", "D) There is absolutely no mathematical impact on shareholder equity returns."], answer: "B) ROE will increase because of highly positive financial leverage.", rationale: "When the return on operations (12%) exceeds the cost of borrowing (4%), the excess return (spread) accrues to the shareholders, leveraging up the ROE." },
+            { id: 310, module: "M3", format: "Multiple Choice", lo: "M3-LO7", skill: "Deep Thinking", topic: "Pricing Strategy Impact", question: `A major retailer decides to drastically slash retail prices to clear out excess physical inventory. How will this strategic decision interpretively affect its NOPM and NOAT in the short term?`, options: ["A) NOPM increases, NOAT decreases.", "B) NOPM decreases, NOAT increases.", "C) Both NOPM and NOAT strictly decrease.", "D) Both NOPM and NOAT strictly increase."], answer: "B) NOPM decreases, NOAT increases.", rationale: "Lower prices mean lower margins (Profit/Sales drops -> NOPM down). However, the 'fire sale' increases sales volume and reduces the asset base (Inventory drops), which increases turnover (Sales/Assets -> NOAT up)." },
+            { id: 311, module: "M3", format: "Multiple Choice", lo: "M3-LO1", skill: "Deep Thinking", topic: "High ROE Risk", question: `Why might a corporation reporting an exceptionally high ROE but a heavily negative Cash Flow from Operations be considered a highly dangerous investment?`, options: ["A) A negative operating cash flow mathematically leads to immediate bankruptcy.", "B) An exceptionally high ROE guarantees they are utilizing illegal, off-balance sheet debt.", "C) Earnings may be non-cash accruals; without real cash, the firm cannot survive long-term.", "D) A high ROE metric is physically unsustainable for more than one single fiscal year."], answer: "C) Earnings may be non-cash accruals; without real cash, the firm cannot survive long-term.", rationale: "If the paper profits aren't turning into cash, the company might face collection issues or channel stuffing, leading to a liquidity crisis despite looking profitable on paper." },
+            { id: 312, module: "M3", format: "Exercises", lo: "M3-LO1", skill: "Quantitative", topic: "ROE Calculation", question: `Pointe Company reported Average Equity of $7,997 and Net Income of $2,513. Calculate the Return on Equity (ROE) %. <br><br> ROE: <input type="text" class="smart-input w-24" data-correct="31.4">%`, answer: "31.4", rationale: "ROE = Net Income / Average Equity = 2513 / 7997 = 31.4%." },
+            { id: 313, module: "M3", format: "Multiple Choice", lo: "M3-LO7", skill: "Deep Thinking", topic: "NOAT Interp", question: `Grandier reported Sales of $115,004 and Average Net Operating Assets of $40,665.5. Calculate the Net Operating Asset Turnover (NOAT) and determine what this metric practically implies.`, options: [
+                "A) 2.83x; It implies the company generates $2.83 in operating profit for every dollar of equity.",
+                "B) 0.35x; It reveals the company operates with an extremely heavy burden of unused, idle cash.",
+                "C) 2.83x; It indicates the company generates $2.83 of top-line revenue for every $1 of operating capital invested.",
+                "D) 0.35x; It proves the company effectively replaces its total asset base exactly three times per year."
+            ], answer: "C) 2.83x; It indicates the company generates $2.83 of top-line revenue for every $1 of operating capital invested.", rationale: "NOAT = Sales / Average NOA = 115,004 / 40,665.5 = 2.83x. This efficiency metric measures how productively the company uses its core assets to drive sales." },
+            { id: 314, module: "M3", format: "Multiple Choice", lo: "M3-LO5", skill: "Deep Thinking", topic: "NNE Interp", question: `A firm reported Interest Expense of $100, Interest Income of $20, and a Tax Rate of 25%. Calculate Net Nonoperating Expense (after tax) and identify why this specific amount must be analyzed.`, options: [
+                "A) $60; It must be isolated because it represents the actual after-tax cost of financing choices, completely separate from core operations.",
+                "B) $80; It must be added to net income to strictly calculate the company's total federal corporate tax liability.",
+                "C) $60; It represents the total amount of cash legally owed to shareholders as a mandatory quarterly dividend.",
+                "D) $80; It measures the total amount of free cash flow successfully generated by the company's daily operations."
+            ], answer: "A) $60; It must be isolated because it represents the actual after-tax cost of financing choices, completely separate from core operations.", rationale: "Pretax NNE = 100 - 20 = 80. After tax NNE = 80 * (1 - 0.25) = $60. We isolate this to separate financing/debt costs from the company's true operating profitability (NOPAT)." },
+            { id: 315, module: "M3", format: "Exercises", lo: "M3-LO6", skill: "Quantitative", topic: "Travail NOPAT", question: `
+                <div class="overflow-x-auto text-sm mt-3 mb-4 border border-orange-100 rounded-xl shadow-sm">
+                    <table class="q-table whitespace-nowrap m-0 border-0">
+                        <tr><th colspan="2" class="bg-rose-50 text-rose-900 border-0">Travail, Inc. Consolidated Income Statement ($ thousands)</th></tr>
+                        <tr><td class="border-orange-50 font-bold">Net sales</td><td class="text-right border-orange-50 text-stone-600">$4,400,000</td></tr>
+                        <tr><td class="border-orange-50 font-bold">Cost of sales, including buying and occupancy costs</td><td class="text-right border-orange-50 text-stone-600">3,150,000</td></tr>
+                        <tr><td class="border-orange-50 font-bold">Selling, general and administrative expenses</td><td class="text-right border-orange-50 text-stone-600">780,000</td></tr>
+                        <tr><td class="border-orange-50 font-bold">Pension settlement charge</td><td class="text-right border-orange-50 text-stone-600">5,000</td></tr>
+                        <tr><td class="border-orange-50 font-bold">Interest expense, net</td><td class="text-right border-orange-50 text-stone-600">1,000</td></tr>
+                        <tr><td class="border-orange-50 font-bold text-stone-800">Income before provision for income taxes</td><td class="text-right border-orange-50 text-stone-800 font-bold">464,000</td></tr>
+                        <tr><td class="border-orange-50 font-bold">Provision for income taxes</td><td class="text-right border-orange-50 text-stone-600">102,000</td></tr>
+                        <tr><td class="border-orange-50 font-bold text-rose-700">Net income</td><td class="text-right border-orange-50 text-rose-700 font-bold">$362,000</td></tr>
+                    </table>
+                </div>
+                <p class="mb-3 font-semibold text-stone-700">Assume that the combined federal and state statutory tax rate is 22%.</p>
+                <div class="bg-white p-5 rounded-2xl border-2 border-stone-100 shadow-sm mb-4">
+                    <p class="mb-3 font-black text-rose-800">a. Compute NOPAT using the Net Income and NNE formula method.</p>
+                    <div class="mb-2 pl-4 border-l-4 border-rose-300">
+                        After-Tax NNE: $<input type="text" class="smart-input w-24" data-correct="780"> <br>
+                        <div class="mt-3 text-rose-900 font-bold text-lg">NOPAT (Method A): $<input type="text" class="smart-input w-32" data-correct="362780"></div>
+                    </div>
+                </div>
+                <div class="bg-white p-5 rounded-2xl border-2 border-stone-100 shadow-sm">
+                    <p class="mb-3 font-black text-rose-800">b. Compute NOPAT using the NOPBT and Tax on Operating Profit formula method.</p>
+                    <div class="mb-2 pl-4 border-l-4 border-rose-300">
+                        NOPBT: $<input type="text" class="smart-input w-32" data-correct="465000"> <br>
+                        Tax on Operating Profit: $<input type="text" class="smart-input w-32 mt-2 mb-1" data-correct="102220"> <br>
+                        <div class="mt-3 text-rose-900 font-bold text-lg">NOPAT (Method B): $<input type="text" class="smart-input w-32" data-correct="362780"></div>
+                    </div>
+                </div>
+            `, answer: "Both methods correctly yield $362,780", rationale: "<strong>Method A (NI + NNE):</strong> Interest exp is $1,000. Tax shield on interest is 22% ($220). After-tax NNE = $1,000 - $220 = $780. NOPAT = Net Income ($362,000) + After-tax NNE ($780) = $362,780. <br><br> <strong>Method B (NOPBT - Tax on Op Profit):</strong> NOPBT = Sales (4,400k) - COGS (3,150k) - SG&A (780k) - Pension (5k) = $465,000. Tax on Op Profit = Tax Exp ($102,000) + Shield ($220) = $102,220. NOPAT = NOPBT ($465,000) - Tax on Op Profit ($102,220) = $362,780." },
+
+            // ================== MODULE 4 (15) ==================
+            { id: 401, module: "M4", format: "Multiple Choice", lo: "M4-LO1", skill: "Conceptual", topic: "Supply of Credit", question: `When evaluating standard corporate Trade Credit from suppliers, which of the following descriptive statements is generally considered to be accurate?`, options: ["A) It usually accrues extremely high penalty interest starting on day one.", "B) It is routinely unsecured and often non-interest bearing if paid on time.", "C) It requires strict financial covenants and heavy property collateral.", "D) It is strictly regulated by the Federal Reserve for all public companies."], answer: "B) It is routinely unsecured and often non-interest bearing if paid on time.", rationale: "Trade credit is the 'first line' of financing from suppliers. It is unsecured, routine, and usually free of interest if terms are met." },
+            { id: 402, module: "M4", format: "Multiple Choice", lo: "M4-LO4", skill: "Conceptual", topic: "The Ratings Cliff", question: `What is the primary capital market consequence if a large corporation's bonds are officially downgraded from BBB- to BB+?`, options: ["A) The bonds are automatically forgiven by the creditors entirely.", "B) The company is contractually forced to issue new common stock shares.", "C) Many institutional funds are mandated to sell, causing borrowing costs to spike.", "D) The company receives a specialized federal tax credit for the burden."], answer: "C) Many institutional funds are mandated to sell, causing borrowing costs to spike.", rationale: "The line between BBB- (Investment Grade) and BB+ (Junk) is a hard regulatory boundary. Crossing it forces a fire sale of the bonds by institutional funds." },
+            { id: 403, module: "M4", format: "Multiple Choice", lo: "M4-LO5", skill: "Conceptual", topic: "Z-Score Type II Error", question: `In bankruptcy prediction models, what exactly is a Type II error, and how does it negatively affect a commercial lender?`, options: ["A) Predicting health when bankruptcy occurs; lender loses their principal.", "B) Predicting bankruptcy when the company survives; lender loses a good loan.", "C) Predicting health when the company remains healthy; standard loan.", "D) A purely mathematical error that systematically skews the default probability."], answer: "B) Predicting bankruptcy when the company survives; lender loses a good loan.", rationale: "Type I is predicting health but the company dies. Type II is predicting bankruptcy but the company survives. A Type II error means the bank rejected a safe loan, losing out on interest income." },
+            { id: 404, module: "M4", format: "Multiple Choice", lo: "M4-LO1", skill: "Conceptual", topic: "Bankruptcy Priority", question: `Under the strict Absolute Priority Rule during corporate bankruptcy liquidation, which specific class of investors is paid last and usually wiped out entirely?`, options: ["A) Senior Secured Debt holders.", "B) Trade Suppliers and Vendors.", "C) Subordinated Debt holders.", "D) Common Equity Shareholders."], answer: "D) Common Equity Shareholders.", rationale: "Equity holders are the ultimate residual claimants. Every tier of debt must be paid in full before equity gets a dime." },
+            { id: 405, module: "M4", format: "Multiple Choice", lo: "M4-LO1", skill: "Conceptual", topic: "Loan Covenants", question: `Lenders frequently include 'covenants' in their loan agreements (e.g., requiring the borrower to maintain a Current Ratio above 1.5). Interpret the fundamental purpose of these covenants.`, options: ["A) To ensure the bank automatically becomes a majority shareholder.", "B) To force the struggling company into formal bankruptcy proceedings.", "C) To act as an early warning system, allowing the lender to intervene.", "D) To systematically reduce the loan's interest rate over time."], answer: "C) To act as an early warning system, allowing the lender to intervene.", rationale: "Covenants act as tripwires. By monitoring financial conditions, lenders can step in or restructure the loan *before* the company completely runs out of money." },
+            { id: 406, module: "M4", format: "Multiple Choice", lo: "M4-LO5", skill: "Deep Thinking", topic: "Credit Rating & Z-Score", question: `How does a company's Altman Z-Score directly relate to its potential corporate credit rating issued by agencies like S&P or Moody's?`, options: [
+                "A) A high Z-Score mathematically guarantees a AAA rating from all agencies without further review.", 
+                "B) The Z-Score serves as a baseline default probability metric that agencies use before applying qualitative adjustments.", 
+                "C) Credit agencies strictly ignore the Z-Score because it heavily favors highly leveraged technology startups.", 
+                "D) The Z-Score completely replaces the need for any human credit analysts or macroeconomic analysis."
+            ], answer: "B) The Z-Score serves as a baseline default probability metric that agencies use before applying qualitative adjustments.", rationale: "The Z-Score evaluates fundamental bankruptcy risk (profitability, leverage, liquidity), which provides a quantitative baseline. Agencies then adjust this based on business risk, management quality, and macroeconomic factors to assign the final rating." },
+            { id: 407, module: "M4", format: "Multiple Choice", lo: "M4-LO1", skill: "Deep Thinking", topic: "Growth vs Liquidity", question: `Why might a rapidly growing, highly profitable retail chain suddenly face a severe, unexpected liquidity crisis?`, options: ["A) Their margins are too high, leading to inefficient dividend allocations.", "B) Rapid expansion legally exempts them from paying required corporate taxes.", "C) Aggressive expansion (CAPEX) and inventory build-up consume cash rapidly.", "D) Suppliers grant unlimited trade credit to growing firms, inflating balances."], answer: "C) Aggressive expansion (CAPEX) and inventory build-up consume cash rapidly.", rationale: "Growth consumes cash. A company must pay for new store build-outs and large inventory purchases long before the stores open, causing a severe cash flow mismatch." },
+            { id: 408, module: "M4", format: "Multiple Choice", lo: "M4-LO3", skill: "Deep Thinking", topic: "FCF to Debt Interpretation", question: `Wilmington Corp reports the following metrics:
+                <div class="overflow-x-auto text-sm mt-3 mb-4 border border-orange-100 rounded-xl shadow-sm">
+                    <table class="q-table whitespace-nowrap m-0 border-0">
+                        <tr><th colspan="2" class="bg-rose-50 text-rose-900 border-0">Financial Metrics</th></tr>
+                        <tr><td class="border-orange-50 font-bold">Cash from Operations (OCF)</td><td class="text-right border-orange-50 text-stone-600">$1,601,692</td></tr>
+                        <tr><td class="border-orange-50 font-bold">Capital Expenditures (CAPEX)</td><td class="text-right border-orange-50 text-stone-600">745,862</td></tr>
+                        <tr><td class="border-orange-50 font-bold">Total Debt</td><td class="text-right border-orange-50 text-stone-600">961,376</td></tr>
+                    </table>
+                </div>
+                Calculate the Free Operating Cash Flow to Total Debt ratio and interpret its meaning.`, options: [
+                "A) 0.89; The firm generates enough free cash in one year to theoretically pay off 89% of its total debt balance.",
+                "B) 1.18; The firm is highly illiquid and must immediately borrow new funds to satisfy its operational capital requirements.",
+                "C) 0.89; The firm is dedicating exactly 89% of its total net income specifically to purchasing new warehouse equipment.",
+                "D) 1.18; The firm successfully collects cash from its customers 18% faster than it pays its suppliers."
+            ], answer: "A) 0.89; The firm generates enough free cash in one year to theoretically pay off 89% of its total debt balance.", rationale: "FCF = CFO - CAPEX = $1,601,692 - $745,862 = $855,830. Ratio = 855,830 / 961,376 = 0.89. This strong ratio indicates high solvency, as free cash flow covers nearly the entire debt pile." },
+            { id: 409, module: "M4", format: "Multiple Choice", lo: "M4-LO3", skill: "Deep Thinking", topic: "Current Ratio < 1.0", question: `A major retailer like Walmart consistently operates with a Current Ratio around 0.8. Why doesn't this mathematical metric indicate imminent operational bankruptcy?`, options: ["A) They operate in secret insolvency and rely entirely on continued debt.", "B) They collect cash instantly while taking 60+ days to pay their suppliers.", "C) The SEC grants retail conglomerates a special liquidity regulatory exemption.", "D) They systematically sell all inventory to consumers on 5-year credit terms."], answer: "B) They collect cash instantly while taking 60+ days to pay their suppliers.", rationale: "Walmart collects cash instantly (inventory turns fast) and pays suppliers very slowly. They always have cash coming in faster than it goes out, safely substituting AP for debt." },
+            { id: 410, module: "M4", format: "Multiple Choice", lo: "M4-LO3", skill: "Deep Thinking", topic: "Stretching Payables", question: `If a distressed company deliberately delays paying its suppliers (stretching payables), how does this temporarily affect its Statement of Cash Flows?`, options: ["A) It significantly decreases Cash Flow from Operations during the period.", "B) It has no mathematical effect because actual cash has not yet moved.", "C) It artificially boosts Cash Flow from Operations in the short term.", "D) It dramatically increases reported Cash Flow from Financing activities."], answer: "C) It artificially boosts Cash Flow from Operations in the short term.", rationale: "By holding onto cash rather than paying bills, the company's operating cash balance stays high. However, this is unsustainable and masks underlying cash weakness." },
+            { id: 411, module: "M4", format: "Multiple Choice", lo: "M4-LO4", skill: "Deep Thinking", topic: "Loss Given Default", question: `What does 'Loss Given Default' (LGD) primarily measure in corporate credit risk analysis?`, options: ["A) The statistical probability that a borrower will entirely miss a scheduled payment.", "B) The estimated percentage of the loan balance permanently lost upon default.", "C) The total administrative and legal fees incurred during a bankruptcy filing.", "D) The exact duration of time before a technical default officially occurs."], answer: "B) The estimated percentage of the loan balance permanently lost upon default.", rationale: "Credit risk has two parts: Probability of Default (will they fail?) and Loss Given Default (if they fail, how much of our money is gone forever?). LGD measures the severity of the loss." },
+            { id: 412, module: "M4", format: "Multiple Choice", lo: "M4-LO3", skill: "Deep Thinking", topic: "TIE Interpretation", question: `A firm reports the following balances:
+                <div class="overflow-x-auto text-sm mt-3 mb-4 border border-orange-100 rounded-xl shadow-sm">
+                    <table class="q-table whitespace-nowrap m-0 border-0">
+                        <tr><th colspan="2" class="bg-sky-50 text-sky-900 border-0">Selected Income Statement Items</th></tr>
+                        <tr><td class="border-orange-50 font-bold">Net Income</td><td class="text-right border-orange-50 text-stone-600">$300,000</td></tr>
+                        <tr><td class="border-orange-50 font-bold">Tax Expense</td><td class="text-right border-orange-50 text-stone-600">100,000</td></tr>
+                        <tr><td class="border-orange-50 font-bold">Gross Interest Expense</td><td class="text-right border-orange-50 text-stone-600">100,000</td></tr>
+                    </table>
+                </div>
+                Calculate the Times Interest Earned (TIE) ratio and determine what it signals to a potential lender.`, options: [
+                "A) 5.0x; It signals strong safety, as the firm generates five times the operating profit needed to cover its interest burden.",
+                "B) 3.0x; It indicates extreme danger, as exactly one-third of the firm's net income is consumed by interest.",
+                "C) 5.0x; It signifies the firm is currently over-leveraged and relies far too heavily on unsecured corporate bonds.",
+                "D) 3.0x; It confirms the firm successfully pays off its principal loan balance three times faster than its peers."
+            ], answer: "A) 5.0x; It signals strong safety, as the firm generates five times the operating profit needed to cover its interest burden.", rationale: "EBIT = Net Income + Tax + Interest = $300,000 + $100,000 + $100,000 = $500,000. TIE = $500,000 / $100,000 = 5.0x. A higher ratio indicates a strong, safe operating cushion." },
+            { id: 413, module: "M4", format: "Multiple Choice", lo: "M4-LO3", skill: "Deep Thinking", topic: "EBITDA vs FCF Coverage", question: `A telecom company boasts a 13.0x EBITDA coverage ratio but only a 0.8x Free Cash Flow (FCF) coverage ratio. What does this divergence reveal?`, options: ["A) High CAPEX requirements exist that EBITDA ignores, showing cash weakness.", "B) Exceptionally high statutory tax rates significantly deplete cash flows.", "C) The firm is structurally highly liquid and financially safe overall.", "D) The firm effectively operates with absolutely zero long-term debt."], answer: "A) High CAPEX requirements exist that EBITDA ignores, showing cash weakness.", rationale: "EBITDA adds back depreciation, ignoring the cost of replacing assets. For asset-heavy firms, CAPEX is a mandatory cash outflow just to stay in business. FCF reveals true cash." },
+            { id: 414, module: "M4", format: "Exercises", lo: "M4-LO3", skill: "Quantitative", topic: "Debt/EBITDA Calc", question: `Stryker reports the following financial figures:
+                <div class="overflow-x-auto text-sm mt-3 mb-4 border border-orange-100 rounded-xl shadow-sm">
+                    <table class="q-table whitespace-nowrap m-0 border-0">
+                        <tr><th colspan="2" class="bg-violet-50 text-violet-900 border-0">Financial Data ($ millions)</th></tr>
+                        <tr><td class="border-orange-50 font-bold">Total Debt</td><td class="text-right border-orange-50 text-stone-600">$9,859</td></tr>
+                        <tr><td class="border-orange-50 font-bold">Operating Profit (EBIT)</td><td class="text-right border-orange-50 text-stone-600">2,537</td></tr>
+                        <tr><td class="border-orange-50 font-bold">Depreciation</td><td class="text-right border-orange-50 text-stone-600">306</td></tr>
+                        <tr><td class="border-orange-50 font-bold">Amortization</td><td class="text-right border-orange-50 text-stone-600">417</td></tr>
+                    </table>
+                </div>
+                What is the precise Debt-to-EBITDA ratio? (Round to two decimal places) <br><br> Ratio: <input type="text" class="smart-input w-24" data-correct="3.02">x`, answer: "3.02", rationale: "EBITDA = EBIT ($2,537) + Depreciation ($306) + Amortization ($417) = $3,260. Ratio: Total Debt ($9,859) / EBITDA ($3,260) = 3.024x (Rounds to 3.02)." },
+            { id: 415, module: "M4", format: "Exercises", lo: "M4-LO2", skill: "Quantitative", topic: "53-Week Sales", question: `A retailer reports total net sales of $106,000,000 for a unique 53-week fiscal year. To properly compare this to a standard 52-week competitor, what is the normalized sales figure? <br><br> Sales: $<input type="text" class="smart-input w-32" data-correct="104000000">`, answer: "104,000,000", rationale: "To normalize a 53-week year to 52 weeks, multiply the reported figure by (52/53). $106,000,000 * (52/53) = $104,000,000." },
+
+            // ================== MODULE 5 (15) ==================
+            { id: 501, module: "M5", format: "Multiple Choice", lo: "M5-LO1", skill: "Conceptual", topic: "Enforceable Rights", question: `Why might a signed contract NOT qualify for revenue recognition if the customer has a terrible credit history and absolutely no intent to pay?`, options: ["A) Because ASC 606 requires contracts to be notarized by a third party.", "B) Step 1 requires collection to be probable; if not, no valid contract exists.", "C) The firm must wait until the customer's credit score improves to book it.", "D) Revenue is recognized, but Bad Debt Expense must instantly increase 100%."], answer: "B) Step 1 requires collection to be probable; if not, no valid contract exists.", rationale: "A core criterion of identifying a contract under GAAP is that collection must be probable. If you know you aren't getting paid, you cannot book the revenue." },
+            { id: 502, module: "M5", format: "Multiple Choice", lo: "M5-LO1", skill: "Conceptual", topic: "Performance Obligations", question: `A tech company sells a smart security camera that strictly includes a mandatory 1-year cloud storage subscription. How many specific performance obligations exist in this transaction?`, options: ["A) One, because both hardware and service are sold inside a single box.", "B) Two; the camera is a distinct good, and the subscription is a service.", "C) Three distinct obligations, which includes the physical shipping box.", "D) Zero obligations are recognized until the subscription fully concludes."], answer: "B) Two; the camera is a distinct good, and the subscription is a service.", rationale: "The customer benefits from the camera hardware itself, and separately from the cloud service. The company must split the revenue, recognizing the camera upfront and the service over time." },
+            { id: 503, module: "M5", format: "Multiple Choice", lo: "M5-LO1", skill: "Conceptual", topic: "Revenue Streams", question: `According to Amazon's disclosures, how should they appropriately recognize revenue specifically for their annual Amazon Prime memberships?`, options: ["A) At the exact point in time the customer initially pays the membership fee.", "B) Over time, as the customer accesses the shipping and streaming benefits.", "C) Only at the specific moments when the customer actively streams a movie.", "D) Never; the fees are treated as paid-in capital directly to equity."], answer: "B) Over time, as the customer accesses the shipping and streaming benefits.", rationale: "Amazon Prime represents a service obligation that transfers to the customer continuously over the life of the membership, dictating over-time recognition." },
+            { id: 504, module: "M5", format: "Multiple Choice", lo: "M5-LO1", skill: "Conceptual", topic: "Consignment Accounting", question: `A retail store sells items on consignment for local artisans, keeping a 20% cut. If the store sells a $100 vase, how much total Revenue does the store report?`, options: ["A) $100", "B) $80", "C) $20", "D) $0"], answer: "C) $20", rationale: "In a Principal-Agent relationship, the agent (store) never takes ownership of the inventory risk. They only recognize their net commission ($20) as revenue." },
+            { id: 505, module: "M5", format: "Multiple Choice", lo: "M5-LO1", skill: "Deep Thinking", topic: "POC Manipulation", question: `If a manager wants to artificially inflate current-year revenue on a long-term construction contract, what specific estimate might they strategically manipulate?`, options: ["A) They might intentionally underestimate the total future costs to complete.", "B) They might intentionally overestimate the total future costs to complete.", "C) They might deliberately delay sending the official billing invoice.", "D) They might attempt to suppress current costs by paying lower wages."], answer: "A) They might intentionally underestimate the total future costs to complete.", rationale: "Because % Complete = (Costs Incurred / Total Est Costs), artificially shrinking the denominator makes the fraction larger, falsely claiming the project is further along and boosting current revenue." },
+            { id: 506, module: "M5", format: "Multiple Choice", lo: "M5-LO2", skill: "Deep Thinking", topic: "Underestimating Returns", question: `What is the explicit financial statement impact if a retailer deliberately and significantly underestimates its expected return rate at the end of the fiscal year?`, options: ["A) Net Sales and Net Income will be artificially inflated for the year.", "B) Reported COGS will dramatically drop to zero for the current period.", "C) Net Income will significantly decrease as a mathematical result.", "D) There is absolutely no impact until physical returns occur in reality."], answer: "A) Net Sales and Net Income will be artificially inflated for the year.", rationale: "Companies must estimate and deduct returns *before* they happen. By pretending fewer people will return items, they deduct less, artificially boosting Net Sales and Net Income today." },
+            { id: 507, module: "M5", format: "Multiple Choice", lo: "M5-LO3", skill: "Deep Thinking", topic: "Deferred Revenue Trend", question: `For a rapidly growing SaaS company, what does a sudden deceleration in the growth of their Deferred Revenue balance clearly signal to analysts?`, options: ["A) The company is recognizing historical revenue at an inefficient pace.", "B) It is a leading indicator that future revenue growth will likely slow down.", "C) It suggests that the company's core operating expenses are dropping.", "D) It demonstrates the collections department is accelerating cash inflows."], answer: "B) It is a leading indicator that future revenue growth will likely slow down.", rationale: "Deferred revenue is the 'pipeline' of future earnings. If the pipeline stops filling up, it mathematically means recognized revenue will inevitably slow down in the coming quarters." },
+            { id: 508, module: "M5", format: "Multiple Choice", lo: "M5-LO5", skill: "Deep Thinking", topic: "Write-Off Impact", question: `A company decides to formally write off a $1,000 receivable from a bankrupt customer. What is the immediate impact of this specific action on Net Income?`, options: ["A) Net Income immediately and permanently drops by exactly $1,000.", "B) Net Income unexpectedly increases by $1,000 due to a tax deduction.", "C) Zero impact; the expense was already recognized via the allowance.", "D) Top-line Gross Revenue immediately drops by exactly $1,000."], answer: "C) Zero impact; the expense was already recognized via the allowance.", rationale: "Under the Allowance method, the Bad Debt Expense hit the income statement in the past (when the sale was made). The write-off merely reduces Gross AR and the Allowance, leaving NRV and NI untouched." },
+            { id: 509, module: "M5", format: "Multiple Choice", lo: "M5-LO1", skill: "Deep Thinking", topic: "Round-Tripping", question: `What exactly describes the illicit 'Round-Tripping' revenue recognition scheme?`, options: ["A) Selling and distributing products across multiple international borders.", "B) Two firms selling assets back and forth to artificially boost revenue volume.", "C) Paying out shareholder dividends directly from retained earnings.", "D) Utilizing a highly circular supply chain to maximize shipping fees."], answer: "B) Two firms selling assets back and forth to artificially boost revenue volume.", rationale: "Company A sells an asset to Company B for $10M. Company B sells a similar asset to Company A for $10M. Net cash change is zero, but both companies get to report $10M in shiny new Revenue." },
+            { id: 510, module: "M5", format: "Multiple Choice", lo: "M5-LO1", skill: "Deep Thinking", topic: "SaaS Transition", question: `A software firm transitions from selling perpetual licenses (upfront) to a cloud subscription model (over time). What is the immediate effect on the income statement?`, options: ["A) Reported net income skyrockets due to large recurring subscription fees.", "B) Revenue plunges initially because cash collected is now heavily deferred.", "C) Reported COGS immediately drops to zero as manufacturing is eliminated.", "D) Corporate tax liabilities immediately increase due to the new structure."], answer: "B) Revenue plunges initially because cash collected is now heavily deferred.", rationale: "Under the old model, 100% of the cash received was booked instantly. Under SaaS, the cash is parked in Deferred Revenue and trickles in monthly, causing a temporary 'revenue dip' during the transition." },
+            { id: 511, module: "M5", format: "Multiple Choice", lo: "M5-LO5", skill: "Deep Thinking", topic: "AR Turnover Interp", question: `A company reports the following performance metrics:
+                <div class="overflow-x-auto text-sm mt-3 mb-4 border border-orange-100 rounded-xl shadow-sm">
+                    <table class="q-table whitespace-nowrap m-0 border-0">
+                        <tr><th colspan="2" class="bg-emerald-50 text-emerald-900 border-0">Receivables Data ($ millions)</th></tr>
+                        <tr><td class="border-orange-50 font-bold">Net Sales</td><td class="text-right border-orange-50 text-stone-600">$2,500</td></tr>
+                        <tr><td class="border-orange-50 font-bold">Average Net Accounts Receivable</td><td class="text-right border-orange-50 text-stone-600">284</td></tr>
+                    </table>
+                </div>
+                Calculate the Accounts Receivable Turnover ratio and identify what it practically tells management.`, options: [
+                "A) 8.80x; it indicates the firm fully collects and replenishes its average receivables balance nearly nine times per year.",
+                "B) 0.11x; it signifies the firm struggles significantly to collect cash from its credit customers on a timely basis.",
+                "C) 8.80x; it proves that the company successfully sells 88% of its total physical inventory directly for cash.",
+                "D) 0.11x; it confirms the firm is rapidly expanding its market share by offering extremely generous credit terms."
+            ], answer: "A) 8.80x; it indicates the firm fully collects and replenishes its average receivables balance nearly nine times per year.", rationale: "AR Turnover = 2,500 / 284 = 8.80x. This efficiency ratio shows how many times a company's AR balance is converted to cash during the year." },
+            { id: 512, module: "M5", format: "Exercises", lo: "M5-LO1", skill: "Quantitative", topic: "Standalone Alloc", question: `A telecom bundles a smartphone (standalone $900) and a 1-year data plan (standalone $300) for a contract price of $1,000. Using the relative standalone method, what amount is allocated to the data plan?<br><br> Allocation: $<input type="text" class="smart-input w-24" data-correct="250">`, answer: "250", rationale: "Total standalone value = $900 + $300 = $1,200. The data plan is 25% of the value ($300 / $1,200). Therefore, it gets 25% of the $1,000 contract price = $250." },
+            { id: 513, module: "M5", format: "Multiple Choice", lo: "M5-LO1", skill: "Quantitative", topic: "POC Gross Profit Complex", question: `Under the Cost-to-Cost method: A construction contract price is $50M. In Year 1, the company incurs $10M in project costs and pays an additional $2M in marketing SG&A expenses. Total estimated project costs are $40M. The company also collected $5M in cash from the customer. How much Gross Profit is recognized in Year 1?`, options: ["A) $12.5 Million", "B) $2.5 Million", "C) $0.5 Million", "D) $5.0 Million"], answer: "B) $2.5 Million", rationale: "% Complete = $10M incurred / $40M est total cost = 25%. Year 1 Revenue = $50M * 25% = $12.5M. Gross Profit = Revenue ($12.5M) - COGS ($10.0M) = $2.5 Million. SG&A and Cash Collections are irrelevant distractors for Gross Profit." },
+            { id: 514, module: "M5", format: "FSET", lo: "M5-LO5", skill: "Deep Thinking", topic: "FSET - Bad Debt Provision", 
+                question: "A company records $5,000 of Bad Debt Expense at year-end based on the aging analysis of its accounts receivable.",
+                amountOptions: ["-5000", "+5000", "-2500", "+2500", "No Effect"],
+                correct: { cash: 0, noncash: -5000, liab: 0, cc: 0, ec: -5000, rev: 0, exp: 5000 },
+                accounts: { noncash: "Allowance for Doubtful Accounts", exp: "Bad Debt Expense", liab: "Not Affected", rev: "Not Affected" },
+                rationale: "Increasing the Allowance for Doubtful Accounts (a contra-asset) reduces net Non-Cash Assets (-5000). The corresponding Bad Debt Expense (+5000) reduces Net Income, lowering Earned Capital (-5000)."
+            },
+            { id: 515, module: "M5", format: "FSET", lo: "M5-LO2", skill: "Deep Thinking", topic: "FSET - Actual Sales Return", 
+                question: "A customer returns a $100 product that originally cost the company $40. The customer previously paid in cash. The company refunds the cash and puts the undamaged item back into inventory. (Record the net effect of BOTH the revenue reversal and the COGS reversal).",
+                amountOptions: ["-100", "+100", "-40", "+40", "-60", "+60", "No Effect"],
+                correct: { cash: -100, noncash: 40, liab: 0, cc: 0, ec: -60, rev: -100, exp: -40 },
+                accounts: { noncash: "Inventory", rev: "Sales Revenue", exp: "Cost of Goods Sold", liab: "Not Affected" },
+                rationale: "Cash decreases to refund the customer (-100). Noncash Assets (Inventory) increases as the product comes back (+40). Revenue is reversed (-100). Expense (COGS) is reversed (-40). Net Income effect = Rev (-100) - Exp (-40) = -60. Earned Capital decreases by 60."
+            },
+
+            // ================== MODULE 6 (15) ==================
+            { id: 601, module: "M6", format: "Multiple Choice", lo: "M6-LO1", skill: "Conceptual", topic: "Costing in Falling Markets", question: `Assuming a company operates in a unique economic environment characterized by consistently falling commodity prices, which inventory costing method produces the highest net income?`, options: ["A) First-In, First-Out (FIFO)", "B) Last-In, First-Out (LIFO)", "C) Weighted Average Costing", "D) Specific Identification Method"], answer: "B) Last-In, First-Out (LIFO)", rationale: "With falling prices, LIFO assigns the most recent, lower costs to COGS. A lower COGS results in a higher gross profit and correspondingly higher net income." },
+            { id: 602, module: "M6", format: "Multiple Choice", lo: "M6-LO3", skill: "Conceptual", topic: "Lower of Cost or Market", question: `The accounting requirement to apply the lower of cost or market (LCM) rule, which mandates writing down inventory if its value falls, is a direct application of which principle?`, options: ["A) The Core Matching Principle", "B) The Revenue Recognition Rule", "C) The Principle of Conservatism", "D) The Historical Cost Principle"], answer: "C) The Principle of Conservatism", rationale: "Conservatism requires accountants to avoid overstating assets and income. LCM forces companies to recognize losses immediately when value drops." },
+            { id: 603, module: "M6", format: "Multiple Choice", lo: "M6-LO4", skill: "Conceptual", topic: "Goodwill Accounting", question: `Alphabet acquires a smaller AI software startup and records $50 million of Goodwill. How must this specific Goodwill be accounted for in the years following the acquisition?`, options: ["A) It must be amortized evenly over a maximum permitted period of 40 years.", "B) It must be amortized over its estimated useful life, not to exceed 10 years.", "C) It is never amortized, but must be evaluated for impairment annually.", "D) It must be expensed immediately on the income statement the next year."], answer: "C) It is never amortized, but must be evaluated for impairment annually.", rationale: "Goodwill is considered an intangible asset with an indefinite life. Therefore, it is never amortized, but is subject to strict annual impairment testing." },
+            { id: 604, module: "M6", format: "Multiple Choice", lo: "M6-LO4", skill: "Conceptual", topic: "Research & Development", question: `A pharmaceutical company spends $500 million on internal laboratory research to develop a promising new drug. Under US GAAP rules, how must these R&D costs be accounted for?`, options: ["A) Capitalized as an intangible asset and amortized systematically over five years.", "B) Capitalized only if the pharmaceutical company believes a patent is highly likely.", "C) Expensed completely as incurred on the income statement during the current year.", "D) Deferred as a liability until the new drug eventually generates commercial sales."], answer: "C) Expensed completely as incurred on the income statement during the current year.", rationale: "Because the future economic benefits of R&D are highly uncertain (many drugs fail trials), conservatism under US GAAP requires all internal R&D to be expensed immediately." },
+            { id: 605, module: "M6", format: "Multiple Choice", lo: "M6-LO3", skill: "Conceptual", topic: "Gross Profit Margin", question: `A technology retailer determines that older smartphones are obsolete, and writes down the inventory value from $500k to $200k (LCM rule). What is the immediate impact on Gross Profit Margin?`, options: ["A) Gross Profit Margin inherently increases.", "B) Gross Profit Margin noticeably decreases.", "C) Gross Profit Margin remains totally unaffected.", "D) Gross Profit Margin becomes exactly zero."], answer: "B) Gross Profit Margin noticeably decreases.", rationale: "An inventory write-down is recorded as an increase to Cost of Goods Sold (COGS). Higher COGS directly reduces Gross Profit, thereby lowering the Gross Profit Margin." },
+            { id: 606, module: "M6", format: "Multiple Choice", lo: "M6-LO1", skill: "Conceptual", topic: "LIFO IFRS True/False", question: `True or False: LIFO is permitted under U.S. GAAP but is not permitted under IFRS. Therefore, LIFO is mainly available to companies reporting under U.S. accounting rules.`, options: ["True", "False"], answer: "True", rationale: "LIFO is allowed under U.S. GAAP, but IFRS does not permit LIFO. So companies using IFRS cannot use LIFO for inventory reporting." },
+            { id: 607, module: "M6", format: "Multiple Choice", lo: "M6-LO2", skill: "Quantitative", topic: "LIFO to FIFO Footnote", question: `A company reports ending inventory on its balance sheet using LIFO at $500,000. In the footnotes, the company discloses a LIFO reserve of $60,000 at year-end. During the year, the LIFO reserve increased from $45,000 to $60,000. Assuming the company uses LIFO for external reporting but wants to compare its inventory balance to a competitor that uses FIFO, what would the company’s ending inventory balance be under FIFO?`, options: ["A. $440,000", "B. $500,000", "C. $560,000", "D. $575,000"], answer: "C. $560,000", rationale: "The LIFO reserve is the amount by which FIFO inventory exceeds LIFO inventory. FIFO Inventory = LIFO Inventory + LIFO Reserve. $500,000 + $60,000 = $560,000." },
+            { id: 608, module: "M6", format: "Multiple Choice", lo: "M6-LO2", skill: "Quantitative", topic: "LIFO Tax Savings", question: `A company uses LIFO to report inventory. In its footnotes, it reports the following: Beginning LIFO Reserve $42,000, Ending LIFO Reserve $68,000, Statutory Tax Rate 25%. Assume inventory costs are rising. Calculate the company’s tax savings from using LIFO instead of FIFO for the current year.`, options: ["A. $6,500", "B. $10,500", "C. $17,000", "D. $26,000"], answer: "A. $6,500", rationale: "The current-year tax savings comes from the increase in the LIFO reserve. Increase = $68,000 - $42,000 = $26,000. Tax Savings = $26,000 * 25% = $6,500." },
+            { id: 609, module: "M6", format: "Multiple Choice", lo: "M6-LO2", skill: "Deep Thinking", topic: "LIFO Liquidation", question: `A company utilizing LIFO for decades suddenly experiences a severe supply chain disruption, forcing it to sell off historical inventory layers. What is the most likely financial result of this "LIFO liquidation"?`, options: ["A) Higher cost of goods sold and consequently lower income tax payouts.", "B) Older, lower-cost inventory is sold, boosting profit and current taxes.", "C) The LIFO reserve will increase significantly as old inventory is depleted.", "D) Inventory turnover will drastically slow down due to lack of goods."], answer: "B) Older, lower-cost inventory is sold, boosting profit and current taxes.", rationale: "Selling older inventory layers under LIFO matches outdated, low historical costs against current revenues, resulting in artificially inflated profits and a substantial tax bill." },
+            { id: 610, module: "M6", format: "Multiple Choice", lo: "M6-LO4", skill: "Deep Thinking", topic: "Depreciation Effects", question: `An analyst is reviewing a company's financial statements at year-end. Which of the following statements correctly describes the specific impact of recording the annual depreciation expense?`, options: ["A) It decreases total assets, decreases net income, and lowers operating cash.", "B) It decreases total assets, decreases net income, with no cash flow effect.", "C) It increases total liabilities, decreases net income, and lowers operating cash.", "D) It has no effect on total assets, decreases net income, and increases investing cash."], answer: "B) It decreases total assets, decreases net income, with no cash flow effect.", rationale: "Depreciation is a non-cash expense. It reduces net income and net assets (via Accumulated Depreciation) but does not directly impact cash flow balances." },
+            { id: 611, module: "M6", format: "Multiple Choice", lo: "M6-LO3", skill: "Deep Thinking", topic: "DIO Implication", question: `An analyst notices that a retailer's Days Inventory Outstanding (DIO) has steadily increased from 30 to 45 days. Holding all other factors constant, what is the direct impact on the cash position?`, options: ["A) Operating cash flow improves because they hold more physical assets.", "B) More operating cash is tied up and trapped on shelves as unsold inventory.", "C) Gross profit margins will automatically increase as old inventory is sold.", "D) There is absolutely no discernible impact on overall corporate cash flows."], answer: "B) More operating cash is tied up and trapped on shelves as unsold inventory.", rationale: "A longer DIO means inventory sits unsold for longer. This represents capital (cash) that is trapped in the warehouse rather than being collected from customers." },
+            { id: 612, module: "M6", format: "Multiple Choice", lo: "M6-LO5", skill: "Deep Thinking", topic: "Restructuring Costs", question: `When evaluating profitability, analysts frequently adjust reported net income by removing large restructuring charges (severance payouts, facility closures). What is the theoretical justification?`, options: ["A) Restructuring charges are strictly prohibited from being tax-deductible.", "B) Restructuring charges are non-recurring events that distort core trends.", "C) Restructuring charges inherently represent positive cash inflows.", "D) Accounting principles legally require restructuring to be excluded."], answer: "B) Restructuring charges are non-recurring events that distort core trends.", rationale: "Analysts focus on persistent, recurring core earnings to predict future performance. Large, one-off restructuring events obscure the underlying health of continuous operations." },
+            { id: 613, module: "M6", format: "Multiple Choice", lo: "M6-LO5", skill: "Deep Thinking", topic: "Asset Writedowns", question: `A struggling airline records a multi-billion dollar write-down on the value of its aging aircraft fleet. Assuming core revenues remain flat going forward, what mathematical effect will this have on future Return on Assets (ROA)?`, options: ["A) Future Return on Assets (ROA) will mathematically decrease significantly.", "B) Future Return on Assets (ROA) will mathematically increase significantly.", "C) Future Return on Assets (ROA) will stay exactly the same as historicals.", "D) Future Return on Assets (ROA) will immediately turn highly negative."], answer: "B) Future Return on Assets (ROA) will mathematically increase significantly.", rationale: "The write-down dramatically lowers the denominator (Total Assets). Furthermore, because the asset base is smaller, future depreciation will be lower, increasing the numerator (Net Income). Thus, future ROA is artificially boosted." },
+            { id: 614, module: "M6", format: "Multiple Choice", lo: "M6-LO3", skill: "Deep Thinking", topic: "Inventory Efficiency Interp", question: `A hardware store reported COGS of $800,000. Its beginning inventory was $150,000, and ending inventory was $250,000. Calculate the Inventory Turnover ratio and determine what it practically implies.`, options: [
+                "A) 4.0x; It implies the company completely sells out and replaces its average inventory stock roughly four times per year.",
+                "B) 3.2x; It signifies the company's gross profit margins are exceptionally high compared to its direct competitors.",
+                "C) 4.0x; It proves the company is highly illiquid and currently relies completely on short-term supplier trade credit.",
+                "D) 3.2x; It indicates the exact number of calendar days it takes for the company to sell a single piece of inventory."
+            ], answer: "A) 4.0x; It implies the company completely sells out and replaces its average inventory stock roughly four times per year.", rationale: "Average Inventory = ($150,000 + $250,000) / 2 = $200,000. Turnover = COGS / Average Inv = $800,000 / $200,000 = 4.0x. A higher turnover means they move inventory efficiently." },
+            { id: 615, module: "M6", format: "Multiple Choice", lo: "M6-LO4", skill: "Deep Thinking", topic: "Intangible Capitalization", question: `Why are companies permitted to capitalize the large costs of acquiring a patent from a third party, but legally forbidden from capitalizing the internal costs of developing that exact same patent in their own R&D labs?`, options: [
+                "A) Because third-party purchases establish a verifiable, market-tested fair value, whereas internal R&D costs have highly uncertain future benefits.",
+                "B) Because the SEC strictly requires all domestically developed intellectual property to be classified as physical inventory.",
+                "C) Because capitalizing internal development costs would inherently trigger an immediate federal corporate tax liability.",
+                "D) Because third-party patents are guaranteed to generate revenue, while internal patents are legally prohibited from commercialization."
+            ], answer: "A) Because third-party purchases establish a verifiable, market-tested fair value, whereas internal R&D costs have highly uncertain future benefits.", rationale: "GAAP prioritizes reliability. An external purchase proves the asset has value (someone paid for it). Internal R&D might lead nowhere, so conservatism forces immediate expensing." },
+
+            // ================== MODULE 7 (15) ==================
+            { id: 701, module: "M7", format: "Multiple Choice", lo: "M7-LO1", skill: "Conceptual", topic: "Accrued Liabilities", question: `At the end of a reporting period, an accountant reviews unpaid obligations. Which of the following scenarios perfectly defines the creation of an "accrued liability"?`, options: ["A) Receiving a cash deposit for services that will not be performed yet.", "B) An economic expense has been incurred, but cash has not yet been paid.", "C) The procurement team formally signs a contract to buy raw materials.", "D) The company successfully issues a corporate bond to retail investors."], answer: "B) An economic expense has been incurred, but cash has not yet been paid.", rationale: "Accrued liabilities ensure expenses are recognized in the period they occur (matching principle), even if cash hasn't changed hands." },
+            { id: 702, module: "M7", format: "Multiple Choice", lo: "M7-LO3", skill: "Conceptual", topic: "Bond Pricing Theory", question: `A corporation issues new bonds with a stated (coupon) interest rate of 8%. On the issue date, the prevailing market interest rate is only 6%. Based on this dynamic, the bonds will be sold to investors at:`, options: ["A) Their exact stated par value, resulting in zero initial premium or discount.", "B) A premium price, meaning investors pay an amount higher than face value.", "C) A discount price, meaning investors pay an amount lower than face value.", "D) A completely unpredictable price that cannot be determined whatsoever."], answer: "B) A premium price, meaning investors pay an amount higher than face value.", rationale: "Because the bond offers a lucrative 8% cash payout in a market where other investments only yield 6%, investors will eagerly bid up the price, paying a premium." },
+            { id: 703, module: "M7", format: "Multiple Choice", lo: "M7-LO5", skill: "Conceptual", topic: "Covenant Violations", question: `What is the most severe, immediate consequence a corporation might face if an auditor discovers they have technically violated a required debt covenant?`, options: ["A) The corporation is immediately placed into involuntary bankruptcy.", "B) The outstanding debt may instantly become callable, demanding repayment.", "C) The outstanding debt balance is automatically forgiven as a formal penalty.", "D) The equity shareholders are legally forced to personally pay the debt."], answer: "B) The outstanding debt may instantly become callable, demanding repayment.", rationale: "A technical default breaches the contract, allowing the lender to accelerate the loan (demand full payment immediately), which can cause a severe liquidity crisis." },
+            { id: 704, module: "M7", format: "Multiple Choice", lo: "M7-LO4", skill: "Deep Thinking", topic: "Early Debt Retirement", question: `A firm repurchases its own bonds on the open market for a cash payment of $950,000. At the time, the bonds had a carrying value of $980,000. What is the financial statement effect?`, options: ["A) A distinct financial loss of $30,000 is reported on the income statement.", "B) A distinct financial gain of $30,000 is reported on the income statement.", "C) Retained earnings increases directly by $30,000 without income effect.", "D) No financial gain or loss is recognized; the liability is just zeroed out."], answer: "B) A distinct financial gain of $30,000 is reported on the income statement.", rationale: "Extinguishing a debt by paying less cash ($950k) than the liability recorded on the books ($980k CV) results in a $30k Gain on Early Retirement." },
+            { id: 705, module: "M7", format: "Multiple Choice", lo: "M7-LO4", skill: "Deep Thinking", topic: "Bond Amortization Effect", question: `A company issues a corporate bond at a deep discount because its stated rate is lower than market. As the discount is properly amortized over time, what happens to the carrying value and interest expense?`, options: ["A) Carrying value decreases over time, and interest expense also decreases.", "B) Carrying value increases over time, and interest expense also increases.", "C) Carrying value increases over time, but interest expense strictly decreases.", "D) Both carrying value and recognized interest expense remain constant."], answer: "B) Carrying value increases over time, and interest expense also increases.", rationale: "A discount bond amortizes (increases) upward toward par value. Because Interest Exp = Carrying Value * Market Rate, as carrying value grows, interest expense also grows." },
+            { id: 706, module: "M7", format: "Multiple Choice", lo: "M7-LO1", skill: "Deep Thinking", topic: "Income Shifting", question: `An unethical management team intentionally overestimates and over-accrues warranty liabilities in the current year, depressing profits. What is the likely hidden motive regarding next year's statements?`, options: ["A) Next year's reported net income will be artificially dragged down further.", "B) Next year's reported net income will be inflated when reserves are reversed.", "C) It will have absolutely no mathematical effect on next year's statements.", "D) It forces the company to pay significantly higher income taxes currently."], answer: "B) Next year's reported net income will be inflated when reserves are reversed.", rationale: "Over-accruing expenses in a bad year creates a 'cookie jar' reserve. When actual, lower expenses hit next year, the excess liability is reversed into income, artificially boosting next year's profits." },
+            { id: 707, module: "M7", format: "Multiple Choice", lo: "M7-LO5", skill: "Deep Thinking", topic: "Debt Covenants Purpose", question: `When a commercial bank issues a large loan, it heavily loads the contract with strict financial covenants. What is the primary economic purpose of these covenants from the lender's perspective?`, options: ["A) To deliberately increase the bank's own allowable tax deductions.", "B) To contractually force the corporate team to issue large cash dividends.", "C) To protect the bank against management actions that increase default risk.", "D) To systematically guarantee the bank an eventual equity ownership stake."], answer: "C) To protect the bank against management actions that increase default risk.", rationale: "Covenants act as tripwires. If management acts recklessly, the covenant is breached, allowing the bank to intervene before a total default." },
+            { id: 708, module: "M7", format: "Multiple Choice", lo: "M7-LO5", skill: "Deep Thinking", topic: "TIE Ratio Interp", question: `A manufacturing firm reports the following:
+                <div class="overflow-x-auto text-sm mt-3 mb-4 border border-orange-100 rounded-xl shadow-sm">
+                    <table class="q-table whitespace-nowrap m-0 border-0">
+                        <tr><th colspan="2" class="bg-violet-50 text-violet-900 border-0">Earnings Data</th></tr>
+                        <tr><td class="border-orange-50 font-bold">Earnings Before Interest and Taxes (EBIT)</td><td class="text-right border-orange-50 text-stone-600">$200,000</td></tr>
+                        <tr><td class="border-orange-50 font-bold">Total Interest Expense</td><td class="text-right border-orange-50 text-stone-600">50,000</td></tr>
+                    </table>
+                </div>
+                Calculate the Times Interest Earned (TIE) ratio and determine what it fundamentally indicates.`, options: [
+                "A) 4.0x; It signifies the firm generates exactly four times the operating profit required to safely cover its fixed interest burden.",
+                "B) 0.25x; It reveals the firm is critically over-leveraged and relies far too heavily on unsecured corporate bonds.",
+                "C) 4.0x; It proves the company effectively replaces its entire depreciable asset base four times per fiscal year.",
+                "D) 0.25x; It indicates the firm successfully pays off its principal loan balances completely within a single quarter."
+            ], answer: "A) 4.0x; It signifies the firm generates exactly four times the operating profit required to safely cover its fixed interest burden.", rationale: "TIE Ratio = EBIT / Interest Expense = $200,000 / $50,000 = 4.0 times. A higher ratio indicates a safe, comfortable margin to pay creditors." },
+            { id: 709, module: "M7", format: "Exercises", lo: "M7-LO1", skill: "Quantitative", topic: "Warranty Calc", question: `A firm sells 50,000 units. It estimates 4% will fail, costing $120 each to repair. It actually performed 800 repairs this year. Calculate the ending Warranty Liability balance (assume beginning was zero).<br><br> Liab: $<input type="text" class="smart-input w-32" data-correct="144000">`, answer: "144,000", rationale: "Total Expected Expense = 50,000 * 4% * $120 = $240,000. Cash Paid for actual repairs = 800 * $120 = $96,000. Ending Liability = Expense ($240k) - Paid ($96k) = $144,000." },
+            { id: 710, module: "M7", format: "Exercises", lo: "M7-LO4", skill: "Quantitative", topic: "Effective Interest", question: `A company issues a bond with a face value of $100,000 and a stated rate of 6%. Because the market rate is 8%, the initial carrying value is $95,000. Using the effective interest method, calculate Year 1 Interest Expense.<br><br> Exp: $<input type="text" class="smart-input w-24" data-correct="7600">`, answer: "7,600", rationale: "Under the effective interest method, Interest Expense = Beginning Carrying Value ($95,000) * Effective Market Rate (8%) = $7,600." },
+            { id: 711, module: "M7", format: "Exercises", lo: "M7-LO4", skill: "Quantitative", topic: "Discount Amort", question: `A bond is issued at a discount price of $917,996 (Face value $1M, Stated 5%, Market 7%). Year 1 Cash Interest Paid is $50,000. Year 1 Interest Expense is $64,260. Calculate the precise discount amortization amount for Year 1.<br><br> Amortization: $<input type="text" class="smart-input w-32" data-correct="14260">`, answer: "14,260", rationale: "Amortization = Interest Expense - Cash Interest = $64,260 - $50,000 = $14,260." },
+            { id: 712, module: "M7", format: "Exercises", lo: "M7-LO4", skill: "Quantitative", topic: "Premium Amort", question: `A bond is issued at a premium price of $1,147,202 (Face value $1M, Stated 8%, Market 6%). Year 1 Cash Interest Paid is $80,000. Year 1 Interest Expense is $68,832. Calculate the precise premium amortization amount for Year 1.<br><br> Amortization: $<input type="text" class="smart-input w-32" data-correct="11168">`, answer: "11,168", rationale: "Amortization = Cash Interest - Interest Expense = $80,000 - $68,832 = $11,168." },
+            { id: 713, module: "M7", format: "FSET", lo: "M7-LO4", skill: "Deep Thinking", topic: "FSET - Bond Issuance", 
+                question: "Harbor Inc. successfully issues $500,000 of 8%, 10-year corporate bonds at par value on July 1.",
+                amountOptions: ["-500000", "+500000", "-250000", "+250000", "No Effect"],
+                correct: { cash: 500000, noncash: 0, liab: 500000, cc: 0, ec: 0, rev: 0, exp: 0 },
+                accounts: { liab: "Bonds Payable", noncash: "Not Affected", rev: "Not Affected", exp: "Not Affected" },
+                rationale: "Issuing bonds at par safely increases Cash (+500000) and increases Liabilities (Bonds Payable +500000). There is no immediate income statement effect on Day 1."
+            },
+            { id: 714, module: "M7", format: "FSET", lo: "M7-LO4", skill: "Deep Thinking", topic: "FSET - Bond Interest", 
+                question: "Harbor Inc. pays its first semiannual cash interest payment of $20,000 on its outstanding corporate bonds on December 31.",
+                amountOptions: ["-20000", "+20000", "-10000", "+10000", "No Effect"],
+                correct: { cash: -20000, noncash: 0, liab: 0, cc: 0, ec: -20000, rev: 0, exp: 20000 },
+                accounts: { exp: "Interest Expense", noncash: "Not Affected", liab: "Not Affected", rev: "Not Affected" },
+                rationale: "Paying interest directly reduces Cash (-20000) and increases Interest Expense (20000). The expense lowers Net Income, which in turn mathematically reduces Earned Capital (-20000)."
+            },
+            { id: 715, module: "M7", format: "FSET", lo: "M7-LO4", skill: "Deep Thinking", topic: "FSET - Bond Retirement", 
+                question: "Lakeshore Co. retires $100,000 of its outstanding bonds early by purchasing them on the open market at 98 (meaning they paid exactly $98,000 in cash).",
+                amountOptions: ["-100000", "+100000", "-98000", "+98000", "+2000", "-2000", "No Effect"],
+                correct: { cash: -98000, noncash: 0, liab: -100000, cc: 0, ec: 2000, rev: 2000, exp: 0 },
+                accounts: { liab: "Bonds Payable", rev: "Gain on Bond Retirement", noncash: "Not Affected", exp: "Not Affected" },
+                rationale: "Cash decreases by the payment amount (-98000), but the full liability is completely removed (-100000). The $2,000 difference is a recognized Gain on Bond Retirement (+2000), increasing Earned Capital (+2000)."
+            }
+        ];
+
+        let currentFormat = 'all';
+        let currentMod = 'all'; 
+        let currentSkill = 'all';
+        let searchQuery = '';
+        let showFlaggedOnly = false;
+        let answersVisible = false;
+        let flaggedQuestions = new Set();
+
+        function toggleMobileMenu() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('hidden');
+            sidebar.classList.toggle('absolute');
+            sidebar.classList.toggle('h-[calc(100vh-70px)]');
+            sidebar.classList.toggle('w-full');
+            sidebar.classList.toggle('z-50');
+            sidebar.style.top = "70px"; 
+        }
+        
+        function toggleSummary() {
+            const modal = document.getElementById('summary-modal');
+            const isHidden = modal.classList.contains('hidden');
+            if (isHidden) {
+                modal.classList.remove('hidden');
+                setTimeout(() => {
+                    modal.querySelector('.absolute.inset-0').classList.remove('opacity-0');
+                    modal.querySelector('.absolute.inset-0').classList.add('opacity-100');
+                }, 10);
+            } else {
+                modal.classList.add('hidden');
+            }
+            lucide.createIcons();
+        }
+
+        function toggleFormulas() {
+            const modal = document.getElementById('formula-modal');
+            const isHidden = modal.classList.contains('hidden');
+            if (isHidden) {
+                modal.classList.remove('hidden');
+                setTimeout(() => {
+                    modal.querySelector('.absolute.inset-0').classList.remove('opacity-0');
+                    modal.querySelector('.absolute.inset-0').classList.add('opacity-100');
+                }, 10);
+            } else {
+                modal.classList.add('hidden');
+            }
+            lucide.createIcons();
+        }
+
+        function handleSearch(val) {
+            searchQuery = val.toLowerCase().trim();
+            renderQuestions();
+        }
+
+        function setFormat(format) {
+            currentFormat = format;
+            document.querySelectorAll('.nav-item').forEach(btn => {
+                btn.classList.remove('active', 'bg-[#fff1f2]', 'text-[#be123c]', 'border-r-4', 'border-[#f43f5e]');
+                btn.classList.add('text-stone-600');
+            });
+
+            let btnId = 'btn-all';
+            if (format === 'Multiple Choice') btnId = 'btn-mcq';
+            if (format === 'Exercises') btnId = 'btn-exercises';
+            if (format === 'FSET') btnId = 'btn-fset';
+            
+            const activeBtn = document.getElementById(btnId);
+            activeBtn.classList.remove('text-stone-600');
+            activeBtn.classList.add('active');
+            renderQuestions();
+        }
+
+        function setMod(mod) {
+            currentMod = mod;
+            document.querySelectorAll('.mod-pill').forEach(btn => {
+                btn.classList.remove('active-mod', 'text-white', 'bg-rose-500', 'border-transparent', 'shadow-md', 'hover:scale-105');
+                btn.classList.add('border-2', 'border-orange-100', 'text-stone-600', 'bg-white');
+            });
+
+            let btnId = 'mod-all';
+            if (mod === 'M1') btnId = 'mod-m1';
+            if (mod === 'M2') btnId = 'mod-m2';
+            if (mod === 'M3') btnId = 'mod-m3';
+            if (mod === 'M4') btnId = 'mod-m4';
+            if (mod === 'M5') btnId = 'mod-m5';
+            if (mod === 'M6') btnId = 'mod-m6';
+            if (mod === 'M7') btnId = 'mod-m7';
+
+            const activeBtn = document.getElementById(btnId);
+            activeBtn.classList.remove('border-2', 'border-orange-100', 'text-stone-600', 'bg-white');
+            activeBtn.classList.add('active-mod', 'text-white', 'bg-rose-500', 'border-transparent', 'shadow-md', 'hover:scale-105');
+            
+            updateFilterDescription();
+            renderQuestions();
+        }
+
+        function setSkill(skill) {
+            if (currentSkill === skill) {
+                currentSkill = 'all';
+            } else {
+                currentSkill = skill;
+            }
+            updateSkillUI();
+            updateFilterDescription();
+            renderQuestions();
+        }
+
+        function toggleFlaggedFilter() {
+            showFlaggedOnly = !showFlaggedOnly;
+            updateSkillUI();
+            updateFilterDescription();
+            renderQuestions();
+        }
+
+        function updateSkillUI() {
+            document.querySelectorAll('.skill-pill').forEach(btn => {
+                btn.classList.remove('bg-orange-50', 'border-orange-200', 'text-orange-700');
+                btn.classList.remove('bg-emerald-50', 'border-emerald-200', 'text-emerald-700');
+                btn.classList.remove('bg-violet-50', 'border-violet-200', 'text-violet-700');
+                btn.classList.remove('bg-amber-50', 'border-amber-200', 'text-amber-700');
+                btn.classList.add('border-2', 'border-orange-100', 'text-stone-600', 'bg-white');
+            });
+
+            if (currentSkill === 'Conceptual') {
+                let btn = document.getElementById('skill-concept');
+                btn.classList.remove('border-2', 'border-orange-100', 'text-stone-600', 'bg-white');
+                btn.classList.add('bg-orange-50', 'border-orange-200', 'text-orange-700');
+            }
+            if (currentSkill === 'Quantitative') {
+                let btn = document.getElementById('skill-quant');
+                btn.classList.remove('border-2', 'border-orange-100', 'text-stone-600', 'bg-white');
+                btn.classList.add('bg-emerald-50', 'border-emerald-200', 'text-emerald-700');
+            }
+            if (currentSkill === 'Deep Thinking') {
+                let btn = document.getElementById('skill-deep');
+                btn.classList.remove('border-2', 'border-orange-100', 'text-stone-600', 'bg-white');
+                btn.classList.add('bg-violet-50', 'border-violet-200', 'text-violet-700');
+            }
+            if (showFlaggedOnly) {
+                let btn = document.getElementById('filter-flagged');
+                btn.classList.remove('border-2', 'border-orange-100', 'text-stone-600', 'bg-white');
+                btn.classList.add('bg-amber-50', 'border-amber-200', 'text-amber-700');
+            }
+        }
+
+        function updateFilterDescription() {
+            const descriptions = {
+                'M1': '<strong class="text-rose-900">Module 1:</strong> Reporting & Framework.',
+                'M2': '<strong class="text-rose-900">Module 2:</strong> Business Activities & Accruals.',
+                'M3': '<strong class="text-rose-900">Module 3:</strong> Profitability & DuPont Analysis.',
+                'M4': '<strong class="text-rose-900">Module 4:</strong> Credit Risk & Default.',
+                'M5': '<strong class="text-rose-900">Module 5:</strong> Revenue Recognition (ASC 606).',
+                'M6': '<strong class="text-rose-900">Module 6:</strong> Inventory & PPE Assets.',
+                'M7': '<strong class="text-rose-900">Module 7:</strong> Liabilities, Debt, & Bonds.'
+            };
+            
+            let iconCode = '<div class="bg-white p-1.5 rounded-lg shadow-sm"><i data-lucide="info" class="w-5 h-5 text-rose-500"></i></div> ';
+            let textDesc = "Showing all modules. ";
+
+            if (currentMod !== 'all') {
+                textDesc = descriptions[currentMod] + " ";
+            }
+
+            if(currentSkill === 'Quantitative') {
+                iconCode = '<div class="bg-white p-1.5 rounded-lg shadow-sm"><i data-lucide="calculator" class="w-5 h-5 text-emerald-500"></i></div> ';
+                textDesc += "Filtered to show only <strong class='text-emerald-700'>Quantitative</strong> questions.";
+            } else if(currentSkill === 'Deep Thinking') {
+                iconCode = '<div class="bg-white p-1.5 rounded-lg shadow-sm"><i data-lucide="brain" class="w-5 h-5 text-violet-500"></i></div> ';
+                textDesc += "Filtered to show only <strong class='text-violet-700'>Deep Thinking</strong> questions.";
+            } else if(currentSkill === 'Conceptual') {
+                iconCode = '<div class="bg-white p-1.5 rounded-lg shadow-sm"><i data-lucide="book-open" class="w-5 h-5 text-orange-500"></i></div> ';
+                textDesc += "Filtered to show only <strong class='text-orange-700'>Conceptual</strong> questions.";
+            }
+
+            if(showFlaggedOnly) {
+                iconCode = '<div class="bg-white p-1.5 rounded-lg shadow-sm"><i data-lucide="flag" class="w-5 h-5 text-amber-500"></i></div> ';
+                textDesc = "Filtered to show ONLY <strong class='text-amber-700'>Flagged</strong> questions.";
+            }
+
+            if(searchQuery) {
+                textDesc += ` (Searching for: "${searchQuery}")`;
+            }
+
+            document.getElementById('filter-description').innerHTML = iconCode + textDesc;
+            lucide.createIcons();
+        }
+
+        function toggleFlag(id) {
+            if(flaggedQuestions.has(id)) flaggedQuestions.delete(id);
+            else flaggedQuestions.add(id);
+            
+            const btn = document.getElementById(`flag-btn-${id}`);
+            const icon = document.getElementById(`flag-icon-${id}`);
+            
+            if(btn && icon) {
+                if(flaggedQuestions.has(id)) {
+                    btn.classList.add('bg-amber-100', 'text-amber-600', 'border-amber-300');
+                    btn.classList.remove('bg-stone-50', 'text-stone-400', 'border-stone-200', 'hover:text-amber-500', 'hover:border-amber-300');
+                    icon.setAttribute('fill', 'currentColor');
+                } else {
+                    btn.classList.remove('bg-amber-100', 'text-amber-600', 'border-amber-300');
+                    btn.classList.add('bg-stone-50', 'text-stone-400', 'border-stone-200', 'hover:text-amber-500', 'hover:border-amber-300');
+                    icon.setAttribute('fill', 'none');
+                }
+            }
+            if(showFlaggedOnly) renderQuestions();
+        }
+
+        window.handleOptionClick = function(el, qId, optIndex) {
+            const q = questions.find(x => x.id === qId);
+            if (!q) return;
+
+            const optionsForQ = document.querySelectorAll(`.q-${qId}-option`);
+            optionsForQ.forEach(opt => opt.classList.remove('selected', 'correct-choice', 'incorrect-choice'));
+            
+            el.classList.add('selected');
+            const isMatch = (q.options[optIndex] === q.answer);
+            if (isMatch) {
+                el.classList.add('correct-choice');
+                showEncouragement();
+            } else {
+                el.classList.add('incorrect-choice');
+            }
+        };
+
+        window.checkFSET = function(id, field) {
+            const q = questions.find(q => q.id === id);
+            const input = document.getElementById(`q${id}_${field}`);
+            const val = field.includes('acc') ? input.value : parseFloat(input.value);
+            
+            let correct = false;
+            
+            if (field === 'cash') correct = val === q.correct.cash;
+            else if (field === 'noncash') correct = val === q.correct.noncash;
+            else if (field === 'liab') correct = val === q.correct.liab;
+            else if (field === 'cc') correct = val === q.correct.cc;
+            else if (field === 'ec') correct = val === q.correct.ec;
+            else if (field === 'rev') correct = val === q.correct.rev;
+            else if (field === 'exp') correct = val === q.correct.exp;
+            else if (field === 'noncash_acc') correct = val === (q.accounts.noncash || "");
+            else if (field === 'liab_acc') correct = val === (q.accounts.liab || "");
+            else if (field === 'exp_acc') correct = val === (q.accounts.exp || "");
+            else if (field === 'rev_acc') correct = val === (q.accounts.rev || "");
+
+            if (correct) {
+                input.classList.add('correct');
+                input.classList.remove('incorrect');
+                if (input.dataset.status !== 'correct' && input.dataset.autofilling !== 'true') showEncouragement();
+                input.dataset.status = 'correct';
+            } else {
+                input.classList.add('incorrect');
+                input.classList.remove('correct');
+                input.dataset.status = 'incorrect';
+            }
+        }
+
+        function renderQuestions() {
+            const container = document.getElementById('questions-container');
+            container.innerHTML = '';
+            
+            let filteredQuestions = questions;
+
+            if (searchQuery) {
+                filteredQuestions = filteredQuestions.filter(q => 
+                    q.question.toLowerCase().includes(searchQuery) || 
+                    q.topic.toLowerCase().includes(searchQuery) ||
+                    (q.lo && q.lo.toLowerCase().includes(searchQuery))
+                );
+            }
+
+            if (currentFormat !== 'all') {
+                filteredQuestions = filteredQuestions.filter(q => q.format === currentFormat);
+            }
+
+            if (currentMod !== 'all') {
+                filteredQuestions = filteredQuestions.filter(q => q.module === currentMod);
+            }
+            
+            if (currentSkill !== 'all') {
+                filteredQuestions = filteredQuestions.filter(q => q.skill === currentSkill);
+            }
+
+            if (showFlaggedOnly) {
+                filteredQuestions = filteredQuestions.filter(q => flaggedQuestions.has(q.id));
+            }
+            
+            document.getElementById('count-all').innerText = questions.length;
+            document.getElementById('count-mcq').innerText = questions.filter(q => q.format === 'Multiple Choice').length;
+            document.getElementById('count-exercises').innerText = questions.filter(q => q.format === 'Exercises').length;
+            document.getElementById('count-fset').innerText = questions.filter(q => q.format === 'FSET').length;
+
+            document.getElementById('filter-count').innerText = `Showing ${filteredQuestions.length} questions`;
+            
+            filteredQuestions.forEach((q) => {
+                const card = document.createElement('div');
+                card.className = "card rounded-3xl shadow-sm overflow-hidden border-2";
+                card.id = `card-${q.id}`;
+                
+                let contentHtml = '';
+                if (q.format === 'Multiple Choice' && q.options) {
+                    contentHtml = `<div class="mt-5 space-y-3">${q.options.map((opt, i) => `<div class="option-btn mcq-option q-${q.id}-option px-5 py-3 rounded-2xl text-base font-semibold" onclick="handleOptionClick(this, ${q.id}, ${i})">${opt}</div>`).join('')}</div>`;
+                } else if (q.format === 'FSET') {
+                    const amountOptionsHtml = q.amountOptions.map(opt => `<option value="${opt === 'No Effect' ? 0 : opt}">${opt}</option>`).join('');
+                    const accountOptionsHtml = ACCOUNT_OPTIONS.map(opt => `<option value="${opt}">${opt === "" ? "- Select Account -" : opt}</option>`).join('');
+                    
+                    contentHtml = `
+                        <div class="mt-6 space-y-4">
+                            <div class="fset-header shadow-inner">
+                                Cash + Non-Cash Assets = Liabilities + Contributed Capital + Earned Capital | Revenue/Gains - Expense/Losses = Net Income
+                                <div class="text-orange-800/70 font-bold mt-1 normal-case text-xs">Select 'No Effect' and 'Not Affected' for unchanged categories.</div>
+                            </div>
+                            <div class="grid grid-cols-7 gap-2 overflow-x-auto pb-3">
+                                <div class="fset-col">
+                                    <label class="fset-label">Cash</label>
+                                    <select id="q${q.id}_cash" class="fset-select smart-input" onchange="checkFSET(${q.id}, 'cash')"><option value="">- Amt -</option>${amountOptionsHtml}</select>
+                                </div>
+                                <div class="fset-col">
+                                    <label class="fset-label">Non-Cash</label>
+                                    <select id="q${q.id}_noncash" class="fset-select smart-input" onchange="checkFSET(${q.id}, 'noncash')"><option value="">- Amt -</option>${amountOptionsHtml}</select>
+                                    <select id="q${q.id}_noncash_acc" class="fset-select smart-input" onchange="checkFSET(${q.id}, 'noncash_acc')">${accountOptionsHtml}</select>
+                                </div>
+                                <div class="fset-col">
+                                    <label class="fset-label">Liabilities</label>
+                                    <select id="q${q.id}_liab" class="fset-select smart-input" onchange="checkFSET(${q.id}, 'liab')"><option value="">- Amt -</option>${amountOptionsHtml}</select>
+                                    <select id="q${q.id}_liab_acc" class="fset-select smart-input" onchange="checkFSET(${q.id}, 'liab_acc')">${accountOptionsHtml}</select>
+                                </div>
+                                <div class="fset-col">
+                                    <label class="fset-label">Contrib Cap</label>
+                                    <select id="q${q.id}_cc" class="fset-select smart-input" onchange="checkFSET(${q.id}, 'cc')"><option value="">- Amt -</option>${amountOptionsHtml}</select>
+                                </div>
+                                <div class="fset-col">
+                                    <label class="fset-label">Earned Cap</label>
+                                    <select id="q${q.id}_ec" class="fset-select smart-input" onchange="checkFSET(${q.id}, 'ec')"><option value="">- Amt -</option>${amountOptionsHtml}</select>
+                                </div>
+                                <div class="fset-col border-l-2 border-orange-100 pl-2">
+                                    <label class="fset-label">Revenue / Gains</label>
+                                    <select id="q${q.id}_rev" class="fset-select smart-input" onchange="checkFSET(${q.id}, 'rev')"><option value="">- Amt -</option>${amountOptionsHtml}</select>
+                                    <select id="q${q.id}_rev_acc" class="fset-select smart-input" onchange="checkFSET(${q.id}, 'rev_acc')">${accountOptionsHtml}</select>
+                                </div>
+                                <div class="fset-col">
+                                    <label class="fset-label">Expense / Losses</label>
+                                    <select id="q${q.id}_exp" class="fset-select smart-input" onchange="checkFSET(${q.id}, 'exp')"><option value="">- Amt -</option>${amountOptionsHtml}</select>
+                                    <select id="q${q.id}_exp_acc" class="fset-select smart-input" onchange="checkFSET(${q.id}, 'exp_acc')">${accountOptionsHtml}</select>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                let skillBadgeClass = '';
+                let skillIcon = '';
+                if(q.skill === 'Deep Thinking') { skillBadgeClass = 'bg-violet-100 text-violet-800 border-violet-300 border-2'; skillIcon = '<i data-lucide="brain" class="w-3.5 h-3.5 mr-1.5 inline"></i>'; }
+                else if (q.skill === 'Quantitative') { skillBadgeClass = 'bg-emerald-100 text-emerald-800 border-emerald-300 border-2'; skillIcon = '<i data-lucide="calculator" class="w-3.5 h-3.5 mr-1.5 inline"></i>'; }
+                else { skillBadgeClass = 'bg-orange-100 text-orange-800 border-orange-300 border-2'; skillIcon = '<i data-lucide="book-open" class="w-3.5 h-3.5 mr-1.5 inline"></i>'; }
+
+                const flagClass = flaggedQuestions.has(q.id) ? 'bg-amber-100 text-amber-600 border-amber-300' : 'bg-stone-50 text-stone-400 border-stone-200 hover:text-amber-500 hover:border-amber-300';
+                const flagFill = flaggedQuestions.has(q.id) ? 'currentColor' : 'none';
+
+                card.innerHTML = `
+                    <div class="p-8">
+                        <div class="flex justify-between items-start mb-6">
+                            <div class="flex flex-wrap gap-2.5">
+                                <span class="inline-flex items-center px-3 py-1 rounded-lg text-xs font-black uppercase tracking-wider bg-stone-100 text-stone-700 border-2 border-stone-200 shadow-sm">${q.module}</span>
+                                <span class="inline-flex items-center px-3 py-1 rounded-lg text-xs font-black uppercase tracking-wider bg-white text-stone-500 border-2 border-stone-200 shadow-sm">${q.lo}</span>
+                                <span class="inline-flex items-center px-3 py-1 rounded-lg text-xs font-black uppercase tracking-wider ${skillBadgeClass} shadow-sm">${skillIcon}${q.skill}</span>
+                            </div>
+                            <div class="flex items-center gap-2 flex-shrink-0 ml-3">
+                                <span class="text-xs font-black text-stone-400 tracking-widest bg-stone-50 px-2.5 py-1.5 rounded-lg border-2 border-stone-100">Q${q.id}</span>
+                                <button id="flag-btn-${q.id}" onclick="toggleFlag(${q.id})" class="p-2 rounded-xl border-2 ${flagClass} transition-colors shadow-sm" title="Flag for review"><i id="flag-icon-${q.id}" data-lucide="flag" class="w-4 h-4" fill="${flagFill}"></i></button>
+                            </div>
+                        </div>
+                        <h3 class="text-sm font-black text-rose-500 uppercase tracking-widest mb-3">${q.topic}</h3>
+                        <div class="text-stone-800 font-bold text-lg leading-relaxed overflow-x-auto">${q.question}</div>
+                        ${contentHtml}
+                        <div class="mt-8 pt-5 border-t-2 border-orange-50 flex justify-between items-center">
+                            <button onclick="toggleAnswer(${q.id})" class="bg-gradient-to-r from-orange-400 to-rose-500 text-white px-6 py-3 rounded-xl text-sm font-black flex items-center gap-2 shadow-md hover:shadow-lg transition-all transform hover:-translate-y-0.5 hover:scale-105 active:scale-95">
+                                <span>Show Answer</span><i data-lucide="chevron-down" class="w-5 h-5 transition-transform" id="icon-${q.id}"></i>
+                            </button>
+                        </div>
+                        <div id="ans-${q.id}" class="answer-section bg-[#fffaf5] rounded-2xl px-6 border-2 border-orange-100 hidden-initially shadow-inner">
+                            <div class="flex gap-4">
+                                <div class="flex-shrink-0 mt-1"><div class="bg-emerald-100 p-2 rounded-xl shadow-sm"><i data-lucide="check-circle-2" class="w-6 h-6 text-emerald-600"></i></div></div>
+                                <div class="w-full">
+                                    <div class="font-black text-stone-800 mb-2 text-lg">Answer</div>
+                                    <div class="text-stone-800 mb-5 overflow-x-auto text-base font-bold bg-white p-5 rounded-2xl border-2 border-stone-100 shadow-sm">${q.format === 'FSET' ? 'Check inputs against logic in rationale.' : q.answer}</div>
+                                    <div class="text-stone-600 text-base leading-relaxed border-t-2 border-stone-100 pt-4 pb-2 font-medium"><span class="font-black text-rose-800 uppercase text-xs tracking-widest bg-rose-100 px-2 py-1 rounded-md mr-2">Rationale</span> <br/><div class="mt-2">${q.rationale}</div></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
+                container.appendChild(card);
+            });
+            
+            if(answersVisible) {
+                 filteredQuestions.forEach((q) => {
+                    const answerDiv = document.getElementById(`ans-${q.id}`);
+                    const icon = document.getElementById(`icon-${q.id}`);
+                    const individualBtnSpan = answerDiv.previousElementSibling.querySelector('span');
+                    answerDiv.classList.remove('hidden-initially');
+                    answerDiv.classList.add('visible');
+                    if(icon) icon.style.transform = 'rotate(180deg)';
+                    if(individualBtnSpan) individualBtnSpan.textContent = "Hide Answer";
+                    autofillInputs(q.id, true);
+                 });
+            }
+
+            lucide.createIcons();
+            attachSmartInputListeners();
+        }
+
+        let lastToastTime = 0;
+        function showEncouragement() {
+            const now = Date.now();
+            if (now - lastToastTime < 2000) return; 
+            lastToastTime = now;
+            const phrases = ["Great job!", "Spot on!", "You got it!", "Perfect!", "Accounting rockstar!", "Nailed it!", "Brilliant!", "Excellent!", "Keep it up!"];
+            
+            const randomPhrase = phrases[Math.floor(Math.random() * phrases.length)];
+
+            const toast = document.createElement('div');
+            toast.className = 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white px-6 py-4 rounded-2xl shadow-[0_10px_25px_-5px_rgba(16,185,129,0.5)] font-black flex items-center gap-3 border-2 border-emerald-300 text-lg';
+            toast.style.animation = 'slideDownFade 2.5s cubic-bezier(0.16, 1, 0.3, 1) forwards';
+            toast.innerHTML = `<div class="bg-white/20 p-1.5 rounded-lg"><i data-lucide="check-circle-2" class="w-6 h-6 text-white"></i></div> <span>${randomPhrase}</span>`;
+            document.getElementById('toast-container').appendChild(toast);
+            lucide.createIcons();
+            setTimeout(() => toast.remove(), 2600);
+        }
+
+        function validateField(el) {
+            const val = el.value.trim().replace(/,/g, '');
+            const correctRaw = el.getAttribute('data-correct');
+            if(correctRaw === null || correctRaw === undefined) return;
+            const correct = correctRaw.trim();
+            if (val === "") {
+                el.classList.remove('correct', 'incorrect');
+                el.dataset.status = 'blank';
+                return;
+            }
+            let parsedValStr = val;
+            if (parsedValStr.startsWith('(') && parsedValStr.endsWith(')')) parsedValStr = '-' + parsedValStr.slice(1, -1);
+            let correctStr = correct.replace(/,/g, '');
+            if (correctStr.startsWith('(') && correctStr.endsWith(')')) correctStr = '-' + correctStr.slice(1, -1);
+            
+            const numVal = parseFloat(parsedValStr);
+            const numCorrect = parseFloat(correctStr);
+            let isMatch = false;
+
+            if (!isNaN(numVal) && !isNaN(numCorrect)) {
+                if (Math.abs(numVal - numCorrect) < 0.05 || parsedValStr.toLowerCase() === correctStr.toLowerCase()) isMatch = true;
+            } else {
+                isMatch = val.toLowerCase() === correct.toLowerCase();
+            }
+
+            el.classList.remove('correct', 'incorrect');
+            if (isMatch) {
+                el.classList.add('correct');
+                if (el.dataset.status !== 'correct' && el.dataset.autofilling !== 'true') showEncouragement();
+                el.dataset.status = 'correct';
+            } else {
+                el.classList.add('incorrect');
+                el.dataset.status = 'incorrect';
+            }
+        }
+
+        function attachSmartInputListeners() {
+            document.querySelectorAll('.smart-input').forEach(input => {
+                input.addEventListener('input', function(e) {
+                    e.target.classList.remove('correct', 'incorrect');
+                    e.target.dataset.status = 'typing';
+                });
+                if (input.tagName === 'INPUT') {
+                    input.addEventListener('blur', function(e) { validateField(e.target); });
+                }
+            });
+        }
+
+        function autofillInputs(id, fill) {
+            const card = document.getElementById(`card-${id}`);
+            if(!card) return;
+            const inputs = card.querySelectorAll('.smart-input');
+            const mcqOptions = card.querySelectorAll(`.q-${id}-option`);
+            const q = questions.find(x => x.id === id);
+
+            if (q.format === 'FSET' && fill) {
+                document.getElementById(`q${q.id}_cash`).value = q.correct.cash === 0 ? "No Effect" : (q.correct.cash > 0 ? "+"+q.correct.cash : q.correct.cash);
+                document.getElementById(`q${q.id}_noncash`).value = q.correct.noncash === 0 ? "No Effect" : (q.correct.noncash > 0 ? "+"+q.correct.noncash : q.correct.noncash);
+                document.getElementById(`q${q.id}_liab`).value = q.correct.liab === 0 ? "No Effect" : (q.correct.liab > 0 ? "+"+q.correct.liab : q.correct.liab);
+                document.getElementById(`q${q.id}_cc`).value = q.correct.cc === 0 ? "No Effect" : (q.correct.cc > 0 ? "+"+q.correct.cc : q.correct.cc);
+                document.getElementById(`q${q.id}_ec`).value = q.correct.ec === 0 ? "No Effect" : (q.correct.ec > 0 ? "+"+q.correct.ec : q.correct.ec);
+                document.getElementById(`q${q.id}_rev`).value = q.correct.rev === 0 ? "No Effect" : (q.correct.rev > 0 ? "+"+q.correct.rev : q.correct.rev);
+                document.getElementById(`q${q.id}_exp`).value = q.correct.exp === 0 ? "No Effect" : (q.correct.exp > 0 ? "+"+q.correct.exp : q.correct.exp);
+                
+                document.getElementById(`q${q.id}_noncash_acc`).value = q.accounts.noncash;
+                document.getElementById(`q${q.id}_liab_acc`).value = q.accounts.liab;
+                document.getElementById(`q${q.id}_rev_acc`).value = q.accounts.rev;
+                document.getElementById(`q${q.id}_exp_acc`).value = q.accounts.exp;
+
+                ['cash', 'noncash', 'liab', 'cc', 'ec', 'rev', 'exp', 'noncash_acc', 'liab_acc', 'rev_acc', 'exp_acc'].forEach(field => {
+                    document.getElementById(`q${q.id}_${field}`).dataset.autofilling = 'true';
+                    window.checkFSET(q.id, field);
+                    setTimeout(() => { delete document.getElementById(`q${q.id}_${field}`).dataset.autofilling; }, 100);
+                });
+            } else if (q.format === 'FSET' && !fill) {
+                 ['cash', 'noncash', 'liab', 'cc', 'ec', 'rev', 'exp', 'noncash_acc', 'liab_acc', 'rev_acc', 'exp_acc'].forEach(field => {
+                    const el = document.getElementById(`q${q.id}_${field}`);
+                    el.value = "";
+                    el.classList.remove('correct', 'incorrect');
+                    el.dataset.status = 'blank';
+                });
+            } else {
+                inputs.forEach(input => {
+                    if (fill) {
+                        input.dataset.autofilling = 'true'; 
+                        input.value = input.getAttribute('data-correct');
+                        if (input.value !== "") {
+                            input.classList.add('correct');
+                            input.classList.remove('incorrect');
+                        } else {
+                            input.classList.remove('correct', 'incorrect');
+                        }
+                        input.dataset.status = 'correct';
+                        setTimeout(() => { delete input.dataset.autofilling; }, 100);
+                    } else {
+                        input.value = '';
+                        input.classList.remove('correct', 'incorrect');
+                        input.dataset.status = 'blank';
+                    }
+                });
+            }
+
+            if (q && q.format === "Multiple Choice") {
+                if (fill) {
+                    mcqOptions.forEach((opt, idx) => {
+                        opt.classList.remove('incorrect-choice');
+                        if (q.options.indexOf(q.answer) === idx) opt.classList.add('correct-choice', 'selected');
+                    });
+                } else {
+                    mcqOptions.forEach(opt => opt.classList.remove('correct-choice', 'incorrect-choice', 'selected'));
+                }
+            }
+        }
+
+        function toggleAnswer(id) {
+            const answerDiv = document.getElementById(`ans-${id}`);
+            const icon = document.getElementById(`icon-${id}`);
+            const isVisible = answerDiv.classList.contains('visible');
+            const btnSpan = answerDiv.previousElementSibling.querySelector('span');
+            
+            answerDiv.classList.remove('hidden-initially');
+            
+            if (isVisible) {
+                answerDiv.classList.remove('visible');
+                icon.style.transform = 'rotate(0deg)';
+                btnSpan.textContent = "Show Answer";
+                autofillInputs(id, false);
+            } else {
+                answerDiv.classList.add('visible');
+                icon.style.transform = 'rotate(180deg)';
+                btnSpan.textContent = "Hide Answer";
+                autofillInputs(id, true);
+            }
+        }
+
+        function toggleAllAnswers() {
+            answersVisible = !answersVisible;
+            const btn = document.getElementById('toggleAllSideBtn');
+            if (answersVisible) btn.innerHTML = '<i data-lucide="eye-off" class="w-5 h-5 text-rose-500"></i> <span>Hide All Answers</span>';
+            else btn.innerHTML = '<i data-lucide="eye" class="w-5 h-5 text-rose-500"></i> <span>Show All Answers</span>';
+            lucide.createIcons();
+            renderQuestions();
+        }
+        
+        function downloadReport() {
+            let htmlContent = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="utf-8">
+                    <title>Study Report</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; color: #333; }
+                        h1 { color: #be123c; text-align: center; font-size: 24px; }
+                        h2 { color: #f43f5e; border-bottom: 2px solid #f43f5e; padding-bottom: 5px; font-size: 18px; }
+                        h3 { color: #0f172a; background-color: #fff1f2; padding: 10px; border-radius: 5px; font-size: 16px; }
+                        .question-block { margin-bottom: 30px; }
+                        .answer-box { background-color: #f0fdf4; border-left: 4px solid #22c55e; padding: 10px; margin: 10px 0; }
+                        .rationale-box { background-color: #fffaf5; border-left: 4px solid #f97316; padding: 10px; margin: 10px 0; }
+                    </style>
+                </head>
+                <body>
+                    <h1>FINAL EXAM STUDY REPORT</h1>
+                    <p style="text-align: center;"><strong>Date:</strong> ${new Date().toLocaleString()}</p>
+                    <br>
+                    <h2>--- FLAGGED QUESTIONS TO REVIEW ---</h2>
+            `;
+
+            if (flaggedQuestions.size === 0) {
+                htmlContent += "<p>No questions were flagged for review! Great job!</p>";
+            } else {
+                const flaggedArr = Array.from(flaggedQuestions).sort((a, b) => a - b);
+                flaggedArr.forEach(qId => {
+                    const q = questions.find(x => x.id === qId);
+                    if (q) {
+                        let cleanQuestion = q.question.replace(/<input[^>]*>/gi, "_______");
+                        cleanQuestion = cleanQuestion.replace(/<select[^>]*>.*?<\/select>/gi, "_______");
+                        cleanQuestion = cleanQuestion.replace(/<table/gi, "<table border='1' cellpadding='5' style='border-collapse: collapse; margin-top: 10px; margin-bottom: 10px;'");
+
+                        htmlContent += `
+                            <div class="question-block">
+                                <h3>[ Question ${q.id} ] - ${q.topic} (${q.module})</h3>
+                                <p><strong>Question:</strong></p>
+                                <div>${cleanQuestion}</div>
+                                
+                                <div class="answer-box">
+                                    <strong>Correct Answer:</strong><br>
+                                    ${q.format === 'FSET' ? 'Review rationale for correct accounting equation structure.' : q.answer}
+                                </div>
+                                
+                                <div class="rationale-box">
+                                    <strong>Rationale:</strong><br>
+                                    ${q.rationale}
+                                </div>
+                            </div>
+                            <hr>
+                        `;
+                    }
+                });
+            }
+            
+            htmlContent += `
+                    <p style="text-align: center; font-weight: bold; color: #be123c;">Keep up the great work studying!</p>
+                </body>
+                </html>
+            `;
+
+            if (typeof htmlDocx !== 'undefined') {
+                const converted = htmlDocx.asBlob(htmlContent);
+                const url = URL.createObjectURL(converted);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = "Final_Exam_Study_Report.docx";
+                document.body.appendChild(a);
+                a.click();
+                setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
+            } else {
+                const blob = new Blob(['\ufeff', htmlContent], { type: 'application/msword' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = "Final_Exam_Study_Report.doc";
+                document.body.appendChild(a);
+                a.click();
+                setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
+            }
+        }
+
+        /* --- Calculator Logic --- */
+        let calcInput = "";
+        function toggleCalculator() {
+            const calc = document.getElementById('calculator-container');
+            calc.classList.toggle('hidden');
+            if(!calc.classList.contains('hidden') && !calc.style.left) {
+                calc.style.bottom = '2rem';
+                calc.style.right = '2rem';
+                calc.style.left = 'auto';
+                calc.style.top = 'auto';
+            }
+        }
+        function updateDisplay() {
+            const display = document.getElementById('calc-display');
+            display.innerText = calcInput === "" ? "0" : calcInput;
+            display.scrollLeft = display.scrollWidth;
+        }
+        function appendNum(num) { calcInput += num; updateDisplay(); }
+        function appendOp(op) {
+            const lastChar = calcInput.slice(-1);
+            if (['+', '-', '*', '/'].includes(lastChar)) calcInput = calcInput.slice(0, -1) + op;
+            else if (calcInput !== "") calcInput += op;
+            updateDisplay();
+        }
+        function backspace() { calcInput = calcInput.slice(0, -1); updateDisplay(); }
+        function clearCalc() { calcInput = ""; updateDisplay(); }
+        function calculate() {
+            try {
+                if (calcInput === "") return;
+                const result = eval(calcInput); 
+                if (!isFinite(result) || isNaN(result)) calcInput = "Error";
+                else calcInput = String(Math.round(result * 1000000) / 1000000);
+            } catch (e) { calcInput = "Error"; }
+            updateDisplay();
+        }
+
+        // Make Calculator Draggable
+        const calcContainer = document.getElementById('calculator-container');
+        const dragHandle = document.getElementById('calc-drag-handle');
+        let isDragging = false;
+        let dragStartX, dragStartY, initialLeft, initialTop;
+
+        dragHandle.addEventListener("mousedown", dragStart);
+        document.addEventListener("mouseup", dragEnd);
+        document.addEventListener("mousemove", drag);
+        dragHandle.addEventListener("touchstart", dragStart, {passive: false});
+        document.addEventListener("touchend", dragEnd);
+        document.addEventListener("touchmove", drag, {passive: false});
+
+        function dragStart(e) {
+            if (!e.target.closest('#calc-drag-handle') || e.target.tagName === 'BUTTON' || e.target.closest('button')) return;
+            isDragging = true;
+            const rect = calcContainer.getBoundingClientRect();
+            initialLeft = rect.left;
+            initialTop = rect.top;
+            if (e.type === "touchstart") { dragStartX = e.touches[0].clientX; dragStartY = e.touches[0].clientY; } 
+            else { dragStartX = e.clientX; dragStartY = e.clientY; }
+            calcContainer.style.bottom = 'auto';
+            calcContainer.style.right = 'auto';
+            calcContainer.style.left = initialLeft + 'px';
+            calcContainer.style.top = initialTop + 'px';
+            calcContainer.style.transform = 'none'; 
+        }
+        function dragEnd(e) { isDragging = false; }
+        function drag(e) {
+            if (!isDragging) return;
+            e.preventDefault();
+            let currentX, currentY;
+            if (e.type === "touchmove") { currentX = e.touches[0].clientX; currentY = e.touches[0].clientY; } 
+            else { currentX = e.clientX; currentY = e.clientY; }
+            const dx = currentX - dragStartX;
+            const dy = currentY - dragStartY;
+            calcContainer.style.left = (initialLeft + dx) + 'px';
+            calcContainer.style.top = (initialTop + dy) + 'px';
+        }
+
+        // Make Download Button Draggable
+        const downloadContainer = document.getElementById('download-container');
+        const downloadDragHandle = document.getElementById('download-drag-handle');
+        let isDraggingDl = false;
+        let dlDragStartX, dlDragStartY, dlInitialLeft, dlInitialTop;
+
+        downloadDragHandle.addEventListener("mousedown", dlDragStart);
+        document.addEventListener("mouseup", dlDragEnd);
+        document.addEventListener("mousemove", dlDrag);
+        downloadDragHandle.addEventListener("touchstart", dlDragStart, {passive: false});
+        document.addEventListener("touchend", dlDragEnd);
+        document.addEventListener("touchmove", dlDrag, {passive: false});
+
+        function dlDragStart(e) {
+            isDraggingDl = true;
+            const rect = downloadContainer.getBoundingClientRect();
+            dlInitialLeft = rect.left;
+            dlInitialTop = rect.top;
+            if (e.type === "touchstart") { dlDragStartX = e.touches[0].clientX; dlDragStartY = e.touches[0].clientY; } 
+            else { dlDragStartX = e.clientX; dlDragStartY = e.clientY; }
+            downloadContainer.style.bottom = 'auto';
+            downloadContainer.style.right = 'auto';
+            downloadContainer.style.left = dlInitialLeft + 'px';
+            downloadContainer.style.top = dlInitialTop + 'px';
+            downloadContainer.style.transform = 'none'; 
+        }
+        function dlDragEnd(e) { isDraggingDl = false; }
+        function dlDrag(e) {
+            if (!isDraggingDl) return;
+            e.preventDefault();
+            let currentX, currentY;
+            if (e.type === "touchmove") { currentX = e.touches[0].clientX; currentY = e.touches[0].clientY; } 
+            else { currentX = e.clientX; currentY = e.clientY; }
+            const dx = currentX - dlDragStartX;
+            const dy = currentY - dlDragStartY;
+            downloadContainer.style.left = (dlInitialLeft + dx) + 'px';
+            downloadContainer.style.top = (dlInitialTop + dy) + 'px';
+        }
+
+        document.addEventListener('keydown', (e) => {
+            const calcContainer = document.getElementById('calculator-container');
+            if (!calcContainer.classList.contains('hidden')) {
+                const isInputActive = document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA' || document.activeElement.tagName === 'SELECT');
+                if (isInputActive) return;
+                if (e.key === 'Enter') { e.preventDefault(); calculate(); } 
+                else if (e.key === 'Backspace') { e.preventDefault(); backspace(); } 
+                else if (e.key === 'Escape') { e.preventDefault(); toggleCalculator(); } 
+                else if (e.key === 'c' || e.key === 'C') { e.preventDefault(); clearCalc(); } 
+                else if (['0','1','2','3','4','5','6','7','8','9','.'].includes(e.key)) { e.preventDefault(); appendNum(e.key); } 
+                else if (['+','-','*','/'].includes(e.key)) { e.preventDefault(); appendOp(e.key); }
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('count-all').innerText = questions.length;
+            document.getElementById('count-mcq').innerText = questions.filter(q => q.format === 'Multiple Choice').length;
+            document.getElementById('count-exercises').innerText = questions.filter(q => q.format === 'Exercises').length;
+            document.getElementById('count-fset').innerText = questions.filter(q => q.format === 'FSET').length;
+            renderQuestions();
+        });
+    </script>
+</body>
+</html>
