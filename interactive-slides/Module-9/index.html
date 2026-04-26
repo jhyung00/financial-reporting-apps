@@ -1,0 +1,1309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Corporate Power Play: Investments & Influence</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;800;900&family=JetBrains+Mono:wght@500;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            /* Gamified Theme Colors */
+            --color-background: #ffffff;
+            --color-newday: #f1f5f9; 
+            --color-primary: #0f172a; /* Deep Slate */
+            --color-secondary: #3b82f6; /* Bright Blue */
+            --color-accent: #8b5cf6; /* Purple */
+            --color-text: #1e293b; 
+            --color-text-muted: #64748b; 
+            
+            /* Status Colors */
+            --danger: #ef4444; 
+            --danger-bg: #fee2e2;
+            --success: #10b981; 
+            --success-bg: #d1fae5;
+            --warning: #f59e0b; 
+            --warning-bg: #fef3c7;
+            
+            --grid-size: 60px;
+            
+            /* Gamified UI Elements */
+            --radius: 16px;
+            --border-game: 3px solid var(--color-primary);
+            --shadow-game: 5px 5px 0px rgba(15, 23, 42, 1);
+            --shadow-game-hover: 2px 2px 0px rgba(15, 23, 42, 1);
+        }
+
+        body {
+            font-family: 'Nunito', system-ui, -apple-system, sans-serif;
+            margin: 0;
+            padding: 0;
+            color: var(--color-text);
+            background-color: #cbd5e1;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-image: 
+                radial-gradient(var(--color-secondary) 1.5px, transparent 1.5px),
+                radial-gradient(var(--color-secondary) 1.5px, transparent 1.5px);
+            background-size: 40px 40px;
+            background-position: 0 0, 20px 20px;
+            background-attachment: fixed;
+            opacity: 0.9;
+        }
+
+        #presentation-container {
+            width: 1200px;
+            max-width: 95vw;
+            height: 90vh;
+            background-color: var(--color-background);
+            border-radius: var(--radius);
+            border: var(--border-game);
+            box-shadow: 10px 10px 0px rgba(15, 23, 42, 0.2);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Typography */
+        h1 { font-size: 3.8rem; font-weight: 900; color: var(--color-primary); margin-bottom: 0.5rem; letter-spacing: -0.02em; line-height: 1.1; }
+        h2 { font-size: 2.2rem; color: var(--color-secondary); margin-bottom: 1.5rem; padding-bottom: 0.5rem; border-bottom: 3px solid var(--color-newday); font-weight: 800; }
+        h3 { font-size: 1.4rem; color: var(--color-primary); margin-top: 1.5rem; font-weight: 800; }
+        p, li { font-size: 1.15rem; line-height: 1.6; margin-bottom: 1rem; font-weight: 600; }
+        
+        .mono-label { font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; color: var(--color-text-muted); text-transform: uppercase; font-weight: 800; letter-spacing: 0.05em; }
+        
+        /* Slides */
+        .slide {
+            display: none;
+            height: 100%;
+            width: 100%;
+            padding: 3rem 4rem;
+            box-sizing: border-box;
+            flex-direction: column;
+            overflow-y: auto;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+            padding-bottom: 100px;
+        }
+        .slide.active { display: flex; opacity: 1; }
+
+        /* Tables */
+        .table-wrapper { width: 100%; overflow-x: auto; margin: 1.5rem 0; border-radius: var(--radius); border: var(--border-game); box-shadow: var(--shadow-game); background: #fff; flex-shrink: 0; }
+        .financial-table { width: 100%; border-collapse: collapse; font-family: 'JetBrains Mono', monospace; font-size: 0.95rem; }
+        .financial-table th, .financial-table td { padding: 1rem; border-bottom: 2px solid var(--color-primary); text-align: center; font-weight: 600; }
+        .financial-table th { background-color: var(--color-primary); color: white; text-align: center; font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 1.1rem; }
+        .financial-table td:first-child { text-align: left; font-family: 'Nunito', sans-serif; font-weight: 800; }
+        .financial-table tr:last-child td { border-bottom: none; }
+        .financial-table tbody tr:hover { background-color: var(--color-newday); }
+        .highlight-row { background-color: #e0f2fe !important; font-weight: 800; }
+        .negative { color: var(--danger); font-weight: 900; }
+        .positive { color: var(--success); font-weight: 900; }
+        .neutral { color: var(--warning); font-weight: 900; }
+
+        /* FSET Specific Styling */
+        .fset-header { background-color: var(--color-primary); color: white; font-weight: 800; border-left: 2px solid rgba(255,255,255,0.2); }
+        .fset-sub { background-color: var(--color-newday); font-weight: 800; font-size: 0.85rem; color: var(--color-primary); border-left: 2px solid #cbd5e1; }
+        .fset-cell { border-left: 2px solid #cbd5e1; vertical-align: middle; }
+
+        /* Interactive Reveal Cells */
+        .reveal-cell { cursor: pointer; position: relative; background-color: #e2e8f0 !important; color: transparent !important; transition: all 0.3s; user-select: none; }
+        .reveal-cell > * { opacity: 0; transition: opacity 0.3s; }
+        .reveal-cell::after { content: '\f023'; font-family: 'Font Awesome 6 Free'; font-weight: 900; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); color: var(--color-secondary); font-size: 1.2rem; }
+        .reveal-cell.revealed { background-color: transparent !important; color: inherit !important; cursor: default; }
+        .reveal-cell.revealed > * { opacity: 1; }
+        .reveal-cell.revealed::after { display: none; }
+
+        /* Click to Reveal Method Button */
+        .method-reveal { background: var(--color-primary); color: white; padding: 0.8rem; text-align: center; border-radius: 8px; font-weight: 800; border: 2px solid black; cursor: pointer; user-select: none; box-shadow: 2px 2px 0px rgba(0,0,0,0.5); transition: transform 0.1s; }
+        .method-reveal:active { transform: translate(2px, 2px); box-shadow: none; }
+        .method-reveal .revealed-text { display: none; }
+        .method-reveal.revealed .hidden-text { display: none; }
+        .method-reveal.revealed .revealed-text { display: inline; color: #facc15; }
+        .method-reveal.revealed { background: #1e293b; cursor: default; transform: none; box-shadow: inset 2px 2px 5px rgba(0,0,0,0.5); }
+
+        /* Interactive Dotted Reveal Boxes */
+        .dotted-reveal { border: 2px dashed var(--color-primary); padding: 0.8rem; margin-top: 0.8rem; border-radius: 8px; cursor: pointer; text-align: center; background: white; transition: all 0.3s; box-sizing: border-box; min-height: 54px; display: flex; align-items: center; justify-content: center; }
+        .dotted-reveal .back { display: none; font-weight: 600; font-size: 0.9rem; text-align: left; width: 100%; line-height: 1.4; }
+        .dotted-reveal .back strong { color: var(--color-primary); }
+        .dotted-reveal .front { font-weight: 800; color: var(--color-primary); font-size: 1rem; }
+        .dotted-reveal.revealed { border-style: solid; background: var(--color-newday); cursor: default; align-items: flex-start; }
+        .dotted-reveal.revealed .front { display: none; }
+        .dotted-reveal.revealed .back { display: block; color: var(--color-text); }
+
+        /* Flip Cards */
+        .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.5rem; margin: 1.5rem 0; }
+        .flip-card { background-color: transparent; height: 380px; perspective: 1000px; cursor: pointer; }
+        .flip-card.tall { height: 450px; }
+        .flip-card.wide { grid-column: span 2; }
+        
+        .flip-card-inner { position: relative; width: 100%; height: 100%; text-align: center; transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1); transform-style: preserve-3d; }
+        .flip-card.flipped .flip-card-inner { transform: rotateY(180deg); }
+        .flip-card-front, .flip-card-back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 1.5rem; box-sizing: border-box; border-radius: var(--radius); border: var(--border-game); box-shadow: var(--shadow-game); }
+        
+        .flip-card-front { background: white; }
+        .flip-card-front i { font-size: 3.5rem; color: var(--color-secondary); margin-bottom: 1rem; }
+        .flip-card-front h3 { margin: 0; color: var(--color-primary); font-size: 1.6rem; }
+        
+        .flip-card-back { background: var(--color-secondary); color: white; transform: rotateY(180deg); overflow-y: auto; }
+        .flip-card-back h3 { color: white; margin-top: 0; border-bottom: 2px solid rgba(255,255,255,0.3); padding-bottom: 0.5rem; }
+        .flip-card-back p, .flip-card-back li { color: white; font-size: 1.1rem; }
+        
+        .flip-card-back.light-theme { background: white; border-color: var(--color-primary); }
+        .flip-card-back.light-theme h3 { color: var(--color-primary); border-bottom-color: var(--color-newday); }
+        .flip-card-back.light-theme p, .flip-card-back.light-theme li { color: var(--color-text); }
+        .flip-card-back.light-theme i { margin-bottom: 0.5rem; font-size: 2rem; }
+
+        /* Informational Boxes */
+        .info-box { background: var(--color-newday); border: var(--border-game); box-shadow: var(--shadow-game); padding: 1.5rem; margin: 1.5rem 0; border-radius: var(--radius); }
+        .info-box.danger { border-color: var(--danger); background: var(--danger-bg); }
+        .info-box.success { border-color: var(--success); background: var(--success-bg); }
+        .info-box.warning { border-color: var(--warning); background: var(--warning-bg); }
+
+        /* Controls */
+        .controls { position: absolute; bottom: 0; left: 0; right: 0; height: 80px; background: white; display: flex; justify-content: space-between; align-items: center; padding: 0 2rem; border-top: var(--border-game); z-index: 100; }
+        .btn { background-color: var(--color-secondary); color: white; border: var(--border-game); box-shadow: var(--shadow-game); padding: 0.75rem 1.5rem; font-family: 'Nunito', sans-serif; font-size: 1.1rem; font-weight: 800; cursor: pointer; border-radius: var(--radius); transition: all 0.15s; text-transform: uppercase; letter-spacing: 0.05em; display: inline-flex; align-items: center; gap: 0.5rem; }
+        .btn:hover { transform: translate(3px, 3px); box-shadow: var(--shadow-game-hover); }
+        .btn:active { transform: translate(5px, 5px); box-shadow: none; }
+        .btn:disabled { background-color: #cbd5e1; border-color: #94a3b8; color: #f8fafc; cursor: not-allowed; box-shadow: none; transform: none; }
+        .btn-outline { background: white; color: var(--color-primary); }
+
+        .progress-container { flex-grow: 1; margin: 0 2rem; height: 12px; background: #e2e8f0; border-radius: 6px; overflow: hidden; border: 2px solid var(--color-primary); }
+        .progress-bar { height: 100%; background: var(--color-success, #10b981); width: 0%; transition: width 0.4s ease; }
+
+        /* Main Quiz Options */
+        .quiz-option { background: white; border: var(--border-game); box-shadow: var(--shadow-game); padding: 1.2rem 1.5rem; margin: 1rem 0; cursor: pointer; transition: all 0.15s; border-radius: var(--radius); font-size: 1.15rem; font-weight: 700; display: flex; align-items: center; }
+        .quiz-option:hover { transform: translate(-3px, -3px); box-shadow: 8px 8px 0px var(--color-primary); }
+        .quiz-option:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0px var(--color-primary); }
+        .quiz-option.correct { border-color: var(--success); background: var(--success-bg); color: #065f46; box-shadow: 5px 5px 0px var(--success); }
+        .quiz-option.incorrect { border-color: var(--danger); background: var(--danger-bg); color: #991b1b; box-shadow: 5px 5px 0px var(--danger); }
+        
+        #confetti-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 999; }
+
+        /* Table of Contents Overlay */
+        #toc-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.98); z-index: 1000; display: none; flex-direction: column; padding: 3rem 4rem; overflow-y: auto; backdrop-filter: blur(10px); box-sizing: border-box; }
+        .toc-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; border-bottom: 4px solid var(--color-primary); padding-bottom: 1rem; }
+        .toc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem; padding-bottom: 4rem; }
+        .toc-item { padding: 1.2rem; border: var(--border-game); background: white; cursor: pointer; border-radius: var(--radius); display: flex; align-items: center; transition: all 0.2s; font-weight: 800; box-shadow: var(--shadow-game); font-size: 1.1rem; }
+        .toc-item:hover { transform: translate(-3px, -3px); box-shadow: 8px 8px 0px var(--color-primary); background: var(--color-newday); }
+        .toc-item.active-toc { background: var(--color-secondary); color: white; }
+        .toc-num { font-family: 'JetBrains Mono', monospace; font-weight: 900; margin-right: 1rem; color: var(--color-primary); background: white; border: 2px solid var(--color-primary); padding: 4px 10px; border-radius: 6px; font-size: 0.9rem; }
+        
+        .graphic-hero { background: var(--color-primary); border-radius: 50%; width: 120px; height: 120px; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem auto; border: 4px solid var(--color-secondary); box-shadow: 0 0 20px rgba(59,130,246,0.6), inset 0 0 20px rgba(59,130,246,0.6); }
+        .graphic-hero i { font-size: 4rem; color: white; }
+
+        .step-reveal { opacity: 0.4; cursor: pointer; transition: all 0.3s; filter: grayscale(100%); }
+        .step-reveal.visible { opacity: 1; filter: grayscale(0%); cursor: default; border-color: var(--success); background: var(--success-bg); }
+        .step-reveal:not(.visible):hover { opacity: 0.8; transform: translateY(-3px); box-shadow: var(--shadow-game); }
+
+        /* VIE Animation Styles */
+        .vie-container { display: flex; gap: 2rem; align-items: center; justify-content: center; margin: 2rem 0; }
+        .vie-box { background: white; border: var(--border-game); border-radius: var(--radius); padding: 1.5rem; text-align: center; box-shadow: var(--shadow-game); width: 300px; position: relative; z-index: 2; transition: transform 0.3s; }
+        .vie-box:hover { transform: translateY(-5px); }
+        .vie-flow { display: flex; flex-direction: column; align-items: center; gap: 1rem; position: relative; z-index: 1; }
+        .flow-line { width: 4px; height: 40px; background: var(--color-primary); position: relative; }
+        .flow-arrow { width: 0; height: 0; border-left: 10px solid transparent; border-right: 10px solid transparent; border-top: 15px solid var(--color-primary); }
+        .flow-text { background: var(--warning-bg); border: 2px solid var(--warning); padding: 0.5rem 1rem; border-radius: 20px; font-weight: 800; font-size: 0.9rem; color: var(--warning); white-space: nowrap; animation: pulse 2s infinite; }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        /* Checkpoint Quiz Styles */
+        .mini-quiz { background: white; border: var(--border-game); border-radius: var(--radius); padding: 1.5rem; margin: 1.5rem 0; box-shadow: var(--shadow-game); }
+        .mini-quiz h3 { color: var(--color-accent); margin-top: 0; display: flex; align-items: center; gap: 10px; }
+        .mq-options { display: flex; flex-direction: column; gap: 1rem; margin-top: 1rem; }
+        .mq-btn { background: var(--color-newday); border: 2px solid var(--color-primary); padding: 1rem; border-radius: 8px; font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 1.05rem; cursor: pointer; transition: all 0.2s; box-shadow: 3px 3px 0px var(--color-primary); text-align: left; }
+        .mq-btn:hover { background: #e2e8f0; transform: translate(-2px, -2px); box-shadow: 5px 5px 0px var(--color-primary); }
+        .mq-btn:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0px var(--color-primary); }
+        .mq-btn.correct { background: var(--success); color: white; border-color: var(--color-primary); }
+        .mq-btn.incorrect { background: var(--danger); color: white; border-color: var(--color-primary); }
+        .mq-feedback { margin-top: 1rem; font-weight: 800; font-size: 1.1rem; display: none; padding: 1rem; border-radius: 8px; border: 2px solid; line-height: 1.5; }
+
+    </style>
+</head>
+<body>
+
+<div id="presentation-container">
+    <canvas id="confetti-canvas"></canvas>
+
+    <!-- Table of Contents Overlay -->
+    <div id="toc-overlay">
+        <div class="toc-header">
+            <h2 style="margin:0; border:none; padding:0; color:var(--color-primary);"><i class="fas fa-map-marked-alt"></i> Mission Map</h2>
+            <button class="btn btn-outline" style="font-size:1.2rem; padding: 1rem 2rem;" onclick="toggleTOC()"><i class="fas fa-times"></i> Close Map</button>
+        </div>
+        <div class="toc-grid" id="toc-list"></div>
+    </div>
+
+    <!-- Slide 1: Intro -->
+    <div class="slide active">
+        <div style="text-align: center; margin-top: 5%;">
+            <div class="mono-label" style="color: var(--color-secondary); margin-bottom: 1rem; font-size: 1rem;"><i class="fas fa-gamepad"></i> Level 9</div>
+            <h1 style="font-size: 4rem;">The Corporate Power Play:<br>Investments & Influence</h1>
+            <h2 style="border:none; color: var(--color-text-muted); font-size: 1.5rem; margin-bottom: 1.5rem;">A Strategic Guide to How Influence Shapes Financial Reporting</h2>
+            
+            <div class="graphic-hero">
+                <i class="fas fa-chess-knight"></i>
+            </div>
+
+            <div class="info-box" style="display: inline-block; text-align: left; max-width: 650px; font-size: 1.15rem;">
+                <strong><i class="fas fa-crosshairs"></i> Mission Objective:</strong> Understand that corporate accounting is driven by strategy. The way an equity investment is reported depends entirely on the level of <em>influence</em> the investor wields in the real world.
+            </div>
+            
+            <div style="margin-top: 1.5rem;">
+                <button class="btn" style="font-size: 1.3rem; padding: 1.2rem 3rem;" onclick="nextSlide()"><i class="fas fa-play"></i> Start Game</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 2: Strategic Motives -->
+    <div class="slide">
+        <h2>Strategy Before Numbers</h2>
+        <p>Companies do not purchase stock without purpose. Every intercorporate equity investment is a calculated move to achieve specific aims. Hover and flip the cards to discover the four main strategic drivers:</p>
+        
+        <div class="card-grid">
+            <div class="flip-card" onclick="this.classList.toggle('flipped')">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <i class="fas fa-piggy-bank"></i>
+                        <h3>Short-term Cash</h3>
+                    </div>
+                    <div class="flip-card-back">
+                        <h3>Short-term Cash</h3>
+                        <p style="text-align: left; padding: 0 10px;">Invest excess cash during slow times of the year to earn a specific return. Maintain liquidity to counter strategic moves by active competitors. Respond quickly to any potential acquisition opportunities.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="flip-card" onclick="this.classList.toggle('flipped')">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <i class="fas fa-handshake"></i>
+                        <h3>Strategic Alliances</h3>
+                    </div>
+                    <div class="flip-card-back">
+                        <h3>Strategic Alliances</h3>
+                        <p style="text-align: left; padding: 0 10px;">Gain direct access to needed resources or expertise. This explicitly includes critical research and development activities, established supply chains, vital distribution markets, or production and marketing expertise.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="flip-card" onclick="this.classList.toggle('flipped')">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <i class="fas fa-project-diagram"></i>
+                        <h3>Targeted Projects</h3>
+                    </div>
+                    <div class="flip-card-back">
+                        <h3>Targeted Projects</h3>
+                        <p style="text-align: left; padding: 0 10px;">Form a focused partnership or joint venture to accomplish specific short to medium term outcomes. Increase the return to the partners' dedicated investments and reduce the risks associated with going it alone.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="flip-card" onclick="this.classList.toggle('flipped')">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <i class="fas fa-globe-americas"></i>
+                        <h3>Market Expansion</h3>
+                    </div>
+                    <div class="flip-card-back">
+                        <h3>Market Expansion</h3>
+                        <p style="text-align: left; padding: 0 10px;">Integrate vertically by buying a key supplier or major customer. Integrate horizontally by buying a direct competitor. Expand within existing geographic markets or successfully penetrate entirely new external markets.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 3: Real World Interactive Case Studies -->
+    <div class="slide">
+        <h2>Case Studies: Strategy in Action</h2>
+        <p>Apply the four strategic drivers to these real-world scenarios. Select the primary motivation for each corporate move to reveal the strategic analysis.</p>
+
+        <!-- Case 1: Apple -->
+        <div class="mini-quiz" style="max-width: 900px; margin: 1.5rem auto;">
+            <h3 style="color: var(--color-primary);"><i class="fab fa-apple"></i> Case 1: Apple Inc.</h3>
+            <p>Apple holds large balances in cash, cash equivalents, and marketable securities. This is not about controlling another company. It is more like parking excess cash in liquid investments so the company can earn a return while still preserving flexibility for operations, buybacks, dividends, or future acquisitions.</p>
+            <div class="mq-options">
+                <button class="mq-btn" onclick="handleMQ(this, true, 'Correct! Apple may invest extra cash in marketable securities instead of letting it sit idle. The goal is not control. The goal is liquidity plus return.', 'cs1')">A. Short-term Cash Management Strategy</button>
+                <button class="mq-btn" onclick="handleMQ(this, false, 'Incorrect. Review the strategic intent described in the scenario above.', 'cs1')">B. Strategic Alliance for Needed Resources</button>
+                <button class="mq-btn" onclick="handleMQ(this, false, 'Incorrect. Review the strategic intent described in the scenario above.', 'cs1')">C. Targeted Project for Specific Product</button>
+                <button class="mq-btn" onclick="handleMQ(this, false, 'Incorrect. Review the strategic intent described in the scenario above.', 'cs1')">D. Market Expansion into New Categories</button>
+            </div>
+            <div id="mq-feedback-cs1" class="mq-feedback"></div>
+        </div>
+
+        <!-- Case 2: Toyota & Panasonic -->
+        <div class="mini-quiz" style="max-width: 900px; margin: 1.5rem auto;">
+            <h3 style="color: var(--color-primary);"><i class="fas fa-car-battery"></i> Case 2: Toyota and Panasonic</h3>
+            <p>Toyota and Panasonic formed a battery joint venture to develop and supply high-quality automotive batteries. Toyota gains battery technology and supply access, while Panasonic gains an automotive partner and production scale.</p>
+            <div class="mq-options">
+                <button class="mq-btn" onclick="handleMQ(this, false, 'Incorrect. Review the strategic intent described in the scenario above.', 'cs2')">A. Short-term Cash Management Strategy</button>
+                <button class="mq-btn" onclick="handleMQ(this, true, 'Correct! Toyota needs battery expertise. Panasonic has battery technology. By partnering, both companies gain something they would not easily build alone.', 'cs2')">B. Strategic Alliance for Needed Resources</button>
+                <button class="mq-btn" onclick="handleMQ(this, false, 'Incorrect. Review the strategic intent described in the scenario above.', 'cs2')">C. Targeted Project for Specific Product</button>
+                <button class="mq-btn" onclick="handleMQ(this, false, 'Incorrect. Review the strategic intent described in the scenario above.', 'cs2')">D. Market Expansion into New Categories</button>
+            </div>
+            <div id="mq-feedback-cs2" class="mq-feedback"></div>
+        </div>
+
+        <!-- Case 3: Sony & Honda -->
+        <div class="mini-quiz" style="max-width: 900px; margin: 1.5rem auto;">
+            <h3 style="color: var(--color-primary);"><i class="fas fa-car-side"></i> Case 3: Sony and Honda</h3>
+            <p>Sony and Honda created a joint venture to develop electric vehicles by combining Honda's car manufacturing expertise with Sony's software, entertainment, and sensor strengths. The project was focused on a specific product and market opportunity.</p>
+            <div class="mq-options">
+                <button class="mq-btn" onclick="handleMQ(this, false, 'Incorrect. Review the strategic intent described in the scenario above.', 'cs3')">A. Short-term Cash Management Strategy</button>
+                <button class="mq-btn" onclick="handleMQ(this, false, 'Incorrect. Review the strategic intent described in the scenario above.', 'cs3')">B. Strategic Alliance for Needed Resources</button>
+                <button class="mq-btn" onclick="handleMQ(this, true, 'Correct! Sony and Honda partnered to build an EV platform. The project also shows that joint ventures reduce risk because the partners can adjust or exit if the project becomes less attractive.', 'cs3')">C. Targeted Project for Specific Product</button>
+                <button class="mq-btn" onclick="handleMQ(this, false, 'Incorrect. Review the strategic intent described in the scenario above.', 'cs3')">D. Market Expansion into New Categories</button>
+            </div>
+            <div id="mq-feedback-cs3" class="mq-feedback"></div>
+        </div>
+
+        <!-- Case 4: Amazon & Whole Foods -->
+        <div class="mini-quiz" style="max-width: 900px; margin: 1.5rem auto;">
+            <h3 style="color: var(--color-primary);"><i class="fas fa-shopping-basket"></i> Case 4: Amazon and Whole Foods</h3>
+            <p>Amazon bought Whole Foods to expand into physical grocery retail and strengthen its omnichannel strategy. This gave Amazon an immediate store footprint, customer base, grocery supply chain presence, and a stronger position in a market where it had been trying to grow.</p>
+            <div class="mq-options">
+                <button class="mq-btn" onclick="handleMQ(this, false, 'Incorrect. Review the strategic intent described in the scenario above.', 'cs4')">A. Short-term Cash Management Strategy</button>
+                <button class="mq-btn" onclick="handleMQ(this, false, 'Incorrect. Review the strategic intent described in the scenario above.', 'cs4')">B. Strategic Alliance for Needed Resources</button>
+                <button class="mq-btn" onclick="handleMQ(this, false, 'Incorrect. Review the strategic intent described in the scenario above.', 'cs4')">C. Targeted Project for Specific Product</button>
+                <button class="mq-btn" onclick="handleMQ(this, true, 'Correct! Amazon acquired Whole Foods to enter grocery more aggressively and gain physical stores. This is market expansion because Amazon moved deeper into a new retail category and expanded its physical presence.', 'cs4')">D. Market Expansion into New Categories</button>
+            </div>
+            <div id="mq-feedback-cs4" class="mq-feedback"></div>
+        </div>
+
+        <p style="font-style: italic; color: var(--color-text-muted); text-align: center; margin-top: 2rem; font-weight: 800;"><i class="fas fa-info-circle"></i> Note: The strategic drivers and case studies discussed above focus specifically on <strong>Equity Investments</strong> where ownership shares are purchased in other entities.</p>
+    </div>
+
+    <!-- Slide 4: The Thresholds -->
+    <div class="slide">
+        <h2>The Central Question: Level of Control</h2>
+        <p>The accounting approach for any equity investment is determined by a single factor: <strong>Influence</strong>. This dictates your accounting methodology path.</p>
+
+        <div style="display: flex; gap: 1.5rem; margin-top: 2rem;">
+            <div class="info-box" style="flex: 1; border-color: var(--color-secondary); display:flex; flex-direction:column;">
+                <div class="mono-label" style="color:var(--color-secondary)"><i class="fas fa-user"></i> Tier 1: &lt; 20%</div>
+                <h3 style="margin-top:0.5rem;">Passive Investment</h3>
+                <p style="flex-grow:1;">Little or no influence. You cannot affect the investee company policy.</p>
+                <div class="method-reveal" onclick="this.classList.add('revealed')">
+                    <span class="hidden-text"><i class="fas fa-lock"></i> Reveal Method</span>
+                    <span class="revealed-text">Fair Value Method</span>
+                </div>
+            </div>
+            <div class="info-box" style="flex: 1; border-color: var(--success); display:flex; flex-direction:column;">
+                <div class="mono-label" style="color:var(--success)"><i class="fas fa-users"></i> Tier 2: 20% to 50%</div>
+                <h3 style="margin-top:0.5rem;">Significant Influence</h3>
+                <p style="flex-grow:1;">Ability to affect financing, investing, and operational business policies.</p>
+                <div class="method-reveal" style="background:var(--success);" onclick="this.classList.add('revealed')">
+                    <span class="hidden-text"><i class="fas fa-lock"></i> Reveal Method</span>
+                    <span class="revealed-text" style="color:white;">Equity Method</span>
+                </div>
+            </div>
+            <div class="info-box" style="flex: 1; border-color: var(--color-accent); display:flex; flex-direction:column;">
+                <div class="mono-label" style="color:var(--color-accent)"><i class="fas fa-crown"></i> Tier 3: &gt; 50%</div>
+                <h3 style="margin-top:0.5rem;">Control</h3>
+                <p style="flex-grow:1;">Complete ability to direct strategic direction and hire existing management.</p>
+                <div class="method-reveal" style="background:var(--color-accent);" onclick="this.classList.add('revealed')">
+                    <span class="hidden-text"><i class="fas fa-lock"></i> Reveal Method</span>
+                    <span class="revealed-text" style="color:white;">Consolidation</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 5: Passive Path (Fair Value) using FSET -->
+    <div class="slide">
+        <h2>Path 1: The Passive Spectator (Fair Value Method)</h2>
+        <p>For investments under 20 percent, we use the <strong>Fair Value Method</strong>. Click the hidden values below to unlock the accounting impacts.</p>
+        
+        <div class="info-box" style="background: white; border-color: var(--color-secondary);">
+            <p style="margin:0;"><i class="fas fa-scroll"></i> <strong>FSET Application:</strong> Alphabet acquires 1,000 shares of Juniper Networks for $20,000 ($20 per share).</p>
+        </div>
+
+        <div class="table-wrapper">
+            <table class="financial-table">
+                <thead>
+                    <tr>
+                        <th rowspan="2" style="vertical-align: bottom; width: 25%;">Transaction Event</th>
+                        <th colspan="3" class="fset-header">Balance Sheet Impact</th>
+                        <th colspan="3" class="fset-header">Income Statement Impact</th>
+                    </tr>
+                    <tr>
+                        <th class="fset-sub">Cash Asset</th>
+                        <th class="fset-sub">Noncash Asset<br><span style="font-size:0.8rem; color:var(--color-primary);">(Marketable Securities)</span></th>
+                        <th class="fset-sub">Earned Capital</th>
+                        <th class="fset-sub">Revenues</th>
+                        <th class="fset-sub">Expenses</th>
+                        <th class="fset-sub">Net Income</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>1. Purchase shares for $20,000</td>
+                        <td class="fset-cell reveal-cell" onclick="this.classList.add('revealed')"><span class="negative">-$20,000</span></td>
+                        <td class="fset-cell reveal-cell" onclick="this.classList.add('revealed')"><span class="positive">+$20,000</span></td>
+                        <td class="fset-cell reveal-cell" onclick="this.classList.add('revealed')"><span class="neutral">None</span></td>
+                        <td class="fset-cell reveal-cell" onclick="this.classList.add('revealed')"><span class="neutral">None</span></td>
+                        <td class="fset-cell reveal-cell" onclick="this.classList.add('revealed')"><span class="neutral">None</span></td>
+                        <td class="fset-cell reveal-cell" onclick="this.classList.add('revealed')"><span class="neutral">None</span></td>
+                    </tr>
+                    <tr>
+                        <td>2. Juniper pays $2 per share dividend</td>
+                        <td class="fset-cell reveal-cell" onclick="this.classList.add('revealed')"><span class="positive">+$2,000</span></td>
+                        <td class="fset-cell reveal-cell" onclick="this.classList.add('revealed')"><span class="neutral">None</span></td>
+                        <td class="fset-cell reveal-cell" onclick="this.classList.add('revealed')"><span class="positive">+$2,000</span></td>
+                        <td class="fset-cell reveal-cell" onclick="this.classList.add('revealed')"><span class="positive">+$2,000</span></td>
+                        <td class="fset-cell reveal-cell" onclick="this.classList.add('revealed')"><span class="neutral">None</span></td>
+                        <td class="fset-cell reveal-cell" onclick="this.classList.add('revealed')"><span class="positive">+$2,000</span></td>
+                    </tr>
+                    <tr>
+                        <td>3. Year end valuation (Stock rises to $25)</td>
+                        <td class="fset-cell reveal-cell" onclick="this.classList.add('revealed')"><span class="neutral">None</span></td>
+                        <td class="fset-cell reveal-cell" onclick="this.classList.add('revealed')"><span class="positive">+$5,000</span></td>
+                        <td class="fset-cell reveal-cell" onclick="this.classList.add('revealed')"><span class="positive">+$5,000</span></td>
+                        <td class="fset-cell reveal-cell" onclick="this.classList.add('revealed')"><span class="positive">+$5,000</span></td>
+                        <td class="fset-cell reveal-cell" onclick="this.classList.add('revealed')"><span class="neutral">None</span></td>
+                        <td class="fset-cell reveal-cell" onclick="this.classList.add('revealed')"><span class="positive">+$5,000</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <p style="font-size: 0.95rem; color: var(--color-text-muted); text-align: center;"><i class="fas fa-info-circle"></i> Notice that for passive investments, changes in fair value create immediate unrealized gains in Net Income and Earned Capital.</p>
+    </div>
+
+    <!-- Slide 6: Equity Method using FSET -->
+    <div class="slide">
+        <h2>Path 2: The Influential Partner (Equity Method)</h2>
+        <p>When an investor purchases a 20 percent to 50 percent stake, they obtain significant influence. The <strong>Equity Method</strong> closely links the investor account directly to the partner company performance.</p>
+        
+        <div class="info-box success" style="background: white; border-color: var(--success);">
+            <p style="margin:0;"><i class="fas fa-laptop-code"></i> <strong>FSET Application:</strong> Google acquires a 30% interest in Mitel Networks for $300. Mitel reports a total of $1,000 in equity. Click cells to reveal.</p>
+        </div>
+        
+        <div class="table-wrapper">
+            <table class="financial-table">
+                <thead>
+                    <tr>
+                        <th rowspan="2" style="vertical-align: bottom; width: 25%;">Transaction Event</th>
+                        <th colspan="3" class="fset-header">Balance Sheet Impact</th>
+                        <th colspan="3" class="fset-header">Income Statement Impact</th>
+                    </tr>
+                    <tr>
+                        <th class="fset-sub">Cash Asset</th>
+                        <th class="fset-sub">Noncash Asset<br><span style="font-size:0.8rem; color:var(--color-primary);">(Investment in Mitel)</span></th>
+                        <th class="fset-sub">Earned Capital</th>
+                        <th class="fset-sub">Revenues</th>
+                        <th class="fset-sub">Expenses</th>
+                        <th class="fset-sub">Net Income</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>1. Google purchases 30% stake for $300</td>
+                        <td class="fset-cell reveal-cell" onclick="this.classList.add('revealed')"><span class="negative">-$300</span></td>
+                        <td class="fset-cell reveal-cell" onclick="this.classList.add('revealed')"><span class="positive">+$300</span></td>
+                        <td class="fset-cell reveal-cell" onclick="this.classList.add('revealed')"><span class="neutral">None</span></td>
+                        <td class="fset-cell reveal-cell" onclick="this.classList.add('revealed')"><span class="neutral">None</span></td>
+                        <td class="fset-cell reveal-cell" onclick="this.classList.add('revealed')"><span class="neutral">None</span></td>
+                        <td class="fset-cell reveal-cell" onclick="this.classList.add('revealed')"><span class="neutral">None</span></td>
+                    </tr>
+                    <tr>
+                        <td>2. Mitel reports $100 profit (Google claims 30%)</td>
+                        <td class="fset-cell reveal-cell" onclick="this.classList.add('revealed')"><span class="neutral">None</span></td>
+                        <td class="fset-cell reveal-cell" onclick="this.classList.add('revealed')"><span class="positive">+$30</span></td>
+                        <td class="fset-cell reveal-cell" onclick="this.classList.add('revealed')"><span class="positive">+$30</span></td>
+                        <td class="fset-cell reveal-cell" onclick="this.classList.add('revealed')"><span class="positive">+$30</span></td>
+                        <td class="fset-cell reveal-cell" onclick="this.classList.add('revealed')"><span class="neutral">None</span></td>
+                        <td class="fset-cell reveal-cell" onclick="this.classList.add('revealed')"><span class="positive">+$30</span></td>
+                    </tr>
+                    <tr>
+                        <td>3. Mitel pays $20 dividend (Google receives 30%)</td>
+                        <td class="fset-cell reveal-cell" onclick="this.classList.add('revealed')"><span class="positive">+$6</span></td>
+                        <td class="fset-cell reveal-cell" onclick="this.classList.add('revealed')"><span class="negative">-$6</span></td>
+                        <td class="fset-cell reveal-cell" onclick="this.classList.add('revealed')"><span class="neutral">None</span></td>
+                        <td class="fset-cell reveal-cell" onclick="this.classList.add('revealed')"><span class="neutral">None</span></td>
+                        <td class="fset-cell reveal-cell" onclick="this.classList.add('revealed')"><span class="neutral">None</span></td>
+                        <td class="fset-cell reveal-cell" onclick="this.classList.add('revealed')"><span class="neutral">None</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <div style="display:flex; gap:1.5rem; margin-top:1rem;">
+            <div style="flex:1; background:var(--warning-bg); padding:1rem; border-radius:8px; border:2px solid var(--warning); font-size:1.05rem;">
+                <strong><i class="fas fa-exclamation-triangle"></i> Crucial Insight:</strong> Because you already claimed their profits as your own revenue, receiving a dividend is just moving cash from their pocket to yours. It strictly reduces the <strong>Investment in Mitel</strong> asset.
+            </div>
+            <div style="flex:1; background:white; padding:1rem; border-radius:8px; border:2px solid var(--color-primary); font-size:1.1rem; display:flex; align-items:center; justify-content:center;">
+                <strong>Ending Asset Balance: $324</strong> <br><span style="font-size:0.9rem; color:var(--color-text-muted); margin-left:10px;">($300 Initial + $30 Income - $6 Dividend)</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 7: Ratio Distortions -->
+    <div class="slide">
+        <h2>Analytical Distortions (The Equity Illusion)</h2>
+        <p>The Equity Method is complex for business analysts because you receive a proportional share of the Net Income, but <strong>none</strong> of the underlying Sales, Assets, or Liabilities appear on your statements.</p>
+        
+        <div class="card-grid" style="grid-template-columns: 1fr 1fr 1fr;">
+            <div class="flip-card tall" onclick="this.classList.toggle('flipped')">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <i class="fas fa-percentage"></i>
+                        <h3>Net Operating Profit Margin (NOPM)</h3>
+                        <p style="font-size:0.9rem; color:var(--color-text-muted); margin-top:1rem;">Click to reveal distortion</p>
+                    </div>
+                    <div class="flip-card-back light-theme" style="border-color: var(--danger);">
+                        <h3 style="color:var(--danger); border-bottom-color:var(--danger);"><i class="fas fa-arrow-up"></i> Overstated</h3>
+                        <p style="font-size:1rem; line-height:1.4;">The equity income is explicitly included in your numerator, but their sales are completely missing from the denominator. This makes your company look artificially profitable.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="flip-card tall" onclick="this.classList.toggle('flipped')">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <i class="fas fa-sync"></i>
+                        <h3>Net Operating Asset Turnover (NOAT)</h3>
+                        <p style="font-size:0.9rem; color:var(--color-text-muted); margin-top:1rem;">Click to reveal distortion</p>
+                    </div>
+                    <div class="flip-card-back light-theme" style="border-color: var(--warning);">
+                        <h3 style="color:var(--warning); border-bottom-color:var(--warning);"><i class="fas fa-question"></i> Indeterminate</h3>
+                        <p style="font-size:1rem; line-height:1.4;">Investee sales are missing from the numerator, and their core operating assets are missing from the denominator. The ratio metrics become thoroughly scrambled.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="flip-card tall" onclick="this.classList.toggle('flipped')">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <i class="fas fa-weight-hanging"></i>
+                        <h3>Financial Leverage (FLEV)</h3>
+                        <p style="font-size:0.9rem; color:var(--color-text-muted); margin-top:1rem;">Click to reveal distortion</p>
+                    </div>
+                    <div class="flip-card-back light-theme" style="border-color: var(--danger);">
+                        <h3 style="color:var(--danger); border-bottom-color:var(--danger);"><i class="fas fa-arrow-down"></i> Understated</h3>
+                        <p style="font-size:1rem; line-height:1.4;">Your balance sheet completely hides your proportional share of the investee liabilities. The company appears significantly safer than reality actually dictates.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 8: Consolidation Mandate -->
+    <div class="slide">
+        <h2>Path 3: The Mandate to Consolidate</h2>
+        <p>When you achieve standard control over an entity, you stop using the Equity Method entirely. You must combine the two distinct financial statements into one single economic unit.</p>
+        
+        <div style="display:flex; align-items:center; gap:2rem; margin:2rem 0;">
+            <div style="flex:1; text-align:center;">
+                <div class="graphic-hero" style="width: 150px; height: 150px; border-color: var(--color-accent); box-shadow: 0 0 20px var(--color-accent);">
+                    <i class="fas fa-city"></i>
+                </div>
+            </div>
+            <div style="flex:2; background: white; padding: 1.5rem; border-radius: var(--radius); border: var(--border-game); box-shadow: var(--shadow-game);">
+                <h3 style="margin-top:0;">Defining Economic Control</h3>
+                <ul style="margin-bottom:0;">
+                    <li style="margin-bottom:1rem;"><strong>1. Variable Interest Entity (VIE) Test:</strong> Do you absorb their direct losses and receive their returns via contracts, even without traditional voting stock? If yes, consolidate.</li>
+                    <li><strong>2. Voting Interest Test:</strong> If the entity is not a VIE, do you hold more than fifty percent of the voting stock? If yes, consolidate.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 9: Variable Interest Entities -->
+    <div class="slide">
+        <h2>The Variable Interest Entity (VIE)</h2>
+        <p style="text-align:center; font-size:1.2rem;">Normally, control is judged by voting stock (more than 50% equals probable control). But sometimes that does not tell the real story. Control can stem from pure <strong>economic power</strong>.</p>
+        
+        <div class="vie-container">
+            <div class="vie-box" style="border-color: var(--color-primary);">
+                <h3 style="margin-top:0;"><i class="fas fa-building" style="color:var(--color-primary);"></i> Company A</h3>
+                <p>Owns only <strong>10%</strong> of voting stock in Company B.</p>
+            </div>
+            
+            <div class="vie-flow">
+                <div class="flow-text">Guarantees B's Debt</div>
+                <div class="flow-line"></div>
+                <div class="flow-text" style="background:var(--success-bg); border-color:var(--success); color:var(--success);">Gets most of B's Profits</div>
+                <div class="flow-line"></div>
+                <div class="flow-text" style="background:var(--danger-bg); border-color:var(--danger); color:var(--danger);">Takes most of B's Losses</div>
+                <div class="flow-line"></div>
+                <div class="flow-arrow"></div>
+            </div>
+
+            <div class="vie-box" style="border-color: var(--color-accent);">
+                <h3 style="margin-top:0; color: var(--color-accent);"><i class="fas fa-industry" style="color:var(--color-accent);"></i> Company B (VIE)</h3>
+                <p>Company A is the real controlling party economically. A must fully consolidate B.</p>
+            </div>
+        </div>
+
+        <div class="info-box success" style="text-align: center; padding: 1rem; max-width: 800px; margin: 0 auto;">
+            <h3 style="margin-top:0;"><i class="fas fa-question-circle"></i> Why "Variable Interest"?</h3>
+            <p style="margin-bottom: 0;">Because Company A's returns change depending on how B performs: if B does well, A benefits. If B does badly, A suffers.</p>
+        </div>
+    </div>
+
+    <!-- Slide 10: Consolidation Mechanics (Wholly Owned) -->
+    <div class="slide">
+        <h2>The Mechanics of Consolidation</h2>
+        <p>Consolidating is not just simple mathematical addition. We must formally <em>eliminate</em> the parent "Investment" asset so we do not double count the value. Click the elimination entries to verify the logic.</p>
+        
+        <div class="info-box" style="background: white;">
+            <h3 style="margin-top:0;"><i class="fas fa-compress-arrows-alt"></i> Scenario: Wholly Owned Subsidiary</h3>
+            <p>Parent company acquires 100% of a Subsidiary for $600. The Subsidiary Book Value of Equity is $600. The elimination entries cleanly remove the investment and the subsidiary equity.</p>
+        </div>
+
+        <div class="table-wrapper">
+            <table class="financial-table">
+                <thead>
+                    <tr>
+                        <th style="text-align: left;">Account Balance</th>
+                        <th>Parent Company</th>
+                        <th>Subsidiary</th>
+                        <th style="background-color: var(--color-secondary);">Elimination Entry</th>
+                        <th>Consolidated Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Cash and Other Assets</td>
+                        <td>$ 3,000</td>
+                        <td>$ 1,000</td>
+                        <td class="reveal-cell" onclick="this.classList.add('revealed')"><span></span></td>
+                        <td>$ 4,000</td>
+                    </tr>
+                    <tr>
+                        <td>Investment in Subsidiary</td>
+                        <td>$ 600</td>
+                        <td></td>
+                        <td class="reveal-cell" onclick="this.classList.add('revealed')"><span class="negative">-$ 600</span></td>
+                        <td>$ 0</td>
+                    </tr>
+                    <tr class="highlight-row">
+                        <td><strong>Total Assets</strong></td>
+                        <td><strong>$ 3,600</strong></td>
+                        <td><strong>$ 1,000</strong></td>
+                        <td class="reveal-cell" onclick="this.classList.add('revealed')"><span></span></td>
+                        <td><strong>$ 4,000</strong></td>
+                    </tr>
+                    <tr>
+                        <td>Liabilities</td>
+                        <td>$ 1,000</td>
+                        <td>$ 400</td>
+                        <td class="reveal-cell" onclick="this.classList.add('revealed')"><span></span></td>
+                        <td>$ 1,400</td>
+                    </tr>
+                    <tr>
+                        <td>Subsidiary Equity</td>
+                        <td></td>
+                        <td>$ 600</td>
+                        <td class="reveal-cell" onclick="this.classList.add('revealed')"><span class="negative">-$ 600</span></td>
+                        <td>$ 0</td>
+                    </tr>
+                    <tr>
+                        <td>Parent Equity</td>
+                        <td>$ 2,600</td>
+                        <td></td>
+                        <td class="reveal-cell" onclick="this.classList.add('revealed')"><span></span></td>
+                        <td>$ 2,600</td>
+                    </tr>
+                    <tr class="highlight-row">
+                        <td><strong>Total Liab & Equity</strong></td>
+                        <td><strong>$ 3,600</strong></td>
+                        <td><strong>$ 1,000</strong></td>
+                        <td class="reveal-cell" onclick="this.classList.add('revealed')"><span></span></td>
+                        <td><strong>$ 4,000</strong></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <p style="font-size: 0.95rem; color: var(--color-text-muted); text-align: center;"><i class="fas fa-info-circle"></i> Because this is a wholly owned subsidiary, there is no Noncontrolling Interest (NCI) and the investment eliminates perfectly against the subsidiary equity.</p>
+    </div>
+
+    <!-- Slide 11: Investments in Debt Securities -->
+    <div class="slide">
+        <h2>Investments in Debt Securities</h2>
+        <p>Companies often purchase debt securities, including <strong>Corporate bonds</strong>, <strong>U.S. government agency bonds</strong>, and <strong>Municipal securities</strong>. But before classifying them, we must understand two critical valuation methods:</p>
+
+        <div style="display:flex; gap:1.5rem; margin-bottom: 1rem;">
+            <div class="info-box" style="flex:1; margin:0; border-color:var(--color-primary); background:white;">
+                <h3 style="margin-top:0;"><i class="fas fa-ruler-horizontal"></i> Amortized Cost</h3>
+                <p style="margin-bottom:0; font-size:0.95rem;"><strong>Par Value + unamortized premium (or Par value - unamortized discount).</strong> The historical purchase price, mathematically smoothed out over time until it perfectly matches the final face value at maturity. It completely ignores daily market fluctuations.</p>
+            </div>
+            <div class="info-box" style="flex:1; margin:0; border-color:var(--color-secondary); background:white;">
+                <h3 style="margin-top:0;"><i class="fas fa-tags"></i> Fair Value</h3>
+                <p style="margin-bottom:0; font-size:0.95rem;">The current, real-time market price of the bond. This is exactly what you would receive if you sold the security on the open market today.</p>
+            </div>
+        </div>
+
+        <div class="info-box warning" style="margin: 0 0 1.5rem 0; padding: 1rem; border-color: var(--warning); background: var(--warning-bg);">
+            <h3 style="margin-top:0; color: var(--warning);"><i class="fas fa-lightbulb"></i> Unrealized Gain/Loss</h3>
+            <p style="margin-bottom:0; font-size:1.05rem;">An <strong>unrealized gain or loss</strong> occurs when an asset's market value changes, but the asset has not yet been sold. If you buy a bond for $1,000 and its market price drops to $900, you have a $100 unrealized loss despite not losing any actual cash.</p>
+        </div>
+
+        <p style="font-weight:800; margin-bottom: 0.5rem;">Companies classify these investments based on their strategic intent:</p>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.5rem;">
+            <!-- HTM Box -->
+            <div style="background: white; border: var(--border-game); border-radius: var(--radius); padding: 1.5rem; box-shadow: var(--shadow-game);">
+                <h3 style="margin-top:0; color:var(--color-primary); font-size:1.3rem;"><i class="fas fa-lock"></i> Held-to-Maturity</h3>
+                <p style="font-size:0.9rem; line-height:1.4; height: 45px;">Intent and ability to hold the bond until the very end.</p>
+                
+                <!-- Chart -->
+                <div style="background:#f8fafc; border-radius:8px; padding:10px; margin-bottom:1rem; border:1px solid #cbd5e1;">
+                    <svg viewBox="0 0 200 100" style="width:100%; height:auto;">
+                        <!-- Axes -->
+                        <line x1="10" y1="90" x2="190" y2="90" stroke="#94a3b8" stroke-width="2"/>
+                        <line x1="10" y1="10" x2="10" y2="90" stroke="#94a3b8" stroke-width="2"/>
+                        <!-- Maturity Target -->
+                        <circle cx="180" cy="30" r="4" fill="var(--color-primary)"/>
+                        <text x="185" y="25" font-size="10" font-weight="bold" fill="var(--color-primary)">Par</text>
+                        <!-- Fair Value (Wavy) -->
+                        <path d="M 10,70 Q 30,90 60,60 T 110,50 T 150,60 T 180,30" stroke="#94a3b8" stroke-dasharray="4" stroke-width="2" fill="none"/>
+                        <!-- Amortized Cost (Straight to Par) -->
+                        <path d="M 10,70 L 180,30" stroke="var(--color-primary)" stroke-width="3" fill="none"/>
+                    </svg>
+                    <div style="font-size:0.75rem; text-align:center; margin-top:5px; font-weight:800;">
+                        <span style="color:var(--color-primary);">━ Recorded</span> &nbsp; <span style="color:#94a3b8;">┄ Market Value</span>
+                    </div>
+                </div>
+
+                <!-- Interactive Boxes -->
+                <div class="dotted-reveal" onclick="this.classList.add('revealed')">
+                    <div class="front"><i class="fas fa-eye"></i> Recorded?</div>
+                    <div class="back"><i class="fas fa-check"></i> <strong>Amortized Cost.</strong> Steadily moves to face value.</div>
+                </div>
+                <div class="dotted-reveal" onclick="this.classList.add('revealed')">
+                    <div class="front"><i class="fas fa-eye"></i> Changes in fair value?</div>
+                    <div class="back"><i class="fas fa-times"></i> <strong>Ignored entirely.</strong> No impact on Income or Equity.</div>
+                </div>
+            </div>
+
+            <!-- AFS Box -->
+            <div style="background: white; border: var(--border-game); border-radius: var(--radius); padding: 1.5rem; box-shadow: var(--shadow-game);">
+                <h3 style="margin-top:0; color:var(--color-secondary); font-size:1.3rem;"><i class="fas fa-chart-pie"></i> Available-for-Sale</h3>
+                <p style="font-size:0.9rem; line-height:1.4; height: 45px;">May be sold prior to maturity for liquidity needs.</p>
+                
+                <!-- Chart -->
+                <div style="background:#f8fafc; border-radius:8px; padding:10px; margin-bottom:1rem; border:1px solid #cbd5e1;">
+                    <svg viewBox="0 0 200 100" style="width:100%; height:auto;">
+                        <!-- Axes -->
+                        <line x1="10" y1="90" x2="190" y2="90" stroke="#94a3b8" stroke-width="2"/>
+                        <line x1="10" y1="10" x2="10" y2="90" stroke="#94a3b8" stroke-width="2"/>
+                        <!-- Baseline (Amortized Cost) -->
+                        <path d="M 10,70 L 180,30" stroke="#94a3b8" stroke-dasharray="4" stroke-width="2" fill="none"/>
+                        <!-- Maturity Target -->
+                        <circle cx="180" cy="30" r="4" fill="var(--color-secondary)"/>
+                        <!-- Fair Value / Recorded Value (Wavy Line) -->
+                        <path d="M 10,70 Q 30,90 60,60 T 110,50 T 150,60 T 180,30" stroke="var(--color-secondary)" stroke-width="3" fill="none"/>
+                        <!-- Shaded Region for Unrealized Gain/Loss -->
+                        <path d="M 10,70 Q 30,90 60,60 T 110,50 T 150,60 T 180,30 L 180,30 L 10,70 Z" fill="var(--color-secondary)" opacity="0.2"/>
+                        <!-- Annotation -->
+                        <text x="15" y="18" font-size="9" font-weight="bold" fill="var(--color-text)">Unrealized Gap:</text>
+                        <text x="15" y="30" font-size="9" font-weight="bold" fill="var(--color-secondary)">Flows to AOCI</text>
+                    </svg>
+                    <div style="font-size:0.75rem; text-align:center; margin-top:5px; font-weight:800;">
+                        <span style="color:var(--color-secondary);">━ Recorded (Fair Value)</span>
+                    </div>
+                </div>
+
+                <div class="dotted-reveal" onclick="this.classList.add('revealed')">
+                    <div class="front"><i class="fas fa-eye"></i> Recorded?</div>
+                    <div class="back"><i class="fas fa-check"></i> <strong>Fair Value.</strong> Updated to market price on Balance Sheet.</div>
+                </div>
+                <div class="dotted-reveal" onclick="this.classList.add('revealed')">
+                    <div class="front"><i class="fas fa-eye"></i> Changes in fair value?</div>
+                    <div class="back"><i class="fas fa-exchange-alt"></i> <strong>Equity (AOCI).</strong> Bypasses Net Income entirely.</div>
+                </div>
+            </div>
+
+            <!-- TS Box -->
+            <div style="background: white; border: var(--border-game); border-radius: var(--radius); padding: 1.5rem; box-shadow: var(--shadow-game);">
+                <h3 style="margin-top:0; color:var(--color-accent); font-size:1.3rem;"><i class="fas fa-sync-alt"></i> Trading Securities</h3>
+                <p style="font-size:0.9rem; line-height:1.4; height: 45px;">Held for a short period and actively traded for profit.</p>
+                
+                <!-- Chart -->
+                <div style="background:#f8fafc; border-radius:8px; padding:10px; margin-bottom:1rem; border:1px solid #cbd5e1;">
+                    <svg viewBox="0 0 200 100" style="width:100%; height:auto;">
+                        <!-- Axes -->
+                        <line x1="10" y1="90" x2="190" y2="90" stroke="#94a3b8" stroke-width="2"/>
+                        <line x1="10" y1="10" x2="10" y2="90" stroke="#94a3b8" stroke-width="2"/>
+                        <!-- Baseline (Amortized Cost) -->
+                        <path d="M 10,70 L 180,30" stroke="#94a3b8" stroke-dasharray="4" stroke-width="2" fill="none"/>
+                        <!-- Maturity Target (Optional, usually sold before) -->
+                        <circle cx="180" cy="30" r="4" fill="var(--color-accent)"/>
+                        <!-- Fair Value / Recorded Value (Wavy Line) -->
+                        <path d="M 10,70 Q 30,90 60,60 T 110,50 T 150,60 T 180,30" stroke="var(--color-accent)" stroke-width="3" fill="none"/>
+                        <!-- Shaded Region for Unrealized Gain/Loss -->
+                        <path d="M 10,70 Q 30,90 60,60 T 110,50 T 150,60 T 180,30 L 180,30 L 10,70 Z" fill="var(--color-accent)" opacity="0.2"/>
+                        <!-- Annotation -->
+                        <text x="15" y="18" font-size="9" font-weight="bold" fill="var(--color-text)">Unrealized Gap:</text>
+                        <text x="15" y="30" font-size="9" font-weight="bold" fill="var(--color-accent)">Flows to Net Income</text>
+                    </svg>
+                    <div style="font-size:0.75rem; text-align:center; margin-top:5px; font-weight:800;">
+                        <span style="color:var(--color-accent);">━ Recorded (Fair Value)</span>
+                    </div>
+                </div>
+
+                <div class="dotted-reveal" onclick="this.classList.add('revealed')">
+                    <div class="front"><i class="fas fa-eye"></i> Recorded?</div>
+                    <div class="back"><i class="fas fa-check"></i> <strong>Fair Value.</strong> Updated to market price on Balance Sheet.</div>
+                </div>
+                <div class="dotted-reveal" onclick="this.classList.add('revealed')">
+                    <div class="front"><i class="fas fa-eye"></i> Changes in fair value?</div>
+                    <div class="back"><i class="fas fa-chart-line"></i> <strong>Net Income.</strong> Recognized immediately as profit or loss.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 12: Accounting for Debt Securities -->
+    <div class="slide">
+        <h2>Accounting Mechanics for AFS Debt Securities</h2>
+        <p>Like marketable equity securities, available-for-sale (AFS) debt securities are reported at fair value on the balance sheet. However, changes in fair value for AFS debt securities <strong>do not flow to the income statement.</strong> Instead, unrealized gains and losses are transferred to the equity section of the balance sheet to an account called <strong>Accumulated Other Comprehensive Income (AOCI)</strong>.</p>
+
+        <div class="info-box success" style="margin: 2rem 0 1rem 0; padding: 1rem; border-color: var(--color-secondary); background: white;">
+            <p style="margin:0;"><i class="fas fa-laptop-code" style="color: var(--color-secondary);"></i> <strong>FSET Application:</strong> Assume the fair value of a company’s AFS debt securities increased by $3,000 in the year they were acquired. Click the cells below to map the impact.</p>
+        </div>
+
+        <div class="table-wrapper" style="margin-top: 0;">
+            <table class="financial-table">
+                <thead>
+                    <tr>
+                        <th rowspan="2" style="vertical-align: bottom; width: 25%;">Transaction Event</th>
+                        <th colspan="4" class="fset-header">Balance Sheet Impact</th>
+                        <th colspan="3" class="fset-header">Income Statement Impact</th>
+                    </tr>
+                    <tr>
+                        <th class="fset-sub">Cash Asset</th>
+                        <th class="fset-sub">Noncash Assets<br><span style="font-size:0.8rem; color:var(--color-primary);">(Securities)</span></th>
+                        <th class="fset-sub">Liabilities & Contrib. Capital</th>
+                        <th class="fset-sub">Earned Capital<br><span style="font-size:0.8rem; color:var(--color-primary);">(AOCI)</span></th>
+                        <th class="fset-sub">Revenues</th>
+                        <th class="fset-sub">Expenses</th>
+                        <th class="fset-sub">Net Income</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td style="font-weight:800; text-align: left;">Recognize $3,000 increase in market value</td>
+                        <td class="fset-cell reveal-cell" onclick="this.classList.add('revealed')"><span class="neutral">No effect</span></td>
+                        <td class="fset-cell reveal-cell" onclick="this.classList.add('revealed')"><span class="positive">+$3,000</span></td>
+                        <td class="fset-cell reveal-cell" onclick="this.classList.add('revealed')"><span class="neutral">No effect</span></td>
+                        <td class="fset-cell reveal-cell" onclick="this.classList.add('revealed')"><span class="positive">+$3,000<br><span style="font-size:0.75rem; color:var(--color-text); font-weight:800;">(to AOCI)</span></span></td>
+                        <td class="fset-cell reveal-cell" onclick="this.classList.add('revealed')"><span class="neutral">No effect</span></td>
+                        <td class="fset-cell reveal-cell" onclick="this.classList.add('revealed')"><span class="neutral">No effect</span></td>
+                        <td class="fset-cell reveal-cell" onclick="this.classList.add('revealed')"><span class="neutral">No effect</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <p style="font-size: 0.95rem; color: var(--color-text-muted); text-align: center;"><i class="fas fa-info-circle"></i> AOCI functions as a holding pen in the equity section until the security is formally sold.</p>
+    </div>
+
+    <!-- Slide 13: Check Your Understanding -->
+    <div class="slide">
+        <h2>Check Your Understanding</h2>
+        
+        <div class="mini-quiz" style="max-width: 900px; margin: 2rem auto;">
+            <h3><i class="fas fa-search"></i> Variable Interest Entities</h3>
+            <p>Corporation Alpha owns only fifteen percent of the voting shares of Startup Beta. However, Alpha guarantees all of Beta's bank loans, absorbs eighty percent of any generated losses, and has a contract allowing it to dictate Beta's research operations. Is Startup Beta a Variable Interest Entity (VIE) of Corporation Alpha?</p>
+            <div class="mq-options">
+                <button class="mq-btn" onclick="handleMQ(this, false, 'Incorrect. Voting rights are not the sole determinant of control. Economic exposure is critical here.', 'check1')">A. No, because Alpha holds less than fifty percent of the voting stock.</button>
+                <button class="mq-btn" onclick="handleMQ(this, true, 'Correct! Alpha has the economic power and risk exposure, making Beta a VIE that Alpha must consolidate.', 'check1')">B. Yes, because Alpha controls the economic risk and key operational decisions.</button>
+                <button class="mq-btn" onclick="handleMQ(this, false, 'Incorrect. The Equity Method is used for significant influence without control, but Alpha has economic control.', 'check1')">C. No, Alpha should simply use the Equity Method for its fifteen percent stake.</button>
+                <button class="mq-btn" onclick="handleMQ(this, false, 'Incorrect. Guaranteeing loans alone might not equal control, but combined with dictating operations, it does.', 'check1')">D. Yes, but only because Alpha guarantees the bank loans for the startup.</button>
+            </div>
+            <div id="mq-feedback-check1" class="mq-feedback"></div>
+        </div>
+
+        <div class="mini-quiz" style="max-width: 900px; margin: 2rem auto;">
+            <h3><i class="fas fa-file-invoice-dollar"></i> HTM Classifications</h3>
+            <p>A company purchases corporate bonds and classifies them as held-to-maturity (HTM) because management intends and has the ability to hold the bonds until they mature. At year-end, the fair value of the bonds has increased by $5,000. How should the company report this $5,000 increase?</p>
+            <div class="mq-options">
+                <button class="mq-btn" onclick="handleMQ(this, false, 'Incorrect. HTM securities ignore fair value fluctuations on the income statement.', 'check2')">A. Report the amount as a realized gain directly upon the company\'s income statement.</button>
+                <button class="mq-btn" onclick="handleMQ(this, false, 'Incorrect. That would be the treatment for an Available-for-Sale (AFS) security.', 'check2')">B. Increase the investment asset account and report the amount directly within AOCI.</button>
+                <button class="mq-btn" onclick="handleMQ(this, true, 'Correct! HTM securities are reported at amortized cost, not fair value. Unrealized changes are not recognized.', 'check2')">C. Do not report the fair value increase on either the balance sheet or income statement.</button>
+                <button class="mq-btn" onclick="handleMQ(this, false, 'Incorrect. Trading securities would be reported at fair value with gains in net income, not HTM.', 'check2')">D. Report the investment at fair value and immediately recognize the gain in net income.</button>
+            </div>
+            <div id="mq-feedback-check2" class="mq-feedback"></div>
+        </div>
+    </div>
+
+    <!-- Slide 14: Quiz Intro -->
+    <div class="slide">
+        <div style="text-align:center; margin-top:10%;">
+            <div class="graphic-hero" style="width: 180px; height: 180px; border-color: var(--warning); box-shadow: 0 0 30px var(--warning), inset 0 0 20px var(--warning); background: var(--color-primary);">
+                <i class="fas fa-trophy" style="color: var(--warning); font-size: 6rem;"></i>
+            </div>
+            <h1 style="font-size: 4.5rem; text-shadow: 4px 4px 0px rgba(0,0,0,0.1);">Final Quiz</h1>
+            <p style="font-size: 1.6rem; color: var(--color-text-muted); font-weight:800;">Prove your mastery of corporate strategy and accounting.</p>
+            <button class="btn" style="font-size:1.6rem; padding: 1.2rem 4rem; margin-top:2rem;" onclick="nextSlide()">Start Quiz</button>
+        </div>
+    </div>
+
+    <!-- Slide 15: Quiz Active -->
+    <div class="slide">
+        <div id="quiz-header" style="display:flex; justify-content:space-between; align-items:center; border-bottom: 3px solid var(--color-primary); padding-bottom: 1rem; margin-bottom: 2rem;">
+            <h2 style="margin:0; border:none; padding:0;">Assessment</h2>
+            <div id="score-display" style="font-family:'JetBrains Mono', monospace; font-size:1.4rem; font-weight:900; color:var(--color-primary); background:white; border:var(--border-game); padding: 0.5rem 1.5rem; border-radius: var(--radius); box-shadow: var(--shadow-game);">Score: 0</div>
+        </div>
+        <div id="quiz-container" style="max-width: 900px; margin: 0 auto; flex-grow:1;">
+            <!-- Dynamic Quiz Content -->
+        </div>
+        <div id="quiz-feedback" style="margin-top:1rem; font-weight:800; font-size: 1.4rem; min-height:40px; text-align:center;"></div>
+        <div style="display:flex; justify-content:flex-end; margin-top:2rem;">
+            <button id="next-q-btn" class="btn" style="display:none; font-size:1.2rem;" onclick="nextQuestion()">Next Question <i class="fas fa-arrow-right"></i></button>
+        </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="controls">
+        <button class="btn btn-outline" style="border: 2px solid var(--color-primary);" onclick="toggleTOC()"><i class="fas fa-map-marked-alt"></i> Map</button>
+        <div class="progress-container">
+            <div class="progress-bar" id="progressBar"></div>
+        </div>
+        <div style="display:flex; gap:10px;">
+            <button class="btn btn-outline" style="border: 2px solid var(--color-primary);" id="prevBtn" onclick="prevSlide()"><i class="fas fa-chevron-left"></i> Prev</button>
+            <button class="btn" id="nextBtn" onclick="nextSlide()">Next <i class="fas fa-chevron-right"></i></button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentSlide = 0;
+    const slides = document.querySelectorAll('.slide');
+    const progressBar = document.getElementById('progressBar');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+
+    function updateSlide() {
+        slides.forEach((s, i) => {
+            s.classList.remove('active');
+            if (i === currentSlide) s.classList.add('active');
+        });
+
+        // Progress bar logic
+        const progress = ((currentSlide + 1) / slides.length) * 100;
+        progressBar.style.width = `${progress}%`;
+
+        // Button logic
+        prevBtn.disabled = currentSlide === 0;
+        
+        // Hide global next button on Quiz slides
+        if (currentSlide >= slides.length - 2) {
+            nextBtn.style.display = 'none';
+        } else {
+            nextBtn.style.display = 'inline-flex';
+        }
+    }
+
+    function nextSlide() {
+        if (currentSlide < slides.length - 1) {
+            currentSlide++;
+            updateSlide();
+        }
+    }
+
+    function prevSlide() {
+        if (currentSlide > 0) {
+            currentSlide--;
+            updateSlide();
+        }
+    }
+
+    // Mini Quiz Logic
+    function handleMQ(btn, isCorrect, feedbackText, quizId) {
+        const parent = btn.parentElement;
+        const buttons = parent.querySelectorAll('.mq-btn');
+        const feedbackDiv = document.getElementById('mq-feedback-' + quizId);
+        
+        // Lock options
+        if ([...buttons].some(b => b.classList.contains('correct') || b.classList.contains('incorrect'))) return;
+        
+        if (isCorrect) {
+            btn.classList.add('correct');
+            feedbackDiv.innerHTML = '<i class="fas fa-check-circle"></i> ' + feedbackText;
+            feedbackDiv.style.borderColor = 'var(--success)';
+            feedbackDiv.style.color = 'var(--success)';
+            feedbackDiv.style.backgroundColor = 'var(--success-bg)';
+            
+            // Special trigger for the Divestiture slide to show reasons (Legacy - left here if needed elsewhere)
+            if (quizId === 'divest') {
+                const reasons = document.getElementById('divest-reasons');
+                if (reasons) reasons.style.display = 'block';
+            }
+            
+        } else {
+            btn.classList.add('incorrect');
+            feedbackDiv.innerHTML = '<i class="fas fa-times-circle"></i> ' + feedbackText;
+            feedbackDiv.style.borderColor = 'var(--danger)';
+            feedbackDiv.style.color = 'var(--danger)';
+            feedbackDiv.style.backgroundColor = 'var(--danger-bg)';
+            // Show correct
+            buttons.forEach(b => {
+                if (b.getAttribute('onclick').includes('true')) b.classList.add('correct');
+            });
+        }
+        feedbackDiv.style.display = 'block';
+    }
+
+    // Table of Contents
+    function generateTOC() {
+        const tocContainer = document.getElementById('toc-list');
+        tocContainer.innerHTML = ''; 
+        
+        slides.forEach((slide, index) => {
+            let title = "Level " + (index + 1);
+            const h2 = slide.querySelector('h2');
+            const h1 = slide.querySelector('h1');
+            
+            if (h2) {
+                title = h2.innerText;
+            } else if (h1) {
+                title = h1.innerText.replace('<br>', ' ').replace('\n', ' ');
+            }
+            
+            // Skip the actual quiz question slide in TOC to avoid cheating
+            if(title === "Assessment") return;
+
+            const item = document.createElement('div');
+            item.className = 'toc-item';
+            if(index === currentSlide) item.classList.add('active-toc');
+            
+            item.innerHTML = `<span class="toc-num">${index + 1}</span> <span>${title}</span>`;
+            item.onclick = () => {
+                currentSlide = index;
+                updateSlide();
+                toggleTOC();
+            };
+            tocContainer.appendChild(item);
+        });
+    }
+
+    function toggleTOC() {
+        const overlay = document.getElementById('toc-overlay');
+        if (overlay.style.display === 'flex') {
+            overlay.style.display = 'none';
+        } else {
+            generateTOC();
+            overlay.style.display = 'flex';
+        }
+    }
+
+    // Quiz Logic
+    const quizQuestions = [
+        { 
+            q: "What defines a Variable Interest Entity (VIE) where a parent company is required to actively consolidate?", 
+            o: [
+                "The parent entity holds precisely fifty percent of all the voting stock options.", 
+                "The parent entity exerts real economic control by absorbing the entity losses.", 
+                "The parent entity passively invests and completely ignores any fair value changes.", 
+                "The parent entity strictly influences decisions without giving financial support."
+            ], 
+            a: 1 
+        },
+        { 
+            q: "Under the formal Equity Method, how are standard cash dividends received from the specific investee properly recorded by the parent company?", 
+            o: [
+                "They are recorded as new dividend revenue on the income statement directly.", 
+                "They are recorded as a direct reduction to the investment asset on the books.", 
+                "They are recorded as a substantial increase to contributed capital generally.", 
+                "They are recorded as an addition to accumulated comprehensive income largely."
+            ], 
+            a: 1 
+        },
+        { 
+            q: "When a parent company fully consolidates a wholly owned subsidiary, how are the investment and equity accounts appropriately handled?", 
+            o: [
+                "The parent company reports a noncontrolling interest within the equity section.", 
+                "The parent company recognizes only its proportional share of subsidiary assets.", 
+                "The parent company eliminates the investment account and the subsidiary equity.", 
+                "The parent company records the subsidiary equity as its own retained earnings."
+            ], 
+            a: 2 
+        },
+        { 
+            q: "What is the underlying theoretical justification for why the Equity Method forbids investors from recording dividends received as dividend revenue?", 
+            o: [
+                "Because doing so would artificially deflate the investor's total liability obligations.", 
+                "Because it would double-count the benefit, as investee net income is already recorded.", 
+                "Because the SEC explicitly mandates that all dividends must be taxed at a higher rate.", 
+                "Because dividends from corporate affiliates violate modern market antitrust regulations."
+            ], 
+            a: 1 
+        },
+        { 
+            q: "A company purchases corporate bonds and classifies them as held-to-maturity (HTM). At year-end, the fair value of the bonds has increased by $5,000. How should the company report this increase?", 
+            o: [
+                "Report the amount as a realized gain directly upon the company's income statement.", 
+                "Increase the investment asset account and report the amount directly within AOCI.", 
+                "Do not report the fair value increase on either the balance sheet or income statement.", 
+                "Report the investment at fair value and immediately recognize the gain in net income."
+            ], 
+            a: 2 
+        },
+        { 
+            q: "Delta Air Lines decides to sell an Available-for-Sale (AFS) debt security that accumulated $5,000 of unrealized gains in AOCI. What happens to that balance when the security is sold?", 
+            o: [
+                "It remains permanently trapped inside the AOCI equity account balance indefinitely.", 
+                "It is reclassified out of AOCI and recognized as a Realized Gain in Net Income.", 
+                "It is deducted directly from the primary corporate Retained Earnings account balance.", 
+                "It is immediately refunded in cash directly back to the original bond issuing entity."
+            ], 
+            a: 1 
+        }
+    ];
+
+    let qIndex = 0;
+    let score = 0;
+
+    function loadQuestion() {
+        const container = document.getElementById('quiz-container');
+        const feedback = document.getElementById('quiz-feedback');
+        const nextBtn = document.getElementById('next-q-btn');
+        const q = quizQuestions[qIndex];
+
+        container.innerHTML = `
+            <div style="font-size: 1rem; color: var(--color-text-muted); font-family: 'JetBrains Mono', monospace; font-weight: 800; margin-bottom: 1rem;">QUESTION ${qIndex + 1} OF ${quizQuestions.length}</div>
+            <h3 style="font-size: 1.6rem; margin-top: 0; margin-bottom: 2rem; color: var(--color-text);">${q.q}</h3>
+        `;
+        
+        q.o.forEach((opt, i) => {
+            const div = document.createElement('div');
+            div.className = 'quiz-option';
+            div.innerHTML = `<span style="display:inline-block; width:35px; font-weight:900; color:var(--color-secondary); font-size:1.2rem;">${String.fromCharCode(65+i)}.</span> <span>${opt}</span>`;
+            div.onclick = () => checkAnswer(div, i, q.a);
+            container.appendChild(div);
+        });
+
+        feedback.innerText = "";
+        nextBtn.style.display = 'none';
+    }
+
+    function checkAnswer(el, idx, correct) {
+        const opts = document.querySelectorAll('.quiz-option');
+        if ([...opts].some(o => o.classList.contains('correct') || o.classList.contains('incorrect'))) return; // Lock
+
+        const feedback = document.getElementById('quiz-feedback');
+        const nextBtn = document.getElementById('next-q-btn');
+
+        if (idx === correct) {
+            el.classList.add('correct');
+            feedback.innerHTML = '<i class="fas fa-check-circle"></i> Excellent analysis.';
+            feedback.style.color = "var(--success)";
+            score++;
+        } else {
+            el.classList.add('incorrect');
+            opts[correct].classList.add('correct');
+            feedback.innerHTML = '<i class="fas fa-times-circle"></i> Incorrect assessment.';
+            feedback.style.color = "var(--danger)";
+        }
+
+        document.getElementById('score-display').innerText = `Score: ${score}`;
+        nextBtn.style.display = 'inline-flex';
+
+        if (qIndex === quizQuestions.length - 1) nextBtn.innerHTML = 'Complete Mission <i class="fas fa-flag-checkered"></i>';
+    }
+
+    function nextQuestion() {
+        if (qIndex < quizQuestions.length - 1) {
+            qIndex++;
+            loadQuestion();
+        } else {
+            finishQuiz();
+        }
+    }
+
+    function finishQuiz() {
+        const container = document.getElementById('quiz-container');
+        document.getElementById('next-q-btn').style.display = 'none';
+        document.getElementById('quiz-feedback').style.display = 'none';
+        document.getElementById('quiz-header').style.display = 'none';
+
+        let msg, icon;
+        if (score === quizQuestions.length) {
+            msg = "Perfect Score! You are a Master Analyst.";
+            icon = "fa-trophy";
+            startConfetti();
+        } else if (score >= quizQuestions.length * 0.7) {
+            msg = "Great job. You have a solid grasp of intercorporate accounting.";
+            icon = "fa-medal";
+            startConfetti();
+        } else {
+            msg = "Review the briefing materials and try again.";
+            icon = "fa-book-reader";
+        }
+
+        container.innerHTML = `
+            <div style="text-align:center; padding: 2rem;">
+                <div class="graphic-hero" style="width: 160px; height: 160px; border-color: var(--warning); box-shadow: 0 0 30px var(--warning), inset 0 0 20px var(--warning); background: var(--color-primary);">
+                    <i class="fas ${icon}" style="color: var(--warning); font-size: 5.5rem;"></i>
+                </div>
+                <h2 style="font-size: 4rem; margin-bottom: 0;">${score} / ${quizQuestions.length}</h2>
+                <p style="font-size: 1.6rem; color: var(--color-text-muted); font-weight:800; margin-bottom: 3rem;">${msg}</p>
+                <button class="btn" style="padding: 1rem 2rem; font-size: 1.2rem;" onclick="location.reload()"><i class="fas fa-redo"></i> Play Again</button>
+            </div>
+        `;
+    }
+
+    // Confetti Engine
+    function startConfetti() {
+        const canvas = document.getElementById('confetti-canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        
+        const particles = [];
+        const colors = ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#0f172a'];
+
+        for(let i=0; i<350; i++) {
+            particles.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height - canvas.height,
+                color: colors[Math.floor(Math.random() * colors.length)],
+                size: Math.random() * 12 + 6,
+                speedY: Math.random() * 4 + 2,
+                speedX: Math.random() * 3 - 1.5,
+                rotation: Math.random() * 360,
+                rotationSpeed: Math.random() * 10 - 5
+            });
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            let active = false;
+            particles.forEach(p => {
+                p.y += p.speedY;
+                p.x += p.speedX;
+                p.rotation += p.rotationSpeed;
+                if (p.y < canvas.height + 20) active = true;
+                
+                ctx.save();
+                ctx.translate(p.x, p.y);
+                ctx.rotate(p.rotation * Math.PI / 180);
+                ctx.fillStyle = p.color;
+                ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size);
+                ctx.restore();
+            });
+            if (active) requestAnimationFrame(animate);
+        }
+        animate();
+    }
+
+    // Keyboard Navigation
+    document.addEventListener('keydown', (e) => {
+        if(e.key === 'ArrowRight' && currentSlide < slides.length - 2) nextSlide();
+        if(e.key === 'ArrowLeft' && currentSlide > 0) prevSlide();
+    });
+
+    // Initialization
+    updateSlide();
+    loadQuestion();
+</script>
+</body>
+</html>
