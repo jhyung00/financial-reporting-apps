@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Investment Tycoon: Berkshire vs Apple</title>
+    
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Lucide Icons (Clean Icons) -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Google Fonts for a Peaceful, Modern Look -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            background-color: #0f172a; /* Soft Slate */
+            color: #cbd5e1;
+            font-family: 'Inter', sans-serif;
+            background-image: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            min-height: 100vh;
+            letter-spacing: 0.01em;
+        }
+
+        h1, h2, h3, h4, h5, h6, .heading-font {
+            font-family: 'Outfit', sans-serif;
+        }
+        
+        /* Soft, minimal Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+        /* Smooth, subtle buttons */
+        .btn-soft {
+            transition: all 0.2s ease-in-out;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .btn-soft:active {
+            transform: translateY(1px);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+
+        /* Gentle Animations */
+        .fade-in { animation: fadeIn 0.6s ease-out forwards; }
+        @keyframes fadeIn { 
+            from { opacity: 0; transform: translateY(8px); } 
+            to { opacity: 1; transform: translateY(0); } 
+        }
+        
+        .pop-in { animation: popIn 0.4s ease-out forwards; }
+        @keyframes popIn { 
+            0% { opacity: 0; transform: scale(0.95); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
+        .float-anim { animation: float 4s ease-in-out infinite; }
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-3px); }
+            100% { transform: translateY(0px); }
+        }
+
+        .sticky-toolbar {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            backdrop-filter: blur(12px);
+        }
+
+        /* Clean Table Styles */
+        .fin-table { border-collapse: separate; border-spacing: 0; }
+        .fin-table th {
+            font-weight: 600;
+            letter-spacing: 0.03em;
+            font-size: 0.75rem;
+            font-family: 'Inter', sans-serif;
+        }
+        .fin-table td { vertical-align: middle; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo, useRef } = React;
+
+        // --- ICONS COMPONENT ---
+        const Icon = ({ name, size = 18, className = "", label }) => {
+            useEffect(() => {
+                if (window.lucide) window.lucide.createIcons();
+            }, [name]);
+
+            return (
+                <span className={`inline-flex items-center justify-center gap-1.5 ${className}`}>
+                    <i data-lucide={name} width={size} height={size} strokeWidth="2"></i>
+                    {label && <span className="font-medium">{label}</span>}
+                </span>
+            );
+        };
+
+        // --- DATA CONFIGURATION (Real World Narrative) ---
+        const SCENARIO_A_DATA = [
+            { 
+                id: 'a1', 
+                text: "Mission 1: Buy 5,000 Apple shares ($30/share)", 
+                correct: { cash: -150000, noncash: 150000, liab: 0, cc: 0, ec: 0, rev: 0, exp: 0, ni: 0 } 
+            },
+            { 
+                id: 'a2', 
+                text: "Mission 2: Apple reports Net Income ($88,000)", 
+                correct: { cash: 0, noncash: 0, liab: 0, cc: 0, ec: 0, rev: 0, exp: 0, ni: 0 } 
+            },
+            { 
+                id: 'a3', 
+                text: "Mission 3: Receive Apple dividend ($1.10/share)", 
+                correct: { cash: 5500, noncash: 0, liab: 0, cc: 0, ec: 5500, rev: 5500, exp: 0, ni: 5500 } 
+            },
+            { 
+                id: 'a4', 
+                text: "Mission 4: Apple share price surges to $38/share", 
+                correct: { cash: 0, noncash: 40000, liab: 0, cc: 0, ec: 40000, rev: 40000, exp: 0, ni: 40000 } 
+            }
+        ];
+
+        const SCENARIO_B_DATA = [
+            { 
+                id: 'b1', 
+                text: "Mission 1: Buy 5,000 Apple shares ($30/share)", 
+                correct: { cash: -150000, noncash: 150000, liab: 0, cc: 0, ec: 0, rev: 0, exp: 0, ni: 0 } 
+            },
+            { 
+                id: 'b2', 
+                text: "Mission 2: Record 30% share of Apple's $88k NI", 
+                correct: { cash: 0, noncash: 26400, liab: 0, cc: 0, ec: 26400, rev: 26400, exp: 0, ni: 26400 } 
+            },
+            { 
+                id: 'b3', 
+                text: "Mission 3: Receive Apple dividend ($1.10/share)", 
+                correct: { cash: 5500, noncash: -5500, liab: 0, cc: 0, ec: 0, rev: 0, exp: 0, ni: 0 } 
+            },
+            { 
+                id: 'b4', 
+                text: "Mission 4: Apple share price surges to $38/share", 
+                correct: { cash: 0, noncash: 0, liab: 0, cc: 0, ec: 0, rev: 0, exp: 0, ni: 0 } 
+            }
+        ];
+
+        // Refined to have similar length options per user preference
+        const QUIZ_DATA = [
+            {
+                id: 'q1',
+                question: "How does Berkshire handle the Apple dividends received under the Equity Method compared to the Passive Investment method?",
+                options: [
+                    "Both methods: Record dividends as Investment Income.",
+                    "Equity Method: Reduces Asset | Passive: Records Revenue.",
+                    "Equity Method: Records Revenue | Passive: Reduces Asset.",
+                    "Both methods: Ignore the receipt of cash dividends."
+                ],
+                correctIndex: 1
+            },
+            {
+                id: 'q2',
+                question: "How does Apple's impressive Net Income affect Berkshire's books?",
+                options: [
+                    "Passive Method: Increases Asset | Equity Method: No Entry.",
+                    "Passive Method: Records Revenue | Equity Method: Dividend.",
+                    "Passive Method: No Entry | Equity Method: Increases Asset.",
+                    "Both Methods: Record a share of Net Income as Revenue."
+                ],
+                correctIndex: 2
+            },
+            {
+                id: 'q3',
+                question: "At year-end, Apple's stock price jumped. How should Berkshire record this?",
+                options: [
+                    "Passive: Recognize Gain in Net Income | Equity: No Entry.",
+                    "Passive: No Entry | Equity: Increase Asset to Fair Value.",
+                    "Both methods: Recognize the unrealized gain in Net Income.",
+                    "Both methods: Adjust Asset to market value via OCI entry."
+                ],
+                correctIndex: 0
+            },
+            {
+                id: 'q4',
+                question: "Assuming Apple continues to be profitable and retains most of its earnings, which method gives Berkshire a higher Investment Asset balance over time?",
+                options: [
+                    "The Passive Investment Method yields a higher balance.",
+                    "The Equity Method typically yields a higher balance.",
+                    "Both methods result in the exact same ending balance.",
+                    "It is impossible to determine without additional data."
+                ],
+                correctIndex: 1
+            }
+        ];
+
+        // --- COMPONENT: SMART INPUT (Soft Aesthetic) ---
+        const SmartInput = ({ value, onChange, correctValue, instructorMode, placeholder = "0" }) => {
+            const [localVal, setLocalVal] = useState(value || "");
+            const [isValid, setIsValid] = useState(null);
+
+            useEffect(() => {
+                setLocalVal(value === 0 || value ? value : "");
+                if (value === "" || value === undefined) {
+                    setIsValid(null);
+                } else {
+                    validate(value);
+                }
+            }, [value]);
+
+            const validate = (val) => {
+                if (val === "" || val === null || val === undefined) {
+                    setIsValid(null);
+                    return;
+                }
+                const numVal = parseFloat(val);
+                if (isNaN(numVal)) {
+                    setIsValid(false);
+                    return;
+                }
+                const target = parseFloat(correctValue);
+                if (isNaN(target)) return;
+
+                let valid = false;
+                if (Math.abs(numVal - target) < 0.01) valid = true;
+                else if (target !== 0 && Math.abs((numVal - target) / target) <= 0.02) valid = true; 
+                
+                setIsValid(valid);
+            };
+
+            const handleBlur = () => {
+                let processedVal = localVal;
+                if (typeof localVal === 'string') {
+                    const cleanStr = localVal.replace(/,/g, '');
+                    if (cleanStr.match(/[+\-*\/]/)) {
+                        try {
+                            const result = Function('"use strict";return (' + cleanStr.replace(/[^0-9+\-*\/.\(\)]/g, '') + ')')();
+                            if (isFinite(result)) {
+                                processedVal = parseFloat(result.toFixed(2));
+                                onChange(processedVal); 
+                            }
+                        } catch (e) {}
+                    }
+                }
+                validate(processedVal);
+            };
+
+            const handleKeyDown = (e) => {
+                if (e.key === 'Enter') e.target.blur();
+            };
+
+            // Soft UI styling based on state
+            let baseClass = "w-full px-3 py-2.5 text-right text-sm font-medium rounded-lg border outline-none transition-all duration-300 shadow-sm bg-transparent";
+            let stateClass = "border-slate-600/50 text-slate-200 focus:border-slate-400 focus:bg-slate-800/80";
+            
+            if (isValid === true) {
+                stateClass = "border-teal-500/40 bg-teal-900/10 text-teal-100 shadow-[0_0_12px_rgba(20,184,166,0.15)]";
+            } else if (isValid === false) {
+                stateClass = "border-rose-500/40 bg-rose-900/10 text-rose-100";
+            }
+
+            return (
+                <div className="relative w-full group">
+                    <input
+                        type="text"
+                        className={`${baseClass} ${stateClass}`}
+                        value={localVal}
+                        onChange={(e) => { setLocalVal(e.target.value); onChange(e.target.value); }}
+                        onBlur={handleBlur}
+                        onKeyDown={handleKeyDown}
+                        placeholder={placeholder}
+                    />
+                    {instructorMode && (
+                        <div className="absolute z-10 -bottom-6 left-1/2 -translate-x-1/2 w-max text-[11px] font-medium tracking-wide text-center bg-violet-600 text-white border border-violet-400 rounded py-0.5 px-2 fade-in shadow-md opacity-0 group-hover:opacity-100 transition-opacity">
+                            KEY: {correctValue}
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // --- MAIN APPLICATION ---
+        const App = () => {
+            const [activeTab, setActiveTab] = useState('A'); // A, B, or Quiz
+            
+            // State initialization
+            const [transA, setTransA] = useState(SCENARIO_A_DATA.map(t => ({
+                ...t, userValues: { cash: '', noncash: '', liab: '', cc: '', ec: '', rev: '', exp: '' }
+            })));
+
+            const [transB, setTransB] = useState(SCENARIO_B_DATA.map(t => ({
+                ...t, userValues: { cash: '', noncash: '', liab: '', cc: '', ec: '', rev: '', exp: '' }
+            })));
+
+            const [quizAnswers, setQuizAnswers] = useState({});
+
+            // Instructor States
+            const [showAuthModal, setShowAuthModal] = useState(false);
+            const [isInstructor, setIsInstructor] = useState(false);
+            const [teacherPass, setTeacherPass] = useState('');
+            const [authError, setAuthError] = useState('');
+            const [confirmation, setConfirmation] = useState({ isOpen: false, message: '', onConfirm: null });
+            const [showDownloadModal, setShowDownloadModal] = useState(false);
+            const [studentName, setStudentName] = useState('');
+
+            // --- COMPUTED TOTALS & METRICS ---
+            const calculateTotals = (transactions) => {
+                const sums = { cash: 0, noncash: 0, liab: 0, cc: 0, ec: 0, rev: 0, exp: 0, ni: 0 };
+                let correctFields = 0;
+                let totalFields = 0;
+
+                transactions.forEach(t => {
+                    const rRev = parseFloat(t.userValues.rev) || 0;
+                    const rExp = parseFloat(t.userValues.exp) || 0;
+                    const rNI = rRev - rExp;
+                    
+                    sums.cash += parseFloat(t.userValues.cash) || 0;
+                    sums.noncash += parseFloat(t.userValues.noncash) || 0;
+                    sums.liab += parseFloat(t.userValues.liab) || 0;
+                    sums.cc += parseFloat(t.userValues.cc) || 0;
+                    sums.ec += (parseFloat(t.userValues.ec) || 0) + rNI; 
+                    sums.rev += rRev;
+                    sums.exp += rExp;
+                    sums.ni += rNI;
+
+                    const keys = ['cash', 'noncash', 'liab', 'cc', 'ec', 'rev', 'exp'];
+                    keys.forEach(k => {
+                        totalFields++;
+                        const uv = parseFloat(t.userValues[k]);
+                        const cv = parseFloat(t.correct[k]);
+                        if (!isNaN(uv) && Math.abs(uv - cv) < 0.1) correctFields++;
+                    });
+                });
+                return { sums, correctFields, totalFields };
+            };
+
+            const statsA = useMemo(() => calculateTotals(transA), [transA]);
+            const statsB = useMemo(() => calculateTotals(transB), [transB]);
+
+            const isBalancedA = Math.abs((statsA.sums.cash + statsA.sums.noncash) - (statsA.sums.liab + statsA.sums.cc + statsA.sums.ec)) < 0.1;
+            const isBalancedB = Math.abs((statsB.sums.cash + statsB.sums.noncash) - (statsB.sums.liab + statsB.sums.cc + statsB.sums.ec)) < 0.1;
+
+            const quizScore = useMemo(() => {
+                let score = 0;
+                QUIZ_DATA.forEach(q => { if (quizAnswers[q.id] === q.correctIndex) score++; });
+                return score;
+            }, [quizAnswers]);
+
+            // Calculate Progress
+            const totalCorrectInputs = statsA.correctFields + statsB.correctFields;
+            const totalPossibleInputs = statsA.totalFields + statsB.totalFields;
+            const xp = (totalCorrectInputs * 50) + (quizScore * 250);
+            const maxXp = (totalPossibleInputs * 50) + (QUIZ_DATA.length * 250);
+            const xpPercent = Math.min(100, Math.round((xp / maxXp) * 100)) || 0;
+            const level = Math.floor(xp / 500) + 1;
+
+            // --- HANDLERS ---
+            const handleTransChange = (scenario, id, field, val) => {
+                const setFunc = scenario === 'A' ? setTransA : setTransB;
+                setFunc(prev => prev.map(t => t.id === id ? {
+                    ...t, userValues: { ...t.userValues, [field]: val }
+                } : t));
+            };
+
+            const handleQuizSelect = (qId, optionIndex) => {
+                setQuizAnswers(prev => ({...prev, [qId]: optionIndex}));
+            };
+
+            // --- INSTRUCTOR FUNCTIONS ---
+            const attemptLogin = () => {
+                if (teacherPass.toLowerCase() === 'teacher') {
+                    setIsInstructor(true);
+                    setShowAuthModal(false);
+                    setAuthError('');
+                    setTeacherPass('');
+                } else {
+                    setAuthError('Access Denied');
+                }
+            };
+
+            const autoFill = () => {
+                const fillValues = (item) => ({ ...item, userValues: { ...item.correct } });
+                if (activeTab === 'A') setTransA(prev => prev.map(fillValues));
+                else if (activeTab === 'B') setTransB(prev => prev.map(fillValues));
+                else {
+                    const autoQuiz = {};
+                    QUIZ_DATA.forEach(q => autoQuiz[q.id] = q.correctIndex);
+                    setQuizAnswers(autoQuiz);
+                }
+            };
+
+            const clearAll = () => {
+                setConfirmation({
+                    isOpen: true,
+                    message: "Clear all input and exit admin mode?",
+                    onConfirm: () => {
+                        const clearValues = (item) => ({ ...item, userValues: { cash: '', noncash: '', liab: '', cc: '', ec: '', rev: '', exp: '' } });
+                        setTransA(prev => prev.map(clearValues));
+                        setTransB(prev => prev.map(clearValues));
+                        setQuizAnswers({});
+                        setIsInstructor(false);
+                        setConfirmation({ isOpen: false, message: '', onConfirm: null });
+                    }
+                });
+            };
+
+            // --- RENDER HELPERS ---
+            const renderTable = (data, scenarioId, totalsData, isBalanced) => {
+                const { sums, correctFields, totalFields } = totalsData;
+                const isPerfect = correctFields === totalFields;
+
+                return (
+                    <div className="bg-slate-800/40 rounded-xl border border-slate-700 shadow-lg overflow-hidden fade-in relative backdrop-blur-sm">
+                        
+                        {/* Perfect Badge Overlay */}
+                        {isPerfect && (
+                            <div className="absolute top-4 right-4 z-20 bg-teal-500/10 text-teal-200 border border-teal-500/30 px-3 py-1 rounded-full font-medium text-xs flex items-center gap-2 pop-in">
+                                <Icon name="check-circle" size={14} /> Completed
+                            </div>
+                        )}
+
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left fin-table min-w-[1100px]">
+                                <thead>
+                                    {/* Super Header */}
+                                    <tr className="border-b border-slate-700 bg-slate-800/60">
+                                        <th className="p-4 w-72 border-r border-slate-700 sticky left-0 z-10 bg-slate-800 text-slate-300">
+                                            Mission Objectives
+                                        </th>
+                                        <th className="text-center border-r border-slate-700 text-sky-200/80 py-3" colSpan="2">
+                                            <Icon name="layout-grid" className="mb-0.5 opacity-70" /> ASSETS
+                                        </th>
+                                        <th className="text-center w-8 text-slate-500 font-light">=</th>
+                                        <th className="text-center border-r border-slate-700 text-rose-200/80" colSpan="1">
+                                            <Icon name="credit-card" className="mb-0.5 opacity-70" /> LIABILITIES
+                                        </th>
+                                        <th className="text-center w-8 text-slate-500 font-light">+</th>
+                                        <th className="text-center border-r border-slate-700 text-violet-200/80" colSpan="2">
+                                            <Icon name="pie-chart" className="mb-0.5 opacity-70" /> EQUITY
+                                        </th>
+                                        <th className="w-2 bg-slate-900/50"></th>
+                                        <th className="text-center text-amber-200/80" colSpan="3">
+                                            <Icon name="bar-chart-2" className="mb-0.5 opacity-70" /> INCOME STATEMENT
+                                        </th>
+                                    </tr>
+                                    {/* Sub Header */}
+                                    <tr className="bg-slate-800/30 text-xs text-slate-400 border-b border-slate-700 uppercase tracking-wider">
+                                        <th className="p-3 border-r border-slate-700 sticky left-0 z-10 bg-slate-800/90 text-center">Description</th>
+                                        <th className="p-3 border-r border-slate-700 w-32 text-center text-sky-200/60 font-medium">Cash</th>
+                                        <th className="p-3 border-r border-slate-700 w-32 text-center text-sky-200/60 font-medium">Non-Cash (Invest)</th>
+                                        <th></th>
+                                        <th className="p-3 border-r border-slate-700 w-32 text-center text-rose-200/60 font-medium">Liabilities</th>
+                                        <th></th>
+                                        <th className="p-3 border-r border-slate-700 w-32 text-center text-violet-200/60 font-medium">Contrib. Capital</th>
+                                        <th className="p-3 border-r border-slate-700 w-32 text-center text-violet-200/60 font-medium">Earned Capital</th>
+                                        <th className="w-2 bg-slate-900/50"></th>
+                                        <th className="p-3 border-r border-slate-700 w-28 text-center text-amber-200/60 font-medium">Revenue</th>
+                                        <th className="p-3 border-r border-slate-700 w-28 text-center text-amber-200/60 font-medium">Expense</th>
+                                        <th className="p-3 w-28 text-center bg-amber-900/10 text-amber-100/80 font-medium">Net Income</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {data.map((row, idx) => {
+                                        let rowCorrect = 0;
+                                        let rowTotal = 7;
+                                        const keys = ['cash', 'noncash', 'liab', 'cc', 'ec', 'rev', 'exp'];
+                                        keys.forEach(k => {
+                                            const uv = parseFloat(row.userValues[k]);
+                                            const cv = parseFloat(row.correct[k]);
+                                            if (!isNaN(uv) && Math.abs(uv - cv) < 0.1) rowCorrect++;
+                                        });
+                                        const isRowDone = rowCorrect === rowTotal;
+
+                                        return (
+                                            <tr key={row.id} className="border-b border-slate-700/50 hover:bg-slate-700/20 transition-colors group relative">
+                                                <td className="p-4 border-r border-slate-700 bg-slate-800/80 group-hover:bg-slate-800 sticky left-0 z-10 transition-colors">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className={`w-6 h-6 rounded flex items-center justify-center text-xs font-medium border ${isRowDone ? 'bg-teal-500/20 border-teal-500/50 text-teal-300 pop-in' : 'bg-slate-700/50 border-slate-600 text-slate-400'}`}>
+                                                            {isRowDone ? <Icon name="check" size={14} /> : idx + 1}
+                                                        </div>
+                                                        <span className="font-medium text-slate-200 text-sm leading-tight flex-1">
+                                                            {row.text}
+                                                        </span>
+                                                    </div>
+                                                </td>
+                                                
+                                                {/* Assets */}
+                                                <td className="p-2 border-r border-slate-700/50">
+                                                    <SmartInput value={row.userValues.cash} onChange={v => handleTransChange(scenarioId, row.id, 'cash', v)} correctValue={row.correct.cash} instructorMode={isInstructor} />
+                                                </td>
+                                                <td className="p-2 border-r border-slate-700/50">
+                                                    <SmartInput value={row.userValues.noncash} onChange={v => handleTransChange(scenarioId, row.id, 'noncash', v)} correctValue={row.correct.noncash} instructorMode={isInstructor} />
+                                                </td>
+
+                                                <td className="text-center text-slate-500/50 font-light">=</td>
+
+                                                {/* Liab */}
+                                                <td className="p-2 border-r border-slate-700/50">
+                                                    <SmartInput value={row.userValues.liab} onChange={v => handleTransChange(scenarioId, row.id, 'liab', v)} correctValue={row.correct.liab} instructorMode={isInstructor} />
+                                                </td>
+
+                                                <td className="text-center text-slate-500/50 font-light">+</td>
+
+                                                {/* Equity */}
+                                                <td className="p-2 border-r border-slate-700/50">
+                                                    <SmartInput value={row.userValues.cc} onChange={v => handleTransChange(scenarioId, row.id, 'cc', v)} correctValue={row.correct.cc} instructorMode={isInstructor} />
+                                                </td>
+                                                <td className="p-2 border-r border-slate-700/50">
+                                                    <SmartInput value={row.userValues.ec} onChange={v => handleTransChange(scenarioId, row.id, 'ec', v)} correctValue={row.correct.ec} instructorMode={isInstructor} />
+                                                </td>
+
+                                                <td className="w-2 bg-slate-900/30"></td>
+
+                                                {/* Income Statement */}
+                                                <td className="p-2 border-r border-slate-700/50">
+                                                    <SmartInput value={row.userValues.rev} onChange={v => handleTransChange(scenarioId, row.id, 'rev', v)} correctValue={row.correct.rev} instructorMode={isInstructor} />
+                                                </td>
+                                                <td className="p-2 border-r border-slate-700/50">
+                                                    <SmartInput value={row.userValues.exp} onChange={v => handleTransChange(scenarioId, row.id, 'exp', v)} correctValue={row.correct.exp} instructorMode={isInstructor} />
+                                                </td>
+                                                
+                                                {/* Calculated NI */}
+                                                <td className="p-3 text-center">
+                                                    <div className={`py-1.5 px-2 rounded-lg font-medium text-sm transition-colors ${
+                                                        ((parseFloat(row.userValues.rev) || 0) - (parseFloat(row.userValues.exp) || 0)) !== 0 
+                                                        ? 'bg-amber-500/10 text-amber-200 border border-amber-500/30' 
+                                                        : 'text-slate-500'
+                                                    }`}>
+                                                        {((parseFloat(row.userValues.rev) || 0) - (parseFloat(row.userValues.exp) || 0)) || '-'}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                                <tfoot>
+                                    <tr className={`font-medium text-sm relative ${isBalanced ? 'bg-teal-900/20 text-teal-200 border-t border-teal-500/30' : 'bg-slate-800/50 text-slate-300 border-t border-slate-600'}`}>
+                                        <td className="p-4 text-right sticky left-0 z-10 border-r border-slate-700/50 bg-inherit shadow-[4px_0_12px_rgba(0,0,0,0.1)]">
+                                            <div className="flex items-center justify-end gap-2">
+                                                {isBalanced && <Icon name="scale" className="text-teal-400 float-anim opacity-80" size={16} />}
+                                                Account Balances:
+                                            </div>
+                                        </td>
+                                        <td className="p-3 text-center">{sums.cash}</td>
+                                        <td className="p-3 text-center">{sums.noncash}</td>
+                                        <td></td>
+                                        <td className="p-3 text-center">{sums.liab}</td>
+                                        <td></td>
+                                        <td className="p-3 text-center">{sums.cc}</td>
+                                        <td className="p-3 text-center">{sums.ec}</td>
+                                        <td className="bg-slate-900/30"></td>
+                                        <td className="p-3 text-center">{sums.rev}</td>
+                                        <td className="p-3 text-center">{sums.exp}</td>
+                                        <td className="p-3 text-center font-semibold text-amber-200/80">{sums.ni}</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                );
+            };
+
+            return (
+                <div className="min-h-screen pb-24 relative overflow-hidden text-slate-200">
+                    {/* Soft Background Elements */}
+                    <div className="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] bg-sky-500/5 rounded-full blur-[100px] pointer-events-none"></div>
+                    <div className="absolute bottom-[-10%] right-[-10%] w-[600px] h-[600px] bg-indigo-500/5 rounded-full blur-[100px] pointer-events-none"></div>
+
+                    {/* TOP NAVIGATION & HUD */}
+                    <nav className="bg-slate-900/80 backdrop-blur-md border-b border-slate-800 px-6 py-4 flex flex-col md:flex-row justify-between items-center shadow-sm relative z-40 gap-4">
+                        <div className="flex items-center gap-4">
+                            <div className="bg-slate-800 p-2.5 rounded-lg border border-slate-700 text-sky-400 shadow-sm float-anim">
+                                <Icon name="briefcase" size={24} />
+                            </div>
+                            <div>
+                                <h1 className="text-xl md:text-2xl font-semibold heading-font text-slate-100 tracking-wide">
+                                    Capital Simulator
+                                </h1>
+                                <p className="text-slate-400 text-xs tracking-wider uppercase font-medium mt-0.5">Berkshire Hathaway vs. Apple Inc.</p>
+                            </div>
+                        </div>
+
+                        {/* Player Stats HUD */}
+                        <div className="flex items-center gap-6 bg-slate-800/50 p-2.5 md:pr-6 rounded-xl border border-slate-700/50">
+                            {/* Level Indicator */}
+                            <div className="flex items-center gap-3 px-2">
+                                <div className="text-right hidden md:block">
+                                    <div className="text-[10px] text-slate-400 font-semibold tracking-wider uppercase">Level</div>
+                                    <div className="text-sm font-semibold text-slate-200">Analyst</div>
+                                </div>
+                                <div className="w-10 h-10 rounded-full bg-slate-700/50 flex items-center justify-center border border-slate-600 text-slate-300">
+                                    <span className="font-semibold text-lg heading-font">{level}</span>
+                                </div>
+                            </div>
+                            
+                            {/* Points Progress Bar */}
+                            <div className="w-32 md:w-48">
+                                <div className="flex justify-between text-[10px] font-semibold tracking-wider text-slate-400 uppercase mb-1.5">
+                                    <span>Progress</span>
+                                    <span className="text-sky-300">{xp} / {maxXp}</span>
+                                </div>
+                                <div className="h-2 bg-slate-900 rounded-full overflow-hidden border border-slate-700/50">
+                                    <div 
+                                        className="h-full bg-sky-400/80 transition-all duration-700 ease-out"
+                                        style={{ width: `${xpPercent}%` }}
+                                    ></div>
+                                </div>
+                            </div>
+
+                            {/* Instructor Lock */}
+                            <button 
+                                onClick={() => setShowAuthModal(true)}
+                                className="w-8 h-8 rounded-lg bg-slate-800 border border-slate-600 flex items-center justify-center text-slate-400 hover:text-slate-200 hover:bg-slate-700 transition-colors ml-2"
+                                title="Admin Access"
+                            >
+                                <Icon name="shield" size={16} />
+                            </button>
+                        </div>
+                    </nav>
+
+                    {/* INSTRUCTOR ADMIN TOOLBAR */}
+                    {isInstructor && (
+                        <div className="sticky-toolbar bg-slate-800/90 backdrop-blur-md text-slate-200 border-b border-violet-500/30 fade-in py-2 px-6 shadow-sm">
+                            <div className="max-w-[1400px] mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="text-violet-400 float-anim">
+                                        <Icon name="terminal" size={20} />
+                                    </div>
+                                    <div>
+                                        <div className="font-semibold text-sm text-slate-100">Admin Mode Active</div>
+                                        <div className="text-[11px] text-slate-400">View solutions and manage session.</div>
+                                    </div>
+                                </div>
+                                <div className="flex gap-3">
+                                    <button onClick={autoFill} className="btn-soft bg-slate-700 hover:bg-slate-600 border border-slate-600 px-4 py-1.5 rounded-lg text-xs font-medium flex items-center gap-2">
+                                        <Icon name="zap" size={14} className="text-sky-400" /> Auto-Fill
+                                    </button>
+                                    <button onClick={clearAll} className="btn-soft bg-slate-700 hover:bg-slate-600 border border-slate-600 px-4 py-1.5 rounded-lg text-xs font-medium flex items-center gap-2">
+                                        <Icon name="rotate-ccw" size={14} className="text-rose-400" /> Reset Session
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* MAIN PLAY AREA */}
+                    <div className="max-w-[1400px] mx-auto p-4 md:p-8">
+                        
+                        {/* Narrative & Scenario Briefing */}
+                        <div className="bg-slate-800/40 backdrop-blur-sm border border-slate-700/60 rounded-xl p-6 mb-8 relative overflow-hidden">
+                            <div className="flex flex-col lg:flex-row gap-8 relative z-10">
+                                {/* Story Context */}
+                                <div className="flex-1 space-y-4">
+                                    <div className="flex items-center gap-3 mb-1 text-slate-300">
+                                        <Icon name="book-open" className="text-sky-400 opacity-80" size={20} />
+                                        <h2 className="text-lg font-medium heading-font tracking-wide">Mission Briefing</h2>
+                                    </div>
+                                    <p className="text-slate-400 text-sm leading-relaxed font-light bg-slate-900/30 p-4 rounded-lg border border-slate-700/30">
+                                        On January 1st, <span className="text-sky-300 font-medium">Berkshire Hathaway</span> made a strategic move, acquiring shares of <span className="text-rose-300 font-medium">Apple Inc.</span> common stock. 
+                                        Your objective is to act as the Chief Accountant and record these critical transactions using the financial statement effects template. You must complete two alternate reality scenarios based on Berkshire's level of influence.
+                                    </p>
+                                    
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                                        <div className="bg-slate-800/60 p-4 rounded-lg border border-slate-700 border-l-2 border-l-sky-500/50">
+                                            <div className="flex items-center gap-2 mb-1.5 text-sky-400/80 font-medium text-xs tracking-wider uppercase">
+                                                <Icon name="eye" size={14} /> World 1: Passive
+                                            </div>
+                                            <p className="text-xs text-slate-400 font-light leading-relaxed">
+                                                Assume the stock acquired is only <span className="text-slate-200 font-medium">15%</span> of Apple's voting stock. Berkshire exercises <span className="text-slate-200 font-medium">No Significant Influence</span>.
+                                            </p>
+                                        </div>
+                                        <div className="bg-slate-800/60 p-4 rounded-lg border border-slate-700 border-l-2 border-l-violet-500/50">
+                                            <div className="flex items-center gap-2 mb-1.5 text-violet-400/80 font-medium text-xs tracking-wider uppercase">
+                                                <Icon name="handshake" size={14} /> World 2: Equity
+                                            </div>
+                                            <p className="text-xs text-slate-400 font-light leading-relaxed">
+                                                Assume the stock acquired is <span className="text-slate-200 font-medium">30%</span> of Apple's voting stock. Berkshire exercises <span className="text-slate-200 font-medium">Significant Influence</span>.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Data Points / Inventory */}
+                                <div className="flex-1 bg-slate-900/50 rounded-xl border border-slate-700 p-5">
+                                    <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2 border-b border-slate-700 pb-3">
+                                        <Icon name="database" size={14} /> Mission Data
+                                    </h3>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="p-3 bg-slate-800/50 rounded-lg border border-slate-700/50">
+                                            <div className="text-[10px] uppercase tracking-wider text-slate-400 font-medium mb-1 flex items-center gap-1.5"><Icon name="layers" size={12} className="opacity-70"/> Shares Acquired</div>
+                                            <div className="text-slate-200 font-medium text-lg">5,000</div>
+                                            <div className="text-[11px] text-sky-400/80 mt-0.5">@ $30 / share</div>
+                                        </div>
+                                        <div className="p-3 bg-slate-800/50 rounded-lg border border-slate-700/50">
+                                            <div className="text-[10px] uppercase tracking-wider text-slate-400 font-medium mb-1 flex items-center gap-1.5"><Icon name="wallet" size={12} className="opacity-70"/> Initial Cost</div>
+                                            <div className="text-slate-200 font-medium text-lg">$150,000</div>
+                                            <div className="text-[11px] text-rose-400/80 mt-0.5">Cash Outflow</div>
+                                        </div>
+                                        <div className="p-3 bg-slate-800/50 rounded-lg border border-slate-700/50">
+                                            <div className="text-[10px] uppercase tracking-wider text-slate-400 font-medium mb-1 flex items-center gap-1.5"><Icon name="trending-up" size={12} className="opacity-70"/> Apple Net Income</div>
+                                            <div className="text-teal-300/90 font-medium text-lg">$88,000</div>
+                                            <div className="text-[11px] text-slate-500 mt-0.5">Annual Total</div>
+                                        </div>
+                                        <div className="p-3 bg-slate-800/50 rounded-lg border border-slate-700/50">
+                                            <div className="text-[10px] uppercase tracking-wider text-slate-400 font-medium mb-1 flex items-center gap-1.5"><Icon name="gift" size={12} className="opacity-70"/> Dividends</div>
+                                            <div className="text-slate-200 font-medium text-lg">$5,500</div>
+                                            <div className="text-[11px] text-amber-400/80 mt-0.5">@ $1.10 / share</div>
+                                        </div>
+                                        <div className="col-span-2 p-3 bg-slate-800/80 rounded-lg border border-slate-600 flex justify-between items-center mt-1">
+                                            <div>
+                                                <div className="text-[10px] uppercase tracking-wider text-slate-400 font-medium mb-1 flex items-center gap-1.5"><Icon name="line-chart" size={12} className="opacity-70"/> Year-End Price</div>
+                                                <div className="text-slate-200 font-medium text-lg">$38.00 <span className="text-xs text-slate-500 font-light">/ share</span></div>
+                                            </div>
+                                            <div className="text-right">
+                                                <div className="text-[10px] uppercase tracking-wider text-slate-400 font-medium mb-1">Unrealized Gain</div>
+                                                <div className="text-teal-400/90 font-medium text-xl fade-in">+$40,000</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* LEVEL SELECTOR TABS */}
+                        <div className="flex gap-2 mb-0 z-10 relative px-2 overflow-x-auto">
+                            <button 
+                                onClick={() => setActiveTab('A')}
+                                className={`btn-soft flex-1 min-w-[160px] px-4 py-3 rounded-t-xl font-medium text-sm flex items-center justify-center gap-2 border border-b-0 ${
+                                    activeTab === 'A' 
+                                    ? 'bg-slate-800 border-slate-600 text-sky-300 pb-5 -mb-2 z-20' 
+                                    : 'bg-slate-900 border-slate-700 text-slate-500 hover:text-slate-300 hover:bg-slate-800/50'
+                                }`}
+                            >
+                                <div className={`w-6 h-6 rounded flex items-center justify-center text-xs ${activeTab === 'A' ? 'bg-sky-500/20 text-sky-300' : 'bg-slate-800'}`}>1</div>
+                                World 1: Passive
+                                {statsA.correctFields === statsA.totalFields && <Icon name="check-circle-2" className="text-teal-400/80 ml-auto" size={16}/>}
+                            </button>
+                            <button 
+                                onClick={() => setActiveTab('B')}
+                                className={`btn-soft flex-1 min-w-[160px] px-4 py-3 rounded-t-xl font-medium text-sm flex items-center justify-center gap-2 border border-b-0 ${
+                                    activeTab === 'B' 
+                                    ? 'bg-slate-800 border-slate-600 text-violet-300 pb-5 -mb-2 z-20' 
+                                    : 'bg-slate-900 border-slate-700 text-slate-500 hover:text-slate-300 hover:bg-slate-800/50'
+                                }`}
+                            >
+                                <div className={`w-6 h-6 rounded flex items-center justify-center text-xs ${activeTab === 'B' ? 'bg-violet-500/20 text-violet-300' : 'bg-slate-800'}`}>2</div>
+                                World 2: Equity
+                                {statsB.correctFields === statsB.totalFields && <Icon name="check-circle-2" className="text-teal-400/80 ml-auto" size={16}/>}
+                            </button>
+                            <button 
+                                onClick={() => setActiveTab('Quiz')}
+                                className={`btn-soft flex-1 min-w-[160px] px-4 py-3 rounded-t-xl font-medium text-sm flex items-center justify-center gap-2 border border-b-0 ${
+                                    activeTab === 'Quiz' 
+                                    ? 'bg-slate-800 border-slate-600 text-amber-300 pb-5 -mb-2 z-20' 
+                                    : 'bg-slate-900 border-slate-700 text-slate-500 hover:text-slate-300 hover:bg-slate-800/50'
+                                }`}
+                            >
+                                <div className={`w-6 h-6 rounded flex items-center justify-center ${activeTab === 'Quiz' ? 'bg-amber-500/20 text-amber-300' : 'bg-slate-800'}`}>
+                                    <Icon name="file-text" size={14} />
+                                </div>
+                                Final Audit
+                                {quizScore === QUIZ_DATA.length && <Icon name="check-circle-2" className="text-teal-400/80 ml-auto" size={16}/>}
+                            </button>
+                        </div>
+
+                        {/* LEVEL CONTENT AREA */}
+                        <div className="bg-slate-800 p-4 md:p-6 rounded-b-xl rounded-tr-xl border border-slate-600 shadow-lg min-h-[400px] relative z-10">
+                            
+                            {activeTab === 'A' && (
+                                <div className="fade-in">
+                                    <div className="mb-5 flex items-center gap-3 bg-slate-900/40 border border-slate-700 p-3 rounded-lg border-l-2 border-l-sky-500/50">
+                                        <div className="text-sky-400 opacity-80"><Icon name="info" /></div>
+                                        <p className="text-slate-300 text-sm font-light">
+                                            <strong className="font-medium text-slate-200">Guideline:</strong> No Significant Influence. Record changes in fair value directly to Net Income.
+                                        </p>
+                                        <div className="ml-auto bg-slate-800 px-3 py-1 rounded text-xs font-medium text-sky-300 border border-slate-700">
+                                            {statsA.correctFields} / {statsA.totalFields} complete
+                                        </div>
+                                    </div>
+                                    {renderTable(transA, 'A', statsA, isBalancedA)}
+                                </div>
+                            )}
+
+                            {activeTab === 'B' && (
+                                <div className="fade-in">
+                                    <div className="mb-5 flex items-center gap-3 bg-slate-900/40 border border-slate-700 p-3 rounded-lg border-l-2 border-l-violet-500/50">
+                                        <div className="text-violet-400 opacity-80"><Icon name="info" /></div>
+                                        <p className="text-slate-300 text-sm font-light">
+                                            <strong className="font-medium text-slate-200">Guideline:</strong> Equity Method active. The investment account scales with your share of Net Income and drops with Dividends.
+                                        </p>
+                                        <div className="ml-auto bg-slate-800 px-3 py-1 rounded text-xs font-medium text-violet-300 border border-slate-700">
+                                            {statsB.correctFields} / {statsB.totalFields} complete
+                                        </div>
+                                    </div>
+                                    {renderTable(transB, 'B', statsB, isBalancedB)}
+                                </div>
+                            )}
+
+                            {activeTab === 'Quiz' && (
+                                <div className="fade-in max-w-3xl mx-auto space-y-6 py-4">
+                                    <div className="text-center mb-6 p-6">
+                                        <h3 className="text-2xl font-semibold heading-font text-slate-100 tracking-wide mb-2">Final Knowledge Audit</h3>
+                                        <p className="text-slate-400 font-light text-sm">Review your strategy and verify your understanding of both accounting methods.</p>
+                                        <div className="mt-4 inline-flex items-center gap-2 bg-slate-900/50 px-4 py-1.5 rounded-full border border-slate-700 text-amber-200/80 text-sm font-medium">
+                                            <Icon name="check-square" size={16} /> Score: {quizScore} / {QUIZ_DATA.length}
+                                        </div>
+                                    </div>
+
+                                    {QUIZ_DATA.map((q, idx) => {
+                                        const userAnswer = quizAnswers[q.id];
+                                        const isCorrect = userAnswer === q.correctIndex;
+                                        const hasAnswered = userAnswer !== undefined;
+                                        
+                                        return (
+                                            <div key={q.id} className="bg-slate-800/50 p-5 rounded-xl border border-slate-700 relative">
+                                                {/* Correct/Wrong Indicator */}
+                                                {hasAnswered && (
+                                                    <div className={`absolute top-5 right-5 w-8 h-8 rounded-full flex items-center justify-center text-sm border fade-in z-20 ${isCorrect ? 'bg-teal-500/20 border-teal-500/50 text-teal-300' : 'bg-rose-500/20 border-rose-500/50 text-rose-300'}`}>
+                                                        <Icon name={isCorrect ? 'check' : 'x'} size={16} />
+                                                    </div>
+                                                )}
+
+                                                <div className="flex items-start gap-3 mb-5 pr-10">
+                                                    <div className="text-slate-500 font-medium text-sm pt-0.5 w-6">
+                                                        {idx + 1}.
+                                                    </div>
+                                                    <h4 className="font-medium text-slate-200 text-[15px] leading-relaxed">{q.question}</h4>
+                                                </div>
+                                                
+                                                <div className="space-y-2 pl-9">
+                                                    {q.options.map((opt, optIdx) => {
+                                                        const isSelected = userAnswer === optIdx;
+                                                        
+                                                        let btnClass = "btn-soft w-full text-left p-3 rounded-lg border text-sm transition-all flex items-center gap-3 ";
+                                                        
+                                                        if (isSelected) {
+                                                            btnClass += isCorrect 
+                                                                ? "bg-teal-900/10 border-teal-500/40 text-teal-100 " 
+                                                                : "bg-rose-900/10 border-rose-500/40 text-rose-100 ";
+                                                        } else {
+                                                            btnClass += "bg-slate-900/30 hover:bg-slate-700/50 text-slate-400 hover:text-slate-200 border-slate-700 ";
+                                                        }
+
+                                                        if (isInstructor && optIdx === q.correctIndex) {
+                                                            btnClass += " ring-1 ring-violet-500/50 bg-violet-900/10";
+                                                        }
+
+                                                        return (
+                                                            <button 
+                                                                key={optIdx}
+                                                                onClick={() => handleQuizSelect(q.id, optIdx)}
+                                                                className={btnClass}
+                                                            >
+                                                                <div className={`w-4 h-4 rounded-full border flex-shrink-0 flex items-center justify-center ${isSelected ? (isCorrect ? 'bg-teal-500/20 border-teal-500/50' : 'bg-rose-500/20 border-rose-500/50') : 'border-slate-600 bg-slate-800'}`}>
+                                                                    {isSelected && <div className={`w-1.5 h-1.5 rounded-full ${isCorrect ? 'bg-teal-300' : 'bg-rose-300'}`}></div>}
+                                                                </div>
+                                                                <span className="flex-1 font-light">{opt}</span>
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Floating Submit/Report Button */}
+                    <div className="fixed bottom-6 right-6 z-50">
+                        <button 
+                            onClick={() => setShowDownloadModal(true)}
+                            className="btn-soft flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium py-3 px-6 rounded-full border border-slate-600 text-sm shadow-lg transition-colors"
+                        >
+                            <Icon name="file-down" size={18} className="text-sky-400" /> Save Report
+                        </button>
+                    </div>
+
+                    {/* --- MODALS --- */}
+                    
+                    {/* Confirmation Modal */}
+                    {confirmation.isOpen && (
+                        <div className="fixed inset-0 bg-slate-900/80 flex items-center justify-center z-[100] backdrop-blur-sm fade-in p-4">
+                            <div className="bg-slate-800 p-6 rounded-xl shadow-xl max-w-sm w-full border border-slate-700 pop-in">
+                                <h3 className="font-medium text-lg mb-2 text-slate-100 heading-font">Reset Session</h3>
+                                <p className="text-slate-400 text-sm font-light mb-6">{confirmation.message}</p>
+                                <div className="flex justify-end gap-3">
+                                    <button onClick={() => setConfirmation({ isOpen: false, message: '', onConfirm: null })} className="btn-soft px-4 py-2 text-sm text-slate-400 hover:text-slate-200 transition-colors">Cancel</button>
+                                    <button onClick={confirmation.onConfirm} className="btn-soft px-4 py-2 text-sm bg-rose-500/10 text-rose-300 hover:bg-rose-500/20 border border-rose-500/30 rounded-lg transition-colors">Confirm Reset</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Download Modal */}
+                    {showDownloadModal && (
+                        <div className="fixed inset-0 bg-slate-900/80 flex items-center justify-center z-[100] backdrop-blur-sm fade-in p-4">
+                            <div className="bg-slate-800 p-8 rounded-xl shadow-xl max-w-sm w-full border border-slate-700 pop-in text-center">
+                                <div className="w-12 h-12 bg-sky-500/10 border border-sky-500/30 rounded-full flex items-center justify-center mx-auto mb-4 text-sky-400">
+                                    <Icon name="bookmark" size={24} />
+                                </div>
+                                <h3 className="font-medium text-lg mb-1 text-slate-100 heading-font">Save Progress</h3>
+                                <p className="text-slate-400 text-sm font-light mb-6">Enter your identifier to record your score.</p>
+                                
+                                <div className="mb-6">
+                                    <input 
+                                        type="text" 
+                                        value={studentName}
+                                        onChange={(e) => setStudentName(e.target.value)}
+                                        className="w-full bg-slate-900/50 border border-slate-700 p-3 rounded-lg text-slate-200 outline-none focus:border-sky-500/50 font-light text-center shadow-inner placeholder-slate-600 transition-colors"
+                                        placeholder="Name or ID"
+                                        autoFocus
+                                    />
+                                </div>
+                                <div className="flex justify-center gap-3">
+                                    <button onClick={() => setShowDownloadModal(false)} className="btn-soft px-5 py-2.5 text-sm text-slate-400 hover:text-slate-200 transition-colors">Cancel</button>
+                                    <button onClick={() => {
+                                        alert(`Report Saved for ${studentName || 'Guest'}. Progress: ${xpPercent}%`);
+                                        setShowDownloadModal(false);
+                                    }} className="btn-soft px-5 py-2.5 text-sm bg-sky-500/10 text-sky-300 hover:bg-sky-500/20 border border-sky-500/30 rounded-lg transition-colors">Save Data</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Auth Modal */}
+                    {showAuthModal && (
+                        <div className="fixed inset-0 bg-slate-900/80 flex items-center justify-center z-[100] backdrop-blur-sm fade-in p-4">
+                            <div className="bg-slate-800 p-8 rounded-xl shadow-xl max-w-sm w-full border border-slate-700 pop-in relative">
+                                <button onClick={() => setShowAuthModal(false)} className="absolute top-4 right-4 text-slate-500 hover:text-slate-300 transition-colors"><Icon name="x" size={20} /></button>
+                                
+                                <div className="text-center">
+                                    <div className="w-12 h-12 bg-slate-700/50 border border-slate-600 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-400">
+                                        <Icon name="lock" size={20} />
+                                    </div>
+                                    <h3 className="font-medium text-lg mb-1 text-slate-100 heading-font">Admin Authorization</h3>
+                                    <p className="text-slate-400 text-sm font-light mb-6">Enter password to enable instructor features.</p>
+                                    
+                                    <input 
+                                        type="password" 
+                                        className="w-full bg-slate-900/50 border border-slate-700 p-3 rounded-lg text-slate-200 outline-none focus:border-violet-500/50 font-light text-center tracking-widest shadow-inner mb-4 placeholder-slate-600 transition-colors"
+                                        placeholder="••••••"
+                                        value={teacherPass}
+                                        onChange={e => setTeacherPass(e.target.value)}
+                                        onKeyDown={e => e.key === 'Enter' && attemptLogin()}
+                                        autoFocus
+                                    />
+                                    {authError && <div className="text-rose-400 font-medium text-xs mb-4 text-center pop-in">{authError}</div>}
+                                    
+                                    <button 
+                                        onClick={attemptLogin}
+                                        className="btn-soft w-full bg-slate-700 hover:bg-slate-600 border border-slate-600 text-slate-200 py-2.5 rounded-lg text-sm transition-colors"
+                                    >
+                                        Unlock Console
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
