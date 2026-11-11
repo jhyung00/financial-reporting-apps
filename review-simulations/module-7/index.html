@@ -774,9 +774,25 @@ const ConceptCheck = ({ id, questions, instructorMode, answers, updateAnswer }) 
     );
 };
 
+const SAVE_KEY = '10kdeep:review:module-7:v1';
+const readSavedWork = () => {
+    try {
+        const saved = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null');
+        if (!saved || saved.version !== 1) return {};
+        return {
+            studentName: typeof saved.studentName === 'string' ? saved.studentName : '',
+            answers: saved.answers && typeof saved.answers === 'object' && !Array.isArray(saved.answers) ? saved.answers : {},
+            activeModule: MODULES.some(m => m.id === saved.activeModule) ? saved.activeModule : 'm1'
+        };
+    } catch { return {}; }
+};
 const App = () => {
-    const [activeModule, setActiveModule] = React.useState('m1');
-    const [answers, setAnswers] = React.useState({});
+    const [restored] = React.useState(readSavedWork);
+    const [studentName, setStudentName] = React.useState(restored.studentName || '');
+    const [saveStatus, setSaveStatus] = React.useState('');
+
+    const [activeModule, setActiveModule] = React.useState(restored.activeModule || 'm1');
+    const [answers, setAnswers] = React.useState(restored.answers || {});
     const [activeInputId, setActiveInputId] = React.useState(null);
     const [instructorMode, setInstructorMode] = React.useState(false);
     const [showAuthModal, setShowAuthModal] = React.useState(false);
@@ -784,6 +800,50 @@ const App = () => {
     const [passwordInput, setPasswordInput] = React.useState("");
     const [navWidth, setNavWidth] = React.useState(280);
     const [showCalculator, setShowCalculator] = React.useState(false);
+
+
+    React.useEffect(() => {
+        try {
+            localStorage.setItem(SAVE_KEY, JSON.stringify({version: 1, studentName, answers, activeModule}));
+            setSaveStatus('Saved on this browser');
+        } catch {
+            setSaveStatus('Autosave unavailable. Download your answers before leaving.');
+        }
+    }, [studentName, answers, activeModule]);
+
+    const downloadAnswers = () => {
+        if (!studentName.trim()) {
+            alert('Enter your name before downloading your answers.');
+            document.getElementById('student-name').focus();
+            return;
+        }
+        const lines = [
+            'MODULE 7 — COMCAST BOND ACCOUNTING SIMULATION',
+            'Student: ' + studentName.trim(),
+            'Downloaded: ' + new Date().toLocaleString(),
+            ''
+        ];
+        const response = id => answers[id] === undefined || answers[id] === '' ? '[Not answered]' : String(answers[id]);
+        MODULES.forEach(mod => {
+            lines.push(mod.reviewId + ': ' + mod.title);
+            if (mod.type === 'concept') {
+                CONCEPT_QUESTIONS[mod.id].forEach((q, i) => lines.push((i + 1) + '. ' + q.text, 'Your answer: ' + response(q.id), ''));
+            } else {
+                Object.entries(_DATA_MATRIX).filter(([id]) => id.startsWith(mod.id + '_')).forEach(([id, field]) => lines.push(field.label + ': ' + response(id)));
+            }
+            lines.push('');
+        });
+        const blob = new Blob([lines.join('\n')], {type: 'text/plain;charset=utf-8'});
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        const safeName = studentName.trim().replace(/[^\p{L}\p{N}_-]+/gu, '_').slice(0, 80) || 'Student';
+        link.download = 'Module_7_' + safeName + '_Answers.txt';
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 10000);
+    };
 
     const isResizing = React.useRef(false);
 
@@ -1223,7 +1283,7 @@ const App = () => {
 
     return (
         <div className="flex flex-col h-full">
-            <header className="bg-slate-900 text-white p-3 md:p-4 flex justify-between items-center shadow-md sticky-header z-50 shrink-0">
+            <header className="bg-slate-900 text-white p-3 md:p-4 flex flex-wrap gap-3 justify-between items-center shadow-md sticky-header z-50 shrink-0">
                 <div className="flex items-center gap-3">
                     <div className="p-2 bg-indigo-600 rounded-lg"><Icon name="bar-chart-3" className="w-6 h-6 text-white" /></div>
                     <div>
@@ -1231,7 +1291,7 @@ const App = () => {
                     </div>
                 </div>
                 <div className="flex items-center gap-2 md:gap-3">
-                    <input type="text" placeholder="Your Name" className="bg-slate-800 border-slate-700 px-3 py-1 rounded text-sm text-white w-28 md:w-auto outline-none focus:ring-1 focus:ring-indigo-500" />
+                    <input id="student-name" aria-label="Student name" value={studentName} onChange={e => setStudentName(e.target.value)} type="text" placeholder="Your Name" className="bg-slate-800 border-slate-700 px-3 py-1 rounded text-sm text-white w-28 md:w-auto outline-none focus:ring-1 focus:ring-indigo-500" />
                     <button
                         onClick={() => setShowCalculator(prev => !prev)}
                         className="bg-white/10 hover:bg-white/20 text-white px-3 py-2 rounded text-sm font-medium flex items-center gap-2 transition"
@@ -1249,6 +1309,10 @@ const App = () => {
                 </div>
             </header>
 
+            <div className="bg-indigo-50 border-b border-indigo-100 px-4 py-2 flex flex-wrap items-center justify-between gap-2 shrink-0">
+                <div className="text-xs text-slate-600"><span role="status">{saveStatus}</span><span className="block">Resume on this browser and device. Download a copy to keep or submit.</span></div>
+                <button onClick={downloadAnswers} className="bg-indigo-700 hover:bg-indigo-800 text-white px-4 py-2 rounded-lg text-sm font-semibold">Download my answers</button>
+            </div>
             {/* Sticky Instructor Toolbar */}
             {instructorMode && (
                 <div className="bg-violet-700 text-white p-2 shadow-md flex items-center justify-between z-40 instructor-toolbar shrink-0 overflow-x-auto">
